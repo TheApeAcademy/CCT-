@@ -24,7 +24,7 @@ export default function Layout() {
   }
 
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-[#0f0c29] via-[#302b63] to-[#24243e] text-white">
+    <div className="relative min-h-screen text-white">
       <StageBackground />
       <header className="sticky top-0 z-40 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-black/30 px-4 py-3 backdrop-blur">
         <NavLink to="/" className="flex items-center gap-2 text-lg font-bold tracking-tight font-display">
@@ -60,7 +60,7 @@ export default function Layout() {
           </button>
         </nav>
       </header>
-      <main className="mx-auto max-w-6xl px-4 py-6">
+      <main className="relative z-10 mx-auto max-w-6xl px-4 py-6">
         <div key={location.pathname} className="animate-page-in">
           <Outlet />
         </div>

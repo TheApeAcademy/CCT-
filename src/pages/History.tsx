@@ -42,7 +42,7 @@ export default function History() {
       <h1 className="font-display text-3xl font-extrabold">🏆 History</h1>
 
       {leaderboard.length > 0 && (
-        <div className="rounded-2xl bg-white/5 p-5">
+        <div className="rounded-2xl border border-white/5 bg-white/5 p-5 shadow-lg shadow-black/20">
           <h2 className="mb-3 font-display text-lg font-bold">Top Scores</h2>
           <div className="space-y-1">
             {leaderboard.map(([name, points], i) => (

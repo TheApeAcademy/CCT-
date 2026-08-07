@@ -72,7 +72,7 @@ export default function GameSetup() {
     <div className="mx-auto max-w-2xl space-y-6">
       <h1 className="font-display text-3xl font-extrabold">🎮 New Game Setup</h1>
 
-      <div className="space-y-2 rounded-2xl bg-white/5 p-5 transition hover:bg-white/[0.07]">
+      <div className="space-y-2 rounded-2xl border border-white/5 bg-white/5 p-5 shadow-lg shadow-black/20 transition hover:bg-white/[0.07]">
         <label className="block text-sm font-semibold text-white/80">Player / Team Name</label>
         <input
           value={playerName}
@@ -98,7 +98,7 @@ export default function GameSetup() {
         )}
       </div>
 
-      <div className="space-y-2 rounded-2xl bg-white/5 p-5 transition hover:bg-white/[0.07]">
+      <div className="space-y-2 rounded-2xl border border-white/5 bg-white/5 p-5 shadow-lg shadow-black/20 transition hover:bg-white/[0.07]">
         <label className="block text-sm font-semibold text-white/80">Question Set</label>
         <select
           value={setId ?? ''}
@@ -117,7 +117,7 @@ export default function GameSetup() {
         <p className="text-xs text-white/50">{questionCount} question{questionCount === 1 ? '' : 's'} available in this set (10 needed).</p>
       </div>
 
-      <div className="space-y-2 rounded-2xl bg-white/5 p-5 transition hover:bg-white/[0.07]">
+      <div className="space-y-2 rounded-2xl border border-white/5 bg-white/5 p-5 shadow-lg shadow-black/20 transition hover:bg-white/[0.07]">
         <label className="block text-sm font-semibold text-white/80">Timer per Question</label>
         <div className="flex flex-wrap gap-2">
           {TIMER_OPTIONS.map((t) => (
@@ -137,7 +137,7 @@ export default function GameSetup() {
         </div>
       </div>
 
-      <div className="space-y-3 rounded-2xl bg-white/5 p-5 transition hover:bg-white/[0.07]">
+      <div className="space-y-3 rounded-2xl border border-white/5 bg-white/5 p-5 shadow-lg shadow-black/20 transition hover:bg-white/[0.07]">
         <label className="block text-sm font-semibold text-white/80">Lifelines</label>
         <LifelineToggle label="50/50 — remove two wrong answers" checked={fiftyFifty} onChange={setFiftyFifty} />
         <LifelineToggle label="Ask the Church — poll the room" checked={askChurch} onChange={setAskChurch} />

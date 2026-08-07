@@ -66,7 +66,7 @@ export default function Home() {
         </Link>
       </div>
 
-      <div className="mt-6 max-w-2xl rounded-2xl bg-white/5 p-5 text-left text-sm text-white/70">
+      <div className="mt-6 max-w-2xl rounded-2xl border border-white/5 bg-white/5 p-5 text-left text-sm text-white/70 shadow-lg shadow-black/20">
         <p className="font-display font-semibold text-white">How it works</p>
         <ol className="mt-2 list-decimal space-y-1 pl-5">
           <li>Add or edit questions in the Question Bank (or use the built-in starter pack).</li>
@@ -81,7 +81,10 @@ export default function Home() {
 
 function StatCard({ label, value, delay }: { label: string; value: number; delay: number }) {
   return (
-    <div className="animate-page-in rounded-2xl bg-white/5 p-4 transition hover:scale-105 hover:bg-white/10" style={{ animationDelay: `${delay}ms` }}>
+    <div
+      className="animate-page-in rounded-2xl border border-white/5 bg-white/5 p-4 shadow-lg shadow-black/20 transition hover:scale-105 hover:bg-white/10"
+      style={{ animationDelay: `${delay}ms` }}
+    >
       <div className="font-display text-3xl font-extrabold text-amber-300">
         <CountUp value={value} durationMs={900} />
       </div>

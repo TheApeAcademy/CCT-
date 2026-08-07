@@ -229,7 +229,7 @@ export default function QuestionBank() {
               <p className="text-sm text-white/60">{questions.length} question{questions.length === 1 ? '' : 's'}</p>
             </div>
 
-            <div className="rounded-2xl bg-white/5 p-5">
+            <div className="rounded-2xl border border-white/5 bg-white/5 p-5 shadow-lg shadow-black/20">
               <h3 className="mb-3 font-display font-bold">{editingId ? 'Edit question' : 'Add a question'}</h3>
               {error && <p className="mb-2 text-sm text-red-400">{error}</p>}
               <div className="grid gap-3">

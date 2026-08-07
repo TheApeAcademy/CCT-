@@ -133,7 +133,7 @@ export default function Results() {
 
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-2xl bg-white/5 p-4 transition hover:bg-white/10">
+    <div className="rounded-2xl border border-white/5 bg-white/5 p-4 shadow-lg shadow-black/20 transition hover:bg-white/10">
       <div className="font-display text-2xl font-extrabold text-amber-300">{value}</div>
       <div className="text-xs uppercase tracking-wide text-white/60">{label}</div>
     </div>

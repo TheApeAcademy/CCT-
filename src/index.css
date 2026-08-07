@@ -17,14 +17,62 @@ body {
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
   user-select: none;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 h1, h2, h3, .font-display {
   font-family: var(--font-display);
+  letter-spacing: -0.01em;
 }
 
 button {
   font-family: inherit;
+}
+
+::selection {
+  background: rgba(250, 204, 21, 0.35);
+  color: #fff;
+}
+
+/* ---------- refined scrollbar ---------- */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(250, 204, 21, 0.35) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(250, 204, 21, 0.28);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(250, 204, 21, 0.5);
+  background-clip: padding-box;
+}
+
+/* ---------- ambient depth vignette ---------- */
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 30;
+  background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.35) 100%);
 }
 
 /* ---------- shared micro-interactions ---------- */

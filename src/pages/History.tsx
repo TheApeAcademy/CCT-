@@ -96,10 +96,10 @@ export default function History() {
               </p>
             </div>
             <div className="flex items-center gap-4">
-              <OutcomeBadge outcome={s.outcome} />
+              <OutcomeBadge outcome={s.outcome} correctCount={s.correctCount} totalLevels={s.totalLevels} />
               <div className="text-right">
                 <p className="font-bold text-amber-300">{s.pointsWon.toLocaleString()} 👑</p>
-                <p className="text-xs text-white/50">Level {s.levelReached}/{s.totalLevels}</p>
+                <p className="text-xs text-white/50">{s.correctCount}/{s.totalLevels} correct</p>
               </div>
               <button
                 onClick={() => handleDelete(s.id!)}
@@ -115,12 +115,12 @@ export default function History() {
   )
 }
 
-function OutcomeBadge({ outcome }: { outcome: string }) {
-  const map: Record<string, { label: string; classes: string }> = {
-    won: { label: '👑 Champion', classes: 'bg-amber-400/30 text-amber-300' },
-    walked_away: { label: '🚪 Walked Away', classes: 'bg-blue-400/30 text-blue-300' },
-    lost: { label: '💫 Game Over', classes: 'bg-white/10 text-white/60' },
+function OutcomeBadge({ outcome, correctCount, totalLevels }: { outcome: string; correctCount: number; totalLevels: number }) {
+  if (outcome === 'ended_early') {
+    return <span className="rounded-full bg-blue-400/30 px-3 py-1 text-xs font-bold text-blue-300">🚪 Ended Early</span>
   }
-  const { label, classes } = map[outcome] ?? map.lost
-  return <span className={`rounded-full px-3 py-1 text-xs font-bold ${classes}`}>{label}</span>
+  if (correctCount === totalLevels) {
+    return <span className="rounded-full bg-amber-400/30 px-3 py-1 text-xs font-bold text-amber-300">👑 Perfect!</span>
+  }
+  return <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white/60">✓ Completed</span>
 }

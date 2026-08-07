@@ -13,8 +13,8 @@ export default function Ladder({ currentLevel }: { currentLevel: number }) {
               isCurrent
                 ? 'animate-pulse-glow scale-105 bg-amber-400 font-extrabold text-purple-950 shadow-lg'
                 : isPast
-                  ? 'text-white/40 line-through'
-                  : l.isCheckpoint
+                  ? 'text-white/35'
+                  : l.isMilestone
                     ? 'bg-white/10 font-bold text-amber-300'
                     : 'text-white/70'
             }`}

@@ -32,6 +32,7 @@ export interface LifelinesUsed {
 export interface AnswerRecord {
   questionId: number
   questionText: string
+  options: [string, string, string, string]
   selectedIndex: number | null
   correctIndex: number
   correct: boolean
@@ -39,12 +40,15 @@ export interface AnswerRecord {
   timeTakenSec: number
   level: number
   points: number
+  funFact?: string
 }
 
-export type GameOutcome = 'won' | 'walked_away' | 'lost'
+export type GameOutcome = 'completed' | 'ended_early'
 
 export interface GameSession {
   id?: number
+  matchId?: number
+  teamIndex?: number
   playerName: string
   setId: number
   setName: string
@@ -61,15 +65,29 @@ export interface GameSession {
   timerSecondsPerQuestion: number
 }
 
+export interface Match {
+  id?: number
+  setId: number
+  setName: string
+  questionIds: number[]
+  timerSecondsPerQuestion: number
+  lifelines: LifelinesUsed
+  teamNames: string[]
+  createdAt: number
+  completedAt?: number
+}
+
 export interface LadderLevel {
   level: number
   points: number
-  isCheckpoint: boolean
+  isMilestone: boolean
   difficulty: 1 | 2 | 3 | 4 | 5
 }
 
 export interface GameConfig {
-  playerName: string
+  matchId: number
+  teamNames: string[]
+  teamIndex: number
   setId: number
   setName: string
   timerSecondsPerQuestion: number

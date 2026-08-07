@@ -1,5 +1,25 @@
 @import "tailwindcss";
 
+/* ---------- hex-pill quiz-show shapes ---------- */
+
+.hex-pill {
+  clip-path: polygon(2% 0%, 98% 0%, 100% 50%, 98% 100%, 2% 100%, 0% 50%);
+}
+
+.hex-frame {
+  clip-path: polygon(1.2% 0%, 98.8% 0%, 100% 50%, 98.8% 100%, 1.2% 100%, 0% 50%);
+  background: linear-gradient(135deg, #fde68a, #f59e0b, #fde68a);
+  padding: 3px;
+  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.6);
+}
+
+.hex-fill {
+  clip-path: polygon(1.2% 0%, 98.8% 0%, 100% 50%, 98.8% 100%, 1.2% 100%, 0% 50%);
+  background: linear-gradient(135deg, rgba(88, 28, 135, 0.95), rgba(49, 46, 129, 0.95));
+  width: 100%;
+  height: 100%;
+}
+
 :root {
   color-scheme: dark;
   --font-display: 'Baloo 2', system-ui, sans-serif;

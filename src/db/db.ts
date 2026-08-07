@@ -1,5 +1,5 @@
 import Dexie, { type Table } from 'dexie'
-import type { Question, QuestionSet, Player, GameSession } from './types'
+import type { Question, QuestionSet, Player, GameSession, Match } from './types'
 import { starterQuestions } from './seedQuestions'
 
 export class TriviaDB extends Dexie {
@@ -7,14 +7,16 @@ export class TriviaDB extends Dexie {
   questionSets!: Table<QuestionSet, number>
   players!: Table<Player, number>
   gameSessions!: Table<GameSession, number>
+  matches!: Table<Match, number>
 
   constructor() {
     super('cct-trivia')
-    this.version(1).stores({
+    this.version(2).stores({
       questions: '++id, setId, category, difficulty',
       questionSets: '++id, name',
       players: '++id, name, createdAt',
-      gameSessions: '++id, playerName, setId, finishedAt',
+      gameSessions: '++id, playerName, setId, finishedAt, matchId',
+      matches: '++id, setId, createdAt',
     })
   }
 }
@@ -35,6 +37,18 @@ export async function ensureSeedData() {
   await db.questions.bulkAdd(
     starterQuestions.map((q) => ({ ...q, setId: setId as number }))
   )
+}
+
+export async function createMatch(match: Omit<Match, 'id' | 'createdAt'>): Promise<number> {
+  return (await db.matches.add({ ...match, createdAt: Date.now() })) as number
+}
+
+export async function completeMatch(matchId: number) {
+  await db.matches.update(matchId, { completedAt: Date.now() })
+}
+
+export async function getMatchSessions(matchId: number): Promise<GameSession[]> {
+  return db.gameSessions.where('matchId').equals(matchId).sortBy('teamIndex')
 }
 
 export async function getOrCreatePlayer(name: string): Promise<Player> {

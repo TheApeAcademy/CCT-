@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { db, getOrCreatePlayer } from '../db/db'
-import { LADDER, pointsForLevel, lastCheckpointPoints, difficultyForLevel } from '../lib/ladder'
-import { selectQuestionsForGame } from '../lib/selectQuestions'
+import { db, getOrCreatePlayer, completeMatch } from '../db/db'
+import { LADDER, pointsForLevel, difficultyForLevel } from '../lib/ladder'
 import * as sound from '../lib/sound'
 import { haptics } from '../lib/haptics'
 import Confetti from '../components/Confetti'
@@ -10,7 +9,7 @@ import Ladder from '../components/Ladder'
 import CountUp from '../components/CountUp'
 import type { AnswerRecord, GameConfig, GameOutcome, LifelinesUsed, Question } from '../db/types'
 
-type Phase = 'loading' | 'intro' | 'question' | 'locked' | 'correct-prompt' | 'lifeline-audience' | 'lifeline-friend' | 'finishing'
+type Phase = 'loading' | 'intro' | 'question' | 'locked' | 'feedback' | 'lifeline-audience' | 'lifeline-friend' | 'finishing'
 
 const FRIEND_LINES = [
   "Hmm, I'm pretty sure it's...",
@@ -42,28 +41,30 @@ export default function Gameplay() {
   const [friendHint, setFriendHint] = useState<{ line: string; index: number } | null>(null)
   const [answers, setAnswers] = useState<AnswerRecord[]>([])
   const [showConfetti, setShowConfetti] = useState(false)
-  const [justCheckpoint, setJustCheckpoint] = useState(false)
 
   const questionStartRef = useRef<number>(Date.now())
+  const turnStartRef = useRef<number>(Date.now())
 
   useEffect(() => {
     if (!config) {
       navigate('/setup', { replace: true })
       return
     }
-    db.questions
-      .where('setId')
-      .equals(config.setId)
-      .toArray()
-      .then((qs) => {
-        setQuestions(selectQuestionsForGame(qs))
-        setTimeLeft(config.timerSecondsPerQuestion)
-        setPhase('intro')
-      })
+    turnStartRef.current = Date.now()
+    db.matches.get(config.matchId).then(async (match) => {
+      if (!match) {
+        navigate('/setup', { replace: true })
+        return
+      }
+      const qs = await db.questions.bulkGet(match.questionIds)
+      setQuestions(qs.filter((q): q is NonNullable<typeof q> => !!q))
+      setTimeLeft(config.timerSecondsPerQuestion)
+      setPhase('intro')
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // 3-2-1-GO intro sequence before the first question
+  // 3-2-1-GO intro sequence before this team's first question
   useEffect(() => {
     if (phase !== 'intro') return
     setIntroStep(3)
@@ -88,21 +89,27 @@ export default function Gameplay() {
   }, [phase])
 
   const currentQuestion = questions?.[currentLevel - 1]
+  const teamName = config?.teamNames[config.teamIndex] ?? ''
+  const isLastTeam = config ? config.teamIndex >= config.teamNames.length - 1 : false
+  const runningScore = answers.reduce((sum, a) => sum + (a.correct ? a.points : 0), 0)
 
-  const finishGame = useCallback(
-    async (outcome: GameOutcome, pointsWon: number, levelReached: number, finalAnswers: AnswerRecord[]) => {
+  const finishTurn = useCallback(
+    async (outcome: GameOutcome, finalAnswers: AnswerRecord[]) => {
       if (!config) return
       setPhase('finishing')
-      await getOrCreatePlayer(config.playerName)
+      await getOrCreatePlayer(teamName)
       const correctCount = finalAnswers.filter((a) => a.correct).length
+      const pointsWon = finalAnswers.reduce((sum, a) => sum + (a.correct ? a.points : 0), 0)
       const id = await db.gameSessions.add({
-        playerName: config.playerName,
+        matchId: config.matchId,
+        teamIndex: config.teamIndex,
+        playerName: teamName,
         setId: config.setId,
         setName: config.setName,
-        startedAt: questionStartRef.current,
+        startedAt: turnStartRef.current,
         finishedAt: Date.now(),
         outcome,
-        levelReached,
+        levelReached: finalAnswers.length,
         pointsWon,
         totalLevels: LADDER.length,
         correctCount,
@@ -111,9 +118,10 @@ export default function Gameplay() {
         answers: finalAnswers,
         timerSecondsPerQuestion: config.timerSecondsPerQuestion,
       })
+      if (isLastTeam) await completeMatch(config.matchId)
       navigate(`/results/${id}`, { replace: true })
     },
-    [config, lifelinesUsed, navigate]
+    [config, lifelinesUsed, navigate, teamName, isLastTeam]
   )
 
   const reveal = useCallback(
@@ -129,13 +137,15 @@ export default function Gameplay() {
       const record: AnswerRecord = {
         questionId: currentQuestion.id!,
         questionText: currentQuestion.text,
+        options: currentQuestion.options,
         selectedIndex: index,
         correctIndex: currentQuestion.correctIndex,
         correct,
         timedOut: wasTimeout,
         timeTakenSec: timeTaken,
         level: currentLevel,
-        points: correct ? pointsForLevel(currentLevel) : lastCheckpointPoints(currentLevel),
+        points: pointsForLevel(currentLevel),
+        funFact: currentQuestion.funFact,
       }
       const nextAnswers = [...answers, record]
       setAnswers(nextAnswers)
@@ -144,23 +154,15 @@ export default function Gameplay() {
 
       window.setTimeout(() => {
         setRevealed(true)
+        const isMilestone = LADDER.find((l) => l.level === currentLevel)?.isMilestone
         if (correct) {
           sound.playCorrect()
           haptics.success()
           setFlash('green')
           setShowConfetti(true)
+          if (isMilestone) sound.playCheckpoint()
           window.setTimeout(() => setFlash(null), 700)
           window.setTimeout(() => setShowConfetti(false), 1800)
-          if (currentLevel >= LADDER.length) {
-            window.setTimeout(() => finishGame('won', pointsForLevel(currentLevel), currentLevel, nextAnswers), 1500)
-          } else {
-            const isCheckpoint = LADDER.find((l) => l.level === currentLevel)?.isCheckpoint
-            if (isCheckpoint) {
-              sound.playCheckpoint()
-              setJustCheckpoint(true)
-            }
-            window.setTimeout(() => setPhase('correct-prompt'), 250)
-          }
         } else {
           sound.playWrong()
           haptics.error()
@@ -168,14 +170,11 @@ export default function Gameplay() {
           setShake(true)
           window.setTimeout(() => setFlash(null), 700)
           window.setTimeout(() => setShake(false), 550)
-          window.setTimeout(
-            () => finishGame('lost', lastCheckpointPoints(currentLevel), currentLevel - 1, nextAnswers),
-            1700
-          )
         }
+        window.setTimeout(() => setPhase('feedback'), 300)
       }, 850)
     },
-    [answers, currentLevel, currentQuestion, finishGame]
+    [answers, currentLevel, currentQuestion]
   )
 
   // Timer
@@ -202,7 +201,7 @@ export default function Gameplay() {
   }
 
   if (phase === 'intro') {
-    return <IntroCountdown playerName={config.playerName} step={introStep} />
+    return <IntroCountdown teamName={teamName} teamNumber={config.teamIndex + 1} totalTeams={config.teamNames.length} step={introStep} />
   }
 
   const handleSelect = (index: number) => {
@@ -210,7 +209,11 @@ export default function Gameplay() {
     reveal(index, false)
   }
 
-  const handleContinue = () => {
+  const handleNext = () => {
+    if (currentLevel >= LADDER.length) {
+      finishTurn('completed', answers)
+      return
+    }
     sound.playWhoosh()
     haptics.tap()
     setCurrentLevel((l) => l + 1)
@@ -220,23 +223,15 @@ export default function Gameplay() {
     setFriendHint(null)
     setTimedOut(false)
     setRevealed(false)
-    setJustCheckpoint(false)
     setTimeLeft(config.timerSecondsPerQuestion)
     questionStartRef.current = Date.now()
     setPhase('question')
   }
 
-  const handleWalkAwayAfterCorrect = () => {
-    sound.playWalkAway()
-    haptics.tap()
-    finishGame('walked_away', pointsForLevel(currentLevel), currentLevel, answers)
-  }
-
   const handleQuit = () => {
-    if (!confirm(`End the game now? ${config.playerName} will keep the points already secured.`)) return
-    const banked = currentLevel === 1 ? 0 : pointsForLevel(currentLevel - 1)
+    if (!confirm(`End ${teamName}'s turn now? Their score so far will be saved.`)) return
     sound.playWalkAway()
-    finishGame('walked_away', banked, currentLevel - 1, answers)
+    finishTurn('ended_early', answers)
   }
 
   const useFiftyFifty = () => {
@@ -293,8 +288,7 @@ export default function Gameplay() {
   }
 
   const optionLabel = (i: number) => String.fromCharCode(65 + i)
-  const secured = currentLevel === 1 ? 0 : pointsForLevel(currentLevel - 1)
-  const showResult = revealed && (phase === 'locked' || phase === 'correct-prompt')
+  const showResult = revealed && (phase === 'locked' || phase === 'feedback')
   const suspense = phase === 'locked' && !revealed
 
   return (
@@ -307,48 +301,71 @@ export default function Gameplay() {
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <p className="text-sm text-white/60">Playing as</p>
-            <p className="font-display text-xl font-bold">{config.playerName}</p>
+            <p className="text-sm text-white/60">
+              Team {config.teamIndex + 1} of {config.teamNames.length}
+            </p>
+            <p className="font-display text-xl font-bold">{teamName}</p>
           </div>
           <div className="flex items-center gap-3">
             <div className="text-right">
-              <p className="text-sm text-white/60">Secured</p>
+              <p className="text-sm text-white/60">Score</p>
               <p className="text-lg font-bold text-amber-300">
-                <CountUp value={secured} durationMs={500} /> 👑
+                <CountUp value={runningScore} durationMs={500} /> 👑
               </p>
             </div>
             <button onClick={handleQuit} className="rounded-full bg-white/10 px-4 py-2 text-sm hover:bg-white/20">
-              End Game
+              End Turn
             </button>
           </div>
         </div>
 
         {phase === 'question' && <TimerBar timeLeft={timeLeft} total={config.timerSecondsPerQuestion} />}
 
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-purple-800/60 to-indigo-900/60 p-6 shadow-xl">
-          <div className="mb-3 flex items-center gap-2 text-xs">
-            <span className="rounded-full bg-black/30 px-3 py-1 font-bold">
-              Level {currentLevel} of {LADDER.length}
-            </span>
-            <span className="rounded-full bg-black/30 px-3 py-1">{currentQuestion.category}</span>
-            {suspense && <span className="animate-pulse text-amber-300">● locking in…</span>}
+        <div className="mt-8 flex justify-center">
+          <img
+            src="/mfm-logo.webp"
+            alt=""
+            aria-hidden="true"
+            className="relative z-10 -mb-8 h-16 w-16 rounded-full shadow-lg shadow-black/40 ring-2 ring-amber-400/60 sm:h-20 sm:w-20"
+          />
+        </div>
+        <div className="hex-frame mx-auto w-full max-w-3xl">
+          <div className="hex-fill flex min-h-[110px] flex-col items-center justify-center gap-2 px-10 py-6 text-center sm:min-h-[130px]">
+            <div className="flex items-center gap-2 text-xs">
+              <span className="rounded-full bg-black/30 px-3 py-1 font-bold">
+                Q{currentLevel} of {LADDER.length}
+              </span>
+              <span className="rounded-full bg-black/30 px-3 py-1">{currentQuestion.category}</span>
+              {suspense && <span className="animate-pulse text-amber-300">● locking in…</span>}
+            </div>
+            <p className="font-display text-xl font-bold leading-snug sm:text-2xl">{currentQuestion.text}</p>
           </div>
-          <p className="font-display text-2xl font-bold leading-snug sm:text-3xl">{currentQuestion.text}</p>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 pt-2 sm:grid-cols-2">
           {currentQuestion.options.map((opt, i) => {
             const isDisabled = disabledOptions.has(i)
             const isSelected = selectedIndex === i
             const isCorrectAnswer = i === currentQuestion.correctIndex
 
-            let stateClasses = 'bg-white/10 hover:bg-white/20'
-            if (isDisabled) stateClasses = 'bg-white/5 opacity-30 line-through'
-            if (suspense && isSelected) stateClasses = 'bg-amber-400/60 animate-drumroll'
+            let fillClasses = 'from-indigo-800/80 to-indigo-950/80'
+            let borderClass = 'border-white/20'
+            if (isDisabled) fillClasses = 'from-slate-800/40 to-slate-900/40'
+            if (suspense && isSelected) {
+              fillClasses = 'from-amber-500/70 to-amber-600/70'
+              borderClass = 'border-amber-200'
+            }
             if (showResult) {
-              if (isCorrectAnswer) stateClasses = 'bg-green-500/80 ring-4 ring-green-300 scale-[1.02]'
-              else if (isSelected) stateClasses = 'bg-red-500/80 ring-4 ring-red-300'
-              else stateClasses = 'bg-white/5 opacity-50'
+              if (isCorrectAnswer) {
+                fillClasses = 'from-green-600/90 to-green-800/90'
+                borderClass = 'border-green-200'
+              } else if (isSelected) {
+                fillClasses = 'from-red-600/90 to-red-800/90'
+                borderClass = 'border-red-200'
+              } else {
+                fillClasses = 'from-slate-800/40 to-slate-900/40'
+                borderClass = 'border-white/10'
+              }
             }
 
             return (
@@ -356,16 +373,17 @@ export default function Gameplay() {
                 key={i}
                 disabled={phase !== 'question' || isDisabled}
                 onClick={() => handleSelect(i)}
-                className={`flex items-center gap-3 rounded-2xl px-5 py-4 text-left text-lg font-semibold transition-all duration-300 ${stateClasses} ${
-                  phase === 'question' && !isDisabled ? 'cursor-pointer hover:scale-[1.015]' : ''
+                className={`hex-pill flex items-center gap-3 border-2 bg-gradient-to-br px-6 py-4 text-left text-lg font-semibold text-white transition-all duration-300 ${fillClasses} ${borderClass} ${
+                  isDisabled ? 'opacity-30' : ''
+                } ${phase === 'question' && !isDisabled ? 'cursor-pointer hover:scale-[1.02] hover:brightness-110' : ''} ${
+                  suspense && isSelected ? 'animate-drumroll' : ''
                 }`}
               >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-black/30 font-bold">
-                  {optionLabel(i)}
-                </span>
-                <span>{opt}</span>
-                {showResult && isCorrectAnswer && <span className="ml-auto text-xl">✅</span>}
-                {showResult && isSelected && !isCorrectAnswer && <span className="ml-auto text-xl">❌</span>}
+                <span className="shrink-0 text-amber-300">◆</span>
+                <span className="shrink-0 font-bold">{optionLabel(i)}:</span>
+                <span className="truncate">{opt}</span>
+                {showResult && isCorrectAnswer && <span className="ml-auto shrink-0 text-xl">✅</span>}
+                {showResult && isSelected && !isCorrectAnswer && <span className="ml-auto shrink-0 text-xl">❌</span>}
               </button>
             )
           })}
@@ -389,34 +407,26 @@ export default function Gameplay() {
           />
         </div>
 
-        {phase === 'locked' && revealed && timedOut && (
-          <p className="animate-page-in text-center text-lg font-bold text-red-300">⏰ Time's up!</p>
-        )}
-        {phase === 'locked' && revealed && currentQuestion.funFact && (
-          <p className="animate-page-in rounded-xl bg-black/20 p-3 text-sm text-white/70">💡 {currentQuestion.funFact}</p>
-        )}
-
-        {phase === 'correct-prompt' && (
-          <div className="animate-page-in rounded-2xl bg-green-900/40 p-5 text-center ring-1 ring-green-400/30">
-            <p className="mb-3 font-display text-lg font-bold">
-              {justCheckpoint ? '🔒 Checkpoint secured! ' : '✅ Correct! '}
-              {config.playerName} has banked{' '}
-              <span className="text-amber-300">
-                <CountUp value={pointsForLevel(currentLevel)} durationMs={800} /> 👑
-              </span>
+        {phase === 'feedback' && (
+          <div
+            className={`animate-page-in rounded-2xl p-5 text-center ring-1 ${
+              answers[answers.length - 1]?.correct ? 'bg-green-900/40 ring-green-400/30' : 'bg-red-900/30 ring-red-400/30'
+            }`}
+          >
+            <p className="mb-2 font-display text-lg font-bold">
+              {timedOut
+                ? "⏰ Time's up!"
+                : answers[answers.length - 1]?.correct
+                  ? `✅ Correct! +${pointsForLevel(currentLevel).toLocaleString()} points`
+                  : `❌ Not quite — the correct answer was ${optionLabel(currentQuestion.correctIndex)}: ${currentQuestion.options[currentQuestion.correctIndex]}`}
             </p>
             {currentQuestion.funFact && <p className="mb-3 text-sm text-white/70">💡 {currentQuestion.funFact}</p>}
-            <div className="flex flex-wrap justify-center gap-3">
-              <button
-                onClick={handleContinue}
-                className="animate-pulse-glow rounded-xl bg-amber-400 px-6 py-3 font-bold text-purple-950 transition hover:scale-105"
-              >
-                Continue to Level {currentLevel + 1} →
-              </button>
-              <button onClick={handleWalkAwayAfterCorrect} className="rounded-xl bg-white/10 px-6 py-3 font-bold transition hover:scale-105 hover:bg-white/20">
-                Walk Away with {pointsForLevel(currentLevel).toLocaleString()} 👑
-              </button>
-            </div>
+            <button
+              onClick={handleNext}
+              className="animate-pulse-glow rounded-xl bg-amber-400 px-6 py-3 font-bold text-purple-950 transition hover:scale-105"
+            >
+              {currentLevel >= LADDER.length ? `Finish ${teamName}'s Turn →` : `Next Question →`}
+            </button>
           </div>
         )}
 
@@ -459,10 +469,26 @@ export default function Gameplay() {
   )
 }
 
-function IntroCountdown({ playerName, step }: { playerName: string; step: 3 | 2 | 1 | 0 }) {
+function IntroCountdown({
+  teamName,
+  teamNumber,
+  totalTeams,
+  step,
+}: {
+  teamName: string
+  teamNumber: number
+  totalTeams: number
+  step: 3 | 2 | 1 | 0
+}) {
   return (
-    <div className="flex flex-col items-center justify-center gap-6 py-24 text-center">
-      <p className="text-xl text-white/70">Get ready, {playerName}!</p>
+    <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
+      <img src="/mfm-logo.webp" alt="" className="h-20 w-20 rounded-full shadow-xl shadow-black/40 ring-2 ring-amber-400/50" />
+      {totalTeams > 1 && (
+        <p className="text-sm uppercase tracking-wide text-white/50">
+          Team {teamNumber} of {totalTeams}
+        </p>
+      )}
+      <p className="text-xl text-white/70">Get ready, {teamName}!</p>
       <div key={step} className="animate-number-pop font-display text-9xl font-extrabold text-amber-300 drop-shadow-[0_0_40px_rgba(250,204,21,0.6)]">
         {step === 0 ? 'GO!' : step}
       </div>

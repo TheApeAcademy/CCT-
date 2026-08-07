@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, Suspense, lazy } from 'react'
 import { HashRouter, Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout'
 import SplashScreen from './components/SplashScreen'
@@ -11,6 +11,21 @@ import Gameplay from './pages/Gameplay'
 import Results from './pages/Results'
 import MatchResults from './pages/MatchResults'
 import History from './pages/History'
+import Training from './pages/Training'
+import TransitionClass from './pages/TransitionClass'
+import TransitionLectureDetail from './pages/TransitionLectureDetail'
+import TransitionCheckpoint from './pages/TransitionCheckpoint'
+import MockExam from './pages/MockExam'
+
+// These two are the only screens that need the network (Supabase). Lazy
+// load them so the @supabase/supabase-js bundle never has to be fetched or
+// parsed by kids using the fully offline parts of the app.
+const AskShare = lazy(() => import('./pages/AskShare'))
+const TeacherDashboard = lazy(() => import('./pages/TeacherDashboard'))
+
+function LazyFallback() {
+  return <div className="py-20 text-center text-xl">Loading…</div>
+}
 
 function App() {
   const [seeded, setSeeded] = useState(false)
@@ -50,6 +65,27 @@ function App() {
             <Route path="results/:sessionId" element={<Results />} />
             <Route path="match-results/:matchId" element={<MatchResults />} />
             <Route path="history" element={<History />} />
+            <Route path="training" element={<Training />} />
+            <Route path="transition" element={<TransitionClass />} />
+            <Route path="transition/lecture/:id" element={<TransitionLectureDetail />} />
+            <Route path="transition/lecture/:id/checkpoint" element={<TransitionCheckpoint />} />
+            <Route path="transition/mock-exam" element={<MockExam />} />
+            <Route
+              path="ask"
+              element={
+                <Suspense fallback={<LazyFallback />}>
+                  <AskShare />
+                </Suspense>
+              }
+            />
+            <Route
+              path="teacher"
+              element={
+                <Suspense fallback={<LazyFallback />}>
+                  <TeacherDashboard />
+                </Suspense>
+              }
+            />
           </Route>
         </Routes>
       </HashRouter>

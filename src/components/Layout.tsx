@@ -8,7 +8,11 @@ const navItems = [
   { to: '/', label: '🏠 Home' },
   { to: '/questions', label: '📚 Question Bank' },
   { to: '/setup', label: '🎮 New Game' },
+  { to: '/training', label: '🏋️ Training' },
+  { to: '/transition', label: '🎓 Transition Class' },
   { to: '/history', label: '🏆 History' },
+  { to: '/ask', label: '💌 Ask & Share' },
+  { to: '/teacher', label: '👩‍🏫 Teacher' },
 ]
 
 export default function Layout() {

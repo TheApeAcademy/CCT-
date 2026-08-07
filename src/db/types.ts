@@ -97,3 +97,52 @@ export interface GameConfig {
     phoneFriend: boolean
   }
 }
+
+export interface PracticeSession {
+  id?: number
+  playerName: string
+  setId: number
+  setName: string
+  startedAt: number
+  finishedAt: number
+  questionsAnswered: number
+  correctCount: number
+  bestStreak: number
+}
+
+export interface TransitionLecture {
+  id?: number
+  title: string
+  body: string
+  citations: string[]
+  order: number
+  createdAt: number
+}
+
+export interface TransitionQuestion {
+  id?: number
+  lectureId: number
+  text: string
+  options: [string, string, string, string]
+  correctIndex: 0 | 1 | 2 | 3
+  funFact?: string
+}
+
+export interface TransitionCheckpointResult {
+  id?: number
+  playerName: string
+  lectureId: number
+  score: number
+  total: number
+  passedAt: number
+}
+
+export interface MockExamAttempt {
+  id?: number
+  playerName: string
+  startedAt: number
+  finishedAt: number
+  totalQuestions: number
+  correctCount: number
+  scorePct: number
+}

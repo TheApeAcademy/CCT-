@@ -30,47 +30,53 @@ export default function Home() {
           </span>
         </h1>
         <p className="mx-auto mt-3 max-w-xl text-lg text-white/70">
-          A fully offline, Millionaire-style trivia game built for children's church.
-          No wifi needed. Everything lives right here on this device.
+          A children's church companion app. Compete, train, prepare for Transition Class, and share what's on
+          your mind, all in one place.
         </p>
       </div>
 
       <div className="grid w-full max-w-2xl grid-cols-2 gap-4 sm:grid-cols-4">
         <StatCard label="Questions" value={stats.questions} delay={0} />
         <StatCard label="Question Sets" value={stats.sets} delay={80} />
-        <StatCard label="Games Played" value={stats.games} delay={160} />
+        <StatCard label="Matches Played" value={stats.games} delay={160} />
         <StatCard label="Kids" value={stats.kids} delay={240} />
       </div>
 
-      <div className="flex flex-wrap justify-center gap-4">
-        <Link
+      <div className="grid w-full max-w-4xl grid-cols-1 gap-4 sm:grid-cols-2">
+        <SectionCard
           to="/setup"
-          onClick={() => playClick()}
-          className="animate-pulse-glow rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-500 px-8 py-4 text-xl font-bold text-purple-950 shadow-lg transition hover:scale-105"
-        >
-          🎮 Start a Game
-        </Link>
-        <Link
-          to="/questions"
-          onClick={() => playClick()}
-          className="rounded-2xl bg-white/10 px-8 py-4 text-xl font-bold text-white shadow-lg transition hover:scale-105 hover:bg-white/20"
-        >
-          📚 Manage Questions
-        </Link>
-        <Link
-          to="/history"
-          onClick={() => playClick()}
-          className="rounded-2xl bg-white/10 px-8 py-4 text-xl font-bold text-white shadow-lg transition hover:scale-105 hover:bg-white/20"
-        >
-          🏆 View History
-        </Link>
+          emoji="🎮"
+          title="Compete"
+          description="Host a live trivia match. Add teams, take turns on the shared screen, and see who tops the leaderboard."
+          featured
+        />
+        <SectionCard
+          to="/training"
+          emoji="🏋️"
+          title="Training Mode"
+          description="Unlimited solo practice. No teams, no timer, no pressure. Train, train, train, and train some more."
+        />
+        <SectionCard
+          to="/transition"
+          emoji="🎓"
+          title="Transition Class"
+          description="Getting ready for teenage church: lectures, bible citations, checkpoint quizzes, and mock exams."
+        />
+        <SectionCard
+          to="/ask"
+          emoji="💌"
+          title="Ask & Share"
+          description="A safe space to drop a question or a worry, anonymously or not, and get a reply from your teacher."
+        />
+        <SectionCard to="/questions" emoji="📚" title="Question Bank" description="Add, edit, import, and export trivia questions and sets." />
+        <SectionCard to="/history" emoji="🏆" title="History" description="Every completed match, team score, and full recap." />
       </div>
 
-      <div className="mt-6 max-w-2xl rounded-2xl border border-white/5 bg-white/5 p-5 text-left text-sm text-white/70 shadow-lg shadow-black/20">
+      <div className="mt-2 max-w-2xl rounded-2xl border border-white/5 bg-white/5 p-5 text-left text-sm text-white/70 shadow-lg shadow-black/20">
         <p className="font-display font-semibold text-white">How it works</p>
         <ol className="mt-2 list-decimal space-y-1 pl-5">
           <li>Add or edit questions in the Question Bank (or use the built-in starter pack).</li>
-          <li>Start a game, add each team or kid playing, pick a question set and timer.</li>
+          <li>Start a match, add each team or kid playing, pick a question set and timer.</li>
           <li>Teams take turns answering 10 questions each, with lifelines: 50/50, Ask the Church, and Phone a Friend.</li>
           <li>Every completed match is saved to History with each team's score and full recap.</li>
         </ol>
@@ -90,5 +96,35 @@ function StatCard({ label, value, delay }: { label: string; value: number; delay
       </div>
       <div className="text-xs uppercase tracking-wide text-white/60">{label}</div>
     </div>
+  )
+}
+
+function SectionCard({
+  to,
+  emoji,
+  title,
+  description,
+  featured,
+}: {
+  to: string
+  emoji: string
+  title: string
+  description: string
+  featured?: boolean
+}) {
+  return (
+    <Link
+      to={to}
+      onClick={() => playClick()}
+      className={`flex flex-col items-start gap-2 rounded-2xl p-6 text-left shadow-lg transition hover:scale-[1.02] ${
+        featured
+          ? 'animate-pulse-glow bg-gradient-to-br from-amber-400 to-yellow-500 text-purple-950'
+          : 'border border-white/5 bg-white/5 text-white shadow-black/20 hover:bg-white/10'
+      }`}
+    >
+      <span className="text-3xl">{emoji}</span>
+      <span className="font-display text-xl font-bold">{title}</span>
+      <span className={featured ? 'text-purple-950/80' : 'text-white/60'}>{description}</span>
+    </Link>
   )
 }

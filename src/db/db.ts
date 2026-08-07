@@ -1,5 +1,16 @@
 import Dexie, { type Table } from 'dexie'
-import type { Question, QuestionSet, Player, GameSession, Match } from './types'
+import type {
+  Question,
+  QuestionSet,
+  Player,
+  GameSession,
+  Match,
+  PracticeSession,
+  TransitionLecture,
+  TransitionQuestion,
+  TransitionCheckpointResult,
+  MockExamAttempt,
+} from './types'
 import { starterQuestions } from './seedQuestions'
 
 export class TriviaDB extends Dexie {
@@ -8,6 +19,11 @@ export class TriviaDB extends Dexie {
   players!: Table<Player, number>
   gameSessions!: Table<GameSession, number>
   matches!: Table<Match, number>
+  practiceSessions!: Table<PracticeSession, number>
+  transitionLectures!: Table<TransitionLecture, number>
+  transitionQuestions!: Table<TransitionQuestion, number>
+  transitionCheckpointResults!: Table<TransitionCheckpointResult, number>
+  mockExamAttempts!: Table<MockExamAttempt, number>
 
   constructor() {
     super('cct-trivia')
@@ -17,6 +33,13 @@ export class TriviaDB extends Dexie {
       players: '++id, name, createdAt',
       gameSessions: '++id, playerName, setId, finishedAt, matchId',
       matches: '++id, setId, createdAt',
+    })
+    this.version(3).stores({
+      practiceSessions: '++id, playerName, setId, finishedAt',
+      transitionLectures: '++id, order',
+      transitionQuestions: '++id, lectureId',
+      transitionCheckpointResults: '++id, playerName, lectureId',
+      mockExamAttempts: '++id, playerName, finishedAt',
     })
   }
 }

@@ -1,7 +1,7 @@
 import type { LadderLevel } from '../db/types'
 
 // 10-question ladder of increasing difficulty and point value. Levels 5 and
-// 10 are marked as milestones purely for visual flair in the sidebar — there
+// 10 are marked as milestones purely for visual flair in the sidebar. There
 // is no elimination, so nothing is actually at risk.
 export const LADDER: LadderLevel[] = [
   { level: 1, points: 100, isMilestone: false, difficulty: 1 },

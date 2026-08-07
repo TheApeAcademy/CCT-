@@ -334,7 +334,7 @@ export default function QuestionBank() {
                   </div>
                 </div>
               ))}
-              {questions.length === 0 && <p className="text-sm text-white/50">No questions yet — add one above.</p>}
+              {questions.length === 0 && <p className="text-sm text-white/50">No questions yet. Add one above.</p>}
             </div>
           </>
         )}

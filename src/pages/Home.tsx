@@ -31,7 +31,7 @@ export default function Home() {
         </h1>
         <p className="mx-auto mt-3 max-w-xl text-lg text-white/70">
           A fully offline, Millionaire-style trivia game built for children's church.
-          No wifi needed — everything lives right here on this device.
+          No wifi needed. Everything lives right here on this device.
         </p>
       </div>
 
@@ -70,9 +70,9 @@ export default function Home() {
         <p className="font-display font-semibold text-white">How it works</p>
         <ol className="mt-2 list-decimal space-y-1 pl-5">
           <li>Add or edit questions in the Question Bank (or use the built-in starter pack).</li>
-          <li>Start a game, type in the kid's or team's name, pick a question set and timer.</li>
-          <li>Play through 10 levels of questions with lifelines — 50/50, Ask the Church, and Phone a Friend.</li>
-          <li>Every completed game is automatically saved to History with the score and answers.</li>
+          <li>Start a game, add each team or kid playing, pick a question set and timer.</li>
+          <li>Teams take turns answering 10 questions each, with lifelines: 50/50, Ask the Church, and Phone a Friend.</li>
+          <li>Every completed match is saved to History with each team's score and full recap.</li>
         </ol>
       </div>
     </div>

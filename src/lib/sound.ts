@@ -1,4 +1,4 @@
-// Synthesized sound engine (Web Audio API) — zero external audio assets,
+// Synthesized sound engine (Web Audio API), zero external audio assets,
 // so every effect works fully offline and ships inside the JS bundle.
 
 let ctx: AudioContext | null = null
@@ -28,6 +28,17 @@ export function setMuted(value: boolean) {
 }
 export function isMuted() {
   return muted
+}
+
+/**
+ * Creates and resumes the AudioContext. Browsers (especially iOS Safari in
+ * installed/standalone mode) only allow audio to start inside a real user
+ * gesture, so this is meant to be called directly from the very first
+ * pointerdown/click of a session rather than lazily from the first sound.
+ */
+export function unlockAudio() {
+  const c = getCtx()
+  if (c.state === 'suspended') c.resume()
 }
 
 function tone(freq: number, start: number, duration: number, type: OscillatorType = 'sine', gainPeak = 0.2, glideTo?: number) {

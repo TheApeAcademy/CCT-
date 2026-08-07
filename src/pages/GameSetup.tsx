@@ -212,9 +212,9 @@ export default function GameSetup() {
 
       <div className="space-y-3 rounded-2xl border border-white/5 bg-white/5 p-5 shadow-lg shadow-black/20 transition hover:bg-white/[0.07]">
         <label className="block text-sm font-semibold text-white/80">Lifelines (per team, per turn)</label>
-        <LifelineToggle label="50/50 — remove two wrong answers" checked={fiftyFifty} onChange={setFiftyFifty} />
-        <LifelineToggle label="Ask the Church — poll the room" checked={askChurch} onChange={setAskChurch} />
-        <LifelineToggle label="Phone a Friend — get a hint" checked={phoneFriend} onChange={setPhoneFriend} />
+        <LifelineToggle label="50/50: remove two wrong answers" checked={fiftyFifty} onChange={setFiftyFifty} />
+        <LifelineToggle label="Ask the Church: poll the room" checked={askChurch} onChange={setAskChurch} />
+        <LifelineToggle label="Phone a Friend: get a hint" checked={phoneFriend} onChange={setPhoneFriend} />
       </div>
 
       {error && <p className={`text-sm text-red-400 ${errorShake ? 'animate-screen-shake' : ''}`}>{error}</p>}

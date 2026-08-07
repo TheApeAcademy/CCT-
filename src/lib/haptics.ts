@@ -1,4 +1,4 @@
-// Thin wrapper over the Vibration API — no-ops silently on unsupported
+// Thin wrapper over the Vibration API. No-ops silently on unsupported
 // devices (iOS Safari, desktop), so it's always safe to call.
 
 function vibrate(pattern: number | number[]) {

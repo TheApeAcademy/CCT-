@@ -48,7 +48,7 @@ export default function Results() {
   const encouragement = isPerfect
     ? 'Every single question, nailed it. Legendary run!'
     : endedEarly
-      ? 'No worries — every point earned still counts.'
+      ? 'No worries, every point earned still counts.'
       : session.correctCount >= session.totalLevels / 2
         ? 'Great job! Solid round of trivia.'
         : 'Nice try! Every question is a chance to learn something new.'

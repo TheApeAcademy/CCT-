@@ -418,7 +418,7 @@ export default function Gameplay() {
                 ? "⏰ Time's up!"
                 : answers[answers.length - 1]?.correct
                   ? `✅ Correct! +${pointsForLevel(currentLevel).toLocaleString()} points`
-                  : `❌ Not quite — the correct answer was ${optionLabel(currentQuestion.correctIndex)}: ${currentQuestion.options[currentQuestion.correctIndex]}`}
+                  : `❌ Not quite. The correct answer was ${optionLabel(currentQuestion.correctIndex)}: ${currentQuestion.options[currentQuestion.correctIndex]}`}
             </p>
             {currentQuestion.funFact && <p className="mb-3 text-sm text-white/70">💡 {currentQuestion.funFact}</p>}
             <button
@@ -454,7 +454,7 @@ export default function Gameplay() {
             <p className="text-lg">
               "{friendHint.line}{' '}
               <span className="font-bold text-amber-300">
-                {optionLabel(friendHint.index)} — {currentQuestion.options[friendHint.index]}
+                {optionLabel(friendHint.index)}: {currentQuestion.options[friendHint.index]}
               </span>
               "
             </p>

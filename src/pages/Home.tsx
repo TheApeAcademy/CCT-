@@ -21,6 +21,12 @@ export default function Home() {
 
   return (
     <div className="flex flex-col items-center gap-8 py-8 text-center">
+      <img
+        src="/hero-kids.webp"
+        alt="A joyful group of kids laughing together over open books"
+        className="animate-page-in h-56 w-full max-w-3xl rounded-3xl object-cover shadow-2xl shadow-black/40 ring-1 ring-white/10 sm:h-72"
+      />
+
       <div>
         <p className="mb-2 text-4xl">🏆✨👑</p>
         <h1 className="font-display text-4xl font-extrabold tracking-tight sm:text-5xl">

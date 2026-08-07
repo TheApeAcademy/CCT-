@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { submitQuestion, fetchMySubmission, getMyClaimTokens, type QaSubmission } from '../lib/supabase'
+import { getKidProfile } from '../lib/kidProfile'
 import { playClick } from '../lib/sound'
 import { haptics } from '../lib/haptics'
 
@@ -114,7 +115,14 @@ export default function AskShare() {
               <p className="text-white/60">Nothing is tied to you at all. Your teacher can answer but won't know who asked.</p>
             </button>
             <button
-              onClick={() => setMode('reachable')}
+              onClick={() => {
+                setMode('reachable')
+                const profile = getKidProfile()
+                if (profile) {
+                  setDisplayName((d) => d || profile.name)
+                  setContactNote((c) => c || profile.className)
+                }
+              }}
               className={`rounded-xl border-2 p-3 text-left text-sm transition ${
                 mode === 'reachable' ? 'border-amber-400 bg-amber-400/10' : 'border-white/10 bg-white/5 hover:bg-white/10'
               }`}

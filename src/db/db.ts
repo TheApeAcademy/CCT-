@@ -74,12 +74,18 @@ export async function getMatchSessions(matchId: number): Promise<GameSession[]> 
   return db.gameSessions.where('matchId').equals(matchId).sortBy('teamIndex')
 }
 
-export async function getOrCreatePlayer(name: string): Promise<Player> {
+export async function getOrCreatePlayer(name: string, className?: string): Promise<Player> {
   const trimmed = name.trim()
   const existing = await db.players.where('name').equalsIgnoreCase(trimmed).first()
-  if (existing) return existing
-  const id = await db.players.add({ name: trimmed, createdAt: Date.now() })
-  return { id: id as number, name: trimmed, createdAt: Date.now() }
+  if (existing) {
+    if (className && !existing.className) {
+      await db.players.update(existing.id!, { className })
+      return { ...existing, className }
+    }
+    return existing
+  }
+  const id = await db.players.add({ name: trimmed, className, createdAt: Date.now() })
+  return { id: id as number, name: trimmed, className, createdAt: Date.now() }
 }
 
 export interface ExportBundle {

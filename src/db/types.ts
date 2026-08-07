@@ -20,6 +20,7 @@ export interface QuestionSet {
 export interface Player {
   id?: number
   name: string
+  className?: string
   createdAt: number
 }
 

@@ -5,6 +5,7 @@ import * as sound from '../lib/sound'
 import { haptics } from '../lib/haptics'
 import Confetti from '../components/Confetti'
 import CountUp from '../components/CountUp'
+import { useKidProfile, KidSignupCard, KidProfileBar } from '../components/KidProfile'
 import type { Question } from '../db/types'
 
 type Phase = 'setup' | 'question' | 'feedback' | 'summary'
@@ -24,10 +25,10 @@ export default function Training() {
   }, [])
 
   const sets = useLiveQuery(() => db.questionSets.toArray(), []) ?? []
-  const recentPlayers = useLiveQuery(() => db.players.orderBy('createdAt').reverse().limit(10).toArray(), []) ?? []
+  const { profile, save: saveProfile, clear: clearProfile } = useKidProfile()
+  const playerName = profile?.name ?? ''
 
   const [phase, setPhase] = useState<Phase>('setup')
-  const [playerName, setPlayerName] = useState('')
   const [setId, setSetId] = useState<number | null>(null)
   const [pool, setPool] = useState<Question[]>([])
   const [queue, setQueue] = useState<Question[]>([])
@@ -63,10 +64,10 @@ export default function Training() {
   )
 
   const handleStart = async () => {
-    if (!setId) return
+    if (!setId || !profile) return
     const qs = await db.questions.where('setId').equals(setId).toArray()
     if (qs.length < 4) return
-    await getOrCreatePlayer(playerName.trim() || 'Guest')
+    await getOrCreatePlayer(profile.name, profile.className)
     sound.playNav()
     haptics.success()
     const shuffled = shuffle(qs)
@@ -124,7 +125,7 @@ export default function Training() {
     if (answered > 0 && setId) {
       const selectedSet = sets.find((s) => s.id === setId)
       await db.practiceSessions.add({
-        playerName: playerName.trim() || 'Guest',
+        playerName: profile?.name ?? 'Guest',
         setId,
         setName: selectedSet?.name ?? '',
         startedAt,
@@ -145,6 +146,9 @@ export default function Training() {
   const accuracy = answered > 0 ? Math.round((correct / answered) * 100) : 0
 
   if (phase === 'setup') {
+    if (!profile) {
+      return <KidSignupCard subtitle="Sign up once and Training will remember you next time." onDone={saveProfile} />
+    }
     return (
       <div className="mx-auto max-w-2xl space-y-6">
         <div className="text-center">
@@ -155,31 +159,7 @@ export default function Training() {
           </p>
         </div>
 
-        <div className="space-y-2 rounded-2xl border border-white/5 bg-white/5 p-5 shadow-lg shadow-black/20">
-          <label className="block text-sm font-semibold text-white/80">Your name (optional)</label>
-          <input
-            value={playerName}
-            onChange={(e) => setPlayerName(e.target.value)}
-            placeholder="e.g. Ellie"
-            className="w-full rounded-lg bg-white/10 px-4 py-3 text-lg outline-none focus:ring-2 focus:ring-amber-400"
-          />
-          {recentPlayers.length > 0 && (
-            <div className="flex flex-wrap gap-2 pt-1">
-              {recentPlayers.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => {
-                    setPlayerName(p.name)
-                    sound.playClick()
-                  }}
-                  className="rounded-full bg-white/10 px-3 py-1 text-xs transition hover:scale-105 hover:bg-white/20"
-                >
-                  {p.name}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <KidProfileBar profile={profile} onSwitch={clearProfile} />
 
         <div className="space-y-2 rounded-2xl border border-white/5 bg-white/5 p-5 shadow-lg shadow-black/20">
           <label className="block text-sm font-semibold text-white/80">Question Set</label>
@@ -214,7 +194,10 @@ export default function Training() {
       <div className="mx-auto max-w-2xl space-y-6 text-center">
         <p className="text-6xl">🎉</p>
         <h1 className="font-display text-4xl font-extrabold">Nice Training Session!</h1>
-        <p className="text-white/60">{playerName.trim() || 'Guest'}</p>
+        <p className="text-white/60">
+          {playerName || 'Guest'}
+          {profile?.className && <span className="text-white/40"> · {profile.className}</span>}
+        </p>
 
         <div className="rounded-3xl bg-gradient-to-br from-purple-800/60 to-indigo-900/60 p-8 shadow-2xl">
           <p className="text-sm uppercase tracking-wide text-white/60">Accuracy</p>
@@ -255,7 +238,7 @@ export default function Training() {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <p className="text-sm text-white/60">Training as</p>
-            <p className="font-display text-xl font-bold">{playerName.trim() || 'Guest'}</p>
+            <p className="font-display text-xl font-bold">{playerName || 'Guest'}</p>
           </div>
           <div className="flex items-center gap-4">
             <div className="text-right">

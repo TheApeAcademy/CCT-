@@ -1,11 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
 import { playClick } from '../lib/sound'
 import { haptics } from '../lib/haptics'
-
-const LEARNER_KEY = 'cct-current-learner'
+import { useKidProfile, KidSignupCard, KidProfileBar } from '../components/KidProfile'
 
 export default function TransitionClass() {
   const navigate = useNavigate()
@@ -17,21 +16,13 @@ export default function TransitionClass() {
     return map
   }, []) ?? new Map<number, number>()
 
-  const [learner, setLearner] = useState('')
+  const { profile, save: saveProfile, clear: clearProfile } = useKidProfile()
+  const learner = profile?.name ?? ''
   const [creating, setCreating] = useState(false)
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [citationsText, setCitationsText] = useState('')
   const [error, setError] = useState('')
-
-  useEffect(() => {
-    setLearner(localStorage.getItem(LEARNER_KEY) ?? '')
-  }, [])
-
-  const updateLearner = (value: string) => {
-    setLearner(value)
-    localStorage.setItem(LEARNER_KEY, value)
-  }
 
   const progress = useLiveQuery(async () => {
     if (!learner.trim()) return new Map<number, boolean>()
@@ -89,23 +80,22 @@ export default function TransitionClass() {
         </p>
       </div>
 
-      <div className="space-y-2 rounded-2xl border border-white/5 bg-white/5 p-5 shadow-lg shadow-black/20">
-        <label className="block text-sm font-semibold text-white/80">Your name</label>
-        <input
-          value={learner}
-          onChange={(e) => updateLearner(e.target.value)}
-          placeholder="e.g. Ellie"
-          className="w-full rounded-lg bg-white/10 px-4 py-3 text-lg outline-none focus:ring-2 focus:ring-amber-400"
+      {!profile ? (
+        <KidSignupCard
+          subtitle="Sign up so Transition Class can track your lecture progress and checkpoint scores."
+          onDone={saveProfile}
         />
-        <p className="text-xs text-white/50">Used to track your lecture progress and checkpoint scores.</p>
-      </div>
-
-      <button
-        onClick={goToMockExam}
-        className="w-full rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-500 py-4 text-xl font-bold text-purple-950 shadow-lg shadow-amber-400/20 transition hover:scale-[1.02]"
-      >
-        📝 Take a Mock Exam
-      </button>
+      ) : (
+        <>
+          <KidProfileBar profile={profile} onSwitch={clearProfile} />
+          <button
+            onClick={goToMockExam}
+            className="w-full rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-500 py-4 text-xl font-bold text-purple-950 shadow-lg shadow-amber-400/20 transition hover:scale-[1.02]"
+          >
+            📝 Take a Mock Exam
+          </button>
+        </>
+      )}
 
       <div className="space-y-3">
         <div className="flex items-center justify-between">

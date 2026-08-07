@@ -64,3 +64,9 @@ export async function fetchMySubmission(token: string): Promise<QaSubmission | n
   if (error) throw error
   return data?.[0] ?? null
 }
+
+export async function fetchMyTeacherApproval(userId: string): Promise<boolean> {
+  const { data, error } = await supabase.from('teacher_profiles').select('approved').eq('id', userId).single()
+  if (error) throw error
+  return data?.approved ?? false
+}

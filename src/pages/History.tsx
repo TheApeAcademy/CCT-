@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/db'
+import { playClick } from '../lib/sound'
+import { haptics } from '../lib/haptics'
 
 export default function History() {
   const sessions = useLiveQuery(() => db.gameSessions.orderBy('finishedAt').reverse().toArray(), []) ?? []
@@ -26,23 +28,29 @@ export default function History() {
   const handleDelete = async (id: number) => {
     if (!confirm('Delete this game record?')) return
     await db.gameSessions.delete(id)
+    haptics.tap()
   }
 
   const handleClearAll = async () => {
     if (!confirm('Delete ALL game history? This cannot be undone.')) return
     await db.gameSessions.clear()
+    haptics.tap()
   }
 
   return (
     <div className="space-y-8">
-      <h1 className="text-3xl font-extrabold">🏆 History</h1>
+      <h1 className="font-display text-3xl font-extrabold">🏆 History</h1>
 
       {leaderboard.length > 0 && (
         <div className="rounded-2xl bg-white/5 p-5">
-          <h2 className="mb-3 text-lg font-bold">Top Scores</h2>
+          <h2 className="mb-3 font-display text-lg font-bold">Top Scores</h2>
           <div className="space-y-1">
             {leaderboard.map(([name, points], i) => (
-              <div key={name} className="flex items-center justify-between rounded-lg bg-black/20 px-4 py-2">
+              <div
+                key={name}
+                className="animate-page-in flex items-center justify-between rounded-lg bg-black/20 px-4 py-2 transition hover:scale-[1.01] hover:bg-black/30"
+                style={{ animationDelay: `${i * 70}ms` }}
+              >
                 <span className="font-semibold">
                   {['🥇', '🥈', '🥉', '4.', '5.'][i]} {name}
                 </span>
@@ -61,7 +69,13 @@ export default function History() {
           className="flex-1 rounded-lg bg-white/10 px-4 py-2 outline-none focus:ring-2 focus:ring-amber-400"
         />
         {sessions.length > 0 && (
-          <button onClick={handleClearAll} className="rounded-lg bg-red-500/20 px-4 py-2 text-sm text-red-300 hover:bg-red-500/30">
+          <button
+            onClick={() => {
+              playClick()
+              handleClearAll()
+            }}
+            className="rounded-lg bg-red-500/20 px-4 py-2 text-sm text-red-300 transition hover:scale-105 hover:bg-red-500/30"
+          >
             Clear all history
           </button>
         )}
@@ -69,8 +83,12 @@ export default function History() {
 
       <div className="space-y-2">
         {filtered.length === 0 && <p className="text-white/50">No games played yet.</p>}
-        {filtered.map((s) => (
-          <div key={s.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white/5 p-4">
+        {filtered.map((s, i) => (
+          <div
+            key={s.id}
+            className="animate-page-in flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white/5 p-4 transition hover:bg-white/[0.08]"
+            style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}
+          >
             <div>
               <p className="font-bold">{s.playerName}</p>
               <p className="text-sm text-white/60">
@@ -85,7 +103,7 @@ export default function History() {
               </div>
               <button
                 onClick={() => handleDelete(s.id!)}
-                className="rounded-lg bg-white/10 px-3 py-1.5 text-xs hover:bg-red-500/30"
+                className="rounded-lg bg-white/10 px-3 py-1.5 text-xs transition hover:scale-105 hover:bg-red-500/30"
               >
                 Delete
               </button>

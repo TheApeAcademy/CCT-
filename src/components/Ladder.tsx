@@ -9,9 +9,9 @@ export default function Ladder({ currentLevel }: { currentLevel: number }) {
         return (
           <div
             key={l.level}
-            className={`flex items-center justify-between rounded-lg px-3 py-1.5 text-sm transition ${
+            className={`flex items-center justify-between rounded-lg px-3 py-1.5 text-sm transition-all duration-300 ${
               isCurrent
-                ? 'bg-amber-400 font-extrabold text-purple-950 scale-105 shadow-lg'
+                ? 'animate-pulse-glow scale-105 bg-amber-400 font-extrabold text-purple-950 shadow-lg'
                 : isPast
                   ? 'text-white/40 line-through'
                   : l.isCheckpoint

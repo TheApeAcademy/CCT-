@@ -2,6 +2,8 @@
 
 :root {
   color-scheme: dark;
+  --font-display: 'Baloo 2', system-ui, sans-serif;
+  --font-body: 'Nunito', system-ui, 'Segoe UI', Roboto, sans-serif;
 }
 
 html, body, #root {
@@ -10,19 +12,64 @@ html, body, #root {
 }
 
 body {
-  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-body);
   background: #0f0c29;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
   user-select: none;
 }
 
+h1, h2, h3, .font-display {
+  font-family: var(--font-display);
+}
+
+button {
+  font-family: inherit;
+}
+
+/* ---------- shared micro-interactions ---------- */
+
+button, a {
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.15s ease, opacity 0.15s ease;
+}
+button:active, a:active {
+  transform: scale(0.95);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ---------- page transition ---------- */
+
+@keyframes page-fade-in {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.animate-page-in {
+  animation: page-fade-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ---------- glow / pulse ---------- */
+
 @keyframes pulse-glow {
   0%, 100% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.6); }
   50% { box-shadow: 0 0 0 14px rgba(250, 204, 21, 0); }
 }
 .animate-pulse-glow {
-  animation: pulse-glow 1.5s ease-out infinite;
+  animation: pulse-glow 1.1s ease-out infinite;
+}
+
+@keyframes drumroll-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.7); transform: scale(1); }
+  50% { box-shadow: 0 0 0 10px rgba(250, 204, 21, 0); transform: scale(1.02); }
+}
+.animate-drumroll {
+  animation: drumroll-pulse 0.35s ease-in-out infinite;
 }
 
 @keyframes float-up {
@@ -31,4 +78,108 @@ body {
 }
 .animate-float-up {
   animation: float-up 1s ease-out forwards;
+}
+
+/* ---------- title shimmer ---------- */
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+.animate-shimmer {
+  background-size: 200% auto;
+  animation: shimmer 3.5s linear infinite;
+}
+
+/* ---------- screen shake (wrong answer) ---------- */
+
+@keyframes screen-shake {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-10px) rotate(-0.5deg); }
+  30% { transform: translateX(9px) rotate(0.5deg); }
+  45% { transform: translateX(-7px); }
+  60% { transform: translateX(6px); }
+  75% { transform: translateX(-4px); }
+  90% { transform: translateX(2px); }
+}
+.animate-screen-shake {
+  animation: screen-shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+/* ---------- correct flash ---------- */
+
+@keyframes flash-green {
+  0% { background-color: rgba(34, 197, 94, 0); }
+  20% { background-color: rgba(34, 197, 94, 0.35); }
+  100% { background-color: rgba(34, 197, 94, 0); }
+}
+.animate-flash-green {
+  animation: flash-green 0.7s ease-out;
+}
+
+@keyframes flash-red {
+  0% { background-color: rgba(239, 68, 68, 0); }
+  20% { background-color: rgba(239, 68, 68, 0.35); }
+  100% { background-color: rgba(239, 68, 68, 0); }
+}
+.animate-flash-red {
+  animation: flash-red 0.7s ease-out;
+}
+
+/* ---------- spotlight sweep background ---------- */
+
+@keyframes spotlight-sweep-1 {
+  0%, 100% { transform: translate(-10%, -10%) rotate(0deg); }
+  50% { transform: translate(20%, 10%) rotate(20deg); }
+}
+@keyframes spotlight-sweep-2 {
+  0%, 100% { transform: translate(10%, 10%) rotate(0deg); }
+  50% { transform: translate(-15%, -15%) rotate(-25deg); }
+}
+.animate-spotlight-1 {
+  animation: spotlight-sweep-1 14s ease-in-out infinite;
+}
+.animate-spotlight-2 {
+  animation: spotlight-sweep-2 18s ease-in-out infinite;
+}
+
+/* ---------- sparkle twinkle ---------- */
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.15; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
+.animate-twinkle {
+  animation: twinkle 2.4s ease-in-out infinite;
+}
+
+/* ---------- crown bounce (results) ---------- */
+
+@keyframes crown-bounce {
+  0% { transform: translateY(-30px) scale(0.5) rotate(-15deg); opacity: 0; }
+  50% { transform: translateY(4px) scale(1.1) rotate(8deg); opacity: 1; }
+  70% { transform: translateY(-6px) scale(1) rotate(-4deg); }
+  100% { transform: translateY(0) scale(1) rotate(0deg); }
+}
+.animate-crown-bounce {
+  animation: crown-bounce 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes gentle-bob {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-10px) rotate(3deg); }
+}
+.animate-gentle-bob {
+  animation: gentle-bob 3s ease-in-out infinite;
+}
+
+/* ---------- countdown number pop ---------- */
+
+@keyframes number-pop {
+  0% { transform: scale(0.3); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-number-pop {
+  animation: number-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }

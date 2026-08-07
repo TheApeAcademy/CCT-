@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, ensureSeedData, exportQuestionSet, importQuestionBundle, type ExportBundle } from '../db/db'
+import { playClick } from '../lib/sound'
+import { haptics } from '../lib/haptics'
 import type { Question, QuestionSet } from '../db/types'
 
 const emptyForm = {
@@ -49,6 +51,8 @@ export default function QuestionBank() {
     const name = newSetName.trim()
     if (!name) return
     const id = await db.questionSets.add({ name, createdAt: Date.now(), isStarter: false })
+    playClick()
+    haptics.success()
     setSelectedSetId(id as number)
     setNewSetName('')
     setCreatingSet(false)
@@ -58,6 +62,7 @@ export default function QuestionBank() {
     if (!confirm(`Delete "${set.name}" and all its questions? This can't be undone.`)) return
     await db.questions.where('setId').equals(set.id!).delete()
     await db.questionSets.delete(set.id!)
+    haptics.tap()
     if (selectedSetId === set.id) setSelectedSetId(null)
   }
 
@@ -93,12 +98,15 @@ export default function QuestionBank() {
     } else {
       await db.questions.add(payload)
     }
+    playClick()
+    haptics.success()
     resetForm()
   }
 
   const handleDeleteQuestion = async (id: number) => {
     if (!confirm('Delete this question?')) return
     await db.questions.delete(id)
+    haptics.tap()
     if (editingId === id) resetForm()
   }
 
@@ -112,6 +120,7 @@ export default function QuestionBank() {
     a.download = `${selectedSet?.name ?? 'question-set'}.json`
     a.click()
     URL.revokeObjectURL(url)
+    playClick()
   }
 
   const handleImportClick = () => fileInputRef.current?.click()
@@ -124,8 +133,10 @@ export default function QuestionBank() {
       const bundle = JSON.parse(text) as ExportBundle
       const newSetId = await importQuestionBundle(bundle)
       setSelectedSetId(newSetId)
+      haptics.success()
     } catch {
       alert('Could not import that file. Make sure it is a valid exported question set.')
+      haptics.error()
     } finally {
       e.target.value = ''
     }
@@ -134,15 +145,16 @@ export default function QuestionBank() {
   return (
     <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
       <aside className="space-y-3">
-        <h2 className="text-lg font-bold">Question Sets</h2>
+        <h2 className="font-display text-lg font-bold">Question Sets</h2>
         <div className="space-y-2">
           {sets.map((set) => (
             <div
               key={set.id}
-              className={`group flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm cursor-pointer transition ${
-                selectedSetId === set.id ? 'bg-amber-400 text-purple-950 font-semibold' : 'bg-white/5 hover:bg-white/10'
+              className={`group flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm cursor-pointer transition hover:scale-[1.02] ${
+                selectedSetId === set.id ? 'bg-amber-400 text-purple-950 font-semibold shadow-lg shadow-amber-400/20' : 'bg-white/5 hover:bg-white/10'
               }`}
               onClick={() => {
+                if (selectedSetId !== set.id) playClick()
                 setSelectedSetId(set.id!)
                 resetForm()
               }}
@@ -186,7 +198,7 @@ export default function QuestionBank() {
         ) : (
           <button
             onClick={() => setCreatingSet(true)}
-            className="w-full rounded-lg border border-dashed border-white/30 py-2 text-sm text-white/70 hover:bg-white/5"
+            className="w-full rounded-lg border border-dashed border-white/30 py-2 text-sm text-white/70 transition hover:scale-[1.02] hover:bg-white/5"
           >
             + New question set
           </button>
@@ -196,11 +208,11 @@ export default function QuestionBank() {
           <button
             onClick={handleExport}
             disabled={!selectedSetId}
-            className="w-full rounded-lg bg-white/10 py-2 text-sm hover:bg-white/20 disabled:opacity-40"
+            className="w-full rounded-lg bg-white/10 py-2 text-sm transition hover:scale-[1.02] hover:bg-white/20 disabled:opacity-40 disabled:hover:scale-100"
           >
             ⬇ Export selected set
           </button>
-          <button onClick={handleImportClick} className="w-full rounded-lg bg-white/10 py-2 text-sm hover:bg-white/20">
+          <button onClick={handleImportClick} className="w-full rounded-lg bg-white/10 py-2 text-sm transition hover:scale-[1.02] hover:bg-white/20">
             ⬆ Import set from file
           </button>
           <input ref={fileInputRef} type="file" accept="application/json" className="hidden" onChange={handleImportFile} />
@@ -213,12 +225,12 @@ export default function QuestionBank() {
         ) : (
           <>
             <div>
-              <h2 className="text-2xl font-bold">{selectedSet.name}</h2>
+              <h2 className="font-display text-2xl font-bold">{selectedSet.name}</h2>
               <p className="text-sm text-white/60">{questions.length} question{questions.length === 1 ? '' : 's'}</p>
             </div>
 
             <div className="rounded-2xl bg-white/5 p-5">
-              <h3 className="mb-3 font-bold">{editingId ? 'Edit question' : 'Add a question'}</h3>
+              <h3 className="mb-3 font-display font-bold">{editingId ? 'Edit question' : 'Add a question'}</h3>
               {error && <p className="mb-2 text-sm text-red-400">{error}</p>}
               <div className="grid gap-3">
                 <textarea
@@ -280,11 +292,11 @@ export default function QuestionBank() {
                   className="w-full rounded-lg bg-white/10 px-3 py-2 outline-none focus:ring-2 focus:ring-amber-400"
                 />
                 <div className="flex gap-2">
-                  <button onClick={handleSubmit} className="rounded-lg bg-amber-400 px-5 py-2 font-semibold text-purple-950">
+                  <button onClick={handleSubmit} className="rounded-lg bg-amber-400 px-5 py-2 font-semibold text-purple-950 transition hover:scale-105">
                     {editingId ? 'Save changes' : 'Add question'}
                   </button>
                   {editingId && (
-                    <button onClick={resetForm} className="rounded-lg bg-white/10 px-5 py-2">
+                    <button onClick={resetForm} className="rounded-lg bg-white/10 px-5 py-2 transition hover:scale-105">
                       Cancel
                     </button>
                   )}
@@ -293,8 +305,12 @@ export default function QuestionBank() {
             </div>
 
             <div className="space-y-2">
-              {questions.map((q) => (
-                <div key={q.id} className="flex items-start justify-between gap-3 rounded-xl bg-white/5 p-4">
+              {questions.map((q, i) => (
+                <div
+                  key={q.id}
+                  className="animate-page-in flex items-start justify-between gap-3 rounded-xl bg-white/5 p-4 transition hover:bg-white/[0.08]"
+                  style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}
+                >
                   <div>
                     <div className="mb-1 flex gap-2 text-xs">
                       <span className="rounded-full bg-purple-500/30 px-2 py-0.5">{q.category}</span>
@@ -306,12 +322,12 @@ export default function QuestionBank() {
                     </p>
                   </div>
                   <div className="flex shrink-0 gap-2">
-                    <button onClick={() => startEdit(q)} className="rounded-lg bg-white/10 px-3 py-1.5 text-sm hover:bg-white/20">
+                    <button onClick={() => startEdit(q)} className="rounded-lg bg-white/10 px-3 py-1.5 text-sm transition hover:scale-105 hover:bg-white/20">
                       Edit
                     </button>
                     <button
                       onClick={() => handleDeleteQuestion(q.id!)}
-                      className="rounded-lg bg-red-500/20 px-3 py-1.5 text-sm text-red-300 hover:bg-red-500/30"
+                      className="rounded-lg bg-red-500/20 px-3 py-1.5 text-sm text-red-300 transition hover:scale-105 hover:bg-red-500/30"
                     >
                       Delete
                     </button>

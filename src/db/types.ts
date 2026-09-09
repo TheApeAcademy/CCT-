@@ -15,6 +15,14 @@ export interface QuestionSet {
   description?: string
   createdAt: number
   isStarter?: boolean
+  seasonId?: number
+}
+
+export interface Season {
+  id?: number
+  name: string
+  isActive: boolean
+  createdAt: number
 }
 
 export interface Player {
@@ -51,8 +59,10 @@ export interface GameSession {
   matchId?: number
   teamIndex?: number
   playerName: string
+  playerPhoto?: string
   setId: number
   setName: string
+  seasonName?: string
   startedAt: number
   finishedAt: number
   outcome: GameOutcome
@@ -70,10 +80,13 @@ export interface Match {
   id?: number
   setId: number
   setName: string
+  seasonId?: number
+  seasonName?: string
   questionIds: number[]
   timerSecondsPerQuestion: number
   lifelines: LifelinesUsed
   teamNames: string[]
+  teamPhotos?: (string | undefined)[]
   createdAt: number
   completedAt?: number
 }
@@ -88,9 +101,11 @@ export interface LadderLevel {
 export interface GameConfig {
   matchId: number
   teamNames: string[]
+  teamPhotos?: (string | undefined)[]
   teamIndex: number
   setId: number
   setName: string
+  seasonName?: string
   timerSecondsPerQuestion: number
   lifelines: {
     fiftyFifty: boolean

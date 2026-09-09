@@ -7,10 +7,13 @@ import { unlockAudio } from './lib/sound'
 import Home from './pages/Home'
 import QuestionBank from './pages/QuestionBank'
 import GameSetup from './pages/GameSetup'
+import GroundRules from './pages/GroundRules'
 import Gameplay from './pages/Gameplay'
 import Results from './pages/Results'
 import MatchResults from './pages/MatchResults'
 import History from './pages/History'
+import Seasons from './pages/Seasons'
+import Anthem from './pages/Anthem'
 import Training from './pages/Training'
 import TransitionClass from './pages/TransitionClass'
 import TransitionLectureDetail from './pages/TransitionLectureDetail'
@@ -61,10 +64,13 @@ function App() {
             <Route index element={<Home />} />
             <Route path="questions" element={<QuestionBank />} />
             <Route path="setup" element={<GameSetup />} />
+            <Route path="ground-rules" element={<GroundRules />} />
             <Route path="play" element={<Gameplay />} />
             <Route path="results/:sessionId" element={<Results />} />
             <Route path="match-results/:matchId" element={<MatchResults />} />
             <Route path="history" element={<History />} />
+            <Route path="seasons" element={<Seasons />} />
+            <Route path="anthem" element={<Anthem />} />
             <Route path="training" element={<Training />} />
             <Route path="transition" element={<TransitionClass />} />
             <Route path="transition/lecture/:id" element={<TransitionLectureDetail />} />

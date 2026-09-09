@@ -104,8 +104,10 @@ export default function Gameplay() {
         matchId: config.matchId,
         teamIndex: config.teamIndex,
         playerName: teamName,
+        playerPhoto: config.teamPhotos?.[config.teamIndex],
         setId: config.setId,
         setName: config.setName,
+        seasonName: config.seasonName,
         startedAt: turnStartRef.current,
         finishedAt: Date.now(),
         outcome,
@@ -177,20 +179,16 @@ export default function Gameplay() {
     [answers, currentLevel, currentQuestion]
   )
 
-  // Timer
+  // Timer: ticks every second, getting faster and more alarming as it nears zero.
   useEffect(() => {
     if (phase !== 'question') return
     if (timeLeft <= 0) {
       reveal(null, true)
       return
     }
-    const t = window.setTimeout(() => {
-      setTimeLeft((s) => s - 1)
-      if (timeLeft <= 6) {
-        sound.playCountdownBeep(6 - timeLeft)
-        if (timeLeft <= 3) haptics.tap()
-      }
-    }, 1000)
+    sound.playTimerTick(timeLeft, config?.timerSecondsPerQuestion ?? 30)
+    if (timeLeft <= 3) haptics.tap()
+    const t = window.setTimeout(() => setTimeLeft((s) => s - 1), 1000)
     return () => window.clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, timeLeft])
@@ -201,7 +199,15 @@ export default function Gameplay() {
   }
 
   if (phase === 'intro') {
-    return <IntroCountdown teamName={teamName} teamNumber={config.teamIndex + 1} totalTeams={config.teamNames.length} step={introStep} />
+    return (
+      <IntroCountdown
+        teamName={teamName}
+        teamPhoto={config.teamPhotos?.[config.teamIndex]}
+        teamNumber={config.teamIndex + 1}
+        totalTeams={config.teamNames.length}
+        step={introStep}
+      />
+    )
   }
 
   const handleSelect = (index: number) => {
@@ -300,11 +306,20 @@ export default function Gameplay() {
 
       <div className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <p className="text-sm text-white/60">
-              Team {config.teamIndex + 1} of {config.teamNames.length}
-            </p>
-            <p className="font-display text-xl font-bold">{teamName}</p>
+          <div className="flex items-center gap-3">
+            {config.teamPhotos?.[config.teamIndex] && (
+              <img
+                src={config.teamPhotos[config.teamIndex]}
+                alt=""
+                className="h-11 w-11 shrink-0 rounded-full object-cover shadow-lg shadow-black/40 ring-2 ring-amber-400/60"
+              />
+            )}
+            <div>
+              <p className="text-sm text-white/60">
+                Team {config.teamIndex + 1} of {config.teamNames.length}
+              </p>
+              <p className="font-display text-xl font-bold">{teamName}</p>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <div className="text-right">
@@ -323,7 +338,7 @@ export default function Gameplay() {
 
         <div className="mt-8 flex justify-center">
           <img
-            src="/mfm-logo.webp"
+            src="/church-logo.svg"
             alt=""
             aria-hidden="true"
             className="relative z-10 -mb-8 h-16 w-16 rounded-full shadow-lg shadow-black/40 ring-2 ring-amber-400/60 sm:h-20 sm:w-20"
@@ -471,18 +486,24 @@ export default function Gameplay() {
 
 function IntroCountdown({
   teamName,
+  teamPhoto,
   teamNumber,
   totalTeams,
   step,
 }: {
   teamName: string
+  teamPhoto?: string
   teamNumber: number
   totalTeams: number
   step: 3 | 2 | 1 | 0
 }) {
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
-      <img src="/mfm-logo.webp" alt="" className="h-20 w-20 rounded-full shadow-xl shadow-black/40 ring-2 ring-amber-400/50" />
+      {teamPhoto ? (
+        <img src={teamPhoto} alt="" className="h-24 w-24 rounded-full object-cover shadow-xl shadow-black/40 ring-4 ring-amber-400/60" />
+      ) : (
+        <img src="/church-logo.svg" alt="" className="h-20 w-20 rounded-full shadow-xl shadow-black/40 ring-2 ring-amber-400/50" />
+      )}
       {totalTeams > 1 && (
         <p className="text-sm uppercase tracking-wide text-white/50">
           Team {teamNumber} of {totalTeams}
@@ -499,15 +520,20 @@ function IntroCountdown({
 function TimerBar({ timeLeft, total }: { timeLeft: number; total: number }) {
   const pct = Math.max(0, (timeLeft / total) * 100)
   const urgent = timeLeft <= 6
+  const alarming = timeLeft <= 3
   return (
-    <div className="space-y-1">
+    <div key={alarming ? timeLeft : 'calm'} className={`space-y-1 ${alarming ? 'animate-screen-shake' : ''}`}>
       <div className="h-4 w-full overflow-hidden rounded-full bg-black/30">
         <div
-          className={`h-full rounded-full transition-all duration-1000 ease-linear ${urgent ? 'bg-red-500' : 'bg-amber-400'}`}
+          className={`h-full rounded-full transition-all duration-1000 ease-linear ${urgent ? 'bg-red-500' : 'bg-amber-400'} ${
+            alarming ? 'animate-pulse' : ''
+          }`}
           style={{ width: `${pct}%` }}
         />
       </div>
-      <p className={`text-center text-sm font-bold ${urgent ? 'animate-pulse text-red-400' : 'text-white/60'}`}>{timeLeft}s</p>
+      <p className={`text-center text-sm font-bold ${alarming ? 'animate-bounce text-red-400' : urgent ? 'animate-pulse text-red-400' : 'text-white/60'}`}>
+        {timeLeft}s
+      </p>
     </div>
   )
 }

@@ -89,11 +89,17 @@ export default function History() {
             className="animate-page-in flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white/5 p-4 transition hover:bg-white/[0.08]"
             style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}
           >
-            <div>
-              <p className="font-bold">{s.playerName}</p>
-              <p className="text-sm text-white/60">
-                {new Date(s.finishedAt).toLocaleString()} · {s.setName}
-              </p>
+            <div className="flex items-center gap-3">
+              {s.playerPhoto && (
+                <img src={s.playerPhoto} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-amber-400/50" />
+              )}
+              <div>
+                <p className="font-bold">{s.playerName}</p>
+                <p className="text-sm text-white/60">
+                  {new Date(s.finishedAt).toLocaleString()} · {s.setName}
+                  {s.seasonName ? ` · ${s.seasonName}` : ''}
+                </p>
+              </div>
             </div>
             <div className="flex items-center gap-4">
               <OutcomeBadge outcome={s.outcome} correctCount={s.correctCount} totalLevels={s.totalLevels} />

@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#312e81"/>
+      <stop offset="100%" stop-color="#581c87"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="15%" r="60%">
+      <stop offset="0%" stop-color="#fde68a" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#fde68a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="curtainL" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#7f1d1d"/>
+      <stop offset="100%" stop-color="#b91c1c"/>
+    </linearGradient>
+    <linearGradient id="curtainR" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#b91c1c"/>
+      <stop offset="100%" stop-color="#7f1d1d"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="600" fill="url(#sky)"/>
+  <rect width="1200" height="600" fill="url(#glow)"/>
+
+  <!-- stage curtains framing the scene -->
+  <path d="M0,0 H140 Q60,300 140,600 H0 Z" fill="url(#curtainL)"/>
+  <path d="M1200,0 H1060 Q1140,300 1060,600 H1200 Z" fill="url(#curtainR)"/>
+
+  <!-- stars -->
+  <g fill="#fde68a">
+    <circle cx="220" cy="90" r="5"/>
+    <circle cx="980" cy="110" r="6"/>
+    <circle cx="600" cy="60" r="4"/>
+    <circle cx="780" cy="150" r="4"/>
+    <circle cx="400" cy="150" r="5"/>
+  </g>
+
+  <!-- title banner -->
+  <text x="600" y="150" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="54" font-weight="bold" fill="#fde68a" stroke="#78350f" stroke-width="2">
+    MFM Children's Ministry
+  </text>
+  <text x="600" y="210" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="36" fill="#fde68a" opacity="0.9">
+    Bible Quiz — Season of Champions
+  </text>
+
+  <!-- confetti -->
+  <g>
+    <rect x="260" y="260" width="14" height="14" rx="3" fill="#f59e0b" transform="rotate(20 260 260)"/>
+    <rect x="920" y="240" width="14" height="14" rx="3" fill="#a78bfa" transform="rotate(-15 920 240)"/>
+    <rect x="340" y="200" width="12" height="12" rx="3" fill="#34d399" transform="rotate(45 340 200)"/>
+    <rect x="860" y="330" width="12" height="12" rx="3" fill="#f472b6" transform="rotate(10 860 330)"/>
+    <circle cx="300" cy="340" r="7" fill="#60a5fa"/>
+    <circle cx="900" cy="400" r="7" fill="#fbbf24"/>
+  </g>
+
+  <!-- three children silhouettes celebrating -->
+  <g fill="#fde68a" stroke="#78350f" stroke-width="4">
+    <g transform="translate(470,480)">
+      <circle cx="0" cy="-90" r="34"/>
+      <path d="M -60 40 Q -60 -50 0 -55 Q 60 -50 60 40 Z"/>
+      <path d="M -60 -10 L -95 -70" stroke-linecap="round"/>
+      <path d="M 60 -10 L 95 -70" stroke-linecap="round"/>
+    </g>
+    <g transform="translate(600,500)">
+      <circle cx="0" cy="-100" r="40"/>
+      <path d="M -68 44 Q -68 -58 0 -63 Q 68 -58 68 44 Z"/>
+      <path d="M -68 -14 L -108 -80" stroke-linecap="round"/>
+      <path d="M 68 -14 L 108 -80" stroke-linecap="round"/>
+    </g>
+    <g transform="translate(730,480)">
+      <circle cx="0" cy="-90" r="34"/>
+      <path d="M -60 40 Q -60 -50 0 -55 Q 60 -50 60 40 Z"/>
+      <path d="M -60 -10 L -95 -70" stroke-linecap="round"/>
+      <path d="M 60 -10 L 95 -70" stroke-linecap="round"/>
+    </g>
+  </g>
+
+  <!-- spotlight cones -->
+  <g opacity="0.12" fill="#fde68a">
+    <polygon points="470,0 380,600 560,600"/>
+    <polygon points="730,0 640,600 820,600"/>
+  </g>
+</svg>

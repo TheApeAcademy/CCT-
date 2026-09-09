@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="38%" r="70%">
+      <stop offset="0%" stop-color="#7c3aed"/>
+      <stop offset="100%" stop-color="#3730a3"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fde68a"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+  </defs>
+
+  <circle cx="300" cy="300" r="292" fill="url(#bg)" stroke="#fde68a" stroke-width="10"/>
+
+  <!-- gentle rays -->
+  <g opacity="0.18" stroke="#fde68a" stroke-width="6">
+    <line x1="300" y1="40" x2="300" y2="90"/>
+    <line x1="300" y1="560" x2="300" y2="510"/>
+    <line x1="40" y1="300" x2="90" y2="300"/>
+    <line x1="560" y1="300" x2="510" y2="300"/>
+  </g>
+
+  <!-- cross -->
+  <g>
+    <rect x="272" y="140" width="56" height="220" rx="14" fill="url(#gold)" stroke="#78350f" stroke-width="6"/>
+    <rect x="205" y="205" width="190" height="56" rx="14" fill="url(#gold)" stroke="#78350f" stroke-width="6"/>
+  </g>
+
+  <!-- three children silhouettes holding hands -->
+  <g fill="#fde68a" stroke="#78350f" stroke-width="4">
+    <g transform="translate(190,400)">
+      <circle cx="0" cy="0" r="26"/>
+      <path d="M -30 90 Q -30 30 0 28 Q 30 30 30 90 Z"/>
+    </g>
+    <g transform="translate(300,388)">
+      <circle cx="0" cy="0" r="30"/>
+      <path d="M -34 100 Q -34 34 0 32 Q 34 34 34 100 Z"/>
+    </g>
+    <g transform="translate(410,400)">
+      <circle cx="0" cy="0" r="26"/>
+      <path d="M -30 90 Q -30 30 0 28 Q 30 30 30 90 Z"/>
+    </g>
+  </g>
+
+  <!-- sparkles -->
+  <g fill="#fde68a">
+    <circle cx="130" cy="150" r="7"/>
+    <circle cx="470" cy="160" r="9"/>
+    <circle cx="470" cy="420" r="6"/>
+    <circle cx="120" cy="440" r="6"/>
+  </g>
+</svg>

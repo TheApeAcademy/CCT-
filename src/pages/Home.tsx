@@ -1,11 +1,13 @@
 import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { db, ensureSeedData } from '../db/db'
 import CountUp from '../components/CountUp'
 import { playClick } from '../lib/sound'
 
 export default function Home() {
   const [stats, setStats] = useState({ questions: 0, sets: 0, games: 0, kids: 0 })
+  const activeSeason = useLiveQuery(() => db.seasons.filter((s) => s.isActive).first(), [])
 
   useEffect(() => {
     ensureSeedData().then(async () => {
@@ -22,8 +24,8 @@ export default function Home() {
   return (
     <div className="flex flex-col items-center gap-8 py-8 text-center">
       <img
-        src="/hero-kids.webp"
-        alt="A joyful group of kids laughing together over open books"
+        src="/cover.svg"
+        alt="MFM Children's Ministry Bible Quiz cover art: kids celebrating on stage"
         className="animate-page-in h-56 w-full max-w-3xl rounded-3xl object-cover shadow-2xl shadow-black/40 ring-1 ring-white/10 sm:h-72"
       />
 
@@ -36,9 +38,18 @@ export default function Home() {
           </span>
         </h1>
         <p className="mx-auto mt-3 max-w-xl text-lg text-white/70">
-          A children's church companion app. Compete, train, prepare for Transition Class, and share what's on
-          your mind, all in one place.
+          The MFM Children's Ministry Bible Quiz: built for Sunday school teachers and students. Compete in
+          seasons, train, prepare for Transition Class, and share what's on your mind, all in one place.
         </p>
+        {activeSeason && (
+          <Link
+            to="/seasons"
+            onClick={() => playClick()}
+            className="mt-3 inline-block rounded-full bg-amber-400/15 px-4 py-1.5 text-sm font-semibold text-amber-300 ring-1 ring-amber-400/30 transition hover:scale-105 hover:bg-amber-400/25"
+          >
+            🗓️ {activeSeason.name} is active
+          </Link>
+        )}
       </div>
 
       <div className="grid w-full max-w-2xl grid-cols-2 gap-4 sm:grid-cols-4">
@@ -76,6 +87,8 @@ export default function Home() {
         />
         <SectionCard to="/questions" emoji="📚" title="Question Bank" description="Add, edit, import, and export trivia questions and sets." />
         <SectionCard to="/history" emoji="🏆" title="History" description="Every completed match, team score, and full recap." />
+        <SectionCard to="/seasons" emoji="🗓️" title="Seasons" description="Run the quiz in seasons, e.g. one per term, and group matches by season." />
+        <SectionCard to="/anthem" emoji="🎶" title="Anthem" description="Our children's ministry anthem, with lyrics and a read-aloud." />
       </div>
 
       <div className="mt-2 max-w-2xl rounded-2xl border border-white/5 bg-white/5 p-5 text-left text-sm text-white/70 shadow-lg shadow-black/20">

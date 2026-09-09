@@ -67,9 +67,11 @@ export default function Results() {
     const config: GameConfig = {
       matchId: match.id!,
       teamNames: match.teamNames,
+      teamPhotos: match.teamPhotos,
       teamIndex: nextIndex,
       setId: match.setId,
       setName: match.setName,
+      seasonName: match.seasonName,
       timerSecondsPerQuestion: match.timerSecondsPerQuestion,
       lifelines: match.lifelines,
     }
@@ -82,6 +84,13 @@ export default function Results() {
       <Fireworks active={showFireworks} />
 
       <div>
+        {session.playerPhoto && (
+          <img
+            src={session.playerPhoto}
+            alt=""
+            className="mx-auto mb-2 h-20 w-20 rounded-full object-cover shadow-xl shadow-black/40 ring-4 ring-amber-400/60"
+          />
+        )}
         <p className="animate-crown-bounce text-6xl drop-shadow-[0_0_25px_rgba(250,204,21,0.5)]">{emoji}</p>
         <h1 className="mt-2 font-display text-4xl font-extrabold sm:text-5xl">
           {isPerfect ? (

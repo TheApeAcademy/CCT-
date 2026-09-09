@@ -38,13 +38,16 @@ export default function MatchResults() {
       <Fireworks active={showFireworks} />
 
       <div>
-        <img src="/mfm-logo.webp" alt="" className="mx-auto mb-3 h-16 w-16 rounded-full shadow-lg shadow-black/40 ring-2 ring-amber-400/50" />
+        <img src="/church-logo.svg" alt="" className="mx-auto mb-3 h-16 w-16 rounded-full shadow-lg shadow-black/40 ring-2 ring-amber-400/50" />
         <h1 className="font-display text-4xl font-extrabold sm:text-5xl">
           <span className="bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-200 bg-clip-text text-transparent animate-shimmer">
             Match Complete!
           </span>
         </h1>
-        <p className="mt-1 text-white/60">{match.setName}</p>
+        <p className="mt-1 text-white/60">
+          {match.setName}
+          {match.seasonName ? ` · ${match.seasonName}` : ''}
+        </p>
       </div>
 
       <div className="rounded-3xl border border-white/5 bg-gradient-to-br from-purple-800/60 to-indigo-900/60 p-6 shadow-2xl">
@@ -60,6 +63,9 @@ export default function MatchResults() {
             >
               <div className="flex items-center gap-3">
                 <span className="text-xl">{medal(i)}</span>
+                {s.playerPhoto && (
+                  <img src={s.playerPhoto} alt="" className="h-9 w-9 rounded-full object-cover ring-2 ring-amber-400/50" />
+                )}
                 <span className="font-display text-lg font-bold">{s.playerName}</span>
                 {s.correctCount === s.totalLevels && <span className="text-sm text-amber-300">Perfect!</span>}
               </div>

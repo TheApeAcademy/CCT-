@@ -11,9 +11,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: "Children's Church Trivia",
-        short_name: 'CC Trivia',
-        description: "Who Wants to Be a Millionaire style trivia game for children's church",
+        name: "MFM Children's Ministry Bible Quiz",
+        short_name: 'Bible Quiz',
+        description: "Who Wants to Be a Millionaire style Bible quiz for MFM Children's Ministry Sunday school",
         theme_color: '#4c1d95',
         background_color: '#4c1d95',
         display: 'standalone',

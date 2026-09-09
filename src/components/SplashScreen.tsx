@@ -24,11 +24,11 @@ export default function SplashScreen({ ready, onDone }: { ready: boolean; onDone
       }`}
     >
       <img
-        src="/mfm-logo.webp"
-        alt="Mountain of Fire and Miracles Ministries"
+        src="/church-logo.svg"
+        alt="MFM Children's Ministry"
         className="animate-number-pop h-40 w-40 rounded-full shadow-2xl shadow-black/50 ring-4 ring-amber-400/40 sm:h-48 sm:w-48"
       />
-      <p className="font-display text-xl font-bold tracking-wide text-amber-200 sm:text-2xl">Children's Church Trivia</p>
+      <p className="font-display text-xl font-bold tracking-wide text-amber-200 sm:text-2xl">MFM Children's Ministry Bible Quiz</p>
       <div className="flex gap-2">
         {[0, 1, 2].map((i) => (
           <span

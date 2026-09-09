@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, ensureSeedData, exportQuestionSet, importQuestionBundle, type ExportBundle } from '../db/db'
+import { db, ensureSeedData, ensureActiveSeason, exportQuestionSet, importQuestionBundle, type ExportBundle } from '../db/db'
 import { playClick } from '../lib/sound'
 import { haptics } from '../lib/haptics'
 import type { Question, QuestionSet } from '../db/types'
@@ -20,6 +20,8 @@ export default function QuestionBank() {
   }, [])
 
   const sets = useLiveQuery(() => db.questionSets.toArray(), []) ?? []
+  const seasons = useLiveQuery(() => db.seasons.toArray(), []) ?? []
+  const seasonName = (seasonId?: number) => seasons.find((s) => s.id === seasonId)?.name
   const [selectedSetId, setSelectedSetId] = useState<number | null>(null)
   const [newSetName, setNewSetName] = useState('')
   const [creatingSet, setCreatingSet] = useState(false)
@@ -50,7 +52,8 @@ export default function QuestionBank() {
   const handleCreateSet = async () => {
     const name = newSetName.trim()
     if (!name) return
-    const id = await db.questionSets.add({ name, createdAt: Date.now(), isStarter: false })
+    const season = await ensureActiveSeason()
+    const id = await db.questionSets.add({ name, createdAt: Date.now(), isStarter: false, seasonId: season.id })
     playClick()
     haptics.success()
     setSelectedSetId(id as number)
@@ -159,7 +162,10 @@ export default function QuestionBank() {
                 resetForm()
               }}
             >
-              <span className="truncate">{set.name}</span>
+              <span className="min-w-0 flex-1 truncate">
+                {set.name}
+                {seasonName(set.seasonId) && <span className="ml-1 text-[10px] font-normal opacity-70">· {seasonName(set.seasonId)}</span>}
+              </span>
               {!set.isStarter && (
                 <button
                   onClick={(e) => {

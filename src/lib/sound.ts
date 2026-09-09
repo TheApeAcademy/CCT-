@@ -103,6 +103,27 @@ export function playCountdownBeep(urgency = 0) {
   tone(freq, 0, 0.09, 'square', 0.14)
 }
 
+/**
+ * A clock-style "tick" for every second of the question timer. Pitch, volume
+ * and rhythm all ramp up as time runs out so it reads as calm -> tense ->
+ * alarming without changing the melody, just intensity. Inside the final 3
+ * seconds it becomes a sharp two-note alarm chirp instead of a single tick.
+ */
+export function playTimerTick(secondsLeft: number, totalSeconds: number) {
+  if (secondsLeft <= 3) {
+    tone(1500, 0, 0.07, 'square', 0.18)
+    tone(1900, 0.09, 0.1, 'square', 0.2)
+    return
+  }
+  const urgentWindow = Math.min(totalSeconds, 6)
+  if (secondsLeft <= urgentWindow) {
+    const urgency = urgentWindow - secondsLeft
+    tone(1100 + urgency * 70, 0, 0.06, 'square', 0.14 + urgency * 0.01)
+  } else {
+    tone(720, 0, 0.04, 'square', 0.06)
+  }
+}
+
 export function playHeartbeat() {
   tone(90, 0, 0.12, 'sine', 0.22)
   tone(70, 0.15, 0.15, 'sine', 0.16)

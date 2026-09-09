@@ -257,7 +257,7 @@ export default function Training() {
 
         <div className="mt-6 flex justify-center">
           <img
-            src="/mfm-logo.webp"
+            src="/church-logo.svg"
             alt=""
             aria-hidden="true"
             className="relative z-10 -mb-8 h-14 w-14 rounded-full shadow-lg shadow-black/40 ring-2 ring-amber-400/60"

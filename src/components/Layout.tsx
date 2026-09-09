@@ -8,10 +8,12 @@ const navItems = [
   { to: '/', label: '🏠 Home' },
   { to: '/questions', label: '📚 Question Bank' },
   { to: '/setup', label: '🎮 New Game' },
+  { to: '/seasons', label: '🗓️ Seasons' },
   { to: '/training', label: '🏋️ Training' },
   { to: '/transition', label: '🎓 Transition Class' },
   { to: '/history', label: '🏆 History' },
   { to: '/ask', label: '💌 Ask & Share' },
+  { to: '/anthem', label: '🎶 Anthem' },
   { to: '/teacher', label: '👩‍🏫 Teacher' },
 ]
 
@@ -46,7 +48,7 @@ export default function Layout() {
           <NavLink to="/" className="flex min-w-0 items-center gap-2 text-lg font-bold tracking-tight font-display">
             <span className="animate-gentle-bob inline-block shrink-0 text-2xl">✨</span>
             <span className="truncate bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-200 bg-clip-text text-transparent animate-shimmer">
-              Children's Church Trivia
+              MFM Children's Ministry Bible Quiz
             </span>
           </NavLink>
 

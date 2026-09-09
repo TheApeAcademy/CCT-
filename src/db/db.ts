@@ -10,6 +10,7 @@ import type {
   TransitionQuestion,
   TransitionCheckpointResult,
   MockExamAttempt,
+  Season,
 } from './types'
 import { starterQuestions } from './seedQuestions'
 
@@ -24,6 +25,7 @@ export class TriviaDB extends Dexie {
   transitionQuestions!: Table<TransitionQuestion, number>
   transitionCheckpointResults!: Table<TransitionCheckpointResult, number>
   mockExamAttempts!: Table<MockExamAttempt, number>
+  seasons!: Table<Season, number>
 
   constructor() {
     super('cct-trivia')
@@ -41,12 +43,55 @@ export class TriviaDB extends Dexie {
       transitionCheckpointResults: '++id, playerName, lectureId',
       mockExamAttempts: '++id, playerName, finishedAt',
     })
+    this.version(4).stores({
+      seasons: '++id, name, isActive, createdAt',
+      questionSets: '++id, name, seasonId',
+      matches: '++id, setId, createdAt, seasonId',
+    })
   }
 }
 
 export const db = new TriviaDB()
 
+// Several components (App's seed effect, GameSetup, QuestionBank...) can all
+// call ensureActiveSeason() within the same tick on first load. IndexedDB
+// reads aren't atomic across separate calls, so without this cache each one
+// would independently see "no active season" and insert its own duplicate
+// "Season 1". Caching the in-flight promise makes concurrent callers within
+// this tab share a single read-then-write instead of racing.
+let activeSeasonPromise: Promise<Season> | null = null
+
+/** Returns the active season, creating a "Season 1" default the first time the app runs. */
+export function ensureActiveSeason(): Promise<Season> {
+  if (!activeSeasonPromise) {
+    activeSeasonPromise = (async () => {
+      const active = await db.seasons.filter((s) => s.isActive).first()
+      if (active) return active
+      const existing = await db.seasons.orderBy('createdAt').first()
+      if (existing) {
+        await db.seasons.update(existing.id!, { isActive: true })
+        return { ...existing, isActive: true }
+      }
+      const id = await db.seasons.add({ name: 'Season 1', isActive: true, createdAt: Date.now() })
+      return { id: id as number, name: 'Season 1', isActive: true, createdAt: Date.now() }
+    })()
+  }
+  return activeSeasonPromise
+}
+
+export async function createSeason(name: string): Promise<number> {
+  return (await db.seasons.add({ name: name.trim(), isActive: false, createdAt: Date.now() })) as number
+}
+
+export async function setActiveSeason(id: number) {
+  const all = await db.seasons.toArray()
+  await Promise.all(all.map((s) => db.seasons.update(s.id!, { isActive: s.id === id })))
+  activeSeasonPromise = null
+}
+
 export async function ensureSeedData() {
+  const season = await ensureActiveSeason()
+
   const count = await db.questionSets.count()
   if (count > 0) return
 
@@ -55,6 +100,7 @@ export async function ensureSeedData() {
     description: 'A ready-to-go mix of Old & New Testament questions across all difficulty levels.',
     createdAt: Date.now(),
     isStarter: true,
+    seasonId: season.id,
   })
 
   await db.questions.bulkAdd(

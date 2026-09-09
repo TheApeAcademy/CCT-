@@ -6,7 +6,7 @@ export default function StageBackground() {
   return (
     <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden bg-gradient-to-br from-[#0f0c29] via-[#302b63] to-[#24243e]">
       <img
-        src="/watermark-logo.webp"
+        src="/church-logo.svg"
         alt=""
         aria-hidden="true"
         className="absolute left-1/2 top-1/2 w-[52vmin] max-w-[600px] -translate-x-1/2 -translate-y-1/2 select-none opacity-[0.03]"

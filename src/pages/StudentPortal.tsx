@@ -18,6 +18,7 @@ import {
   BookOpen,
   FileText,
   Clock,
+  Flame,
 } from 'lucide-react'
 import { supabase, signOut } from '../lib/supabase'
 import { useMinistryAuth } from '../lib/useMinistryAuth'
@@ -36,6 +37,11 @@ import {
   listPublishedAssignments,
   getMySubmission,
   submitAssignment,
+  getTodaysBibleReading,
+  getMyBibleStreak,
+  completeBibleReading,
+  haveICompletedReading,
+  type TodaysReading,
   type StudentRow,
   type LeaderboardRow,
   type MessageRow,
@@ -72,7 +78,7 @@ export default function StudentPortal() {
   return <Dashboard />
 }
 
-type Tab = 'home' | 'class' | 'leaderboard' | 'profile' | 'messages' | 'confess'
+type Tab = 'home' | 'class' | 'bible' | 'leaderboard' | 'profile' | 'messages' | 'confess'
 
 function Dashboard() {
   const [tab, setTab] = useState<Tab>('home')
@@ -119,6 +125,7 @@ function Dashboard() {
         items={[
           { value: 'home', label: 'Home', icon: HomeIcon },
           { value: 'class', label: 'My Class', icon: School },
+          { value: 'bible', label: 'Bible', icon: BookOpen },
           { value: 'leaderboard', label: 'Leaderboard', icon: Trophy },
           { value: 'profile', label: 'My Card', icon: IdCard },
           { value: 'messages', label: 'My Teacher', icon: MessageCircle },
@@ -128,6 +135,7 @@ function Dashboard() {
 
       {tab === 'home' && <HomeTab student={student} klass={klass} rank={rank} />}
       {tab === 'class' && <ClassTab klass={klass} />}
+      {tab === 'bible' && <BibleTab />}
       {tab === 'leaderboard' && <LeaderboardTab myId={student?.id ?? null} />}
       {tab === 'profile' && student && <ProfileTab student={student} klass={klass} onSaved={load} />}
       {tab === 'messages' && klass && <MessagesTab teacherId={klass.teacher_id} teacherName={klass.teacher_name} />}
@@ -344,6 +352,82 @@ function AssignmentCard({ assignment }: { assignment: AssignmentRow }) {
                 {submitting ? 'Submitting…' : submitted ? 'Update Submission' : 'Submit'}
               </button>
             </>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function BibleTab() {
+  const [reading, setReading] = useState<TodaysReading | null | 'loading'>('loading')
+  const [streak, setStreak] = useState(0)
+  const [completed, setCompleted] = useState(false)
+  const [completing, setCompleting] = useState(false)
+
+  const load = () => {
+    getTodaysBibleReading().then((r) => {
+      setReading(r)
+      if (r) haveICompletedReading(r.reading_id).then(setCompleted)
+    })
+    getMyBibleStreak().then(setStreak)
+  }
+  useEffect(() => {
+    load()
+  }, [])
+
+  const markComplete = async () => {
+    if (reading === 'loading' || !reading) return
+    setCompleting(true)
+    try {
+      await completeBibleReading(reading.reading_id)
+      playClick()
+      haptics.success()
+      setCompleted(true)
+      getMyBibleStreak().then(setStreak)
+    } finally {
+      setCompleting(false)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="stat-strip grid-cols-2">
+        <div className="stat-cell">
+          <div className="stat-cell-value flex items-center justify-center gap-1.5">
+            <Flame className="h-5 w-5 text-[var(--gold)]" /> {streak}
+          </div>
+          <div className="stat-cell-label">Day Streak</div>
+        </div>
+        <div className="stat-cell">
+          <div className="stat-cell-value">{completed ? '✓' : '—'}</div>
+          <div className="stat-cell-label">Today</div>
+        </div>
+      </div>
+
+      {reading === 'loading' && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
+
+      {reading === null && (
+        <div className="panel p-6 text-center">
+          <p className="font-display text-lg font-bold">No reading plan is active yet</p>
+          <p className="mt-1 text-sm text-[var(--ink-muted)]">Check back soon — your admin sets up the next plan.</p>
+        </div>
+      )}
+
+      {reading && reading !== 'loading' && (
+        <div className="panel space-y-3 p-6">
+          <p className="eyebrow">{reading.plan_title} &middot; Day {reading.day_number}</p>
+          <h2 className="font-display text-2xl font-extrabold">{reading.title}</h2>
+          <p className="font-semibold text-[var(--gold)]">{reading.reference}</p>
+          {reading.passage_text && <p className="whitespace-pre-wrap text-sm leading-relaxed text-white/80">{reading.passage_text}</p>}
+          {completed ? (
+            <p className="flex items-center gap-1.5 text-sm font-bold text-emerald-400">
+              <Check className="h-4 w-4" /> Read today. Come back tomorrow to keep your streak!
+            </p>
+          ) : (
+            <button onClick={markComplete} disabled={completing} className="btn-solid w-full py-3">
+              {completing ? 'Saving…' : 'Mark as Read'}
+            </button>
           )}
         </div>
       )}

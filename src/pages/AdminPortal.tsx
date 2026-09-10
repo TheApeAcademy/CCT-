@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ShieldCheck, FileText, School, CalendarRange, Users, Check, X } from 'lucide-react'
+import { ShieldCheck, FileText, School, CalendarRange, Users, Check, X, BookOpen, ArrowLeft } from 'lucide-react'
 import { signOut } from '../lib/supabase'
 import { useMinistryAuth } from '../lib/useMinistryAuth'
 import AuthCard from '../components/ui/AuthCard'
@@ -13,9 +13,16 @@ import {
   setActiveSeasonServer,
   listAllTeachers,
   promoteToAdmin,
+  listBiblePlans,
+  createBiblePlan,
+  setActiveBiblePlan,
+  listPlanReadings,
+  addBibleReading,
   type TeacherApplication,
   type ClassRow,
   type SeasonRow,
+  type BiblePlanRow,
+  type BibleReadingRow,
 } from '../lib/ministry'
 import { playClick } from '../lib/sound'
 import { haptics } from '../lib/haptics'
@@ -61,7 +68,7 @@ function NotAuthorized() {
   )
 }
 
-type Tab = 'applications' | 'classes' | 'seasons' | 'admins'
+type Tab = 'applications' | 'classes' | 'seasons' | 'bible' | 'admins'
 
 function AdminDashboard() {
   const [tab, setTab] = useState<Tab>('applications')
@@ -85,6 +92,7 @@ function AdminDashboard() {
           { value: 'applications', label: 'Teacher Applications', icon: FileText },
           { value: 'classes', label: 'All Classes', icon: School },
           { value: 'seasons', label: 'Seasons', icon: CalendarRange },
+          { value: 'bible', label: 'Bible Plans', icon: BookOpen },
           { value: 'admins', label: 'Admins', icon: Users },
         ]}
       />
@@ -92,6 +100,7 @@ function AdminDashboard() {
       {tab === 'applications' && <ApplicationsTab />}
       {tab === 'classes' && <ClassesTab />}
       {tab === 'seasons' && <SeasonsTab />}
+      {tab === 'bible' && <BiblePlansTab />}
       {tab === 'admins' && <AdminsTab />}
     </div>
   )
@@ -248,6 +257,153 @@ function SeasonsTab() {
             )}
           </div>
         ))}
+      </div>
+    </div>
+  )
+}
+
+function BiblePlansTab() {
+  const [plans, setPlans] = useState<BiblePlanRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [duration, setDuration] = useState(30)
+  const [startDate, setStartDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [creating, setCreating] = useState(false)
+  const [open, setOpen] = useState<BiblePlanRow | null>(null)
+
+  const load = () => listBiblePlans().then((p) => { setPlans(p); setLoading(false) })
+  useEffect(() => { load() }, [])
+
+  const create = async () => {
+    if (!title.trim()) return
+    setCreating(true)
+    try {
+      await createBiblePlan({ title, description, duration_days: duration, start_date: startDate })
+      setTitle('')
+      setDescription('')
+      playClick()
+      haptics.success()
+      load()
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  const activate = async (plan: BiblePlanRow) => {
+    // Only one plan should be the "today's reading" source at a time.
+    await Promise.all(plans.filter((p) => p.is_active && p.id !== plan.id).map((p) => setActiveBiblePlan(p.id, false)))
+    await setActiveBiblePlan(plan.id, !plan.is_active)
+    haptics.tap()
+    load()
+  }
+
+  if (open) return <BiblePlanReadings plan={open} onBack={() => setOpen(null)} />
+
+  return (
+    <div className="space-y-4">
+      <div className="panel space-y-3 p-5">
+        <p className="eyebrow">New Reading Plan</p>
+        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title, e.g. Advent 2026" className="w-full rounded-md border border-[var(--hairline-strong)] bg-transparent px-4 py-2 text-sm outline-none focus:border-[var(--gold)]" />
+        <input value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description (optional)" className="w-full rounded-md border border-[var(--hairline-strong)] bg-transparent px-4 py-2 text-sm outline-none focus:border-[var(--gold)]" />
+        <div className="grid grid-cols-2 gap-2">
+          <input type="number" min={1} value={duration} onChange={(e) => setDuration(parseInt(e.target.value) || 1)} placeholder="Duration (days)" className="w-full rounded-md border border-[var(--hairline-strong)] bg-transparent px-4 py-2 text-sm outline-none focus:border-[var(--gold)]" />
+          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full rounded-md border border-[var(--hairline-strong)] bg-transparent px-4 py-2 text-sm outline-none focus:border-[var(--gold)]" />
+        </div>
+        <button onClick={create} disabled={creating} className="btn-solid text-sm">
+          {creating ? 'Creating…' : 'Create Plan'}
+        </button>
+      </div>
+      {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
+      {!loading && plans.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No reading plans yet.</p>}
+      <div className="space-y-2">
+        {plans.map((p) => (
+          <div key={p.id} className={`panel p-4 ${p.is_active ? 'border-[var(--gold)]/40' : ''}`}>
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="font-bold">
+                  {p.title} {p.is_active && <span className="ml-1 text-xs font-bold uppercase text-[var(--gold)]">● Active</span>}
+                </p>
+                <p className="text-xs text-[var(--ink-faint)]">
+                  {p.duration_days} days, starting {new Date(p.start_date).toLocaleDateString()}
+                </p>
+              </div>
+            </div>
+            <div className="mt-3 flex gap-2">
+              <button onClick={() => activate(p)} className="btn-outline px-3 py-1.5 text-xs">
+                {p.is_active ? 'Deactivate' : 'Make Active'}
+              </button>
+              <button onClick={() => setOpen(p)} className="btn-outline px-3 py-1.5 text-xs">
+                Manage Readings
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function BiblePlanReadings({ plan, onBack }: { plan: BiblePlanRow; onBack: () => void }) {
+  const [readings, setReadings] = useState<BibleReadingRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [dayNumber, setDayNumber] = useState(1)
+  const [title, setTitle] = useState('')
+  const [reference, setReference] = useState('')
+  const [passage, setPassage] = useState('')
+  const [adding, setAdding] = useState(false)
+
+  const load = () => listPlanReadings(plan.id).then((r) => { setReadings(r); setLoading(false) })
+  useEffect(() => { load() }, [plan.id])
+
+  const add = async () => {
+    if (!title.trim() || !reference.trim()) return
+    setAdding(true)
+    try {
+      await addBibleReading({ plan_id: plan.id, day_number: dayNumber, title, reference, passage_text: passage || undefined })
+      setDayNumber((d) => d + 1)
+      setTitle('')
+      setReference('')
+      setPassage('')
+      playClick()
+      haptics.success()
+      load()
+    } finally {
+      setAdding(false)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-[var(--ink-muted)] hover:text-white">
+        <ArrowLeft className="h-4 w-4" /> Back to plans
+      </button>
+      <h3 className="font-display text-lg font-bold">{plan.title}</h3>
+
+      <div className="panel space-y-3 p-5">
+        <p className="eyebrow">Add a Reading</p>
+        <div className="grid grid-cols-[80px_1fr] gap-2">
+          <input type="number" min={1} value={dayNumber} onChange={(e) => setDayNumber(parseInt(e.target.value) || 1)} placeholder="Day" className="w-full rounded-md border border-[var(--hairline-strong)] bg-transparent px-3 py-2 text-sm outline-none focus:border-[var(--gold)]" />
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className="w-full rounded-md border border-[var(--hairline-strong)] bg-transparent px-4 py-2 text-sm outline-none focus:border-[var(--gold)]" />
+        </div>
+        <input value={reference} onChange={(e) => setReference(e.target.value)} placeholder="Reference, e.g. John 3:16-21" className="w-full rounded-md border border-[var(--hairline-strong)] bg-transparent px-4 py-2 text-sm outline-none focus:border-[var(--gold)]" />
+        <textarea value={passage} onChange={(e) => setPassage(e.target.value)} placeholder="Passage text or notes (optional)" rows={3} className="w-full rounded-md border border-[var(--hairline-strong)] bg-transparent px-4 py-2 text-sm outline-none focus:border-[var(--gold)]" />
+        <button onClick={add} disabled={adding} className="btn-solid text-sm">
+          {adding ? 'Adding…' : 'Add Reading'}
+        </button>
+      </div>
+
+      {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
+      <div className="space-y-2">
+        {readings.map((r) => (
+          <div key={r.id} className="panel flex items-center justify-between p-3">
+            <div>
+              <p className="text-sm font-bold">Day {r.day_number}: {r.title}</p>
+              <p className="text-xs text-[var(--ink-faint)]">{r.reference}</p>
+            </div>
+          </div>
+        ))}
+        {!loading && readings.length === 0 && <p className="text-sm text-[var(--ink-faint)]">No readings added yet.</p>}
       </div>
     </div>
   )

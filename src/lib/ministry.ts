@@ -634,3 +634,94 @@ export async function submitAssignment(assignmentId: string, body: string) {
     .upsert({ assignment_id: assignmentId, student_id: auth.user.id, body, submitted_at: new Date().toISOString() }, { onConflict: 'assignment_id,student_id' })
   if (error) throw error
 }
+
+// ---------- Bible reading plan ----------
+
+export interface TodaysReading {
+  plan_id: string
+  plan_title: string
+  reading_id: string
+  day_number: number
+  title: string
+  reference: string
+  passage_text: string | null
+}
+
+export interface BiblePlanRow {
+  id: string
+  title: string
+  description: string | null
+  duration_days: number
+  start_date: string
+  is_active: boolean
+  created_at: string
+}
+
+export interface BibleReadingRow {
+  id: string
+  plan_id: string
+  day_number: number
+  title: string
+  reference: string
+  passage_text: string | null
+}
+
+export async function getTodaysBibleReading(): Promise<TodaysReading | null> {
+  const { data, error } = await supabase.rpc('get_todays_bible_reading')
+  if (error) throw error
+  return data as TodaysReading | null
+}
+
+export async function getMyBibleStreak(): Promise<number> {
+  const { data, error } = await supabase.rpc('get_my_bible_streak')
+  if (error) throw error
+  return (data as number) ?? 0
+}
+
+export async function completeBibleReading(readingId: string) {
+  const { error } = await supabase.rpc('complete_bible_reading', { p_reading_id: readingId })
+  if (error) throw error
+}
+
+export async function haveICompletedReading(readingId: string): Promise<boolean> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) return false
+  const { data, error } = await supabase
+    .from('student_bible_progress')
+    .select('id')
+    .eq('student_id', auth.user.id)
+    .eq('reading_id', readingId)
+    .maybeSingle()
+  if (error) throw error
+  return !!data
+}
+
+// ---------- admin: bible plan management ----------
+
+export async function listBiblePlans(): Promise<BiblePlanRow[]> {
+  const { data, error } = await supabase.from('bible_plans').select('*').order('created_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as BiblePlanRow[]
+}
+
+export async function createBiblePlan(params: { title: string; description?: string; duration_days: number; start_date: string }) {
+  const { data: auth } = await supabase.auth.getUser()
+  const { error } = await supabase.from('bible_plans').insert({ ...params, created_by: auth.user?.id })
+  if (error) throw error
+}
+
+export async function setActiveBiblePlan(id: string, active: boolean) {
+  const { error } = await supabase.from('bible_plans').update({ is_active: active }).eq('id', id)
+  if (error) throw error
+}
+
+export async function listPlanReadings(planId: string): Promise<BibleReadingRow[]> {
+  const { data, error } = await supabase.from('bible_plan_readings').select('*').eq('plan_id', planId).order('day_number')
+  if (error) throw error
+  return (data ?? []) as BibleReadingRow[]
+}
+
+export async function addBibleReading(params: { plan_id: string; day_number: number; title: string; reference: string; passage_text?: string }) {
+  const { error } = await supabase.from('bible_plan_readings').insert(params)
+  if (error) throw error
+}

@@ -4,12 +4,10 @@ import { setMuted, isMuted, playToggle, playNav, playClick } from '../lib/sound'
 import { haptics } from '../lib/haptics'
 import StageBackground from './StageBackground'
 
-const primaryNav = [
-  { to: '/', label: 'Home' },
-  { to: '/join', label: 'Kids' },
-  { to: '/teacher', label: 'Teachers' },
-  { to: '/admin', label: 'Admin' },
-]
+// Kids, Teachers, and Admin are deliberately NOT in this bar — each has its
+// own separate link (see PortalShell), reached only via the CTA buttons at
+// the bottom of the landing page, not via shared site navigation.
+const primaryNav = [{ to: '/', label: 'Home' }]
 
 const quizNav = [
   { to: '/setup', label: 'New Match' },

@@ -185,6 +185,12 @@ export async function moveStudent(studentId: string, newClassId: string | null) 
   if (error) throw error
 }
 
+export async function enrollStudentByCode(classId: string, studentCode: string): Promise<{ student_id: string; full_name: string; class_name: string }> {
+  const { data, error } = await supabase.rpc('enroll_student_by_code', { p_class_id: classId, p_student_code: studentCode.trim() })
+  if (error) throw new Error(error.message)
+  return data as { student_id: string; full_name: string; class_name: string }
+}
+
 // ---------- join / login (public, pre-auth) ----------
 
 export interface ClassJoinInfo {
@@ -451,4 +457,147 @@ export async function createSeasonServer(name: string) {
 export async function setActiveSeasonServer(id: string) {
   const all = await listSeasons()
   await Promise.all(all.map((s) => supabase.from('seasons').update({ is_active: s.id === id }).eq('id', s.id)))
+}
+
+// ---------- lectures ----------
+
+export type LectureStatus = 'draft' | 'scheduled' | 'published' | 'unpublished' | 'expired' | 'archived'
+
+export interface LectureRow {
+  id: string
+  class_id: string
+  teacher_id: string
+  title: string
+  description: string | null
+  body: string | null
+  status: LectureStatus
+  publish_at: string | null
+  expires_at: string | null
+  created_at: string
+}
+
+export async function listLectures(classId: string): Promise<LectureRow[]> {
+  const { data, error } = await supabase.from('lectures').select('*').eq('class_id', classId).order('created_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as LectureRow[]
+}
+
+export async function createLecture(params: { class_id: string; title: string; description?: string; body?: string }) {
+  const { data: auth } = await supabase.auth.getUser()
+  const { error } = await supabase.from('lectures').insert({ ...params, teacher_id: auth.user?.id })
+  if (error) throw error
+}
+
+export async function setLectureStatus(id: string, status: LectureStatus) {
+  const { error } = await supabase.from('lectures').update({ status, updated_at: new Date().toISOString() }).eq('id', id)
+  if (error) throw error
+}
+
+// ---------- assignments ----------
+
+export type AssignmentStatus = 'draft' | 'published' | 'closed'
+
+export interface AssignmentRow {
+  id: string
+  class_id: string
+  teacher_id: string
+  title: string
+  instructions: string | null
+  due_date: string | null
+  max_score: number | null
+  status: AssignmentStatus
+  created_at: string
+}
+
+export interface SubmissionRow {
+  id: string
+  assignment_id: string
+  student_id: string
+  body: string | null
+  submitted_at: string
+  grade: number | null
+  feedback: string | null
+  graded_at: string | null
+  full_name?: string
+}
+
+export async function listAssignments(classId: string): Promise<AssignmentRow[]> {
+  const { data, error } = await supabase.from('assignments').select('*').eq('class_id', classId).order('created_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as AssignmentRow[]
+}
+
+export async function createAssignment(params: { class_id: string; title: string; instructions?: string; due_date?: string; max_score?: number }) {
+  const { data: auth } = await supabase.auth.getUser()
+  const { error } = await supabase.from('assignments').insert({ ...params, teacher_id: auth.user?.id })
+  if (error) throw error
+}
+
+export async function setAssignmentStatus(id: string, status: AssignmentStatus) {
+  const { error } = await supabase.from('assignments').update({ status, updated_at: new Date().toISOString() }).eq('id', id)
+  if (error) throw error
+}
+
+export async function listSubmissionsForAssignment(assignmentId: string): Promise<SubmissionRow[]> {
+  const { data, error } = await supabase
+    .from('assignment_submissions')
+    .select('*, students!inner(profiles!inner(full_name))')
+    .eq('assignment_id', assignmentId)
+  if (error) throw error
+  return (data ?? []).map((row: any) => ({ ...row, full_name: row.students?.profiles?.full_name ?? '' })) as SubmissionRow[]
+}
+
+export async function gradeSubmission(id: string, grade: number, feedback: string) {
+  const { data: auth } = await supabase.auth.getUser()
+  const { error } = await supabase
+    .from('assignment_submissions')
+    .update({ grade, feedback, graded_by: auth.user?.id, graded_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) throw error
+}
+
+// ---------- student-facing class work ----------
+
+export async function listPublishedLectures(classId: string): Promise<LectureRow[]> {
+  const { data, error } = await supabase
+    .from('lectures')
+    .select('*')
+    .eq('class_id', classId)
+    .eq('status', 'published')
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as LectureRow[]
+}
+
+export async function listPublishedAssignments(classId: string): Promise<AssignmentRow[]> {
+  const { data, error } = await supabase
+    .from('assignments')
+    .select('*')
+    .eq('class_id', classId)
+    .eq('status', 'published')
+    .order('due_date', { ascending: true, nullsFirst: false })
+  if (error) throw error
+  return (data ?? []) as AssignmentRow[]
+}
+
+export async function getMySubmission(assignmentId: string): Promise<SubmissionRow | null> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) return null
+  const { data, error } = await supabase
+    .from('assignment_submissions')
+    .select('*')
+    .eq('assignment_id', assignmentId)
+    .eq('student_id', auth.user.id)
+    .maybeSingle()
+  if (error) throw error
+  return data as SubmissionRow | null
+}
+
+export async function submitAssignment(assignmentId: string, body: string) {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) throw new Error('Not signed in.')
+  const { error } = await supabase
+    .from('assignment_submissions')
+    .upsert({ assignment_id: assignmentId, student_id: auth.user.id, body, submitted_at: new Date().toISOString() }, { onConflict: 'assignment_id,student_id' })
+  if (error) throw error
 }

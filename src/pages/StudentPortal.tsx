@@ -15,6 +15,9 @@ import {
   Sparkles,
   Share2,
   Check,
+  BookOpen,
+  FileText,
+  Clock,
 } from 'lucide-react'
 import { supabase, signOut } from '../lib/supabase'
 import { useMinistryAuth } from '../lib/useMinistryAuth'
@@ -29,11 +32,17 @@ import {
   sendMessage,
   submitConfession,
   listMyConfessions,
+  listPublishedLectures,
+  listPublishedAssignments,
+  getMySubmission,
+  submitAssignment,
   type StudentRow,
   type LeaderboardRow,
   type MessageRow,
   type ConfessionRow,
   type ClassRow,
+  type LectureRow,
+  type AssignmentRow,
 } from '../lib/ministry'
 import { fileToResizedDataUrl } from '../lib/image'
 import { renderIdCardPng } from '../lib/idCard'
@@ -63,7 +72,7 @@ export default function StudentPortal() {
   return <Dashboard />
 }
 
-type Tab = 'home' | 'leaderboard' | 'profile' | 'messages' | 'confess'
+type Tab = 'home' | 'class' | 'leaderboard' | 'profile' | 'messages' | 'confess'
 
 function Dashboard() {
   const [tab, setTab] = useState<Tab>('home')
@@ -109,6 +118,7 @@ function Dashboard() {
         onChange={setTab}
         items={[
           { value: 'home', label: 'Home', icon: HomeIcon },
+          { value: 'class', label: 'My Class', icon: School },
           { value: 'leaderboard', label: 'Leaderboard', icon: Trophy },
           { value: 'profile', label: 'My Card', icon: IdCard },
           { value: 'messages', label: 'My Teacher', icon: MessageCircle },
@@ -117,6 +127,7 @@ function Dashboard() {
       />
 
       {tab === 'home' && <HomeTab student={student} klass={klass} rank={rank} />}
+      {tab === 'class' && <ClassTab klass={klass} />}
       {tab === 'leaderboard' && <LeaderboardTab myId={student?.id ?? null} />}
       {tab === 'profile' && student && <ProfileTab student={student} klass={klass} onSaved={load} />}
       {tab === 'messages' && klass && <MessagesTab teacherId={klass.teacher_id} teacherName={klass.teacher_name} />}
@@ -173,6 +184,170 @@ function HomeLink({ to, icon: Icon, title, description }: { to: string; icon: ty
         <p className="mt-1 text-sm text-[var(--ink-muted)]">{description}</p>
       </div>
     </Link>
+  )
+}
+
+function ClassTab({ klass }: { klass: (ClassRow & { teacher_name: string }) | null }) {
+  const [sub, setSub] = useState<'lectures' | 'assignments'>('lectures')
+  const [lectures, setLectures] = useState<LectureRow[]>([])
+  const [assignments, setAssignments] = useState<AssignmentRow[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!klass) {
+      setLoading(false)
+      return
+    }
+    Promise.all([listPublishedLectures(klass.id), listPublishedAssignments(klass.id)]).then(([l, a]) => {
+      setLectures(l)
+      setAssignments(a)
+      setLoading(false)
+    })
+  }, [klass])
+
+  if (!klass) {
+    return (
+      <div className="panel p-6 text-center">
+        <p className="font-display text-lg font-bold">No class yet</p>
+        <p className="mt-1 text-sm text-[var(--ink-muted)]">
+          You&apos;re not in a class yet. Give your Student Code to your Sunday school teacher and they&apos;ll add you.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-1 rounded-md border border-[var(--hairline-strong)] p-1 w-fit">
+        {(['lectures', 'assignments'] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setSub(t)}
+            className={`flex items-center gap-1.5 rounded px-4 py-1.5 text-sm font-bold capitalize transition ${sub === t ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'text-white/60 hover:text-white'}`}
+          >
+            {t === 'lectures' ? <BookOpen className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />}
+            {t}
+          </button>
+        ))}
+      </div>
+
+      {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
+
+      {!loading && sub === 'lectures' && (
+        <div className="space-y-2">
+          {lectures.length === 0 && (
+            <p className="text-sm text-[var(--ink-muted)]">Nothing here yet. Your teacher hasn&apos;t posted a lecture — check back soon.</p>
+          )}
+          {lectures.map((l) => (
+            <div key={l.id} className="panel p-4">
+              <p className="font-bold">{l.title}</p>
+              {l.description && <p className="mt-1 text-sm text-[var(--ink-muted)]">{l.description}</p>}
+              {l.body && <p className="mt-2 whitespace-pre-wrap text-sm text-white/80">{l.body}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!loading && sub === 'assignments' && (
+        <div className="space-y-2">
+          {assignments.length === 0 && (
+            <p className="text-sm text-[var(--ink-muted)]">No assignments right now. When your teacher posts one, you&apos;ll see it here.</p>
+          )}
+          {assignments.map((a) => (
+            <AssignmentCard key={a.id} assignment={a} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AssignmentCard({ assignment }: { assignment: AssignmentRow }) {
+  const [expanded, setExpanded] = useState(false)
+  const [body, setBody] = useState('')
+  const [submitted, setSubmitted] = useState<{ body: string | null; grade: number | null; feedback: string | null } | null>(null)
+  const [loaded, setLoaded] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    getMySubmission(assignment.id).then((s) => {
+      if (s) {
+        setSubmitted({ body: s.body, grade: s.grade, feedback: s.feedback })
+        setBody(s.body ?? '')
+      }
+      setLoaded(true)
+    })
+  }, [assignment.id])
+
+  const overdue = assignment.due_date ? new Date(assignment.due_date) < new Date() : false
+
+  const submit = async () => {
+    if (!body.trim()) return
+    setSubmitting(true)
+    try {
+      await submitAssignment(assignment.id, body)
+      setSubmitted({ body, grade: null, feedback: null })
+      playClick()
+      haptics.success()
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="panel p-4">
+      <button onClick={() => setExpanded((v) => !v)} className="flex w-full items-start justify-between gap-2 text-left">
+        <div>
+          <p className="font-bold">{assignment.title}</p>
+          {assignment.due_date && (
+            <p className="mt-1 flex items-center gap-1 text-xs text-[var(--ink-faint)]">
+              <Clock className="h-3 w-3" /> Due {new Date(assignment.due_date).toLocaleDateString()}
+            </p>
+          )}
+        </div>
+        <span
+          className={`shrink-0 rounded px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${
+            submitted?.grade !== null && submitted?.grade !== undefined
+              ? 'bg-emerald-500/15 text-emerald-400'
+              : submitted
+                ? 'bg-white/10 text-white/60'
+                : overdue
+                  ? 'bg-red-500/15 text-red-400'
+                  : 'bg-[var(--gold)]/15 text-[var(--gold)]'
+          }`}
+        >
+          {submitted?.grade !== null && submitted?.grade !== undefined ? 'Graded' : submitted ? 'Submitted' : overdue ? 'Overdue' : 'Open'}
+        </span>
+      </button>
+
+      {expanded && loaded && (
+        <div className="mt-3 space-y-2">
+          {assignment.instructions && <p className="whitespace-pre-wrap text-sm text-white/80">{assignment.instructions}</p>}
+          {submitted?.grade !== null && submitted?.grade !== undefined ? (
+            <div className="rounded-md bg-emerald-500/10 p-3 text-sm">
+              <p className="font-bold text-emerald-400">
+                Grade: {submitted.grade}
+                {assignment.max_score ? ` / ${assignment.max_score}` : ''}
+              </p>
+              {submitted.feedback && <p className="mt-1 text-white/80">{submitted.feedback}</p>}
+            </div>
+          ) : (
+            <>
+              <textarea
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                placeholder="Type your answer…"
+                rows={3}
+                className="w-full rounded-md border border-[var(--hairline-strong)] bg-transparent px-4 py-3 text-sm outline-none focus:border-[var(--gold)]"
+              />
+              <button onClick={submit} disabled={submitting} className="btn-solid px-4 py-2 text-sm">
+                {submitting ? 'Submitting…' : submitted ? 'Update Submission' : 'Submit'}
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
   )
 }
 

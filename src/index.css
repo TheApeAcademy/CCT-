@@ -443,3 +443,81 @@ button:active, a:active {
   border: 1px solid var(--hairline-strong);
   padding: 2px;
 }
+
+/* ==================== hero carousel ==================== */
+
+.stage-beams {
+  background:
+    conic-gradient(from 200deg at 12% -15%, rgba(232, 185, 35, 0.32), transparent 28%),
+    conic-gradient(from 20deg at 88% -15%, rgba(232, 185, 35, 0.24), transparent 30%),
+    conic-gradient(from 100deg at 50% -25%, rgba(232, 185, 35, 0.14), transparent 35%),
+    radial-gradient(ellipse 140% 90% at 50% 120%, rgba(232, 185, 35, 0.14), transparent 60%),
+    linear-gradient(180deg, #221537 0%, #170c29 50%, #0e0619 100%);
+}
+
+.hero-slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transform: scale(1.03);
+  transition: opacity 0.7s ease, transform 7s ease;
+  pointer-events: none;
+}
+.hero-slide.is-active {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+.hero-dot {
+  width: 22px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.25);
+  transition: background-color 0.2s ease, width 0.2s ease;
+}
+.hero-dot.is-active {
+  background: var(--gold);
+  width: 34px;
+}
+
+.hero-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(18, 10, 31, 0.45);
+  color: #fff;
+  backdrop-filter: blur(6px);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.hero-arrow:hover {
+  border-color: var(--gold);
+  background: rgba(18, 10, 31, 0.7);
+}
+
+/* A deliberate, designed stand-in for a photo that doesn't exist yet -
+   a monogram badge, never a "broken image" icon or bracketed dev note. */
+.crest-badge {
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid var(--hairline-strong);
+  background:
+    radial-gradient(ellipse 90% 70% at 30% 20%, rgba(232, 185, 35, 0.16), transparent 60%),
+    linear-gradient(155deg, #241a3d 0%, #1b1030 100%);
+}
+.crest-badge::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url('/church-logo.png');
+  background-size: 70%;
+  background-position: center 60%;
+  background-repeat: no-repeat;
+  opacity: 0.07;
+  filter: grayscale(1) invert(1);
+}

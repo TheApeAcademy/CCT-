@@ -7,38 +7,52 @@ import StageBackground from './StageBackground'
 // Kids, Teachers, and Admin are deliberately NOT in this bar — each has its
 // own separate link (see PortalShell), reached only via the CTA buttons at
 // the bottom of the landing page, not via shared site navigation.
-const primaryNav = [{ to: '/', label: 'Home' }]
-
-const quizNav = [
-  { to: '/setup', label: 'New Match' },
-  { to: '/training', label: 'Training' },
-  { to: '/questions', label: 'Question Bank' },
-  { to: '/history', label: 'History' },
-  { to: '/seasons', label: 'Seasons' },
-  { to: '/transition', label: 'Transition Class' },
-  { to: '/anthem', label: 'Anthem' },
-]
+const dropdowns = [
+  {
+    key: 'about',
+    label: 'About',
+    items: [
+      { to: '/#about', label: 'About the Ministry' },
+      { to: '/#wuye', label: 'MFM Wuye' },
+      { to: '/#leadership', label: 'Leadership' },
+      { to: '/#ministry', label: "Children's Ministry" },
+    ],
+  },
+  {
+    key: 'quiz',
+    label: 'Bible Quiz',
+    items: [
+      { to: '/setup', label: 'New Match' },
+      { to: '/training', label: 'Training' },
+      { to: '/questions', label: 'Question Bank' },
+      { to: '/history', label: 'History' },
+      { to: '/seasons', label: 'Seasons' },
+      { to: '/transition', label: 'Transition Class' },
+      { to: '/anthem', label: 'Anthem' },
+    ],
+  },
+] as const
 
 export default function Layout() {
   const [muted, setMutedState] = useState(isMuted())
   const [menuOpen, setMenuOpen] = useState(false)
-  const [moreOpen, setMoreOpen] = useState(false)
-  const moreRef = useRef<HTMLDivElement>(null)
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+  const navRef = useRef<HTMLDivElement>(null)
   const location = useLocation()
 
   useEffect(() => {
     setMenuOpen(false)
-    setMoreOpen(false)
+    setOpenDropdown(null)
   }, [location.pathname])
 
   useEffect(() => {
-    if (!moreOpen) return
+    if (!openDropdown) return
     const close = (e: MouseEvent) => {
-      if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false)
+      if (navRef.current && !navRef.current.contains(e.target as Node)) setOpenDropdown(null)
     }
     window.addEventListener('mousedown', close)
     return () => window.removeEventListener('mousedown', close)
-  }, [moreOpen])
+  }, [openDropdown])
 
   const toggleMute = () => {
     const next = !muted
@@ -68,51 +82,49 @@ export default function Layout() {
             </span>
           </NavLink>
 
-          <nav className="hidden flex-1 items-center gap-6 md:flex">
-            {primaryNav.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.to === '/'}
-                onClick={() => playNav()}
-                className={({ isActive }) => `site-tab${isActive ? ' is-active' : ''}`}
-              >
-                {item.label}
-              </NavLink>
+          <nav ref={navRef} className="hidden flex-1 items-center gap-1 md:flex">
+            <NavLink to="/" end onClick={() => playNav()} className={({ isActive }) => `site-tab px-3${isActive ? ' is-active' : ''}`}>
+              Home
+            </NavLink>
+            {dropdowns.map((d) => (
+              <div key={d.key} className="relative">
+                <button
+                  onClick={() => {
+                    setOpenDropdown((v) => (v === d.key ? null : d.key))
+                    playClick()
+                  }}
+                  className={`site-tab flex items-center gap-1 px-3 ${openDropdown === d.key ? 'is-active' : ''}`}
+                  aria-expanded={openDropdown === d.key}
+                >
+                  {d.label}
+                  <span className={`text-[10px] transition-transform ${openDropdown === d.key ? 'rotate-180' : ''}`}>▾</span>
+                </button>
+                {openDropdown === d.key && (
+                  <div className="panel absolute left-0 top-full mt-2 w-60 overflow-hidden py-1.5 shadow-2xl shadow-black/50">
+                    {d.items.map((item) => (
+                      <NavLink
+                        key={item.to}
+                        to={item.to}
+                        onClick={() => playNav()}
+                        className={({ isActive }) =>
+                          `block px-4 py-2.5 text-sm font-semibold transition ${
+                            isActive ? 'text-[var(--gold)]' : 'text-white/85 hover:bg-white/5'
+                          }`
+                        }
+                      >
+                        {item.label}
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
+              </div>
             ))}
           </nav>
 
           <div className="flex shrink-0 items-center gap-2">
-            <div className="relative hidden md:block" ref={moreRef}>
-              <button
-                onClick={() => {
-                  setMoreOpen((v) => !v)
-                  playClick()
-                }}
-                className="btn-outline !border-0 !bg-transparent px-3 py-2 text-sm"
-                aria-expanded={moreOpen}
-              >
-                Bible Quiz ▾
-              </button>
-              {moreOpen && (
-                <div className="panel absolute right-0 top-full mt-2 w-56 overflow-hidden py-1.5 shadow-2xl shadow-black/50">
-                  {quizNav.map((item) => (
-                    <NavLink
-                      key={item.to}
-                      to={item.to}
-                      onClick={() => playNav()}
-                      className={({ isActive }) =>
-                        `block px-4 py-2.5 text-sm font-semibold transition ${
-                          isActive ? 'text-[var(--gold)]' : 'text-white/85 hover:bg-white/5'
-                        }`
-                      }
-                    >
-                      {item.label}
-                    </NavLink>
-                  ))}
-                </div>
-              )}
-            </div>
+            <NavLink to="/join" onClick={() => playNav()} className="btn-solid hidden !px-4 !py-2 text-xs sm:inline-flex">
+              Join
+            </NavLink>
 
             <button
               onClick={toggleMute}
@@ -146,26 +158,26 @@ export default function Layout() {
 
         <nav
           className={`overflow-hidden transition-all duration-300 ease-out md:hidden ${
-            menuOpen ? 'max-h-[32rem] border-t border-[var(--hairline)]' : 'max-h-0'
+            menuOpen ? 'max-h-[36rem] border-t border-[var(--hairline)]' : 'max-h-0'
           }`}
         >
           <div className="flex flex-col gap-4 px-4 py-4">
             <div>
               <p className="eyebrow mb-2">Ministry</p>
               <div className="flex flex-col gap-1">
-                {primaryNav.map((item) => (
-                  <MobileLink key={item.to} to={item.to} end={item.to === '/'} label={item.label} />
-                ))}
+                <MobileLink to="/" end label="Home" />
               </div>
             </div>
-            <div>
-              <p className="eyebrow mb-2">Bible Quiz</p>
-              <div className="flex flex-col gap-1">
-                {quizNav.map((item) => (
-                  <MobileLink key={item.to} to={item.to} label={item.label} />
-                ))}
+            {dropdowns.map((d) => (
+              <div key={d.key}>
+                <p className="eyebrow mb-2">{d.label}</p>
+                <div className="flex flex-col gap-1">
+                  {d.items.map((item) => (
+                    <MobileLink key={item.to} to={item.to} label={item.label} />
+                  ))}
+                </div>
               </div>
-            </div>
+            ))}
           </div>
         </nav>
       </header>

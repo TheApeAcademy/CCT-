@@ -13,6 +13,10 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY)
 // needed). Runs with the service role key server-side, never in the browser.
 export const JOIN_CLASS_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/join-class`
 
+// Registers a student from just a name + 4-digit passcode and hands back a
+// Student Code. Class enrollment happens later, separately, via a teacher.
+export const STUDENT_REGISTER_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/student-register`
+
 export type UserRole = 'admin' | 'teacher' | 'student'
 
 export interface Profile {

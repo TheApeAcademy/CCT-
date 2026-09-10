@@ -1,7 +1,7 @@
 // Data layer for the Children's Ministry platform: teacher applications,
 // classes/roster, student profiles, leaderboard, messaging, and confessions.
 // Thin wrappers over Supabase so the pages stay focused on UI.
-import { supabase, JOIN_CLASS_FUNCTION_URL } from './supabase'
+import { supabase, JOIN_CLASS_FUNCTION_URL, STUDENT_REGISTER_FUNCTION_URL } from './supabase'
 
 // ---------- shared types ----------
 
@@ -221,6 +221,29 @@ export async function studentSignIn(params: { join_code: string; roster_id: stri
   if (!email) throw new Error('Could not find that account. Ask your teacher to check the class code.')
   const { error: signInError } = await supabase.auth.signInWithPassword({ email, password: params.pin })
   if (signInError) throw new Error('Wrong PIN. Try again, or ask your teacher to help.')
+}
+
+// ---------- student code identity (current signup model) ----------
+
+export async function registerStudent(params: { full_name: string; guardian_phone?: string; passcode: string }) {
+  const res = await fetch(STUDENT_REGISTER_FUNCTION_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  })
+  const body = await res.json()
+  if (!res.ok) throw new Error(body.error ?? 'Could not create your account.')
+  const { error: signInError } = await supabase.auth.signInWithPassword({ email: body.email, password: params.passcode })
+  if (signInError) throw signInError
+  return body as { email: string; student_id: string; student_code: string }
+}
+
+export async function studentSignInByCode(params: { student_code: string; passcode: string }) {
+  const { data: email, error } = await supabase.rpc('get_student_login_email_by_code', { p_code: params.student_code.trim() })
+  if (error) throw error
+  if (!email) throw new Error("We couldn't find that Student Code. Double check it and try again.")
+  const { error: signInError } = await supabase.auth.signInWithPassword({ email, password: params.passcode })
+  if (signInError) throw new Error('Wrong passcode. Try again, or ask your teacher to help.')
 }
 
 // ---------- student self-service ----------

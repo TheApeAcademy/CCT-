@@ -84,13 +84,10 @@ export default function Home() {
       </Section>
 
       {/* ---------- SRO ---------- */}
-      <Section eyebrow="Leadership" title="Pastor Edwin">
+      <Section eyebrow="Leadership" title="Pastor Edwin Etomi">
         <div className="grid gap-6 sm:grid-cols-[1fr_1.1fr] sm:[&>*:first-child]:order-2">
           <div className="space-y-3">
-            <p className="eyebrow !mt-0 text-[var(--gold)]">Senior Resident Overseer, MFM Wuye</p>
-            <p className="text-[15px] leading-relaxed text-[var(--ink-muted)]">
-              [Official biography pending confirmation from the ministry.]
-            </p>
+            <p className="eyebrow !mt-0 text-[var(--gold)]">Senior Regional Overseer, MFM International Headquarters Annex, Wuye</p>
           </div>
           <PhotoPlaceholder label="Photo pending" />
         </div>
@@ -100,9 +97,8 @@ export default function Home() {
       <Section eyebrow="This Platform" title="The Children's Ministry">
         <div className="grid gap-6 sm:grid-cols-[1.1fr_1fr]">
           <div className="space-y-3">
-            <p className="eyebrow !mt-0 text-[var(--gold)]">Minister in Charge &mdash; Mr. Olukunle Olushanu</p>
+            <p className="eyebrow !mt-0 text-[var(--gold)]">Head of Children&apos;s Department &mdash; Olusanu Olukunle</p>
             <p className="text-[15px] leading-relaxed text-[var(--ink-muted)]">
-              [Official ministry vision, mission, and leadership biography pending confirmation from the ministry.]
               This platform exists to serve the Children&apos;s Ministry directly &mdash; giving teachers real
               classrooms to run and children a place of their own to learn, play, and grow in the Word.
             </p>

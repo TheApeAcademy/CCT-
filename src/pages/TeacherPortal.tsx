@@ -42,15 +42,23 @@ import {
   listMyConversations,
   listMessages,
   sendMessage,
-  listTeacherInbox,
-  replyToConfession,
-  markConfessionSeen,
+  listEarsTeacherInbox,
+  listEarsReplies,
+  listEarsInternalNotes,
+  acknowledgeEarsMessage,
+  setEarsStatus,
+  escalateEarsMessage,
+  addEarsReply,
+  addEarsInternalNote,
   type TeacherApplication,
   type ClassRow,
   type StudentRow,
   type ConversationSummary,
   type MessageRow,
-  type ConfessionRow,
+  type EarsMessageRow,
+  type EarsReplyRow,
+  type EarsNoteRow,
+  type EarsStatus,
 } from '../lib/ministry'
 import { fileToResizedDataUrl } from '../lib/image'
 import { playClick } from '../lib/sound'
@@ -178,7 +186,7 @@ function ApplyForm({ onSubmitted }: { onSubmitted: () => void }) {
 
 // ---------- main dashboard ----------
 
-type Tab = 'classes' | 'messages' | 'confessions' | 'profile'
+type Tab = 'classes' | 'messages' | 'ears' | 'profile'
 
 function TeacherDashboard() {
   const [tab, setTab] = useState<Tab>('classes')
@@ -205,14 +213,14 @@ function TeacherDashboard() {
         items={[
           { value: 'classes', label: 'Classes', icon: GraduationCap },
           { value: 'messages', label: 'Messages', icon: MessageCircle },
-          { value: 'confessions', label: 'Confessions', icon: HeartHandshake },
+          { value: 'ears', label: 'Ears for You', icon: HeartHandshake },
           { value: 'profile', label: 'Profile', icon: Settings },
         ]}
       />
 
       {tab === 'classes' && (openClass ? <ClassDetail klass={openClass} onBack={() => setOpenClass(null)} /> : <ClassesTab onOpen={setOpenClass} />)}
       {tab === 'messages' && <MessagesTab />}
-      {tab === 'confessions' && <ConfessionsTab />}
+      {tab === 'ears' && <EarsInboxTab />}
       {tab === 'profile' && <ProfileTab />}
     </div>
   )
@@ -735,77 +743,186 @@ function ThreadView({ conversationId, title, onBack }: { conversationId: string;
   )
 }
 
-function ConfessionsTab() {
-  const [items, setItems] = useState<ConfessionRow[]>([])
-  const [drafts, setDrafts] = useState<Record<string, string>>({})
-  const [loading, setLoading] = useState(true)
+const EARS_STATUS_STYLE: Record<EarsStatus, string> = {
+  new: 'bg-[var(--gold)]/15 text-[var(--gold)]',
+  acknowledged: 'bg-white/10 text-white/60',
+  in_progress: 'bg-sky-500/15 text-sky-400',
+  escalated: 'bg-red-500/15 text-red-400',
+  resolved: 'bg-emerald-500/15 text-emerald-400',
+}
 
-  const load = () => listTeacherInbox().then(setItems).finally(() => setLoading(false))
+function EarsInboxTab() {
+  const [items, setItems] = useState<EarsMessageRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [open, setOpen] = useState<EarsMessageRow | null>(null)
+
+  const load = () => listEarsTeacherInbox().then(setItems).finally(() => setLoading(false))
   useEffect(() => {
     load()
   }, [])
 
-  const reply = async (id: string) => {
-    const text = drafts[id]?.trim()
-    if (!text) return
-    await replyToConfession(id, text)
+  const openItem = async (m: EarsMessageRow) => {
+    setOpen(m)
+    if (m.status === 'new') {
+      await acknowledgeEarsMessage(m.id)
+      load()
+    }
+  }
+
+  if (open) return <EarsDetail message={open} onBack={() => { setOpen(null); load() }} />
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-[var(--ink-muted)]">A safe channel from students in your classes. Anonymous ones never reveal who sent them, even to you.</p>
+      {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
+      {!loading && items.length === 0 && <p className="text-sm text-[var(--ink-muted)]">Nothing here yet.</p>}
+      <div className="space-y-3">
+        {items.map((m) => (
+          <button key={m.id} onClick={() => openItem(m)} className="panel panel-interactive block w-full p-5 text-left">
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-sm font-semibold text-[var(--ink-muted)]">{m.is_anonymous ? 'Anonymous' : m.student_name || 'A student'}</p>
+              <span className={`rounded px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${EARS_STATUS_STYLE[m.status]}`}>{m.status.replace('_', ' ')}</span>
+            </div>
+            <p className="mt-2 line-clamp-2 whitespace-pre-wrap text-sm text-white/80">{m.body}</p>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function EarsDetail({ message, onBack }: { message: EarsMessageRow; onBack: () => void }) {
+  const [replies, setReplies] = useState<EarsReplyRow[]>([])
+  const [notes, setNotes] = useState<EarsNoteRow[]>([])
+  const [replyDraft, setReplyDraft] = useState('')
+  const [noteDraft, setNoteDraft] = useState('')
+  const [escalating, setEscalating] = useState(false)
+  const [escalateReason, setEscalateReason] = useState('')
+  const [status, setStatus] = useState(message.status)
+
+  const load = () => {
+    listEarsReplies(message.id).then(setReplies)
+    listEarsInternalNotes(message.id).then(setNotes)
+  }
+  useEffect(() => {
+    load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [message.id])
+
+  const sendReply = async () => {
+    if (!replyDraft.trim()) return
+    await addEarsReply(message.id, replyDraft)
+    setReplyDraft('')
     playClick()
     haptics.success()
-    setDrafts((d) => ({ ...d, [id]: '' }))
     load()
   }
 
-  const seen = async (id: string) => {
-    await markConfessionSeen(id)
+  const sendNote = async () => {
+    if (!noteDraft.trim()) return
+    await addEarsInternalNote(message.id, noteDraft)
+    setNoteDraft('')
+    playClick()
     load()
+  }
+
+  const changeStatus = async (s: EarsStatus) => {
+    await setEarsStatus(message.id, s)
+    setStatus(s)
+    haptics.tap()
+  }
+
+  const escalate = async () => {
+    if (!escalateReason.trim()) return
+    await escalateEarsMessage(message.id, escalateReason)
+    setStatus('escalated')
+    setEscalating(false)
+    setEscalateReason('')
+    haptics.success()
   }
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-[var(--ink-muted)]">Private notes from students in your classes. Anonymous ones never reveal who sent them, even to you.</p>
-      {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
-      {!loading && items.length === 0 && <p className="text-sm text-[var(--ink-muted)]">Nothing here yet.</p>}
-      <div className="space-y-3">
-        {items.map((c) => (
-          <div key={c.id} className="panel p-5" onClick={() => c.status === 'new' && seen(c.id)}>
-            <div className="flex items-start justify-between gap-2">
-              <p className="text-sm font-semibold text-[var(--ink-muted)]">{c.is_anonymous ? 'Anonymous' : 'A student'}</p>
-              <span
-                className={`rounded px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${
-                  c.status === 'replied' ? 'bg-emerald-500/15 text-emerald-400' : c.status === 'seen' ? 'bg-white/10 text-white/60' : 'bg-[var(--gold)]/15 text-[var(--gold)]'
-                }`}
-              >
-                {c.status}
-              </span>
-            </div>
-            <p className="mt-2 whitespace-pre-wrap">{c.body}</p>
-            {c.reply && (
-              <div className="mt-3 rounded-md bg-emerald-500/10 p-3 text-sm">
-                <p className="mb-1 font-semibold text-emerald-400">Your reply:</p>
-                <p>{c.reply}</p>
-              </div>
-            )}
-            <div className="mt-3 flex gap-2">
-              <input
-                value={drafts[c.id] ?? ''}
-                onChange={(e) => setDrafts((d) => ({ ...d, [c.id]: e.target.value }))}
-                placeholder={c.reply ? 'Update your reply…' : 'Write a reply…'}
-                className={`${inputClass} py-2 text-sm`}
-                onClick={(e) => e.stopPropagation()}
-                onKeyDown={(e) => e.key === 'Enter' && reply(c.id)}
-              />
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  reply(c.id)
-                }}
-                className="btn-solid shrink-0 text-sm"
-              >
-                Reply
-              </button>
-            </div>
+      <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-[var(--ink-muted)] hover:text-white">
+        <ArrowLeft className="h-4 w-4" /> Back to inbox
+      </button>
+
+      <div className="panel p-5">
+        <div className="flex items-start justify-between gap-2">
+          <p className="text-sm font-semibold text-[var(--ink-muted)]">{message.is_anonymous ? 'Anonymous' : message.student_name || 'A student'}</p>
+          <span className={`rounded px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${EARS_STATUS_STYLE[status]}`}>{status.replace('_', ' ')}</span>
+        </div>
+        <p className="mt-2 whitespace-pre-wrap">{message.body}</p>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {(['in_progress', 'resolved'] as const).map((s) => (
+          <button key={s} onClick={() => changeStatus(s)} className="btn-outline px-3 py-1.5 text-xs capitalize">
+            Mark {s.replace('_', ' ')}
+          </button>
+        ))}
+        {!escalating ? (
+          <button onClick={() => setEscalating(true)} className="rounded-md bg-red-500/15 px-3 py-1.5 text-xs font-bold text-red-400 hover:bg-red-500/25">
+            Escalate to Admin
+          </button>
+        ) : null}
+      </div>
+
+      {escalating && (
+        <div className="panel space-y-2 p-4">
+          <p className="text-sm font-bold text-red-400">Why does this need admin attention?</p>
+          <input value={escalateReason} onChange={(e) => setEscalateReason(e.target.value)} placeholder="Reason" className={`${inputClass} py-2 text-sm`} />
+          <div className="flex gap-2">
+            <button onClick={escalate} className="rounded-md bg-red-500/15 px-4 py-2 text-sm font-bold text-red-400 hover:bg-red-500/25">
+              Confirm Escalation
+            </button>
+            <button onClick={() => setEscalating(false)} className="btn-outline px-4 py-2 text-sm">
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <p className="eyebrow">Replies to the Student</p>
+        {replies.map((r) => (
+          <div key={r.id} className="rounded-md bg-emerald-500/10 p-3 text-sm">
+            {r.body}
           </div>
         ))}
+        <div className="flex gap-2">
+          <input
+            value={replyDraft}
+            onChange={(e) => setReplyDraft(e.target.value)}
+            placeholder="Write a reply the student will see…"
+            className={`${inputClass} py-2 text-sm`}
+            onKeyDown={(e) => e.key === 'Enter' && sendReply()}
+          />
+          <button onClick={sendReply} className="btn-solid shrink-0 text-sm">
+            Send
+          </button>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <p className="eyebrow">Internal Notes &mdash; not visible to the student</p>
+        {notes.map((n) => (
+          <div key={n.id} className="rounded-md border border-white/10 bg-white/5 p-3 text-sm text-white/70">
+            {n.body}
+          </div>
+        ))}
+        <div className="flex gap-2">
+          <input
+            value={noteDraft}
+            onChange={(e) => setNoteDraft(e.target.value)}
+            placeholder="Note for staff only…"
+            className={`${inputClass} py-2 text-sm`}
+            onKeyDown={(e) => e.key === 'Enter' && sendNote()}
+          />
+          <button onClick={sendNote} className="btn-outline shrink-0 text-sm">
+            Add Note
+          </button>
+        </div>
       </div>
     </div>
   )

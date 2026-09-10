@@ -1,5 +1,5 @@
 // Data layer for the Children's Ministry platform: teacher applications,
-// classes/roster, student profiles, leaderboard, messaging, and confessions.
+// classes/roster, student profiles, leaderboard, messaging, and Ears for You.
 // Thin wrappers over Supabase so the pages stay focused on UI.
 import { supabase, JOIN_CLASS_FUNCTION_URL, STUDENT_REGISTER_FUNCTION_URL } from './supabase'
 
@@ -61,16 +61,34 @@ export interface LeaderboardRow {
   class_id: string | null
 }
 
-export interface ConfessionRow {
+export type EarsStatus = 'new' | 'acknowledged' | 'in_progress' | 'escalated' | 'resolved'
+
+export interface EarsMessageRow {
   id: string
-  class_id: string | null
-  teacher_id: string | null
+  class_id: string
+  assigned_to: string | null
   student_id: string | null
+  student_name?: string | null
   is_anonymous: boolean
   body: string
-  status: 'new' | 'seen' | 'replied'
-  reply: string | null
-  replied_at: string | null
+  status: EarsStatus
+  created_at: string
+  updated_at: string
+}
+
+export interface EarsReplyRow {
+  id: string
+  message_id: string
+  author_id: string
+  body: string
+  created_at: string
+}
+
+export interface EarsNoteRow {
+  id: string
+  message_id: string
+  author_id: string
+  body: string
   created_at: string
 }
 
@@ -407,14 +425,18 @@ export async function sendMessage(conversationId: string, body: string) {
   if (error) throw error
 }
 
-// ---------- confessions ----------
+// ---------- Ears for You ----------
+// A safe place for a child to tell a trusted adult something — worried,
+// curious, or just on their mind. Routing is system-controlled (the class's
+// teacher, never a student's free choice); status moves through
+// new -> acknowledged -> in_progress -> (escalated) -> resolved; internal
+// staff notes never reach a student-facing query.
 
-export async function submitConfession(params: { class_id?: string | null; teacher_id?: string | null; body: string; is_anonymous: boolean }) {
+export async function submitEarsMessage(params: { class_id: string; body: string; is_anonymous: boolean }) {
   const { data: auth } = await supabase.auth.getUser()
   if (!auth.user) throw new Error('Not signed in')
-  const { error } = await supabase.from('confessions').insert({
-    class_id: params.class_id ?? null,
-    teacher_id: params.teacher_id ?? null,
+  const { error } = await supabase.from('ears_messages').insert({
+    class_id: params.class_id,
     student_id: auth.user.id,
     is_anonymous: params.is_anonymous,
     body: params.body.trim(),
@@ -422,25 +444,53 @@ export async function submitConfession(params: { class_id?: string | null; teach
   if (error) throw error
 }
 
-export async function listMyConfessions(): Promise<ConfessionRow[]> {
-  const { data, error } = await supabase.from('confessions').select('*').order('created_at', { ascending: false })
+export async function listMyEarsMessages(): Promise<EarsMessageRow[]> {
+  const { data, error } = await supabase.from('ears_messages').select('*').order('created_at', { ascending: false })
   if (error) throw error
-  return (data ?? []) as ConfessionRow[]
+  return (data ?? []) as EarsMessageRow[]
 }
 
-export async function listTeacherInbox(): Promise<ConfessionRow[]> {
-  const { data, error } = await supabase.from('confessions_teacher_inbox').select('*').order('created_at', { ascending: false })
+export async function listEarsTeacherInbox(): Promise<EarsMessageRow[]> {
+  const { data, error } = await supabase.from('ears_teacher_inbox').select('*').order('created_at', { ascending: false })
   if (error) throw error
-  return (data ?? []) as ConfessionRow[]
+  return (data ?? []) as EarsMessageRow[]
 }
 
-export async function replyToConfession(id: string, reply: string) {
-  const { error } = await supabase.rpc('reply_to_confession', { p_confession_id: id, p_reply: reply })
+export async function listEarsReplies(messageId: string): Promise<EarsReplyRow[]> {
+  const { data, error } = await supabase.from('ears_message_replies').select('*').eq('message_id', messageId).order('created_at')
+  if (error) throw error
+  return (data ?? []) as EarsReplyRow[]
+}
+
+export async function listEarsInternalNotes(messageId: string): Promise<EarsNoteRow[]> {
+  const { data, error } = await supabase.from('ears_internal_notes').select('*').eq('message_id', messageId).order('created_at')
+  if (error) throw error
+  return (data ?? []) as EarsNoteRow[]
+}
+
+export async function acknowledgeEarsMessage(id: string) {
+  const { error } = await supabase.rpc('acknowledge_ears_message', { p_id: id })
   if (error) throw error
 }
 
-export async function markConfessionSeen(id: string) {
-  await supabase.rpc('mark_confession_seen', { p_confession_id: id })
+export async function setEarsStatus(id: string, status: EarsStatus) {
+  const { error } = await supabase.rpc('set_ears_status', { p_id: id, p_status: status })
+  if (error) throw error
+}
+
+export async function escalateEarsMessage(id: string, reason: string) {
+  const { error } = await supabase.rpc('escalate_ears_message', { p_id: id, p_reason: reason })
+  if (error) throw error
+}
+
+export async function addEarsReply(id: string, body: string) {
+  const { error } = await supabase.rpc('add_ears_reply', { p_id: id, p_body: body })
+  if (error) throw error
+}
+
+export async function addEarsInternalNote(id: string, body: string) {
+  const { error } = await supabase.rpc('add_ears_internal_note', { p_id: id, p_body: body })
+  if (error) throw error
 }
 
 // ---------- admin ----------

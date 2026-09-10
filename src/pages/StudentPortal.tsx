@@ -35,8 +35,9 @@ import {
   getOrCreateConversation,
   listMessages,
   sendMessage,
-  submitConfession,
-  listMyConfessions,
+  submitEarsMessage,
+  listMyEarsMessages,
+  listEarsReplies,
   listPublishedLectures,
   listPublishedAssignments,
   getMySubmission,
@@ -51,7 +52,8 @@ import {
   type StudentRow,
   type LeaderboardRow,
   type MessageRow,
-  type ConfessionRow,
+  type EarsMessageRow,
+  type EarsReplyRow,
   type ClassRow,
   type LectureRow,
   type AssignmentRow,
@@ -84,7 +86,7 @@ export default function StudentPortal() {
   return <Dashboard />
 }
 
-type Tab = 'home' | 'class' | 'bible' | 'leaderboard' | 'profile' | 'messages' | 'confess'
+type Tab = 'home' | 'class' | 'bible' | 'leaderboard' | 'profile' | 'messages' | 'ears'
 
 function Dashboard() {
   const [tab, setTab] = useState<Tab>('home')
@@ -137,7 +139,7 @@ function Dashboard() {
           { value: 'leaderboard', label: 'Leaderboard', icon: Trophy },
           { value: 'profile', label: 'My Card', icon: IdCard },
           { value: 'messages', label: 'My Teacher', icon: MessageCircle },
-          { value: 'confess', label: 'Confession Box', icon: HeartHandshake },
+          { value: 'ears', label: 'Ears for You', icon: HeartHandshake },
         ]}
       />
 
@@ -147,7 +149,7 @@ function Dashboard() {
       {tab === 'leaderboard' && <LeaderboardTab myId={student?.id ?? null} />}
       {tab === 'profile' && student && <ProfileTab student={student} klass={klass} onSaved={load} />}
       {tab === 'messages' && klass && <MessagesTab teacherId={klass.teacher_id} teacherName={klass.teacher_name} />}
-      {tab === 'confess' && <ConfessTab klass={klass} />}
+      {tab === 'ears' && <EarsTab klass={klass} />}
     </div>
   )
 }
@@ -684,13 +686,21 @@ function MessagesTab({ teacherId, teacherName }: { teacherId: string; teacherNam
   )
 }
 
-function ConfessTab({ klass }: { klass: (ClassRow & { teacher_name: string }) | null }) {
+const EARS_STATUS_LABEL: Record<string, string> = {
+  new: 'Sent',
+  acknowledged: 'Seen by your teacher',
+  in_progress: 'Being looked into',
+  escalated: 'With ministry leadership',
+  resolved: 'Resolved',
+}
+
+function EarsTab({ klass }: { klass: (ClassRow & { teacher_name: string }) | null }) {
   const [body, setBody] = useState('')
   const [anonymous, setAnonymous] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [history, setHistory] = useState<ConfessionRow[]>([])
+  const [history, setHistory] = useState<EarsMessageRow[]>([])
 
-  const load = () => listMyConfessions().then(setHistory)
+  const load = () => listMyEarsMessages().then(setHistory)
   useEffect(() => {
     load()
   }, [])
@@ -699,7 +709,7 @@ function ConfessTab({ klass }: { klass: (ClassRow & { teacher_name: string }) | 
     if (!body.trim() || !klass) return
     setSubmitting(true)
     try {
-      await submitConfession({ class_id: klass.id, teacher_id: klass.teacher_id, body, is_anonymous: anonymous })
+      await submitEarsMessage({ class_id: klass.id, body, is_anonymous: anonymous })
       setBody('')
       playClick()
       haptics.success()
@@ -712,8 +722,8 @@ function ConfessTab({ klass }: { klass: (ClassRow & { teacher_name: string }) | 
   return (
     <div className="space-y-6">
       <div className="rounded-md border border-[var(--gold)]/25 bg-[var(--gold)]/10 p-4 text-sm text-[var(--gold)]">
-        A safe place to tell your teacher anything, a prayer request, a confession, or just something on your mind. If you or someone you know is
-        ever in danger, please tell a trusted adult right away.
+        You can talk to us. Share something that's worrying you, a question, or anything you'd like an adult to know. If you or someone you know
+        is ever in danger, please tell a trusted adult right away.
       </div>
       <div className="panel space-y-3 p-5">
         <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write anything on your mind…" rows={4} className={inputClass} />
@@ -741,19 +751,34 @@ function ConfessTab({ klass }: { klass: (ClassRow & { teacher_name: string }) | 
       {history.length > 0 && (
         <div className="space-y-2">
           <p className="eyebrow">My Messages</p>
-          {history.map((c) => (
-            <div key={c.id} className="panel p-4">
-              <p className="text-sm text-white/80">{c.body}</p>
-              {c.reply && (
-                <div className="mt-2 rounded-md bg-[var(--gold)]/10 p-3 text-sm">
-                  <p className="mb-1 font-semibold text-[var(--gold)]">Your teacher&apos;s reply:</p>
-                  <p>{c.reply}</p>
-                </div>
-              )}
-            </div>
+          {history.map((m) => (
+            <EarsHistoryItem key={m.id} message={m} />
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+function EarsHistoryItem({ message }: { message: EarsMessageRow }) {
+  const [replies, setReplies] = useState<EarsReplyRow[] | null>(null)
+
+  useEffect(() => {
+    listEarsReplies(message.id).then(setReplies)
+  }, [message.id])
+
+  return (
+    <div className="panel p-4">
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-sm text-white/80">{message.body}</p>
+        <span className="shrink-0 rounded px-2 py-1 text-xs font-bold text-[var(--ink-muted)]">{EARS_STATUS_LABEL[message.status] ?? message.status}</span>
+      </div>
+      {replies?.map((r) => (
+        <div key={r.id} className="mt-2 rounded-md bg-[var(--gold)]/10 p-3 text-sm">
+          <p className="mb-1 font-semibold text-[var(--gold)]">Your teacher&apos;s reply:</p>
+          <p>{r.body}</p>
+        </div>
+      ))}
     </div>
   )
 }

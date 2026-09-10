@@ -43,63 +43,52 @@ export default function Home() {
   const slides: HeroSlide[] = [
     {
       id: 'welcome',
-      eyebrow: "MFM Children's Ministry · Wuye",
       title: (
         <>
-          Learn. Compete.
+          Learn With Us Today
           <br />
-          Belong.
+          You Are Welcome
         </>
       ),
-      description:
-        "A digital home for MFM Wuye kids — accounts for teachers and students, a class leaderboard, messaging, and the Bible Quiz your kids already love, built for the ministry and run by the ministry.",
-      primaryCta: { label: 'Join as a Kid', to: '/join' },
-      secondaryCta: { label: 'Teacher Portal', to: '/teacher' },
-      footnote: (
-        <blockquote className="max-w-md border-l-2 border-[var(--mfm-gold)]/60 pl-4 text-[15px] italic leading-relaxed text-white/60">
-          &ldquo;Train up a child in the way he should go: and when he is old, he will not depart from it.&rdquo;
-          <footer className="mt-1.5 not-italic text-xs font-bold uppercase tracking-wide text-white/40">Proverbs 22:6</footer>
-        </blockquote>
-      ),
+      quote: {
+        text: 'Train up a child in the way he should go: and when he is old, he will not depart from it.',
+        citation: 'Proverbs 22:6',
+      },
+      cta: { label: 'Join as a Kid', to: '/join' },
     },
     {
       id: 'quiz',
-      eyebrow: "A Children's Ministry Feature",
       title: (
         <>
-          Bible Quiz Night,
+          Bible Quiz Night
           <br />
-          Every Night.
+          Every Night
         </>
       ),
       description:
-        "A Who Wants to Be a Millionaire-style trivia match with teams, lifelines and a big-screen countdown — fully offline, so nothing depends on the Wi-Fi in the hall.",
-      primaryCta: { label: 'Play Quiz', to: '/setup' },
-      secondaryCta: { label: 'Train Solo', to: '/training' },
+        'A Who Wants to Be a Millionaire-style trivia match with teams, lifelines and a big-screen countdown — fully offline, so nothing depends on the Wi-Fi in the hall.',
+      cta: { label: 'Play Quiz', to: '/setup' },
     },
     {
       id: 'transition',
-      eyebrow: 'Level Up',
       title: (
         <>
-          Transition Class:
+          Transition Class
           <br />
-          Ready For The Next Step.
+          Ready For The Next Step
         </>
       ),
       description:
         'Lectures, Bible citations, checkpoint quizzes and a mock exam — the guided path for kids getting ready to graduate into the next ministry.',
-      primaryCta: { label: 'Start Learning', to: '/transition' },
+      cta: { label: 'Start Learning', to: '/transition' },
     },
     ...(activeSeason
       ? [
           {
             id: 'season',
-            eyebrow: 'Live Now',
-            title: <>{activeSeason.name} Is Live.</>,
+            title: <>{activeSeason.name}&nbsp;Is Live</>,
             description: 'This season is active across the ministry — host a match, keep practicing, and climb the ladder before it ends.',
-            primaryCta: { label: 'View Season', to: '/seasons' },
-            secondaryCta: { label: 'Host a Match', to: '/setup' },
+            cta: { label: 'View Season', to: '/seasons' },
           } satisfies HeroSlide,
         ]
       : []),

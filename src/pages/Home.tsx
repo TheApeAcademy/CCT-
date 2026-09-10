@@ -62,65 +62,58 @@ export default function Home() {
       <HeroCarousel slides={slides} badge={activeSeason ? <SeasonBadge name={activeSeason.name} /> : undefined} />
 
       {/* ---------- stats ---------- */}
-      <div className="stat-strip grid-cols-4">
-        <StatCell label="Questions" value={stats.questions} />
-        <StatCell label="Question Sets" value={stats.sets} />
-        <StatCell label="Matches Played" value={stats.games} />
-        <StatCell label="Kids" value={stats.kids} />
+      <div className="mx-auto -mt-10 w-full max-w-6xl px-4">
+        <div className="stat-strip grid-cols-4">
+          <StatCell label="Questions" value={stats.questions} />
+          <StatCell label="Question Sets" value={stats.sets} />
+          <StatCell label="Matches Played" value={stats.games} />
+          <StatCell label="Kids" value={stats.kids} />
+        </div>
       </div>
 
       {/* ---------- MFM worldwide ---------- */}
-      <div id="about" className="stage-beams scroll-mt-20 overflow-hidden rounded-xl border border-[var(--hairline)] px-6 py-12 sm:px-14 sm:py-20">
-        <p className="eyebrow text-sm">About the Ministry</p>
-        <h2 className="mt-3 max-w-2xl text-balance font-display text-3xl font-extrabold leading-[1.05] sm:text-5xl lg:text-6xl">
-          Mountain of Fire and Miracles Ministries
-        </h2>
-        <p className="mt-5 max-w-2xl text-base leading-relaxed text-[var(--ink-muted)]">
-          A full-gospel ministry devoted to revival, holiness, prayer, and deliverance, founded and led by
-          Dr.&nbsp;Daniel Kolawole Olukoya as General Overseer. From its beginnings, MFM has grown into a worldwide
-          ministry with branches across nations, all carrying the same call to prayer and holy living.
-        </p>
+      <div id="about" className="stage-glow full-bleed scroll-mt-20 border-b border-[var(--hairline)] px-4 py-16 sm:py-24">
+        <div className="mx-auto max-w-6xl">
+          <p className="eyebrow text-sm">About the Ministry</p>
+          <h2 className="mt-3 max-w-2xl text-balance font-display text-3xl font-extrabold leading-[1.05] sm:text-5xl lg:text-6xl">
+            Mountain of Fire and Miracles Ministries
+          </h2>
+          <p className="mt-5 max-w-2xl text-base leading-relaxed text-[var(--ink-muted)] sm:text-lg">
+            A full-gospel ministry devoted to revival, holiness, prayer, and deliverance, founded and led by
+            Dr.&nbsp;Daniel Kolawole Olukoya as General Overseer. From its beginnings, MFM has grown into a worldwide
+            ministry with branches across nations, all carrying the same call to prayer and holy living.
+          </p>
+        </div>
       </div>
 
       {/* ---------- MFM Wuye branch ---------- */}
-      <InfoSection id="wuye" eyebrow="Our Branch" title="MFM Wuye">
-        <div className="grid gap-6 sm:grid-cols-[1.1fr_1fr]">
-          <p className="text-[15px] leading-relaxed text-[var(--ink-muted)]">
-            MFM Wuye is a branch of Mountain of Fire and Miracles Ministries, carrying the same call to prayer,
-            holiness, and deliverance to its community. Full branch details, service times, and photos are being
-            finalized with the ministry and will appear here soon.
-          </p>
-          <div className="crest-badge aspect-[4/3]" />
-        </div>
-      </InfoSection>
+      <InstitutionalBand id="wuye" eyebrow="Our Branch" title="MFM Wuye">
+        <p className="text-[15px] leading-relaxed text-[var(--ink-muted)] sm:text-base">
+          MFM Wuye is a branch of Mountain of Fire and Miracles Ministries, carrying the same call to prayer,
+          holiness, and deliverance to its community. Full branch details, service times, and photos are being
+          finalized with the ministry and will appear here soon.
+        </p>
+      </InstitutionalBand>
 
       {/* ---------- SRO ---------- */}
-      <InfoSection id="leadership" eyebrow="Leadership" title="Pastor Edwin Etomi">
-        <div className="grid gap-6 sm:grid-cols-[1fr_1.1fr] sm:[&>*:first-child]:order-2">
-          <p className="eyebrow !mt-0 text-[var(--gold)]">Senior Regional Overseer, MFM International Headquarters Annex, Wuye</p>
-          <div className="crest-badge aspect-[4/3] sm:order-1" />
-        </div>
-      </InfoSection>
+      <InstitutionalBand id="leadership" eyebrow="Leadership" title="Pastor Edwin Etomi" alt imageFirst>
+        <p className="eyebrow !mt-0 text-[var(--gold)]">Senior Regional Overseer, MFM International Headquarters Annex, Wuye</p>
+      </InstitutionalBand>
 
       {/* ---------- Children's Ministry ---------- */}
-      <InfoSection id="ministry" eyebrow="This Platform" title="The Children's Ministry">
-        <div className="grid gap-6 sm:grid-cols-[1.1fr_1fr]">
-          <div className="space-y-3">
-            <p className="eyebrow !mt-0 text-[var(--gold)]">Head of Children&apos;s Department &mdash; Olusanu Olukunle</p>
-            <p className="text-[15px] leading-relaxed text-[var(--ink-muted)]">
-              This platform exists to serve the Children&apos;s Ministry directly &mdash; giving teachers real
-              classrooms to run and children a place of their own to learn, play, and grow in the Word.
-            </p>
-          </div>
-          <div className="crest-badge aspect-[4/3]" />
-        </div>
-      </InfoSection>
+      <InstitutionalBand id="ministry" eyebrow="This Platform" title="The Children's Ministry">
+        <p className="eyebrow !mt-0 text-[var(--gold)]">Head of Children&apos;s Department &mdash; Olusanu Olukunle</p>
+        <p className="mt-3 text-[15px] leading-relaxed text-[var(--ink-muted)] sm:text-base">
+          This platform exists to serve the Children&apos;s Ministry directly &mdash; giving teachers real
+          classrooms to run and children a place of their own to learn, play, and grow in the Word.
+        </p>
+      </InstitutionalBand>
 
       {/* ---------- quiz ---------- */}
-      <div>
+      <div className="mx-auto w-full max-w-6xl px-4">
         <p className="eyebrow">A Children&apos;s Ministry Feature</p>
-        <h2 className="mt-1 font-display text-2xl font-extrabold">Bible Quiz</h2>
-        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <h2 className="mt-1 font-display text-2xl font-extrabold sm:text-3xl">Bible Quiz</h2>
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <SectionCard to="/setup" icon={Swords} title="Compete" description="Host a live trivia match on the shared screen with teams and lifelines." featured />
           <SectionCard to="/training" icon={Dumbbell} title="Training Mode" description="Unlimited solo practice. No teams, no timer, no pressure." />
           <SectionCard to="/transition" icon={School} title="Transition Class" description="Lectures, Bible citations, checkpoint quizzes, and mock exams." />
@@ -128,40 +121,40 @@ export default function Home() {
           <SectionCard to="/history" icon={Trophy} title="History" description="Every completed match, team score, and full recap." />
           <SectionCard to="/anthem" icon={Music} title="Anthem" description="Our children's ministry anthem, with lyrics and a read-aloud." />
         </div>
-      </div>
 
-      {/* ---------- how it works ---------- */}
-      <div className="panel p-6">
-        <p className="eyebrow">How It Works</p>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            'Teachers apply for an account; the admin approves them from the Control Centre.',
-            'A teacher creates a class and shares its join code or link with their kids.',
-            'Kids sign up with just their name and a passcode — no email needed.',
-            "From their dashboard, kids play the Bible Quiz, climb the leaderboard, and message their teacher.",
-          ].map((text, i) => (
-            <div key={i} className="flex gap-3">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[var(--hairline-strong)] font-display text-xs font-bold text-[var(--gold)]">
-                {i + 1}
-              </span>
-              <p className="text-sm leading-relaxed text-[var(--ink-muted)]">{text}</p>
-            </div>
-          ))}
+        {/* ---------- how it works ---------- */}
+        <div className="panel mt-8 p-6 sm:p-8">
+          <p className="eyebrow">How It Works</p>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              'Teachers apply for an account; the admin approves them from the Control Centre.',
+              'A teacher creates a class and shares its join code or link with their kids.',
+              'Kids sign up with just their name and a passcode — no email needed.',
+              "From their dashboard, kids play the Bible Quiz, climb the leaderboard, and message their teacher.",
+            ].map((text, i) => (
+              <div key={i} className="flex gap-3">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[var(--hairline-strong)] font-display text-xs font-bold text-[var(--gold)]">
+                  {i + 1}
+                </span>
+                <p className="text-sm leading-relaxed text-[var(--ink-muted)]">{text}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* ---------- final CTA: apply as a kid or teacher, only here ---------- */}
-      <div className="stage-beams overflow-hidden rounded-xl border border-[var(--hairline)] p-8 text-center sm:p-12">
+      <div className="stage-glow full-bleed border-t border-[var(--hairline)] px-4 py-16 text-center sm:py-20">
         <p className="eyebrow justify-center">Get Started</p>
-        <h2 className="mt-2 font-display text-2xl font-extrabold sm:text-3xl">Ready to join?</h2>
-        <p className="mx-auto mt-2 max-w-md text-sm text-[var(--ink-muted)]">
+        <h2 className="mt-2 font-display text-3xl font-extrabold sm:text-4xl">Ready to join?</h2>
+        <p className="mx-auto mt-3 max-w-md text-sm text-[var(--ink-muted)] sm:text-base">
           Kids join a class in under a minute. Teachers apply and the admin reviews it from the Control Centre.
         </p>
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-          <Link to="/join" onClick={() => playClick()} className="btn-solid">
+          <Link to="/join" onClick={() => playClick()} className="btn-solid !px-7 !py-3.5 !text-base">
             Apply as a Kid
           </Link>
-          <Link to="/teacher" onClick={() => playClick()} className="btn-outline">
+          <Link to="/teacher" onClick={() => playClick()} className="btn-outline !px-7 !py-3.5 !text-base">
             Apply to Teach
           </Link>
         </div>
@@ -176,12 +169,33 @@ export default function Home() {
   )
 }
 
-function InfoSection({ id, eyebrow, title, children }: { id?: string; eyebrow: string; title: string; children: React.ReactNode }) {
+function InstitutionalBand({
+  id,
+  eyebrow,
+  title,
+  children,
+  alt,
+  imageFirst,
+}: {
+  id?: string
+  eyebrow: string
+  title: string
+  children: React.ReactNode
+  alt?: boolean
+  imageFirst?: boolean
+}) {
   return (
-    <div id={id} className="scroll-mt-20">
-      <p className="eyebrow">{eyebrow}</p>
-      <h2 className="mt-1 font-display text-2xl font-extrabold">{title}</h2>
-      <div className="mt-4">{children}</div>
+    <div id={id} className={`section-band full-bleed scroll-mt-20 px-4 py-16 sm:py-20 ${alt ? 'section-band-alt' : ''}`}>
+      <div className="mx-auto max-w-6xl">
+        <div className={`grid items-center gap-8 sm:grid-cols-[1fr_1.2fr] sm:gap-12 ${imageFirst ? '' : 'sm:[&>*:first-child]:order-2'}`}>
+          <div className="crest-badge aspect-[4/3] w-full" />
+          <div>
+            <p className="eyebrow text-sm">{eyebrow}</p>
+            <h2 className="mt-2 font-display text-2xl font-extrabold sm:text-4xl">{title}</h2>
+            <div className="mt-4 space-y-3">{children}</div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

@@ -452,6 +452,18 @@ button:active, a:active {
   margin-right: calc(50% - 50vw);
 }
 
+/* Full-bleed editorial bands for institutional content below the hero -
+   alternating background strips with a contained inner column, so the page
+   reads as a stacked sequence of real sections instead of floating cards. */
+.section-band {
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+  background: var(--ink-raised);
+}
+.section-band-alt {
+  background: var(--ink-panel);
+}
+
 /* ==================== hero carousel ==================== */
 
 .stage-beams {
@@ -460,6 +472,17 @@ button:active, a:active {
     conic-gradient(from 20deg at 88% -15%, rgba(232, 185, 35, 0.24), transparent 30%),
     conic-gradient(from 100deg at 50% -25%, rgba(232, 185, 35, 0.14), transparent 35%),
     radial-gradient(ellipse 140% 90% at 50% 120%, rgba(232, 185, 35, 0.14), transparent 60%),
+    linear-gradient(180deg, #221537 0%, #170c29 50%, #0e0619 100%);
+}
+
+/* Same purple/gold family as .stage-beams, but for short full-bleed bands
+   (not the viewport-tall hero) - the hero's conic-gradient wedges stretch
+   into a harsh, broken-looking diagonal slice at low box heights, so short
+   bands get soft radial glows only, no conic gradients. */
+.stage-glow {
+  background:
+    radial-gradient(ellipse 60% 120% at 8% 0%, rgba(232, 185, 35, 0.16), transparent 60%),
+    radial-gradient(ellipse 50% 100% at 100% 100%, rgba(232, 185, 35, 0.12), transparent 65%),
     linear-gradient(180deg, #221537 0%, #170c29 50%, #0e0619 100%);
 }
 

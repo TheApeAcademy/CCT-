@@ -38,7 +38,7 @@ export default function MatchResults() {
       <Fireworks active={showFireworks} />
 
       <div>
-        <img src="/church-logo.svg" alt="" className="mx-auto mb-3 h-16 w-16 rounded-full shadow-lg shadow-black/40 ring-2 ring-amber-400/50" />
+        <img src="/church-logo.png" alt="" className="mx-auto mb-3 h-16 w-16 rounded-full shadow-lg shadow-black/40 ring-2 ring-amber-400/50" />
         <h1 className="font-display text-4xl font-extrabold sm:text-5xl">
           <span className="bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-200 bg-clip-text text-transparent animate-shimmer">
             Match Complete!

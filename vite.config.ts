@@ -9,13 +9,13 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
+      includeAssets: ['apple-touch-icon.png'],
       manifest: {
         name: "MFM Children's Ministry Bible Quiz",
         short_name: 'Bible Quiz',
         description: "Who Wants to Be a Millionaire style Bible quiz for MFM Children's Ministry Sunday school",
-        theme_color: '#4c1d95',
-        background_color: '#4c1d95',
+        theme_color: '#1b1030',
+        background_color: '#1b1030',
         display: 'standalone',
         orientation: 'landscape',
         start_url: '/',

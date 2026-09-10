@@ -24,6 +24,22 @@
   color-scheme: dark;
   --font-display: 'Baloo 2', system-ui, sans-serif;
   --font-body: 'Nunito', system-ui, 'Segoe UI', Roboto, sans-serif;
+
+  /* ---------- site chrome design system ----------
+     Distinct from the "quiz-show" tokens above (hex-pill, shimmer, pulse-glow),
+     which stay reserved for the actual quiz screens where a bit of theatre
+     is appropriate. Everything that is "the site" - nav, home, dashboards -
+     uses these instead: one flat accent color, real borders, no gradients,
+     no glassmorphism, no emoji-as-icon. */
+  --ink: #120a1f;
+  --ink-raised: #1b1030;
+  --ink-panel: #1f1436;
+  --hairline: rgba(255, 255, 255, 0.09);
+  --hairline-strong: rgba(255, 255, 255, 0.16);
+  --ink-muted: rgba(237, 233, 246, 0.62);
+  --ink-faint: rgba(237, 233, 246, 0.4);
+  --gold: #e8b923;
+  --gold-ink: #1b1030;
 }
 
 html, body, #root {
@@ -33,7 +49,7 @@ html, body, #root {
 
 body {
   font-family: var(--font-body);
-  background: #0f0c29;
+  background: var(--ink);
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
   user-select: none;
@@ -286,4 +302,144 @@ button:active, a:active {
 }
 .curtain-open-right {
   animation: curtain-open-right 1.1s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+}
+
+/* ==================== site chrome primitives ==================== */
+
+.site-header {
+  background: var(--ink-raised);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.site-tab {
+  position: relative;
+  padding: 0.85rem 0.1rem;
+  font-size: 0.83rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  transition: color 0.15s ease;
+  white-space: nowrap;
+}
+.site-tab:hover {
+  color: #fff;
+}
+.site-tab::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--gold);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.18s ease;
+}
+.site-tab.is-active {
+  color: #fff;
+}
+.site-tab.is-active::after {
+  transform: scaleX(1);
+}
+
+.btn-solid {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: var(--gold);
+  color: var(--gold-ink);
+  font-weight: 800;
+  border-radius: 6px;
+  padding: 0.7rem 1.35rem;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+.btn-solid:hover {
+  background: #f2c94c;
+}
+.btn-solid:active {
+  transform: scale(0.98);
+}
+.btn-solid:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: transparent;
+  color: #fff;
+  font-weight: 700;
+  border-radius: 6px;
+  border: 1px solid var(--hairline-strong);
+  padding: 0.68rem 1.3rem;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.btn-outline:hover {
+  border-color: var(--gold);
+  background: rgba(232, 185, 35, 0.06);
+}
+
+.panel {
+  background: var(--ink-panel);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+}
+.panel-interactive {
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.panel-interactive:hover {
+  border-color: var(--hairline-strong);
+  background: #241a3d;
+}
+
+.eyebrow {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.stat-strip {
+  display: grid;
+  background: var(--ink-panel);
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.stat-cell {
+  padding: 1.1rem 0.75rem;
+  text-align: center;
+  border-left: 1px solid var(--hairline);
+}
+.stat-cell:first-child {
+  border-left: none;
+}
+.stat-cell-value {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.1;
+}
+.stat-cell-label {
+  margin-top: 0.2rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.crest {
+  border-radius: 8px;
+  background: #ffffff;
+  border: 1px solid var(--hairline-strong);
+  padding: 2px;
 }

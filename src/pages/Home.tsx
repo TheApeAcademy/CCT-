@@ -1,6 +1,19 @@
 import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
+import {
+  Users,
+  GraduationCap,
+  ShieldCheck,
+  Swords,
+  Dumbbell,
+  BookOpen,
+  Trophy,
+  CalendarRange,
+  Music,
+  School,
+  type LucideIcon,
+} from 'lucide-react'
 import { db, ensureSeedData } from '../db/db'
 import CountUp from '../components/CountUp'
 import { playClick } from '../lib/sound'
@@ -22,133 +35,127 @@ export default function Home() {
   }, [])
 
   return (
-    <div className="flex flex-col items-center gap-8 py-8 text-center">
-      <img
-        src="/cover.svg"
-        alt="MFM Children's Ministry Bible Quiz cover art: kids celebrating on stage"
-        className="animate-page-in h-56 w-full max-w-3xl rounded-3xl object-cover shadow-2xl shadow-black/40 ring-1 ring-white/10 sm:h-72"
-      />
-
-      <div>
-        <p className="mb-2 text-4xl">⛪✨🧒</p>
-        <h1 className="font-display text-4xl font-extrabold tracking-tight sm:text-5xl">
-          Welcome to{' '}
-          <span className="bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-200 bg-clip-text text-transparent animate-shimmer">
-            MFM Children's Ministry
-          </span>
-        </h1>
-        <p className="mx-auto mt-3 max-w-xl text-lg text-white/70">
-          One home for Sunday school teachers and kids: classes, messaging, a leaderboard, digital ID cards, and
-          our Bible Quiz, all built for the ministry.
-        </p>
-        {activeSeason && (
-          <Link
-            to="/seasons"
-            onClick={() => playClick()}
-            className="mt-3 inline-block rounded-full bg-amber-400/15 px-4 py-1.5 text-sm font-semibold text-amber-300 ring-1 ring-amber-400/30 transition hover:scale-105 hover:bg-amber-400/25"
-          >
-            🗓️ {activeSeason.name} is active
-          </Link>
-        )}
-      </div>
-
-      <div className="grid w-full max-w-4xl grid-cols-1 gap-4 sm:grid-cols-3">
-        <PortalCard
-          to="/join"
-          emoji="🧒"
-          title="Kids Dashboard"
-          description="Join your class with a code, get your own dashboard, leaderboard spot, and ID card."
-        />
-        <PortalCard to="/teacher" emoji="👩‍🏫" title="Teacher Portal" description="Create classes, manage your roster, and message your students." />
-        <PortalCard to="/admin" emoji="🛡️" title="Admin Control Centre" description="For the senior pastor: approve teachers, manage seasons." />
-      </div>
-
-      <div className="grid w-full max-w-2xl grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard label="Questions" value={stats.questions} delay={0} />
-        <StatCard label="Question Sets" value={stats.sets} delay={80} />
-        <StatCard label="Matches Played" value={stats.games} delay={160} />
-        <StatCard label="Kids" value={stats.kids} delay={240} />
-      </div>
-
-      <div className="w-full max-w-4xl">
-        <h2 className="mb-3 text-left font-display text-xl font-bold">🎮 Bible Quiz (a Children's Ministry feature)</h2>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <SectionCard
-            to="/setup"
-            emoji="🎮"
-            title="Compete"
-            description="Host a live trivia match. Add teams, take turns on the shared screen, and see who tops the leaderboard."
-            featured
-          />
-          <SectionCard
-            to="/training"
-            emoji="🏋️"
-            title="Training Mode"
-            description="Unlimited solo practice. No teams, no timer, no pressure. Train, train, train, and train some more."
-          />
-          <SectionCard
-            to="/transition"
-            emoji="🎓"
-            title="Transition Class"
-            description="Getting ready for teenage church: lectures, bible citations, checkpoint quizzes, and mock exams."
-          />
-          <SectionCard to="/questions" emoji="📚" title="Question Bank" description="Add, edit, import, and export trivia questions and sets." />
-          <SectionCard to="/history" emoji="🏆" title="History" description="Every completed match, team score, and full recap." />
-          <SectionCard to="/seasons" emoji="🗓️" title="Seasons" description="Run the quiz in seasons, e.g. one per term, and group matches by season." />
-          <SectionCard to="/anthem" emoji="🎶" title="Anthem" description="Our children's ministry anthem, with lyrics and a read-aloud." />
+    <div className="space-y-10 pb-10">
+      {/* ---------- hero ---------- */}
+      <div className="relative overflow-hidden rounded-xl border border-[var(--hairline)]">
+        <img src="/cover.svg" alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[var(--ink)] via-[var(--ink)]/85 to-[var(--ink)]/30" />
+        <div className="relative px-6 py-12 sm:px-10 sm:py-16">
+          <p className="eyebrow">Children&apos;s Ministry</p>
+          <h1 className="mt-2 max-w-xl font-display text-3xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl">
+            Classes, teachers, and kids &mdash; all in one place.
+          </h1>
+          <p className="mt-4 max-w-lg text-[15px] leading-relaxed text-[var(--ink-muted)]">
+            Accounts for teachers and students, a class leaderboard, messaging, and the Bible Quiz your kids already
+            love &mdash; built for the ministry, run by the ministry.
+          </p>
+          <div className="mt-6 flex flex-wrap items-center gap-3">
+            <Link to="/join" onClick={() => playClick()} className="btn-solid">
+              Join as a Kid
+            </Link>
+            <Link to="/teacher" onClick={() => playClick()} className="btn-outline">
+              Teacher Portal
+            </Link>
+            {activeSeason && (
+              <Link
+                to="/seasons"
+                onClick={() => playClick()}
+                className="inline-flex items-center gap-1.5 rounded-md border border-[var(--hairline-strong)] px-3 py-2 text-xs font-bold uppercase tracking-wide text-[var(--gold)]"
+              >
+                <CalendarRange className="h-3.5 w-3.5" />
+                {activeSeason.name} active
+              </Link>
+            )}
+          </div>
         </div>
       </div>
 
-      <div className="mt-2 max-w-2xl rounded-2xl border border-white/5 bg-white/5 p-5 text-left text-sm text-white/70 shadow-lg shadow-black/20">
-        <p className="font-display font-semibold text-white">How it works</p>
-        <ol className="mt-2 list-decimal space-y-1 pl-5">
-          <li>Teachers apply for an account; the admin approves them from the Control Centre.</li>
-          <li>A teacher creates a class and shares its join code or link with their kids.</li>
-          <li>Kids join with the code, pick their name, and set a PIN, no email needed.</li>
-          <li>From their own dashboard, kids play the Bible Quiz, climb the leaderboard, message their teacher, and share their digital ID card.</li>
-        </ol>
+      {/* ---------- portals ---------- */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <PortalCard to="/join" icon={Users} title="Kids Dashboard" description="Join a class with a code, no email needed. Points, ID card, messages." />
+        <PortalCard to="/teacher" icon={GraduationCap} title="Teacher Portal" description="Create classes, manage your roster, message and support your students." />
+        <PortalCard to="/admin" icon={ShieldCheck} title="Admin Control Centre" description="Senior pastor only. Approve teachers, manage seasons and classes." />
+      </div>
+
+      {/* ---------- stats ---------- */}
+      <div className="stat-strip grid-cols-4">
+        <StatCell label="Questions" value={stats.questions} />
+        <StatCell label="Question Sets" value={stats.sets} />
+        <StatCell label="Matches Played" value={stats.games} />
+        <StatCell label="Kids" value={stats.kids} />
+      </div>
+
+      {/* ---------- quiz ---------- */}
+      <div>
+        <p className="eyebrow">A Children&apos;s Ministry Feature</p>
+        <h2 className="mt-1 font-display text-2xl font-extrabold">Bible Quiz</h2>
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <SectionCard to="/setup" icon={Swords} title="Compete" description="Host a live trivia match on the shared screen with teams and lifelines." featured />
+          <SectionCard to="/training" icon={Dumbbell} title="Training Mode" description="Unlimited solo practice. No teams, no timer, no pressure." />
+          <SectionCard to="/transition" icon={School} title="Transition Class" description="Lectures, Bible citations, checkpoint quizzes, and mock exams." />
+          <SectionCard to="/questions" icon={BookOpen} title="Question Bank" description="Add, edit, import, and export trivia questions and sets." />
+          <SectionCard to="/history" icon={Trophy} title="History" description="Every completed match, team score, and full recap." />
+          <SectionCard to="/anthem" icon={Music} title="Anthem" description="Our children's ministry anthem, with lyrics and a read-aloud." />
+        </div>
+      </div>
+
+      {/* ---------- how it works ---------- */}
+      <div className="panel p-6">
+        <p className="eyebrow">How It Works</p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            'Teachers apply for an account; the admin approves them from the Control Centre.',
+            'A teacher creates a class and shares its join code or link with their kids.',
+            'Kids join with the code, pick their name, and set a PIN, no email needed.',
+            "From their dashboard, kids play the Bible Quiz, climb the leaderboard, and message their teacher.",
+          ].map((text, i) => (
+            <div key={i} className="flex gap-3">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[var(--hairline-strong)] font-display text-xs font-bold text-[var(--gold)]">
+                {i + 1}
+              </span>
+              <p className="text-sm leading-relaxed text-[var(--ink-muted)]">{text}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )
 }
 
-function PortalCard({ to, emoji, title, description }: { to: string; emoji: string; title: string; description: string }) {
+function StatCell({ label, value }: { label: string; value: number }) {
   return (
-    <Link
-      to={to}
-      onClick={() => playClick()}
-      className="animate-page-in flex flex-col items-start gap-2 rounded-2xl border border-amber-400/20 bg-gradient-to-br from-indigo-900/60 to-purple-900/60 p-6 text-left shadow-lg shadow-black/20 transition hover:scale-[1.02] hover:border-amber-400/50"
-    >
-      <span className="text-3xl">{emoji}</span>
-      <span className="font-display text-xl font-bold text-amber-200">{title}</span>
-      <span className="text-white/60">{description}</span>
-    </Link>
-  )
-}
-
-function StatCard({ label, value, delay }: { label: string; value: number; delay: number }) {
-  return (
-    <div
-      className="animate-page-in rounded-2xl border border-white/5 bg-white/5 p-4 shadow-lg shadow-black/20 transition hover:scale-105 hover:bg-white/10"
-      style={{ animationDelay: `${delay}ms` }}
-    >
-      <div className="font-display text-3xl font-extrabold text-amber-300">
+    <div className="stat-cell">
+      <div className="stat-cell-value">
         <CountUp value={value} durationMs={900} />
       </div>
-      <div className="text-xs uppercase tracking-wide text-white/60">{label}</div>
+      <div className="stat-cell-label">{label}</div>
     </div>
+  )
+}
+
+function PortalCard({ to, icon: Icon, title, description }: { to: string; icon: LucideIcon; title: string; description: string }) {
+  return (
+    <Link to={to} onClick={() => playClick()} className="panel panel-interactive flex flex-col gap-3 p-5">
+      <span className="flex h-10 w-10 items-center justify-center rounded-md border border-[var(--hairline-strong)] text-[var(--gold)]">
+        <Icon className="h-5 w-5" strokeWidth={1.75} />
+      </span>
+      <div>
+        <p className="font-display text-lg font-bold">{title}</p>
+        <p className="mt-1 text-sm text-[var(--ink-muted)]">{description}</p>
+      </div>
+    </Link>
   )
 }
 
 function SectionCard({
   to,
-  emoji,
+  icon: Icon,
   title,
   description,
   featured,
 }: {
   to: string
-  emoji: string
+  icon: LucideIcon
   title: string
   description: string
   featured?: boolean
@@ -157,15 +164,19 @@ function SectionCard({
     <Link
       to={to}
       onClick={() => playClick()}
-      className={`flex flex-col items-start gap-2 rounded-2xl p-6 text-left shadow-lg transition hover:scale-[1.02] ${
-        featured
-          ? 'animate-pulse-glow bg-gradient-to-br from-amber-400 to-yellow-500 text-purple-950'
-          : 'border border-white/5 bg-white/5 text-white shadow-black/20 hover:bg-white/10'
-      }`}
+      className={`flex items-start gap-4 p-5 ${featured ? 'panel border-[var(--gold)]/40' : 'panel panel-interactive'}`}
     >
-      <span className="text-3xl">{emoji}</span>
-      <span className="font-display text-xl font-bold">{title}</span>
-      <span className={featured ? 'text-purple-950/80' : 'text-white/60'}>{description}</span>
+      <span
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md ${
+          featured ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'border border-[var(--hairline-strong)] text-[var(--gold)]'
+        }`}
+      >
+        <Icon className="h-5 w-5" strokeWidth={1.75} />
+      </span>
+      <div>
+        <p className="font-display text-lg font-bold">{title}</p>
+        <p className="mt-1 text-sm text-[var(--ink-muted)]">{description}</p>
+      </div>
     </Link>
   )
 }

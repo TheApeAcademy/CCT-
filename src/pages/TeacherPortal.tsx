@@ -1,6 +1,22 @@
 import { useEffect, useState } from 'react'
+import {
+  GraduationCap,
+  ClipboardList,
+  MessageCircle,
+  HeartHandshake,
+  Settings,
+  ArrowLeft,
+  Link2,
+  Archive,
+  Send,
+  Check,
+  X,
+  User,
+} from 'lucide-react'
 import { supabase, signOut } from '../lib/supabase'
 import { useMinistryAuth } from '../lib/useMinistryAuth'
+import AuthCard from '../components/ui/AuthCard'
+import TabBar from '../components/ui/TabBar'
 import {
   getMyTeacherApplication,
   submitTeacherApplication,
@@ -30,95 +46,15 @@ import { fileToResizedDataUrl } from '../lib/image'
 import { playClick } from '../lib/sound'
 import { haptics } from '../lib/haptics'
 
+const inputClass = 'w-full rounded-md border border-[var(--hairline-strong)] bg-transparent px-4 py-3 outline-none focus:border-[var(--gold)]'
+
 export default function TeacherPortal() {
   const { session, profile, loading, refreshProfile } = useMinistryAuth()
 
   if (loading) return <div className="py-20 text-center text-xl">Loading…</div>
-  if (!session) return <TeacherAuth />
+  if (!session) return <AuthCard icon={GraduationCap} title="Teacher Portal" subtitle="Sign in, or create an account and apply to teach." />
   if (profile?.role === 'teacher') return <TeacherDashboard />
   return <ApplicationGate onChange={refreshProfile} />
-}
-
-// ---------- sign in / sign up ----------
-
-function TeacherAuth() {
-  const [tab, setTab] = useState<'signin' | 'signup'>('signin')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-
-  const handleSignIn = async () => {
-    if (!email.trim() || !password) return setError('Enter your email and password.')
-    setLoading(true)
-    setError('')
-    const { error: err } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
-    setLoading(false)
-    if (err) return setError(err.message)
-    playClick()
-    haptics.success()
-  }
-
-  const handleSignUp = async () => {
-    if (!email.trim() || !password) return setError('Enter your email and password.')
-    if (password.length < 6) return setError('Password must be at least 6 characters.')
-    setLoading(true)
-    setError('')
-    const { error: err } = await supabase.auth.signUp({ email: email.trim(), password })
-    setLoading(false)
-    if (err) return setError(err.message)
-    playClick()
-    haptics.success()
-  }
-
-  return (
-    <div className="mx-auto max-w-md space-y-6">
-      <div className="text-center">
-        <p className="text-4xl">👩‍🏫</p>
-        <h1 className="font-display text-3xl font-extrabold">Teacher Portal</h1>
-        <p className="mt-2 text-white/60">Sign in, or create an account and apply to teach.</p>
-      </div>
-      <div className="flex gap-2">
-        <button
-          onClick={() => setTab('signin')}
-          className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition ${tab === 'signin' ? 'bg-amber-400 text-purple-950' : 'bg-white/10 hover:bg-white/20'}`}
-        >
-          Sign In
-        </button>
-        <button
-          onClick={() => setTab('signup')}
-          className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold transition ${tab === 'signup' ? 'bg-amber-400 text-purple-950' : 'bg-white/10 hover:bg-white/20'}`}
-        >
-          Sign Up
-        </button>
-      </div>
-      <div className="space-y-3 rounded-2xl border border-white/5 bg-white/5 p-5 shadow-lg shadow-black/20">
-        <input
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="Email"
-          type="email"
-          className="w-full rounded-lg bg-white/10 px-4 py-3 outline-none focus:ring-2 focus:ring-amber-400"
-        />
-        <input
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="Password"
-          type="password"
-          className="w-full rounded-lg bg-white/10 px-4 py-3 outline-none focus:ring-2 focus:ring-amber-400"
-          onKeyDown={(e) => e.key === 'Enter' && (tab === 'signin' ? handleSignIn() : handleSignUp())}
-        />
-        {error && <p className="text-sm text-red-400">{error}</p>}
-        <button
-          onClick={tab === 'signin' ? handleSignIn : handleSignUp}
-          disabled={loading}
-          className="w-full rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-500 py-3 text-lg font-bold text-purple-950 shadow-lg shadow-amber-400/20 transition hover:scale-[1.02] disabled:opacity-60"
-        >
-          {loading ? 'Please wait…' : tab === 'signin' ? 'Sign In' : 'Sign Up'}
-        </button>
-      </div>
-    </div>
-  )
 }
 
 // ---------- application gate (between signup and approval) ----------
@@ -146,25 +82,32 @@ function ApplicationGate({ onChange }: { onChange: () => void }) {
 
   if (app.status === 'pending') {
     return (
-      <div className="mx-auto max-w-md space-y-4 text-center">
-        <p className="text-4xl">⏳</p>
-        <h1 className="font-display text-3xl font-extrabold">Application Pending</h1>
-        <p className="text-white/60">
-          Thanks, {app.full_name}! Your application is with the ministry admin for review. You'll be able to sign in as soon as you're approved.
-        </p>
-        <button onClick={() => signOut()} className="rounded-full bg-white/10 px-6 py-2 text-sm hover:bg-white/20">
-          Sign Out
-        </button>
-      </div>
+      <StatusScreen
+        icon={ClipboardList}
+        title="Application Pending"
+        body={`Thanks, ${app.full_name}! Your application is with the ministry admin for review. You'll be able to sign in as soon as you're approved.`}
+      />
     )
   }
 
   return (
+    <StatusScreen
+      icon={X}
+      title="Application Not Approved"
+      body="Your application wasn't approved this time. Reach out to the ministry admin if you think this is a mistake."
+    />
+  )
+}
+
+function StatusScreen({ icon: Icon, title, body }: { icon: typeof ClipboardList; title: string; body: string }) {
+  return (
     <div className="mx-auto max-w-md space-y-4 text-center">
-      <p className="text-4xl">😕</p>
-      <h1 className="font-display text-3xl font-extrabold">Application Not Approved</h1>
-      <p className="text-white/60">Your application wasn't approved this time. Reach out to the ministry admin if you think this is a mistake.</p>
-      <button onClick={() => signOut()} className="rounded-full bg-white/10 px-6 py-2 text-sm hover:bg-white/20">
+      <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-md border border-[var(--hairline-strong)] text-[var(--gold)]">
+        <Icon className="h-6 w-6" strokeWidth={1.75} />
+      </span>
+      <h1 className="font-display text-2xl font-extrabold sm:text-3xl">{title}</h1>
+      <p className="text-sm text-[var(--ink-muted)]">{body}</p>
+      <button onClick={() => signOut()} className="btn-outline">
         Sign Out
       </button>
     </div>
@@ -198,36 +141,24 @@ function ApplyForm({ onSubmitted }: { onSubmitted: () => void }) {
   return (
     <div className="mx-auto max-w-lg space-y-6">
       <div className="text-center">
-        <p className="text-4xl">📝</p>
-        <h1 className="font-display text-3xl font-extrabold">Apply to Teach</h1>
-        <p className="mt-2 text-white/60">Tell us about yourself. A ministry admin will review your application.</p>
+        <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-md border border-[var(--hairline-strong)] text-[var(--gold)]">
+          <ClipboardList className="h-6 w-6" strokeWidth={1.75} />
+        </span>
+        <h1 className="mt-3 font-display text-2xl font-extrabold sm:text-3xl">Apply to Teach</h1>
+        <p className="mt-1 text-sm text-[var(--ink-muted)]">Tell us about yourself. A ministry admin will review your application.</p>
       </div>
-      <div className="space-y-3 rounded-2xl border border-white/5 bg-white/5 p-5 shadow-lg shadow-black/20">
-        <input
-          value={fullName}
-          onChange={(e) => setFullName(e.target.value)}
-          placeholder="Full name"
-          className="w-full rounded-lg bg-white/10 px-4 py-3 outline-none focus:ring-2 focus:ring-amber-400"
-        />
-        <input
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-          placeholder="Phone number (optional)"
-          className="w-full rounded-lg bg-white/10 px-4 py-3 outline-none focus:ring-2 focus:ring-amber-400"
-        />
+      <div className="panel space-y-3 p-5">
+        <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name" className={inputClass} />
+        <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone number (optional)" className={inputClass} />
         <textarea
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           placeholder="Tell us a bit about yourself and why you'd like to teach (optional)"
           rows={4}
-          className="w-full rounded-lg bg-white/10 px-4 py-3 outline-none focus:ring-2 focus:ring-amber-400"
+          className={inputClass}
         />
         {error && <p className="text-sm text-red-400">{error}</p>}
-        <button
-          onClick={handleSubmit}
-          disabled={submitting}
-          className="w-full rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-500 py-3 text-lg font-bold text-purple-950 shadow-lg shadow-amber-400/20 transition hover:scale-[1.02] disabled:opacity-60"
-        >
+        <button onClick={handleSubmit} disabled={submitting} className="btn-solid w-full py-3 text-base">
           {submitting ? 'Submitting…' : 'Submit Application'}
         </button>
       </div>
@@ -246,33 +177,28 @@ function TeacherDashboard() {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-display text-2xl font-extrabold">👩‍🏫 Teacher Portal</h1>
-        <button onClick={() => signOut()} className="rounded-full bg-white/10 px-4 py-2 text-sm hover:bg-white/20">
+        <div>
+          <p className="eyebrow">Teacher</p>
+          <h1 className="font-display text-2xl font-extrabold">Portal</h1>
+        </div>
+        <button onClick={() => signOut()} className="btn-outline text-sm">
           Sign Out
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {(
-          [
-            ['classes', '🏫 Classes'],
-            ['messages', '💬 Messages'],
-            ['confessions', '🙏 Confessions'],
-            ['profile', '⚙️ Profile'],
-          ] as [Tab, string][]
-        ).map(([t, label]) => (
-          <button
-            key={t}
-            onClick={() => {
-              setTab(t)
-              setOpenClass(null)
-            }}
-            className={`rounded-full px-4 py-2 text-sm font-semibold transition ${tab === t ? 'bg-amber-400 text-purple-950' : 'bg-white/10 hover:bg-white/20'}`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      <TabBar
+        value={tab}
+        onChange={(t) => {
+          setTab(t)
+          setOpenClass(null)
+        }}
+        items={[
+          { value: 'classes', label: 'Classes', icon: GraduationCap },
+          { value: 'messages', label: 'Messages', icon: MessageCircle },
+          { value: 'confessions', label: 'Confessions', icon: HeartHandshake },
+          { value: 'profile', label: 'Profile', icon: Settings },
+        ]}
+      />
 
       {tab === 'classes' && (openClass ? <ClassDetail klass={openClass} onBack={() => setOpenClass(null)} /> : <ClassesTab onOpen={setOpenClass} />)}
       {tab === 'messages' && <MessagesTab />}
@@ -289,7 +215,9 @@ function ClassesTab({ onOpen }: { onOpen: (c: ClassRow) => void }) {
   const [creating, setCreating] = useState(false)
 
   const load = () => listMyClasses().then(setClasses).finally(() => setLoading(false))
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    load()
+  }, [])
 
   const create = async () => {
     if (!newName.trim()) return
@@ -312,29 +240,25 @@ function ClassesTab({ onOpen }: { onOpen: (c: ClassRow) => void }) {
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           placeholder='New class name, e.g. "Sparklers (Ages 6-8)"'
-          className="flex-1 rounded-lg bg-white/10 px-4 py-2 outline-none focus:ring-2 focus:ring-amber-400"
+          className={inputClass}
           onKeyDown={(e) => e.key === 'Enter' && create()}
         />
-        <button onClick={create} disabled={creating} className="rounded-lg bg-amber-400 px-4 py-2 text-sm font-semibold text-purple-950 disabled:opacity-60">
-          + Create
+        <button onClick={create} disabled={creating} className="btn-solid shrink-0 text-sm">
+          Create
         </button>
       </div>
-      {loading && <p className="text-white/50">Loading…</p>}
-      {!loading && classes.length === 0 && <p className="text-white/50">No classes yet. Create your first one above.</p>}
+      {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
+      {!loading && classes.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No classes yet. Create your first one above.</p>}
       <div className="space-y-2">
         {classes.map((c) => (
-          <button
-            key={c.id}
-            onClick={() => onOpen(c)}
-            className="flex w-full items-center justify-between rounded-xl bg-white/5 p-4 text-left transition hover:scale-[1.01] hover:bg-white/10"
-          >
+          <button key={c.id} onClick={() => onOpen(c)} className="panel panel-interactive flex w-full items-center justify-between p-4 text-left">
             <div>
               <p className="font-bold">
-                {c.name} {c.archived && <span className="text-xs text-white/40">(archived)</span>}
+                {c.name} {c.archived && <span className="text-xs text-[var(--ink-faint)]">(archived)</span>}
               </p>
-              <p className="text-sm text-white/60">Join code: {c.join_code}</p>
+              <p className="text-sm text-[var(--ink-muted)]">Join code: {c.join_code}</p>
             </div>
-            <span className="text-white/40">→</span>
+            <span className="text-[var(--ink-faint)]">&rarr;</span>
           </button>
         ))}
       </div>
@@ -357,7 +281,10 @@ function ClassDetail({ klass, onBack }: { klass: ClassRow; onBack: () => void })
       setLoading(false)
     })
   }
-  useEffect(() => { load() }, [klass.id])
+  useEffect(() => {
+    load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [klass.id])
 
   const addName = async () => {
     if (!newName.trim()) return
@@ -397,44 +324,46 @@ function ClassDetail({ klass, onBack }: { klass: ClassRow; onBack: () => void })
 
   return (
     <div className="space-y-6">
-      <button onClick={onBack} className="text-sm text-white/60 hover:text-white">
-        ← Back to classes
+      <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-[var(--ink-muted)] hover:text-white">
+        <ArrowLeft className="h-4 w-4" /> Back to classes
       </button>
 
-      <div className="rounded-2xl border border-white/5 bg-white/5 p-5 shadow-lg shadow-black/20">
+      <div className="panel p-5">
         <h2 className="font-display text-xl font-bold">{klass.name}</h2>
-        <p className="mt-1 text-sm text-white/60">Share this with your class so kids can join:</p>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <span className="rounded-full bg-black/30 px-4 py-2 font-mono text-lg font-bold text-amber-300">{klass.join_code}</span>
-          <button onClick={copyLink} className="rounded-lg bg-white/10 px-3 py-2 text-sm hover:bg-white/20">
-            🔗 Copy join link
+        <p className="mt-1 text-sm text-[var(--ink-muted)]">Share this with your class so kids can join:</p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="rounded border border-[var(--hairline-strong)] px-4 py-2 font-mono text-lg font-bold text-[var(--gold)]">{klass.join_code}</span>
+          <button onClick={copyLink} className="btn-outline flex items-center gap-1.5 px-3 py-2 text-sm">
+            <Link2 className="h-4 w-4" /> Copy join link
           </button>
-          <button onClick={toggleArchive} className="ml-auto rounded-lg bg-white/10 px-3 py-2 text-sm hover:bg-white/20">
-            {klass.archived ? 'Unarchive' : 'Archive'}
+          <button onClick={toggleArchive} className="btn-outline ml-auto flex items-center gap-1.5 px-3 py-2 text-sm">
+            <Archive className="h-4 w-4" /> {klass.archived ? 'Unarchive' : 'Archive'}
           </button>
         </div>
       </div>
 
-      {loading && <p className="text-white/50">Loading…</p>}
+      {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
 
       <div className="space-y-3">
-        <h3 className="font-display font-bold">👦 Students ({students.length})</h3>
-        {students.length === 0 && <p className="text-sm text-white/50">No one has joined yet.</p>}
+        <p className="eyebrow">Students ({students.length})</p>
+        {students.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No one has joined yet.</p>}
         <div className="space-y-2">
           {students.map((s) => (
-            <div key={s.id} className="flex items-center justify-between gap-3 rounded-xl bg-white/5 p-4">
+            <div key={s.id} className="panel flex items-center justify-between gap-3 p-4">
               <div className="flex items-center gap-3">
                 {s.avatar_url ? (
                   <img src={s.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover" />
                 ) : (
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-400/20 text-amber-300">👤</span>
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--hairline-strong)] text-[var(--gold)]">
+                    <User className="h-5 w-5" strokeWidth={1.75} />
+                  </span>
                 )}
                 <div>
                   <p className="font-semibold">{s.full_name}</p>
-                  <p className="text-xs text-white/50">{s.total_points.toLocaleString()} points</p>
+                  <p className="text-xs text-[var(--ink-faint)]">{s.total_points.toLocaleString()} points</p>
                 </div>
               </div>
-              <button onClick={() => removeStudent(s.id)} className="rounded-lg bg-red-500/20 px-3 py-1.5 text-xs text-red-300 hover:bg-red-500/30">
+              <button onClick={() => removeStudent(s.id)} className="rounded-md bg-red-500/15 px-3 py-1.5 text-xs font-bold text-red-400 hover:bg-red-500/25">
                 Remove
               </button>
             </div>
@@ -443,31 +372,31 @@ function ClassDetail({ klass, onBack }: { klass: ClassRow; onBack: () => void })
       </div>
 
       <div className="space-y-3">
-        <h3 className="font-display font-bold">📋 Roster (waiting to join)</h3>
+        <p className="eyebrow">Roster (Waiting To Join)</p>
         <div className="flex gap-2">
           <input
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             placeholder="Add a kid's name"
-            className="flex-1 rounded-lg bg-white/10 px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-400"
+            className={`${inputClass} py-2 text-sm`}
             onKeyDown={(e) => e.key === 'Enter' && addName()}
           />
-          <button onClick={addName} className="rounded-lg bg-white/10 px-4 py-2 text-sm hover:bg-white/20">
-            + Add
+          <button onClick={addName} className="btn-outline shrink-0 text-sm">
+            Add
           </button>
         </div>
         <div className="space-y-1">
           {roster
             .filter((r) => !r.claimed)
             .map((r) => (
-              <div key={r.id} className="flex items-center justify-between rounded-lg bg-black/20 px-4 py-2 text-sm">
+              <div key={r.id} className="flex items-center justify-between rounded-md border border-[var(--hairline)] px-4 py-2 text-sm">
                 <span>{r.full_name}</span>
-                <button onClick={() => removeUnclaimed(r.id)} className="text-xs text-white/40 hover:text-red-300">
-                  ✕ remove
+                <button onClick={() => removeUnclaimed(r.id)} className="text-xs text-[var(--ink-faint)] hover:text-red-400">
+                  Remove
                 </button>
               </div>
             ))}
-          {roster.filter((r) => !r.claimed).length === 0 && <p className="text-sm text-white/40">Everyone on the roster has joined.</p>}
+          {roster.filter((r) => !r.claimed).length === 0 && <p className="text-sm text-[var(--ink-faint)]">Everyone on the roster has joined.</p>}
         </div>
       </div>
     </div>
@@ -486,10 +415,16 @@ function MessagesTab() {
 
   return (
     <div className="space-y-2">
-      {conversations.length === 0 && <p className="text-white/50">No conversations yet. Students can message you once they join a class.</p>}
+      {conversations.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No conversations yet. Students can message you once they join a class.</p>}
       {conversations.map((c) => (
-        <button key={c.id} onClick={() => setOpen(c)} className="flex w-full items-center gap-3 rounded-xl bg-white/5 p-4 text-left transition hover:bg-white/10">
-          {c.other_avatar ? <img src={c.other_avatar} alt="" className="h-10 w-10 rounded-full object-cover" /> : <span className="text-2xl">👤</span>}
+        <button key={c.id} onClick={() => setOpen(c)} className="panel panel-interactive flex w-full items-center gap-3 p-4 text-left">
+          {c.other_avatar ? (
+            <img src={c.other_avatar} alt="" className="h-10 w-10 rounded-full object-cover" />
+          ) : (
+            <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--hairline-strong)] text-[var(--gold)]">
+              <User className="h-5 w-5" strokeWidth={1.75} />
+            </span>
+          )}
           <p className="font-semibold">{c.other_name}</p>
         </button>
       ))}
@@ -506,6 +441,7 @@ function ThreadView({ conversationId, title, onBack }: { conversationId: string;
   useEffect(() => {
     load()
     supabase.auth.getUser().then(({ data }) => setMyId(data.user?.id ?? null))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId])
 
   const send = async () => {
@@ -518,28 +454,28 @@ function ThreadView({ conversationId, title, onBack }: { conversationId: string;
 
   return (
     <div className="space-y-4">
-      <button onClick={onBack} className="text-sm text-white/60 hover:text-white">
-        ← Back to messages
+      <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-[var(--ink-muted)] hover:text-white">
+        <ArrowLeft className="h-4 w-4" /> Back to messages
       </button>
       <h3 className="font-display text-lg font-bold">{title}</h3>
-      <div className="space-y-2 rounded-2xl bg-black/20 p-4">
+      <div className="panel space-y-2 p-4">
         {messages.map((m) => (
-          <div key={m.id} className={`max-w-[80%] rounded-xl px-3 py-2 text-sm ${m.sender_id === myId ? 'ml-auto bg-amber-400/20 text-right' : 'bg-white/10'}`}>
+          <div key={m.id} className={`max-w-[80%] rounded-md px-3 py-2 text-sm ${m.sender_id === myId ? 'ml-auto bg-[var(--gold)]/15 text-right' : 'bg-white/5'}`}>
             {m.body}
           </div>
         ))}
-        {messages.length === 0 && <p className="text-center text-sm text-white/40">No messages yet.</p>}
+        {messages.length === 0 && <p className="text-center text-sm text-[var(--ink-faint)]">No messages yet.</p>}
       </div>
       <div className="flex gap-2">
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           placeholder="Write a message…"
-          className="flex-1 rounded-lg bg-white/10 px-4 py-2 outline-none focus:ring-2 focus:ring-amber-400"
+          className={inputClass}
           onKeyDown={(e) => e.key === 'Enter' && send()}
         />
-        <button onClick={send} className="rounded-lg bg-amber-400 px-4 py-2 text-sm font-semibold text-purple-950">
-          Send
+        <button onClick={send} className="btn-solid flex shrink-0 items-center gap-1.5 text-sm">
+          <Send className="h-4 w-4" /> Send
         </button>
       </div>
     </div>
@@ -552,7 +488,9 @@ function ConfessionsTab() {
   const [loading, setLoading] = useState(true)
 
   const load = () => listTeacherInbox().then(setItems).finally(() => setLoading(false))
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    load()
+  }, [])
 
   const reply = async (id: string) => {
     const text = drafts[id]?.trim()
@@ -571,22 +509,26 @@ function ConfessionsTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-white/60">Private notes from students in your classes. Anonymous ones never reveal who sent them, even to you.</p>
-      {loading && <p className="text-white/50">Loading…</p>}
-      {!loading && items.length === 0 && <p className="text-white/50">Nothing here yet.</p>}
+      <p className="text-sm text-[var(--ink-muted)]">Private notes from students in your classes. Anonymous ones never reveal who sent them, even to you.</p>
+      {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
+      {!loading && items.length === 0 && <p className="text-sm text-[var(--ink-muted)]">Nothing here yet.</p>}
       <div className="space-y-3">
         {items.map((c) => (
-          <div key={c.id} className="rounded-2xl border border-white/5 bg-white/5 p-5 shadow-lg shadow-black/20" onClick={() => c.status === 'new' && seen(c.id)}>
+          <div key={c.id} className="panel p-5" onClick={() => c.status === 'new' && seen(c.id)}>
             <div className="flex items-start justify-between gap-2">
-              <p className="text-sm font-semibold text-white/60">{c.is_anonymous ? '🕶️ Anonymous' : '🙋 A student'}</p>
-              <span className={`rounded-full px-3 py-1 text-xs font-bold ${c.status === 'replied' ? 'bg-green-500/30 text-green-300' : c.status === 'seen' ? 'bg-white/10 text-white/60' : 'bg-amber-400/30 text-amber-300'}`}>
+              <p className="text-sm font-semibold text-[var(--ink-muted)]">{c.is_anonymous ? 'Anonymous' : 'A student'}</p>
+              <span
+                className={`rounded px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${
+                  c.status === 'replied' ? 'bg-emerald-500/15 text-emerald-400' : c.status === 'seen' ? 'bg-white/10 text-white/60' : 'bg-[var(--gold)]/15 text-[var(--gold)]'
+                }`}
+              >
                 {c.status}
               </span>
             </div>
             <p className="mt-2 whitespace-pre-wrap">{c.body}</p>
             {c.reply && (
-              <div className="mt-3 rounded-lg bg-green-900/20 p-3 text-sm">
-                <p className="mb-1 font-semibold text-green-300">Your reply:</p>
+              <div className="mt-3 rounded-md bg-emerald-500/10 p-3 text-sm">
+                <p className="mb-1 font-semibold text-emerald-400">Your reply:</p>
                 <p>{c.reply}</p>
               </div>
             )}
@@ -595,11 +537,17 @@ function ConfessionsTab() {
                 value={drafts[c.id] ?? ''}
                 onChange={(e) => setDrafts((d) => ({ ...d, [c.id]: e.target.value }))}
                 placeholder={c.reply ? 'Update your reply…' : 'Write a reply…'}
-                className="flex-1 rounded-lg bg-white/10 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-400"
+                className={`${inputClass} py-2 text-sm`}
                 onClick={(e) => e.stopPropagation()}
                 onKeyDown={(e) => e.key === 'Enter' && reply(c.id)}
               />
-              <button onClick={(e) => { e.stopPropagation(); reply(c.id) }} className="rounded-lg bg-amber-400 px-4 py-2 text-sm font-semibold text-purple-950">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  reply(c.id)
+                }}
+                className="btn-solid shrink-0 text-sm"
+              >
                 Reply
               </button>
             </div>
@@ -641,26 +589,27 @@ function ProfileTab() {
   }
 
   return (
-    <div className="mx-auto max-w-md space-y-4 rounded-2xl border border-white/5 bg-white/5 p-5 shadow-lg shadow-black/20">
+    <div className="panel mx-auto max-w-md space-y-4 p-5">
       <div className="flex items-center gap-4">
         <label className="cursor-pointer">
           {avatar ? (
-            <img src={avatar} alt="" className="h-16 w-16 rounded-full object-cover ring-2 ring-amber-400/60" />
+            <img src={avatar} alt="" className="h-16 w-16 rounded-full object-cover ring-2 ring-[var(--gold)]/60" />
           ) : (
-            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-400/20 text-2xl">👤</span>
+            <span className="flex h-16 w-16 items-center justify-center rounded-full border border-[var(--hairline-strong)] text-[var(--gold)]">
+              <User className="h-7 w-7" strokeWidth={1.75} />
+            </span>
           )}
           <input type="file" accept="image/*" className="hidden" onChange={(e) => pickPhoto(e.target.files?.[0])} />
         </label>
-        <p className="text-sm text-white/60">Tap your photo to change it</p>
+        <p className="text-sm text-[var(--ink-muted)]">Tap your photo to change it</p>
       </div>
-      <input
-        value={fullName}
-        onChange={(e) => setFullName(e.target.value)}
-        placeholder="Full name"
-        className="w-full rounded-lg bg-white/10 px-4 py-3 outline-none focus:ring-2 focus:ring-amber-400"
-      />
-      {saved && <p className="text-sm text-green-400">Saved! ✅</p>}
-      <button onClick={save} className="w-full rounded-2xl bg-amber-400 py-3 font-bold text-purple-950 transition hover:scale-[1.02]">
+      <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name" className={inputClass} />
+      {saved && (
+        <p className="flex items-center gap-1.5 text-sm text-emerald-400">
+          <Check className="h-4 w-4" /> Saved
+        </p>
+      )}
+      <button onClick={save} className="btn-solid w-full py-3">
         Save Profile
       </button>
     </div>

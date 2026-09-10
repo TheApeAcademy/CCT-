@@ -338,7 +338,7 @@ export default function Gameplay() {
 
         <div className="mt-8 flex justify-center">
           <img
-            src="/church-logo.svg"
+            src="/church-logo.png"
             alt=""
             aria-hidden="true"
             className="relative z-10 -mb-8 h-16 w-16 rounded-full shadow-lg shadow-black/40 ring-2 ring-amber-400/60 sm:h-20 sm:w-20"
@@ -502,7 +502,7 @@ function IntroCountdown({
       {teamPhoto ? (
         <img src={teamPhoto} alt="" className="h-24 w-24 rounded-full object-cover shadow-xl shadow-black/40 ring-4 ring-amber-400/60" />
       ) : (
-        <img src="/church-logo.svg" alt="" className="h-20 w-20 rounded-full shadow-xl shadow-black/40 ring-2 ring-amber-400/50" />
+        <img src="/church-logo.png" alt="" className="h-20 w-20 rounded-full shadow-xl shadow-black/40 ring-2 ring-amber-400/50" />
       )}
       {totalTeams > 1 && (
         <p className="text-sm uppercase tracking-wide text-white/50">

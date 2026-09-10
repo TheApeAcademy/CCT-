@@ -444,6 +444,14 @@ button:active, a:active {
   padding: 2px;
 }
 
+/* Breaks a hero out of its centered max-width parent to run edge-to-edge,
+   the way a real immersive hero section does — never boxed like a card. */
+.full-bleed {
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+}
+
 /* ==================== hero carousel ==================== */
 
 .stage-beams {

@@ -14,7 +14,7 @@ export interface HeroSlide {
 
 const AUTOPLAY_MS = 6500
 
-export default function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
+export default function HeroCarousel({ slides, badge }: { slides: HeroSlide[]; badge?: React.ReactNode }) {
   const [index, setIndex] = useState(0)
   const timerRef = useRef<number | null>(null)
   const touchStartX = useRef<number | null>(null)
@@ -48,7 +48,7 @@ export default function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
 
   return (
     <div
-      className="stage-beams relative h-[480px] overflow-hidden rounded-xl border border-[var(--hairline)] sm:h-[560px]"
+      className="stage-beams full-bleed relative -mt-6 h-[86vh] min-h-[520px] overflow-hidden border-b border-[var(--hairline)] sm:h-[88vh] sm:min-h-[620px]"
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
       role="region"
@@ -57,26 +57,29 @@ export default function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
     >
       {slides.map((slide, i) => (
         <div key={i} className={`hero-slide ${i === index ? 'is-active' : ''}`} aria-hidden={i !== index}>
-          <div className="flex h-full flex-col justify-end px-6 py-8 sm:px-12 sm:py-12">
+          <div className="flex h-full flex-col items-center justify-center px-4 py-20 text-center">
+            {i === 0 && badge}
             <p className="eyebrow text-sm">{slide.eyebrow}</p>
-            <h1 className="mt-3 max-w-2xl text-balance font-display text-4xl font-extrabold leading-[1.02] tracking-tight sm:text-6xl lg:text-7xl">
+            <h1 className="mt-4 max-w-4xl text-balance font-display text-4xl font-extrabold uppercase leading-[1.02] tracking-tight sm:text-6xl lg:text-7xl">
               {slide.title}
             </h1>
-            <p className="mt-4 max-w-lg text-base leading-relaxed text-[var(--ink-muted)]">{slide.body}</p>
+            <p className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-[var(--ink-muted)] sm:text-lg">{slide.body}</p>
 
             {slide.quote && (
-              <p className="mt-5 max-w-md border-l-2 border-[var(--gold)]/50 pl-3 text-sm italic text-white/70">
+              <p className="mx-auto mt-6 max-w-xl text-base italic text-white/75 sm:text-lg">
                 &ldquo;{slide.quote.text}&rdquo;
-                <span className="mt-1 block not-italic text-xs font-bold uppercase tracking-wide text-[var(--gold)]">{slide.quote.source}</span>
+                <span className="mt-2 block not-italic text-xs font-bold uppercase tracking-wide text-[var(--gold)]">
+                  &mdash; {slide.quote.source}
+                </span>
               </p>
             )}
 
-            <div className="mt-6 flex flex-wrap items-center gap-3">
-              <Link to={slide.primaryCta.to} onClick={() => playClick()} className="btn-solid">
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+              <Link to={slide.primaryCta.to} onClick={() => playClick()} className="btn-solid !px-7 !py-3.5 !text-base">
                 {slide.primaryCta.label}
               </Link>
               {slide.secondaryCta && (
-                <Link to={slide.secondaryCta.to} onClick={() => playClick()} className="btn-outline">
+                <Link to={slide.secondaryCta.to} onClick={() => playClick()} className="btn-outline !px-7 !py-3.5 !text-base">
                   {slide.secondaryCta.label}
                 </Link>
               )}
@@ -87,15 +90,21 @@ export default function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
 
       {slides.length > 1 && (
         <>
-          <div className="absolute right-4 top-4 z-10 flex gap-2 sm:right-6 sm:top-6">
-            <button onClick={() => restart(index - 1)} className="hero-arrow" aria-label="Previous slide">
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <button onClick={() => restart(index + 1)} className="hero-arrow" aria-label="Next slide">
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="absolute bottom-6 left-6 z-10 flex gap-2 sm:left-12">
+          <button
+            onClick={() => restart(index - 1)}
+            className="hero-arrow absolute left-4 top-1/2 z-10 hidden -translate-y-1/2 sm:left-8 sm:flex"
+            aria-label="Previous slide"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => restart(index + 1)}
+            className="hero-arrow absolute right-4 top-1/2 z-10 hidden -translate-y-1/2 sm:right-8 sm:flex"
+            aria-label="Next slide"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </button>
+          <div className="absolute bottom-8 left-1/2 z-10 flex -translate-x-1/2 gap-2">
             {slides.map((_, i) => (
               <button
                 key={i}
@@ -116,7 +125,7 @@ export default function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
 
 export function SeasonBadge({ name }: { name: string }) {
   return (
-    <span className="mb-3 inline-flex items-center gap-1.5 rounded-md border border-[var(--hairline-strong)] px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-[var(--gold)]">
+    <span className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-[var(--gold)]/40 bg-[rgba(232,185,35,0.08)] px-3.5 py-1.5 text-xs font-bold uppercase tracking-wide text-[var(--gold)]">
       <CalendarRange className="h-3.5 w-3.5" />
       {name} active
     </span>

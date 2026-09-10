@@ -59,10 +59,7 @@ export default function Home() {
   return (
     <div className="space-y-16 pb-10">
       {/* ---------- hero ---------- */}
-      <div>
-        {activeSeason && <SeasonBadge name={activeSeason.name} />}
-        <HeroCarousel slides={slides} />
-      </div>
+      <HeroCarousel slides={slides} badge={activeSeason ? <SeasonBadge name={activeSeason.name} /> : undefined} />
 
       {/* ---------- stats ---------- */}
       <div className="stat-strip grid-cols-4">

@@ -87,8 +87,31 @@ export interface Match {
   lifelines: LifelinesUsed
   teamNames: string[]
   teamPhotos?: (string | undefined)[]
+  // Optional link from a team to a registered Student Code, resolved once
+  // at setup time (needs a connection). Lets a completed match's result
+  // queue for the real ministry leaderboard without gameplay itself ever
+  // needing network.
+  teamStudentIds?: (string | undefined)[]
+  teamStudentClassIds?: (string | undefined)[]
   createdAt: number
   completedAt?: number
+}
+
+// A quiz result waiting to be pushed to the ministry leaderboard. Written
+// immediately when a linked team finishes a match (always works offline),
+// then flushed to Supabase automatically once there's a connection.
+export interface PendingLeaderboardSync {
+  id?: number
+  studentId: string
+  studentName: string
+  classId: string | null
+  setName: string
+  seasonName?: string
+  points: number
+  correctCount: number
+  totalQuestions: number
+  createdAt: number
+  synced: 0 | 1
 }
 
 export interface LadderLevel {
@@ -102,6 +125,8 @@ export interface GameConfig {
   matchId: number
   teamNames: string[]
   teamPhotos?: (string | undefined)[]
+  teamStudentIds?: (string | undefined)[]
+  teamStudentClassIds?: (string | undefined)[]
   teamIndex: number
   setId: number
   setName: string

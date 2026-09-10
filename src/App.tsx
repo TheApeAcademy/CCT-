@@ -3,7 +3,7 @@ import { HashRouter, Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout'
 import PortalShell from './components/PortalShell'
 import SplashScreen from './components/SplashScreen'
-import { ensureSeedData } from './db/db'
+import { db, ensureSeedData } from './db/db'
 import { unlockAudio } from './lib/sound'
 import Home from './pages/Home'
 import QuestionBank from './pages/QuestionBank'
@@ -39,6 +39,25 @@ function App() {
 
   useEffect(() => {
     ensureSeedData().then(() => setSeeded(true))
+  }, [])
+
+  // Only pull in the Supabase-dependent sync module (and its network
+  // bundle) if there's actually a locally-queued result to push — a kid on
+  // the fully offline quiz who never links a team to a Student Code should
+  // never fetch it at all. The existence check itself is pure Dexie.
+  useEffect(() => {
+    const maybeSync = () => {
+      db.pendingLeaderboardSync
+        .where('synced')
+        .equals(0)
+        .count()
+        .then((count) => {
+          if (count > 0) import('./lib/leaderboardSync').then((m) => m.syncPendingLeaderboard())
+        })
+    }
+    maybeSync()
+    window.addEventListener('online', maybeSync)
+    return () => window.removeEventListener('online', maybeSync)
   }, [])
 
   // iOS Safari (including installed/standalone PWAs) only allows the Web

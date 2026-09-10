@@ -11,6 +11,7 @@ import type {
   TransitionCheckpointResult,
   MockExamAttempt,
   Season,
+  PendingLeaderboardSync,
 } from './types'
 import { starterQuestions } from './seedQuestions'
 
@@ -26,6 +27,7 @@ export class TriviaDB extends Dexie {
   transitionCheckpointResults!: Table<TransitionCheckpointResult, number>
   mockExamAttempts!: Table<MockExamAttempt, number>
   seasons!: Table<Season, number>
+  pendingLeaderboardSync!: Table<PendingLeaderboardSync, number>
 
   constructor() {
     super('cct-trivia')
@@ -47,6 +49,9 @@ export class TriviaDB extends Dexie {
       seasons: '++id, name, isActive, createdAt',
       questionSets: '++id, name, seasonId',
       matches: '++id, setId, createdAt, seasonId',
+    })
+    this.version(5).stores({
+      pendingLeaderboardSync: '++id, studentId, synced, createdAt',
     })
   }
 }

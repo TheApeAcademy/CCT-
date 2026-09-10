@@ -318,6 +318,39 @@ export async function recordQuizAttempt(params: { class_id?: string | null; seas
   if (error) throw error
 }
 
+// Records a quiz result for a student who isn't the one signed in — used
+// when a teacher or admin runs an offline quiz match and links a team to a
+// registered Student Code. RLS still enforces it: a teacher can only record
+// for students in their own class, an admin can record for anyone.
+export async function recordQuizAttemptForStudent(params: {
+  student_id: string
+  class_id: string | null
+  season_id?: string | null
+  set_name: string
+  points: number
+  correct_count: number
+  total_questions: number
+}) {
+  const { error } = await supabase.from('quiz_attempts').insert({
+    student_id: params.student_id,
+    class_id: params.class_id,
+    season_id: params.season_id ?? null,
+    set_name: params.set_name,
+    points: params.points,
+    correct_count: params.correct_count,
+    total_questions: params.total_questions,
+  })
+  if (error) throw error
+}
+
+// Looks a student up by Student Code for linking, without enrolling them
+// anywhere. Teacher/admin only (enforced server-side).
+export async function findStudentByCode(code: string): Promise<{ id: string; full_name: string; class_id: string | null } | null> {
+  const { data, error } = await supabase.rpc('find_student_by_code', { p_code: code.trim() })
+  if (error) throw error
+  return data as { id: string; full_name: string; class_id: string | null } | null
+}
+
 // ---------- messaging ----------
 
 export async function getOrCreateConversation(teacherId: string, studentId: string): Promise<string> {

@@ -32,6 +32,17 @@ export default function GameSetup() {
 
   const [teamNames, setTeamNames] = useState<string[]>([''])
   const [teamPhotos, setTeamPhotos] = useState<(string | undefined)[]>([undefined])
+
+  // Linking a team to a registered Student Code is entirely opt-in — the
+  // Supabase-dependent ministry module only ever loads if the operator
+  // taps into this, so a kid running a fully offline quiz never fetches it.
+  const [linkOpen, setLinkOpen] = useState(false)
+  const [linkChecking, setLinkChecking] = useState(false)
+  const [linkAuthorized, setLinkAuthorized] = useState<boolean | null>(null)
+  const [studentCodes, setStudentCodes] = useState<string[]>([''])
+  const [linkedStudents, setLinkedStudents] = useState<({ id: string; full_name: string; class_id: string | null } | undefined)[]>([undefined])
+  const [linkErrors, setLinkErrors] = useState<(string | undefined)[]>([undefined])
+  const [linkBusyIndex, setLinkBusyIndex] = useState<number | null>(null)
   const [seasonFilter, setSeasonFilter] = useState<number | 'all'>('all')
   const [setId, setSetId] = useState<number | null>(null)
   const [timerSeconds, setTimerSeconds] = useState(30)
@@ -119,13 +130,56 @@ export default function GameSetup() {
     if (teamNames.length >= MAX_TEAMS) return
     setTeamNames((prev) => [...prev, prefill ?? ''])
     setTeamPhotos((prev) => [...prev, undefined])
+    setStudentCodes((prev) => [...prev, ''])
+    setLinkedStudents((prev) => [...prev, undefined])
+    setLinkErrors((prev) => [...prev, undefined])
     playClick()
   }
 
   const removeTeamSlot = (index: number) => {
     setTeamNames((prev) => prev.filter((_, i) => i !== index))
     setTeamPhotos((prev) => prev.filter((_, i) => i !== index))
+    setStudentCodes((prev) => prev.filter((_, i) => i !== index))
+    setLinkedStudents((prev) => prev.filter((_, i) => i !== index))
+    setLinkErrors((prev) => prev.filter((_, i) => i !== index))
     haptics.tap()
+  }
+
+  const openLinking = async () => {
+    setLinkOpen(true)
+    if (linkAuthorized !== null) return
+    setLinkChecking(true)
+    try {
+      const { getMyProfile } = await import('../lib/supabase')
+      const profile = await getMyProfile()
+      setLinkAuthorized(profile?.role === 'teacher' || profile?.role === 'admin')
+    } catch {
+      setLinkAuthorized(false)
+    } finally {
+      setLinkChecking(false)
+    }
+  }
+
+  const linkTeamByCode = async (index: number) => {
+    const code = studentCodes[index]?.trim()
+    if (!code) return
+    setLinkBusyIndex(index)
+    setLinkErrors((prev) => prev.map((e, i) => (i === index ? undefined : e)))
+    try {
+      const { findStudentByCode } = await import('../lib/ministry')
+      const result = await findStudentByCode(code)
+      if (!result) {
+        setLinkErrors((prev) => prev.map((e, i) => (i === index ? "Couldn't find that Student Code." : e)))
+        return
+      }
+      setLinkedStudents((prev) => prev.map((s, i) => (i === index ? result : s)))
+      haptics.success()
+      playClick()
+    } catch (e) {
+      setLinkErrors((prev) => prev.map((err, i) => (i === index ? (e instanceof Error ? e.message : "Couldn't check that code.") : err)))
+    } finally {
+      setLinkBusyIndex(null)
+    }
   }
 
   const quickAddPlayer = (name: string) => {
@@ -169,8 +223,11 @@ export default function GameSetup() {
     const pool = await db.questions.where('setId').equals(setId).toArray()
     const questionIds = selectQuestionsForGame(pool).map((q) => q.id!)
 
-    // Photos are aligned to the original team slots; keep only the ones for teams that ended up with a name.
-    const cleanPhotos = teamNames.map((n, i) => (n.trim() ? teamPhotos[i] : undefined)).filter((_, i) => teamNames[i].trim())
+    // Photos and student links are aligned to the original team slots; keep only the ones for teams that ended up with a name.
+    const keptIndexes = teamNames.map((n, i) => (n.trim() ? i : -1)).filter((i) => i >= 0)
+    const cleanPhotos = keptIndexes.map((i) => teamPhotos[i])
+    const cleanStudentIds = keptIndexes.map((i) => linkedStudents[i]?.id)
+    const cleanStudentClassIds = keptIndexes.map((i) => linkedStudents[i]?.class_id ?? undefined)
 
     const lifelines = { fiftyFifty, askChurch, phoneFriend }
     const matchId = await createMatch({
@@ -183,12 +240,16 @@ export default function GameSetup() {
       lifelines,
       teamNames: cleanTeams,
       teamPhotos: cleanPhotos,
+      teamStudentIds: cleanStudentIds,
+      teamStudentClassIds: cleanStudentClassIds,
     })
 
     const config: GameConfig = {
       matchId,
       teamNames: cleanTeams,
       teamPhotos: cleanPhotos,
+      teamStudentIds: cleanStudentIds,
+      teamStudentClassIds: cleanStudentClassIds,
       teamIndex: 0,
       setId,
       setName: selectedSet.name,
@@ -268,6 +329,62 @@ export default function GameSetup() {
           >
             + Add another team
           </button>
+        )}
+
+        {!linkOpen ? (
+          <button
+            onClick={openLinking}
+            className="w-full rounded-lg border border-white/10 py-2 text-xs text-white/50 transition hover:bg-white/5 hover:text-white/70"
+          >
+            Running this for the ministry leaderboard? Link teams to Student Codes (optional)
+          </button>
+        ) : (
+          <div className="space-y-2 rounded-lg border border-amber-400/20 bg-amber-400/5 p-3">
+            {linkChecking && <p className="text-sm text-white/60">Checking…</p>}
+            {!linkChecking && linkAuthorized === false && (
+              <p className="text-sm text-white/60">
+                Sign in as a teacher or admin to link teams to the leaderboard — matches still work fine without it.
+              </p>
+            )}
+            {!linkChecking && linkAuthorized === true && (
+              <>
+                <p className="text-xs text-white/50">
+                  Match each team to their Student Code. Results save locally either way — this just makes them count toward the leaderboard.
+                </p>
+                {teamNames.map(
+                  (name, i) =>
+                    name.trim() && (
+                      <div key={i} className="flex items-center gap-2">
+                        <span className="w-24 shrink-0 truncate text-sm text-white/70">{name}</span>
+                        {linkedStudents[i] ? (
+                          <span className="flex-1 rounded-lg bg-emerald-500/15 px-3 py-2 text-sm text-emerald-300">
+                            Linked to {linkedStudents[i]!.full_name}
+                          </span>
+                        ) : (
+                          <>
+                            <input
+                              value={studentCodes[i] ?? ''}
+                              onChange={(e) => setStudentCodes((prev) => prev.map((c, idx) => (idx === i ? e.target.value.toUpperCase() : c)))}
+                              placeholder="MFM4827"
+                              className="flex-1 rounded-lg bg-white/10 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-400"
+                              onKeyDown={(e) => e.key === 'Enter' && linkTeamByCode(i)}
+                            />
+                            <button
+                              onClick={() => linkTeamByCode(i)}
+                              disabled={linkBusyIndex === i}
+                              className="shrink-0 rounded-lg bg-white/10 px-3 py-2 text-xs text-white/70 hover:bg-white/20"
+                            >
+                              {linkBusyIndex === i ? '…' : 'Link'}
+                            </button>
+                          </>
+                        )}
+                        {linkErrors[i] && <span className="text-xs text-red-400">{linkErrors[i]}</span>}
+                      </div>
+                    )
+                )}
+              </>
+            )}
+          </div>
         )}
 
         {recentPlayers.length > 0 && (

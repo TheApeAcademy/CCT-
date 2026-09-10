@@ -725,3 +725,29 @@ export async function addBibleReading(params: { plan_id: string; day_number: num
   const { error } = await supabase.from('bible_plan_readings').insert(params)
   if (error) throw error
 }
+
+// ---------- achievements ----------
+
+export interface AchievementRow {
+  id: string
+  code: string
+  name: string
+  description: string
+  icon: string
+}
+
+export interface EarnedAchievement extends AchievementRow {
+  earned_at: string
+}
+
+export async function listMyAchievements(): Promise<EarnedAchievement[]> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) return []
+  const { data, error } = await supabase
+    .from('student_achievements')
+    .select('earned_at, achievements!inner(id, code, name, description, icon)')
+    .eq('student_id', auth.user.id)
+    .order('earned_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []).map((row: any) => ({ ...row.achievements, earned_at: row.earned_at })) as EarnedAchievement[]
+}

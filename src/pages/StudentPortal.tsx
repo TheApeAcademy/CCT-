@@ -19,6 +19,10 @@ import {
   FileText,
   Clock,
   Flame,
+  Swords,
+  Star,
+  Award,
+  type LucideIcon,
 } from 'lucide-react'
 import { supabase, signOut } from '../lib/supabase'
 import { useMinistryAuth } from '../lib/useMinistryAuth'
@@ -41,7 +45,9 @@ import {
   getMyBibleStreak,
   completeBibleReading,
   haveICompletedReading,
+  listMyAchievements,
   type TodaysReading,
+  type EarnedAchievement,
   type StudentRow,
   type LeaderboardRow,
   type MessageRow,
@@ -85,6 +91,7 @@ function Dashboard() {
   const [student, setStudent] = useState<StudentRow | null>(null)
   const [klass, setKlass] = useState<(ClassRow & { teacher_name: string }) | null>(null)
   const [rank, setRank] = useState<number | null>(null)
+  const [achievements, setAchievements] = useState<EarnedAchievement[]>([])
 
   const load = () => {
     getMyStudentProfile().then((s) => {
@@ -92,6 +99,7 @@ function Dashboard() {
       if (s) getLeaderboard(500).then((rows) => setRank(rows.findIndex((r) => r.student_id === s.id) + 1 || null))
     })
     getMyClass().then(setKlass)
+    listMyAchievements().then(setAchievements)
   }
   useEffect(() => {
     load()
@@ -133,7 +141,7 @@ function Dashboard() {
         ]}
       />
 
-      {tab === 'home' && <HomeTab student={student} klass={klass} rank={rank} />}
+      {tab === 'home' && <HomeTab student={student} klass={klass} rank={rank} achievements={achievements} />}
       {tab === 'class' && <ClassTab klass={klass} />}
       {tab === 'bible' && <BibleTab />}
       {tab === 'leaderboard' && <LeaderboardTab myId={student?.id ?? null} />}
@@ -144,7 +152,26 @@ function Dashboard() {
   )
 }
 
-function HomeTab({ student, klass, rank }: { student: StudentRow | null; klass: (ClassRow & { teacher_name: string }) | null; rank: number | null }) {
+const ACHIEVEMENT_ICONS: Record<string, LucideIcon> = {
+  swords: Swords,
+  trophy: Trophy,
+  star: Star,
+  'book-open': BookOpen,
+  flame: Flame,
+  award: Award,
+}
+
+function HomeTab({
+  student,
+  klass,
+  rank,
+  achievements,
+}: {
+  student: StudentRow | null
+  klass: (ClassRow & { teacher_name: string }) | null
+  rank: number | null
+  achievements: EarnedAchievement[]
+}) {
   return (
     <div className="space-y-4">
       <div className="stat-strip grid-cols-2">
@@ -161,6 +188,25 @@ function HomeTab({ student, klass, rank }: { student: StudentRow | null; klass: 
         <p className="text-center text-sm text-[var(--ink-muted)]">
           in {klass.name}, with {klass.teacher_name}
         </p>
+      )}
+
+      {achievements.length > 0 && (
+        <div>
+          <p className="eyebrow">My Badges</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {achievements.map((a) => {
+              const Icon = ACHIEVEMENT_ICONS[a.icon] ?? Award
+              return (
+                <div key={a.id} title={a.description} className="flex items-center gap-2 rounded-full border border-[var(--gold)]/30 bg-[var(--gold)]/10 py-1.5 pl-2 pr-3">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--gold)] text-[var(--gold-ink)]">
+                    <Icon className="h-3.5 w-3.5" strokeWidth={2} />
+                  </span>
+                  <span className="text-xs font-bold text-[var(--gold)]">{a.name}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
       )}
 
       <div className="grid gap-3 sm:grid-cols-2">

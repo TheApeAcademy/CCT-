@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback, Suspense, lazy } from 'react'
 import { HashRouter, Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout'
+import PortalShell from './components/PortalShell'
 import SplashScreen from './components/SplashScreen'
-import { ensureSeedData } from './db/db'
+import { db, ensureSeedData } from './db/db'
 import { unlockAudio } from './lib/sound'
 import Home from './pages/Home'
 import QuestionBank from './pages/QuestionBank'
@@ -38,6 +39,25 @@ function App() {
 
   useEffect(() => {
     ensureSeedData().then(() => setSeeded(true))
+  }, [])
+
+  // Only pull in the Supabase-dependent sync module (and its network
+  // bundle) if there's actually a locally-queued result to push — a kid on
+  // the fully offline quiz who never links a team to a Student Code should
+  // never fetch it at all. The existence check itself is pure Dexie.
+  useEffect(() => {
+    const maybeSync = () => {
+      db.pendingLeaderboardSync
+        .where('synced')
+        .equals(0)
+        .count()
+        .then((count) => {
+          if (count > 0) import('./lib/leaderboardSync').then((m) => m.syncPendingLeaderboard())
+        })
+    }
+    maybeSync()
+    window.addEventListener('online', maybeSync)
+    return () => window.removeEventListener('online', maybeSync)
   }, [])
 
   // iOS Safari (including installed/standalone PWAs) only allows the Web
@@ -78,32 +98,44 @@ function App() {
             <Route path="transition/lecture/:id" element={<TransitionLectureDetail />} />
             <Route path="transition/lecture/:id/checkpoint" element={<TransitionCheckpoint />} />
             <Route path="transition/mock-exam" element={<MockExam />} />
+          </Route>
+
+          {/* Admin, Teacher, and Kids are deliberately NOT nested under the
+              public site's <Layout /> — each is its own link with its own
+              chrome, no shared nav between them. */}
+          <Route path="admin" element={<PortalShell eyebrow="Admin Control Centre" />}>
             <Route
-              path="admin"
+              index
               element={
                 <Suspense fallback={<LazyFallback />}>
                   <AdminPortal />
                 </Suspense>
               }
             />
+          </Route>
+          <Route path="teacher" element={<PortalShell eyebrow="Teacher Portal" />}>
             <Route
-              path="teacher"
+              index
               element={
                 <Suspense fallback={<LazyFallback />}>
                   <TeacherPortal />
                 </Suspense>
               }
             />
+          </Route>
+          <Route path="student" element={<PortalShell eyebrow="Kids Dashboard" />}>
             <Route
-              path="student"
+              index
               element={
                 <Suspense fallback={<LazyFallback />}>
                   <StudentPortal />
                 </Suspense>
               }
             />
+          </Route>
+          <Route path="join" element={<PortalShell eyebrow="Join Your Class" />}>
             <Route
-              path="join"
+              index
               element={
                 <Suspense fallback={<LazyFallback />}>
                   <JoinClass />
@@ -111,7 +143,7 @@ function App() {
               }
             />
             <Route
-              path="join/:code"
+              path=":code"
               element={
                 <Suspense fallback={<LazyFallback />}>
                   <JoinClass />

@@ -15,6 +15,14 @@ import {
   Sparkles,
   Share2,
   Check,
+  BookOpen,
+  FileText,
+  Clock,
+  Flame,
+  Swords,
+  Star,
+  Award,
+  type LucideIcon,
 } from 'lucide-react'
 import { supabase, signOut } from '../lib/supabase'
 import { useMinistryAuth } from '../lib/useMinistryAuth'
@@ -27,13 +35,28 @@ import {
   getOrCreateConversation,
   listMessages,
   sendMessage,
-  submitConfession,
-  listMyConfessions,
+  submitEarsMessage,
+  listMyEarsMessages,
+  listEarsReplies,
+  listPublishedLectures,
+  listPublishedAssignments,
+  getMySubmission,
+  submitAssignment,
+  getTodaysBibleReading,
+  getMyBibleStreak,
+  completeBibleReading,
+  haveICompletedReading,
+  listMyAchievements,
+  type TodaysReading,
+  type EarnedAchievement,
   type StudentRow,
   type LeaderboardRow,
   type MessageRow,
-  type ConfessionRow,
+  type EarsMessageRow,
+  type EarsReplyRow,
   type ClassRow,
+  type LectureRow,
+  type AssignmentRow,
 } from '../lib/ministry'
 import { fileToResizedDataUrl } from '../lib/image'
 import { renderIdCardPng } from '../lib/idCard'
@@ -63,13 +86,14 @@ export default function StudentPortal() {
   return <Dashboard />
 }
 
-type Tab = 'home' | 'leaderboard' | 'profile' | 'messages' | 'confess'
+type Tab = 'home' | 'class' | 'bible' | 'leaderboard' | 'profile' | 'messages' | 'ears'
 
 function Dashboard() {
   const [tab, setTab] = useState<Tab>('home')
   const [student, setStudent] = useState<StudentRow | null>(null)
   const [klass, setKlass] = useState<(ClassRow & { teacher_name: string }) | null>(null)
   const [rank, setRank] = useState<number | null>(null)
+  const [achievements, setAchievements] = useState<EarnedAchievement[]>([])
 
   const load = () => {
     getMyStudentProfile().then((s) => {
@@ -77,6 +101,7 @@ function Dashboard() {
       if (s) getLeaderboard(500).then((rows) => setRank(rows.findIndex((r) => r.student_id === s.id) + 1 || null))
     })
     getMyClass().then(setKlass)
+    listMyAchievements().then(setAchievements)
   }
   useEffect(() => {
     load()
@@ -109,23 +134,46 @@ function Dashboard() {
         onChange={setTab}
         items={[
           { value: 'home', label: 'Home', icon: HomeIcon },
+          { value: 'class', label: 'My Class', icon: School },
+          { value: 'bible', label: 'Bible', icon: BookOpen },
           { value: 'leaderboard', label: 'Leaderboard', icon: Trophy },
           { value: 'profile', label: 'My Card', icon: IdCard },
           { value: 'messages', label: 'My Teacher', icon: MessageCircle },
-          { value: 'confess', label: 'Confession Box', icon: HeartHandshake },
+          { value: 'ears', label: 'Ears for You', icon: HeartHandshake },
         ]}
       />
 
-      {tab === 'home' && <HomeTab student={student} klass={klass} rank={rank} />}
+      {tab === 'home' && <HomeTab student={student} klass={klass} rank={rank} achievements={achievements} />}
+      {tab === 'class' && <ClassTab klass={klass} />}
+      {tab === 'bible' && <BibleTab />}
       {tab === 'leaderboard' && <LeaderboardTab myId={student?.id ?? null} />}
       {tab === 'profile' && student && <ProfileTab student={student} klass={klass} onSaved={load} />}
       {tab === 'messages' && klass && <MessagesTab teacherId={klass.teacher_id} teacherName={klass.teacher_name} />}
-      {tab === 'confess' && <ConfessTab klass={klass} />}
+      {tab === 'ears' && <EarsTab klass={klass} />}
     </div>
   )
 }
 
-function HomeTab({ student, klass, rank }: { student: StudentRow | null; klass: (ClassRow & { teacher_name: string }) | null; rank: number | null }) {
+const ACHIEVEMENT_ICONS: Record<string, LucideIcon> = {
+  swords: Swords,
+  trophy: Trophy,
+  star: Star,
+  'book-open': BookOpen,
+  flame: Flame,
+  award: Award,
+}
+
+function HomeTab({
+  student,
+  klass,
+  rank,
+  achievements,
+}: {
+  student: StudentRow | null
+  klass: (ClassRow & { teacher_name: string }) | null
+  rank: number | null
+  achievements: EarnedAchievement[]
+}) {
   return (
     <div className="space-y-4">
       <div className="stat-strip grid-cols-2">
@@ -142,6 +190,25 @@ function HomeTab({ student, klass, rank }: { student: StudentRow | null; klass: 
         <p className="text-center text-sm text-[var(--ink-muted)]">
           in {klass.name}, with {klass.teacher_name}
         </p>
+      )}
+
+      {achievements.length > 0 && (
+        <div>
+          <p className="eyebrow">My Badges</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {achievements.map((a) => {
+              const Icon = ACHIEVEMENT_ICONS[a.icon] ?? Award
+              return (
+                <div key={a.id} title={a.description} className="flex items-center gap-2 rounded-full border border-[var(--gold)]/30 bg-[var(--gold)]/10 py-1.5 pl-2 pr-3">
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--gold)] text-[var(--gold-ink)]">
+                    <Icon className="h-3.5 w-3.5" strokeWidth={2} />
+                  </span>
+                  <span className="text-xs font-bold text-[var(--gold)]">{a.name}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
       )}
 
       <div className="grid gap-3 sm:grid-cols-2">
@@ -173,6 +240,246 @@ function HomeLink({ to, icon: Icon, title, description }: { to: string; icon: ty
         <p className="mt-1 text-sm text-[var(--ink-muted)]">{description}</p>
       </div>
     </Link>
+  )
+}
+
+function ClassTab({ klass }: { klass: (ClassRow & { teacher_name: string }) | null }) {
+  const [sub, setSub] = useState<'lectures' | 'assignments'>('lectures')
+  const [lectures, setLectures] = useState<LectureRow[]>([])
+  const [assignments, setAssignments] = useState<AssignmentRow[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!klass) {
+      setLoading(false)
+      return
+    }
+    Promise.all([listPublishedLectures(klass.id), listPublishedAssignments(klass.id)]).then(([l, a]) => {
+      setLectures(l)
+      setAssignments(a)
+      setLoading(false)
+    })
+  }, [klass])
+
+  if (!klass) {
+    return (
+      <div className="panel p-6 text-center">
+        <p className="font-display text-lg font-bold">No class yet</p>
+        <p className="mt-1 text-sm text-[var(--ink-muted)]">
+          You&apos;re not in a class yet. Give your Student Code to your Sunday school teacher and they&apos;ll add you.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-1 rounded-md border border-[var(--hairline-strong)] p-1 w-fit">
+        {(['lectures', 'assignments'] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setSub(t)}
+            className={`flex items-center gap-1.5 rounded px-4 py-1.5 text-sm font-bold capitalize transition ${sub === t ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'text-white/60 hover:text-white'}`}
+          >
+            {t === 'lectures' ? <BookOpen className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />}
+            {t}
+          </button>
+        ))}
+      </div>
+
+      {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
+
+      {!loading && sub === 'lectures' && (
+        <div className="space-y-2">
+          {lectures.length === 0 && (
+            <p className="text-sm text-[var(--ink-muted)]">Nothing here yet. Your teacher hasn&apos;t posted a lecture — check back soon.</p>
+          )}
+          {lectures.map((l) => (
+            <div key={l.id} className="panel p-4">
+              <p className="font-bold">{l.title}</p>
+              {l.description && <p className="mt-1 text-sm text-[var(--ink-muted)]">{l.description}</p>}
+              {l.body && <p className="mt-2 whitespace-pre-wrap text-sm text-white/80">{l.body}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!loading && sub === 'assignments' && (
+        <div className="space-y-2">
+          {assignments.length === 0 && (
+            <p className="text-sm text-[var(--ink-muted)]">No assignments right now. When your teacher posts one, you&apos;ll see it here.</p>
+          )}
+          {assignments.map((a) => (
+            <AssignmentCard key={a.id} assignment={a} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AssignmentCard({ assignment }: { assignment: AssignmentRow }) {
+  const [expanded, setExpanded] = useState(false)
+  const [body, setBody] = useState('')
+  const [submitted, setSubmitted] = useState<{ body: string | null; grade: number | null; feedback: string | null } | null>(null)
+  const [loaded, setLoaded] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    getMySubmission(assignment.id).then((s) => {
+      if (s) {
+        setSubmitted({ body: s.body, grade: s.grade, feedback: s.feedback })
+        setBody(s.body ?? '')
+      }
+      setLoaded(true)
+    })
+  }, [assignment.id])
+
+  const overdue = assignment.due_date ? new Date(assignment.due_date) < new Date() : false
+
+  const submit = async () => {
+    if (!body.trim()) return
+    setSubmitting(true)
+    try {
+      await submitAssignment(assignment.id, body)
+      setSubmitted({ body, grade: null, feedback: null })
+      playClick()
+      haptics.success()
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div className="panel p-4">
+      <button onClick={() => setExpanded((v) => !v)} className="flex w-full items-start justify-between gap-2 text-left">
+        <div>
+          <p className="font-bold">{assignment.title}</p>
+          {assignment.due_date && (
+            <p className="mt-1 flex items-center gap-1 text-xs text-[var(--ink-faint)]">
+              <Clock className="h-3 w-3" /> Due {new Date(assignment.due_date).toLocaleDateString()}
+            </p>
+          )}
+        </div>
+        <span
+          className={`shrink-0 rounded px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${
+            submitted?.grade !== null && submitted?.grade !== undefined
+              ? 'bg-emerald-500/15 text-emerald-400'
+              : submitted
+                ? 'bg-white/10 text-white/60'
+                : overdue
+                  ? 'bg-red-500/15 text-red-400'
+                  : 'bg-[var(--gold)]/15 text-[var(--gold)]'
+          }`}
+        >
+          {submitted?.grade !== null && submitted?.grade !== undefined ? 'Graded' : submitted ? 'Submitted' : overdue ? 'Overdue' : 'Open'}
+        </span>
+      </button>
+
+      {expanded && loaded && (
+        <div className="mt-3 space-y-2">
+          {assignment.instructions && <p className="whitespace-pre-wrap text-sm text-white/80">{assignment.instructions}</p>}
+          {submitted?.grade !== null && submitted?.grade !== undefined ? (
+            <div className="rounded-md bg-emerald-500/10 p-3 text-sm">
+              <p className="font-bold text-emerald-400">
+                Grade: {submitted.grade}
+                {assignment.max_score ? ` / ${assignment.max_score}` : ''}
+              </p>
+              {submitted.feedback && <p className="mt-1 text-white/80">{submitted.feedback}</p>}
+            </div>
+          ) : (
+            <>
+              <textarea
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                placeholder="Type your answer…"
+                rows={3}
+                className="w-full rounded-md border border-[var(--hairline-strong)] bg-transparent px-4 py-3 text-sm outline-none focus:border-[var(--gold)]"
+              />
+              <button onClick={submit} disabled={submitting} className="btn-solid px-4 py-2 text-sm">
+                {submitting ? 'Submitting…' : submitted ? 'Update Submission' : 'Submit'}
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function BibleTab() {
+  const [reading, setReading] = useState<TodaysReading | null | 'loading'>('loading')
+  const [streak, setStreak] = useState(0)
+  const [completed, setCompleted] = useState(false)
+  const [completing, setCompleting] = useState(false)
+
+  const load = () => {
+    getTodaysBibleReading().then((r) => {
+      setReading(r)
+      if (r) haveICompletedReading(r.reading_id).then(setCompleted)
+    })
+    getMyBibleStreak().then(setStreak)
+  }
+  useEffect(() => {
+    load()
+  }, [])
+
+  const markComplete = async () => {
+    if (reading === 'loading' || !reading) return
+    setCompleting(true)
+    try {
+      await completeBibleReading(reading.reading_id)
+      playClick()
+      haptics.success()
+      setCompleted(true)
+      getMyBibleStreak().then(setStreak)
+    } finally {
+      setCompleting(false)
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="stat-strip grid-cols-2">
+        <div className="stat-cell">
+          <div className="stat-cell-value flex items-center justify-center gap-1.5">
+            <Flame className="h-5 w-5 text-[var(--gold)]" /> {streak}
+          </div>
+          <div className="stat-cell-label">Day Streak</div>
+        </div>
+        <div className="stat-cell">
+          <div className="stat-cell-value">{completed ? '✓' : '—'}</div>
+          <div className="stat-cell-label">Today</div>
+        </div>
+      </div>
+
+      {reading === 'loading' && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
+
+      {reading === null && (
+        <div className="panel p-6 text-center">
+          <p className="font-display text-lg font-bold">No reading plan is active yet</p>
+          <p className="mt-1 text-sm text-[var(--ink-muted)]">Check back soon — your admin sets up the next plan.</p>
+        </div>
+      )}
+
+      {reading && reading !== 'loading' && (
+        <div className="panel space-y-3 p-6">
+          <p className="eyebrow">{reading.plan_title} &middot; Day {reading.day_number}</p>
+          <h2 className="font-display text-2xl font-extrabold">{reading.title}</h2>
+          <p className="font-semibold text-[var(--gold)]">{reading.reference}</p>
+          {reading.passage_text && <p className="whitespace-pre-wrap text-sm leading-relaxed text-white/80">{reading.passage_text}</p>}
+          {completed ? (
+            <p className="flex items-center gap-1.5 text-sm font-bold text-emerald-400">
+              <Check className="h-4 w-4" /> Read today. Come back tomorrow to keep your streak!
+            </p>
+          ) : (
+            <button onClick={markComplete} disabled={completing} className="btn-solid w-full py-3">
+              {completing ? 'Saving…' : 'Mark as Read'}
+            </button>
+          )}
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -379,13 +686,21 @@ function MessagesTab({ teacherId, teacherName }: { teacherId: string; teacherNam
   )
 }
 
-function ConfessTab({ klass }: { klass: (ClassRow & { teacher_name: string }) | null }) {
+const EARS_STATUS_LABEL: Record<string, string> = {
+  new: 'Sent',
+  acknowledged: 'Seen by your teacher',
+  in_progress: 'Being looked into',
+  escalated: 'With ministry leadership',
+  resolved: 'Resolved',
+}
+
+function EarsTab({ klass }: { klass: (ClassRow & { teacher_name: string }) | null }) {
   const [body, setBody] = useState('')
   const [anonymous, setAnonymous] = useState(true)
   const [submitting, setSubmitting] = useState(false)
-  const [history, setHistory] = useState<ConfessionRow[]>([])
+  const [history, setHistory] = useState<EarsMessageRow[]>([])
 
-  const load = () => listMyConfessions().then(setHistory)
+  const load = () => listMyEarsMessages().then(setHistory)
   useEffect(() => {
     load()
   }, [])
@@ -394,7 +709,7 @@ function ConfessTab({ klass }: { klass: (ClassRow & { teacher_name: string }) | 
     if (!body.trim() || !klass) return
     setSubmitting(true)
     try {
-      await submitConfession({ class_id: klass.id, teacher_id: klass.teacher_id, body, is_anonymous: anonymous })
+      await submitEarsMessage({ class_id: klass.id, body, is_anonymous: anonymous })
       setBody('')
       playClick()
       haptics.success()
@@ -407,8 +722,8 @@ function ConfessTab({ klass }: { klass: (ClassRow & { teacher_name: string }) | 
   return (
     <div className="space-y-6">
       <div className="rounded-md border border-[var(--gold)]/25 bg-[var(--gold)]/10 p-4 text-sm text-[var(--gold)]">
-        A safe place to tell your teacher anything, a prayer request, a confession, or just something on your mind. If you or someone you know is
-        ever in danger, please tell a trusted adult right away.
+        You can talk to us. Share something that's worrying you, a question, or anything you'd like an adult to know. If you or someone you know
+        is ever in danger, please tell a trusted adult right away.
       </div>
       <div className="panel space-y-3 p-5">
         <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write anything on your mind…" rows={4} className={inputClass} />
@@ -436,19 +751,34 @@ function ConfessTab({ klass }: { klass: (ClassRow & { teacher_name: string }) | 
       {history.length > 0 && (
         <div className="space-y-2">
           <p className="eyebrow">My Messages</p>
-          {history.map((c) => (
-            <div key={c.id} className="panel p-4">
-              <p className="text-sm text-white/80">{c.body}</p>
-              {c.reply && (
-                <div className="mt-2 rounded-md bg-[var(--gold)]/10 p-3 text-sm">
-                  <p className="mb-1 font-semibold text-[var(--gold)]">Your teacher&apos;s reply:</p>
-                  <p>{c.reply}</p>
-                </div>
-              )}
-            </div>
+          {history.map((m) => (
+            <EarsHistoryItem key={m.id} message={m} />
           ))}
         </div>
       )}
+    </div>
+  )
+}
+
+function EarsHistoryItem({ message }: { message: EarsMessageRow }) {
+  const [replies, setReplies] = useState<EarsReplyRow[] | null>(null)
+
+  useEffect(() => {
+    listEarsReplies(message.id).then(setReplies)
+  }, [message.id])
+
+  return (
+    <div className="panel p-4">
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-sm text-white/80">{message.body}</p>
+        <span className="shrink-0 rounded px-2 py-1 text-xs font-bold text-[var(--ink-muted)]">{EARS_STATUS_LABEL[message.status] ?? message.status}</span>
+      </div>
+      {replies?.map((r) => (
+        <div key={r.id} className="mt-2 rounded-md bg-[var(--gold)]/10 p-3 text-sm">
+          <p className="mb-1 font-semibold text-[var(--gold)]">Your teacher&apos;s reply:</p>
+          <p>{r.body}</p>
+        </div>
+      ))}
     </div>
   )
 }

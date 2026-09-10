@@ -121,6 +121,27 @@ export default function Gameplay() {
         timerSecondsPerQuestion: config.timerSecondsPerQuestion,
       })
       if (isLastTeam) await completeMatch(config.matchId)
+
+      // If this team is linked to a registered Student Code, queue the
+      // result for the ministry leaderboard. Always succeeds locally first
+      // — the sync itself (and its Supabase bundle) only loads afterward.
+      const linkedStudentId = config.teamStudentIds?.[config.teamIndex]
+      if (linkedStudentId) {
+        await db.pendingLeaderboardSync.add({
+          studentId: linkedStudentId,
+          studentName: teamName,
+          classId: config.teamStudentClassIds?.[config.teamIndex] ?? null,
+          setName: config.setName,
+          seasonName: config.seasonName,
+          points: pointsWon,
+          correctCount,
+          totalQuestions: LADDER.length,
+          createdAt: Date.now(),
+          synced: 0,
+        })
+        import('../lib/leaderboardSync').then((m) => m.syncPendingLeaderboard())
+      }
+
       navigate(`/results/${id}`, { replace: true })
     },
     [config, lifelinesUsed, navigate, teamName, isLastTeam]

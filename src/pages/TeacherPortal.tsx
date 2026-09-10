@@ -6,12 +6,14 @@ import {
   HeartHandshake,
   Settings,
   ArrowLeft,
-  Link2,
   Archive,
   Send,
   Check,
   X,
   User,
+  KeyRound,
+  BookOpen,
+  FileText,
 } from 'lucide-react'
 import { supabase, signOut } from '../lib/supabase'
 import { useMinistryAuth } from '../lib/useMinistryAuth'
@@ -23,24 +25,40 @@ import {
   listMyClasses,
   createClass,
   archiveClass,
-  listRoster,
-  addRosterName,
-  removeRosterEntry,
   listStudentsInClass,
   moveStudent,
+  enrollStudentByCode,
+  listLectures,
+  createLecture,
+  setLectureStatus,
+  listAssignments,
+  createAssignment,
+  setAssignmentStatus,
+  listSubmissionsForAssignment,
+  gradeSubmission,
+  type LectureRow,
+  type AssignmentRow,
+  type SubmissionRow,
   listMyConversations,
   listMessages,
   sendMessage,
-  listTeacherInbox,
-  replyToConfession,
-  markConfessionSeen,
+  listEarsTeacherInbox,
+  listEarsReplies,
+  listEarsInternalNotes,
+  acknowledgeEarsMessage,
+  setEarsStatus,
+  escalateEarsMessage,
+  addEarsReply,
+  addEarsInternalNote,
   type TeacherApplication,
   type ClassRow,
-  type RosterEntry,
   type StudentRow,
   type ConversationSummary,
   type MessageRow,
-  type ConfessionRow,
+  type EarsMessageRow,
+  type EarsReplyRow,
+  type EarsNoteRow,
+  type EarsStatus,
 } from '../lib/ministry'
 import { fileToResizedDataUrl } from '../lib/image'
 import { playClick } from '../lib/sound'
@@ -168,7 +186,7 @@ function ApplyForm({ onSubmitted }: { onSubmitted: () => void }) {
 
 // ---------- main dashboard ----------
 
-type Tab = 'classes' | 'messages' | 'confessions' | 'profile'
+type Tab = 'classes' | 'messages' | 'ears' | 'profile'
 
 function TeacherDashboard() {
   const [tab, setTab] = useState<Tab>('classes')
@@ -195,14 +213,14 @@ function TeacherDashboard() {
         items={[
           { value: 'classes', label: 'Classes', icon: GraduationCap },
           { value: 'messages', label: 'Messages', icon: MessageCircle },
-          { value: 'confessions', label: 'Confessions', icon: HeartHandshake },
+          { value: 'ears', label: 'Ears for You', icon: HeartHandshake },
           { value: 'profile', label: 'Profile', icon: Settings },
         ]}
       />
 
       {tab === 'classes' && (openClass ? <ClassDetail klass={openClass} onBack={() => setOpenClass(null)} /> : <ClassesTab onOpen={setOpenClass} />)}
       {tab === 'messages' && <MessagesTab />}
-      {tab === 'confessions' && <ConfessionsTab />}
+      {tab === 'ears' && <EarsInboxTab />}
       {tab === 'profile' && <ProfileTab />}
     </div>
   )
@@ -266,17 +284,19 @@ function ClassesTab({ onOpen }: { onOpen: (c: ClassRow) => void }) {
   )
 }
 
-function ClassDetail({ klass, onBack }: { klass: ClassRow; onBack: () => void }) {
-  const [roster, setRoster] = useState<RosterEntry[]>([])
-  const [students, setStudents] = useState<StudentRow[]>([])
-  const [newName, setNewName] = useState('')
-  const [loading, setLoading] = useState(true)
+type DetailTab = 'students' | 'work'
 
-  const joinLink = `${window.location.origin}${window.location.pathname}#/join/${klass.join_code}`
+function ClassDetail({ klass, onBack }: { klass: ClassRow; onBack: () => void }) {
+  const [detailTab, setDetailTab] = useState<DetailTab>('students')
+  const [students, setStudents] = useState<StudentRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [enrollCode, setEnrollCode] = useState('')
+  const [enrollError, setEnrollError] = useState('')
+  const [enrollSuccess, setEnrollSuccess] = useState('')
+  const [enrolling, setEnrolling] = useState(false)
 
   const load = () => {
-    Promise.all([listRoster(klass.id), listStudentsInClass(klass.id)]).then(([r, s]) => {
-      setRoster(r)
+    listStudentsInClass(klass.id).then((s) => {
       setStudents(s)
       setLoading(false)
     })
@@ -286,20 +306,6 @@ function ClassDetail({ klass, onBack }: { klass: ClassRow; onBack: () => void })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [klass.id])
 
-  const addName = async () => {
-    if (!newName.trim()) return
-    await addRosterName(klass.id, newName)
-    setNewName('')
-    playClick()
-    load()
-  }
-
-  const removeUnclaimed = async (id: string) => {
-    if (!confirm('Remove this unclaimed roster spot?')) return
-    await removeRosterEntry(id)
-    load()
-  }
-
   const removeStudent = async (studentId: string) => {
     if (!confirm('Remove this student from the class? Their account stays, just unassigned.')) return
     await moveStudent(studentId, null)
@@ -307,19 +313,29 @@ function ClassDetail({ klass, onBack }: { klass: ClassRow; onBack: () => void })
     load()
   }
 
-  const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(joinLink)
-      playClick()
-      haptics.success()
-    } catch {
-      // ignore
-    }
-  }
-
   const toggleArchive = async () => {
     await archiveClass(klass.id, !klass.archived)
     load()
+  }
+
+  const enrollByCode = async () => {
+    if (!enrollCode.trim()) return
+    setEnrolling(true)
+    setEnrollError('')
+    setEnrollSuccess('')
+    try {
+      const result = await enrollStudentByCode(klass.id, enrollCode)
+      setEnrollSuccess(`${result.full_name} added to the class.`)
+      setEnrollCode('')
+      haptics.success()
+      playClick()
+      load()
+    } catch (e) {
+      setEnrollError(e instanceof Error ? e.message : 'Could not find that Student Code.')
+      haptics.error()
+    } finally {
+      setEnrolling(false)
+    }
   }
 
   return (
@@ -328,76 +344,321 @@ function ClassDetail({ klass, onBack }: { klass: ClassRow; onBack: () => void })
         <ArrowLeft className="h-4 w-4" /> Back to classes
       </button>
 
-      <div className="panel p-5">
+      <div className="panel flex items-center justify-between p-5">
         <h2 className="font-display text-xl font-bold">{klass.name}</h2>
-        <p className="mt-1 text-sm text-[var(--ink-muted)]">Share this with your class so kids can join:</p>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <span className="rounded border border-[var(--hairline-strong)] px-4 py-2 font-mono text-lg font-bold text-[var(--gold)]">{klass.join_code}</span>
-          <button onClick={copyLink} className="btn-outline flex items-center gap-1.5 px-3 py-2 text-sm">
-            <Link2 className="h-4 w-4" /> Copy join link
+        <button onClick={toggleArchive} className="btn-outline flex items-center gap-1.5 px-3 py-2 text-sm">
+          <Archive className="h-4 w-4" /> {klass.archived ? 'Unarchive' : 'Archive'}
+        </button>
+      </div>
+
+      <div className="flex gap-1 rounded-md border border-[var(--hairline-strong)] p-1 w-fit">
+        {(['students', 'work'] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setDetailTab(t)}
+            className={`rounded px-4 py-1.5 text-sm font-bold capitalize transition ${detailTab === t ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'text-white/60 hover:text-white'}`}
+          >
+            {t === 'students' ? 'Students' : 'Class Work'}
           </button>
-          <button onClick={toggleArchive} className="btn-outline ml-auto flex items-center gap-1.5 px-3 py-2 text-sm">
-            <Archive className="h-4 w-4" /> {klass.archived ? 'Unarchive' : 'Archive'}
-          </button>
-        </div>
+        ))}
       </div>
 
       {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
 
-      <div className="space-y-3">
-        <p className="eyebrow">Students ({students.length})</p>
-        {students.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No one has joined yet.</p>}
-        <div className="space-y-2">
-          {students.map((s) => (
-            <div key={s.id} className="panel flex items-center justify-between gap-3 p-4">
-              <div className="flex items-center gap-3">
-                {s.avatar_url ? (
-                  <img src={s.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover" />
-                ) : (
-                  <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--hairline-strong)] text-[var(--gold)]">
-                    <User className="h-5 w-5" strokeWidth={1.75} />
-                  </span>
-                )}
-                <div>
-                  <p className="font-semibold">{s.full_name}</p>
-                  <p className="text-xs text-[var(--ink-faint)]">{s.total_points.toLocaleString()} points</p>
-                </div>
-              </div>
-              <button onClick={() => removeStudent(s.id)} className="rounded-md bg-red-500/15 px-3 py-1.5 text-xs font-bold text-red-400 hover:bg-red-500/25">
-                Remove
+      {detailTab === 'students' && (
+        <>
+          <div className="panel space-y-3 p-5">
+            <label className="flex items-center gap-2 text-sm font-bold text-white/80">
+              <KeyRound className="h-4 w-4 text-[var(--gold)]" />
+              Add a student by their Student Code
+            </label>
+            <p className="text-xs text-[var(--ink-muted)]">
+              Every kid gets a Student Code when they sign up (like MFM4827). Ask them for theirs and add them here.
+            </p>
+            <div className="flex gap-2">
+              <input
+                value={enrollCode}
+                onChange={(e) => setEnrollCode(e.target.value.toUpperCase())}
+                placeholder="MFM4827"
+                className={`${inputClass} py-2 text-center font-mono text-sm tracking-widest`}
+                onKeyDown={(e) => e.key === 'Enter' && enrollByCode()}
+              />
+              <button onClick={enrollByCode} disabled={enrolling} className="btn-solid shrink-0 text-sm">
+                {enrolling ? 'Adding…' : 'Add'}
               </button>
             </div>
-          ))}
-        </div>
-      </div>
+            {enrollError && <p className="text-sm text-red-400">{enrollError}</p>}
+            {enrollSuccess && (
+              <p className="flex items-center gap-1.5 text-sm text-emerald-400">
+                <Check className="h-4 w-4" /> {enrollSuccess}
+              </p>
+            )}
+          </div>
 
-      <div className="space-y-3">
-        <p className="eyebrow">Roster (Waiting To Join)</p>
-        <div className="flex gap-2">
-          <input
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            placeholder="Add a kid's name"
-            className={`${inputClass} py-2 text-sm`}
-            onKeyDown={(e) => e.key === 'Enter' && addName()}
-          />
-          <button onClick={addName} className="btn-outline shrink-0 text-sm">
-            Add
+          <div className="space-y-3">
+            <p className="eyebrow">Students ({students.length})</p>
+            {students.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No one has joined yet.</p>}
+            <div className="space-y-2">
+              {students.map((s) => (
+                <div key={s.id} className="panel flex items-center justify-between gap-3 p-4">
+                  <div className="flex items-center gap-3">
+                    {s.avatar_url ? (
+                      <img src={s.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover" />
+                    ) : (
+                      <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--hairline-strong)] text-[var(--gold)]">
+                        <User className="h-5 w-5" strokeWidth={1.75} />
+                      </span>
+                    )}
+                    <div>
+                      <p className="font-semibold">{s.full_name}</p>
+                      <p className="text-xs text-[var(--ink-faint)]">{s.total_points.toLocaleString()} points</p>
+                    </div>
+                  </div>
+                  <button onClick={() => removeStudent(s.id)} className="rounded-md bg-red-500/15 px-3 py-1.5 text-xs font-bold text-red-400 hover:bg-red-500/25">
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {detailTab === 'work' && <ClassWorkTab classId={klass.id} />}
+    </div>
+  )
+}
+
+function ClassWorkTab({ classId }: { classId: string }) {
+  const [sub, setSub] = useState<'lectures' | 'assignments'>('lectures')
+
+  return (
+    <div className="space-y-4">
+      <div className="flex gap-1 rounded-md border border-[var(--hairline-strong)] p-1 w-fit">
+        {(['lectures', 'assignments'] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setSub(t)}
+            className={`flex items-center gap-1.5 rounded px-4 py-1.5 text-sm font-bold capitalize transition ${sub === t ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'text-white/60 hover:text-white'}`}
+          >
+            {t === 'lectures' ? <BookOpen className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />}
+            {t}
           </button>
-        </div>
-        <div className="space-y-1">
-          {roster
-            .filter((r) => !r.claimed)
-            .map((r) => (
-              <div key={r.id} className="flex items-center justify-between rounded-md border border-[var(--hairline)] px-4 py-2 text-sm">
-                <span>{r.full_name}</span>
-                <button onClick={() => removeUnclaimed(r.id)} className="text-xs text-[var(--ink-faint)] hover:text-red-400">
-                  Remove
+        ))}
+      </div>
+      {sub === 'lectures' ? <LecturesManager classId={classId} /> : <AssignmentsManager classId={classId} />}
+    </div>
+  )
+}
+
+function LecturesManager({ classId }: { classId: string }) {
+  const [lectures, setLectures] = useState<LectureRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [title, setTitle] = useState('')
+  const [body, setBody] = useState('')
+  const [creating, setCreating] = useState(false)
+
+  const load = () => listLectures(classId).then((l) => { setLectures(l); setLoading(false) })
+  useEffect(() => { load() }, [classId])
+
+  const create = async () => {
+    if (!title.trim()) return
+    setCreating(true)
+    try {
+      await createLecture({ class_id: classId, title, body })
+      setTitle('')
+      setBody('')
+      playClick()
+      haptics.success()
+      load()
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  const toggle = async (l: LectureRow) => {
+    await setLectureStatus(l.id, l.status === 'published' ? 'unpublished' : 'published')
+    haptics.tap()
+    load()
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="panel space-y-3 p-5">
+        <p className="eyebrow">New Lecture</p>
+        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className={`${inputClass} py-2 text-sm`} />
+        <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="What are you teaching this week?" rows={3} className={`${inputClass} text-sm`} />
+        <button onClick={create} disabled={creating} className="btn-solid text-sm">
+          {creating ? 'Creating…' : 'Create as Draft'}
+        </button>
+      </div>
+      {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
+      {!loading && lectures.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No lectures yet. Create your first one above.</p>}
+      <div className="space-y-2">
+        {lectures.map((l) => (
+          <div key={l.id} className="panel p-4">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="font-bold">{l.title}</p>
+                {l.body && <p className="mt-1 text-sm text-[var(--ink-muted)]">{l.body}</p>}
+              </div>
+              <span
+                className={`shrink-0 rounded px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${
+                  l.status === 'published' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-white/10 text-white/60'
+                }`}
+              >
+                {l.status}
+              </span>
+            </div>
+            <button onClick={() => toggle(l)} className="btn-outline mt-3 px-3 py-1.5 text-xs">
+              {l.status === 'published' ? 'Unpublish' : 'Publish'}
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function AssignmentsManager({ classId }: { classId: string }) {
+  const [assignments, setAssignments] = useState<AssignmentRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [title, setTitle] = useState('')
+  const [instructions, setInstructions] = useState('')
+  const [dueDate, setDueDate] = useState('')
+  const [creating, setCreating] = useState(false)
+  const [open, setOpen] = useState<AssignmentRow | null>(null)
+
+  const load = () => listAssignments(classId).then((a) => { setAssignments(a); setLoading(false) })
+  useEffect(() => { load() }, [classId])
+
+  const create = async () => {
+    if (!title.trim()) return
+    setCreating(true)
+    try {
+      await createAssignment({ class_id: classId, title, instructions, due_date: dueDate || undefined })
+      setTitle('')
+      setInstructions('')
+      setDueDate('')
+      playClick()
+      haptics.success()
+      load()
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  const toggle = async (a: AssignmentRow) => {
+    await setAssignmentStatus(a.id, a.status === 'published' ? 'closed' : 'published')
+    haptics.tap()
+    load()
+  }
+
+  if (open) return <SubmissionsView assignment={open} onBack={() => setOpen(null)} />
+
+  return (
+    <div className="space-y-4">
+      <div className="panel space-y-3 p-5">
+        <p className="eyebrow">New Assignment</p>
+        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className={`${inputClass} py-2 text-sm`} />
+        <textarea value={instructions} onChange={(e) => setInstructions(e.target.value)} placeholder="Instructions" rows={3} className={`${inputClass} text-sm`} />
+        <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className={`${inputClass} py-2 text-sm`} />
+        <button onClick={create} disabled={creating} className="btn-solid text-sm">
+          {creating ? 'Creating…' : 'Create as Draft'}
+        </button>
+      </div>
+      {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
+      {!loading && assignments.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No assignments yet. Create your first one above.</p>}
+      <div className="space-y-2">
+        {assignments.map((a) => (
+          <div key={a.id} className="panel p-4">
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="font-bold">{a.title}</p>
+                {a.due_date && <p className="mt-1 text-xs text-[var(--ink-faint)]">Due {new Date(a.due_date).toLocaleDateString()}</p>}
+              </div>
+              <span
+                className={`shrink-0 rounded px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${
+                  a.status === 'published' ? 'bg-emerald-500/15 text-emerald-400' : a.status === 'closed' ? 'bg-white/10 text-white/60' : 'bg-[var(--gold)]/15 text-[var(--gold)]'
+                }`}
+              >
+                {a.status}
+              </span>
+            </div>
+            <div className="mt-3 flex gap-2">
+              <button onClick={() => toggle(a)} className="btn-outline px-3 py-1.5 text-xs">
+                {a.status === 'published' ? 'Close' : 'Publish'}
+              </button>
+              <button onClick={() => setOpen(a)} className="btn-outline px-3 py-1.5 text-xs">
+                View Submissions
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function SubmissionsView({ assignment, onBack }: { assignment: AssignmentRow; onBack: () => void }) {
+  const [subs, setSubs] = useState<SubmissionRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [drafts, setDrafts] = useState<Record<string, { grade: string; feedback: string }>>({})
+
+  const load = () => listSubmissionsForAssignment(assignment.id).then((s) => { setSubs(s); setLoading(false) })
+  useEffect(() => { load() }, [assignment.id])
+
+  const save = async (id: string) => {
+    const d = drafts[id]
+    if (!d) return
+    const grade = parseFloat(d.grade)
+    if (Number.isNaN(grade)) return
+    await gradeSubmission(id, grade, d.feedback ?? '')
+    playClick()
+    haptics.success()
+    load()
+  }
+
+  return (
+    <div className="space-y-4">
+      <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-[var(--ink-muted)] hover:text-white">
+        <ArrowLeft className="h-4 w-4" /> Back to assignments
+      </button>
+      <h3 className="font-display text-lg font-bold">{assignment.title}</h3>
+      {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
+      {!loading && subs.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No submissions yet.</p>}
+      <div className="space-y-3">
+        {subs.map((s) => (
+          <div key={s.id} className="panel p-4">
+            <p className="font-semibold">{s.full_name}</p>
+            {s.body && <p className="mt-2 whitespace-pre-wrap text-sm text-white/80">{s.body}</p>}
+            <p className="mt-1 text-xs text-[var(--ink-faint)]">Submitted {new Date(s.submitted_at).toLocaleString()}</p>
+            {s.grade !== null ? (
+              <p className="mt-2 text-sm font-bold text-emerald-400">
+                Graded: {s.grade}
+                {assignment.max_score ? ` / ${assignment.max_score}` : ''}
+              </p>
+            ) : (
+              <div className="mt-3 flex gap-2">
+                <input
+                  placeholder="Grade"
+                  value={drafts[s.id]?.grade ?? ''}
+                  onChange={(e) => setDrafts((d) => ({ ...d, [s.id]: { grade: e.target.value, feedback: d[s.id]?.feedback ?? '' } }))}
+                  className={`${inputClass} w-24 py-2 text-sm`}
+                />
+                <input
+                  placeholder="Feedback (optional)"
+                  value={drafts[s.id]?.feedback ?? ''}
+                  onChange={(e) => setDrafts((d) => ({ ...d, [s.id]: { grade: d[s.id]?.grade ?? '', feedback: e.target.value } }))}
+                  className={`${inputClass} flex-1 py-2 text-sm`}
+                />
+                <button onClick={() => save(s.id)} className="btn-solid shrink-0 px-4 py-2 text-sm">
+                  Save
                 </button>
               </div>
-            ))}
-          {roster.filter((r) => !r.claimed).length === 0 && <p className="text-sm text-[var(--ink-faint)]">Everyone on the roster has joined.</p>}
-        </div>
+            )}
+          </div>
+        ))}
       </div>
     </div>
   )
@@ -482,77 +743,186 @@ function ThreadView({ conversationId, title, onBack }: { conversationId: string;
   )
 }
 
-function ConfessionsTab() {
-  const [items, setItems] = useState<ConfessionRow[]>([])
-  const [drafts, setDrafts] = useState<Record<string, string>>({})
-  const [loading, setLoading] = useState(true)
+const EARS_STATUS_STYLE: Record<EarsStatus, string> = {
+  new: 'bg-[var(--gold)]/15 text-[var(--gold)]',
+  acknowledged: 'bg-white/10 text-white/60',
+  in_progress: 'bg-sky-500/15 text-sky-400',
+  escalated: 'bg-red-500/15 text-red-400',
+  resolved: 'bg-emerald-500/15 text-emerald-400',
+}
 
-  const load = () => listTeacherInbox().then(setItems).finally(() => setLoading(false))
+function EarsInboxTab() {
+  const [items, setItems] = useState<EarsMessageRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [open, setOpen] = useState<EarsMessageRow | null>(null)
+
+  const load = () => listEarsTeacherInbox().then(setItems).finally(() => setLoading(false))
   useEffect(() => {
     load()
   }, [])
 
-  const reply = async (id: string) => {
-    const text = drafts[id]?.trim()
-    if (!text) return
-    await replyToConfession(id, text)
+  const openItem = async (m: EarsMessageRow) => {
+    setOpen(m)
+    if (m.status === 'new') {
+      await acknowledgeEarsMessage(m.id)
+      load()
+    }
+  }
+
+  if (open) return <EarsDetail message={open} onBack={() => { setOpen(null); load() }} />
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-[var(--ink-muted)]">A safe channel from students in your classes. Anonymous ones never reveal who sent them, even to you.</p>
+      {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
+      {!loading && items.length === 0 && <p className="text-sm text-[var(--ink-muted)]">Nothing here yet.</p>}
+      <div className="space-y-3">
+        {items.map((m) => (
+          <button key={m.id} onClick={() => openItem(m)} className="panel panel-interactive block w-full p-5 text-left">
+            <div className="flex items-start justify-between gap-2">
+              <p className="text-sm font-semibold text-[var(--ink-muted)]">{m.is_anonymous ? 'Anonymous' : m.student_name || 'A student'}</p>
+              <span className={`rounded px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${EARS_STATUS_STYLE[m.status]}`}>{m.status.replace('_', ' ')}</span>
+            </div>
+            <p className="mt-2 line-clamp-2 whitespace-pre-wrap text-sm text-white/80">{m.body}</p>
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function EarsDetail({ message, onBack }: { message: EarsMessageRow; onBack: () => void }) {
+  const [replies, setReplies] = useState<EarsReplyRow[]>([])
+  const [notes, setNotes] = useState<EarsNoteRow[]>([])
+  const [replyDraft, setReplyDraft] = useState('')
+  const [noteDraft, setNoteDraft] = useState('')
+  const [escalating, setEscalating] = useState(false)
+  const [escalateReason, setEscalateReason] = useState('')
+  const [status, setStatus] = useState(message.status)
+
+  const load = () => {
+    listEarsReplies(message.id).then(setReplies)
+    listEarsInternalNotes(message.id).then(setNotes)
+  }
+  useEffect(() => {
+    load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [message.id])
+
+  const sendReply = async () => {
+    if (!replyDraft.trim()) return
+    await addEarsReply(message.id, replyDraft)
+    setReplyDraft('')
     playClick()
     haptics.success()
-    setDrafts((d) => ({ ...d, [id]: '' }))
     load()
   }
 
-  const seen = async (id: string) => {
-    await markConfessionSeen(id)
+  const sendNote = async () => {
+    if (!noteDraft.trim()) return
+    await addEarsInternalNote(message.id, noteDraft)
+    setNoteDraft('')
+    playClick()
     load()
+  }
+
+  const changeStatus = async (s: EarsStatus) => {
+    await setEarsStatus(message.id, s)
+    setStatus(s)
+    haptics.tap()
+  }
+
+  const escalate = async () => {
+    if (!escalateReason.trim()) return
+    await escalateEarsMessage(message.id, escalateReason)
+    setStatus('escalated')
+    setEscalating(false)
+    setEscalateReason('')
+    haptics.success()
   }
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-[var(--ink-muted)]">Private notes from students in your classes. Anonymous ones never reveal who sent them, even to you.</p>
-      {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
-      {!loading && items.length === 0 && <p className="text-sm text-[var(--ink-muted)]">Nothing here yet.</p>}
-      <div className="space-y-3">
-        {items.map((c) => (
-          <div key={c.id} className="panel p-5" onClick={() => c.status === 'new' && seen(c.id)}>
-            <div className="flex items-start justify-between gap-2">
-              <p className="text-sm font-semibold text-[var(--ink-muted)]">{c.is_anonymous ? 'Anonymous' : 'A student'}</p>
-              <span
-                className={`rounded px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${
-                  c.status === 'replied' ? 'bg-emerald-500/15 text-emerald-400' : c.status === 'seen' ? 'bg-white/10 text-white/60' : 'bg-[var(--gold)]/15 text-[var(--gold)]'
-                }`}
-              >
-                {c.status}
-              </span>
-            </div>
-            <p className="mt-2 whitespace-pre-wrap">{c.body}</p>
-            {c.reply && (
-              <div className="mt-3 rounded-md bg-emerald-500/10 p-3 text-sm">
-                <p className="mb-1 font-semibold text-emerald-400">Your reply:</p>
-                <p>{c.reply}</p>
-              </div>
-            )}
-            <div className="mt-3 flex gap-2">
-              <input
-                value={drafts[c.id] ?? ''}
-                onChange={(e) => setDrafts((d) => ({ ...d, [c.id]: e.target.value }))}
-                placeholder={c.reply ? 'Update your reply…' : 'Write a reply…'}
-                className={`${inputClass} py-2 text-sm`}
-                onClick={(e) => e.stopPropagation()}
-                onKeyDown={(e) => e.key === 'Enter' && reply(c.id)}
-              />
-              <button
-                onClick={(e) => {
-                  e.stopPropagation()
-                  reply(c.id)
-                }}
-                className="btn-solid shrink-0 text-sm"
-              >
-                Reply
-              </button>
-            </div>
+      <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-[var(--ink-muted)] hover:text-white">
+        <ArrowLeft className="h-4 w-4" /> Back to inbox
+      </button>
+
+      <div className="panel p-5">
+        <div className="flex items-start justify-between gap-2">
+          <p className="text-sm font-semibold text-[var(--ink-muted)]">{message.is_anonymous ? 'Anonymous' : message.student_name || 'A student'}</p>
+          <span className={`rounded px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${EARS_STATUS_STYLE[status]}`}>{status.replace('_', ' ')}</span>
+        </div>
+        <p className="mt-2 whitespace-pre-wrap">{message.body}</p>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {(['in_progress', 'resolved'] as const).map((s) => (
+          <button key={s} onClick={() => changeStatus(s)} className="btn-outline px-3 py-1.5 text-xs capitalize">
+            Mark {s.replace('_', ' ')}
+          </button>
+        ))}
+        {!escalating ? (
+          <button onClick={() => setEscalating(true)} className="rounded-md bg-red-500/15 px-3 py-1.5 text-xs font-bold text-red-400 hover:bg-red-500/25">
+            Escalate to Admin
+          </button>
+        ) : null}
+      </div>
+
+      {escalating && (
+        <div className="panel space-y-2 p-4">
+          <p className="text-sm font-bold text-red-400">Why does this need admin attention?</p>
+          <input value={escalateReason} onChange={(e) => setEscalateReason(e.target.value)} placeholder="Reason" className={`${inputClass} py-2 text-sm`} />
+          <div className="flex gap-2">
+            <button onClick={escalate} className="rounded-md bg-red-500/15 px-4 py-2 text-sm font-bold text-red-400 hover:bg-red-500/25">
+              Confirm Escalation
+            </button>
+            <button onClick={() => setEscalating(false)} className="btn-outline px-4 py-2 text-sm">
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <p className="eyebrow">Replies to the Student</p>
+        {replies.map((r) => (
+          <div key={r.id} className="rounded-md bg-emerald-500/10 p-3 text-sm">
+            {r.body}
           </div>
         ))}
+        <div className="flex gap-2">
+          <input
+            value={replyDraft}
+            onChange={(e) => setReplyDraft(e.target.value)}
+            placeholder="Write a reply the student will see…"
+            className={`${inputClass} py-2 text-sm`}
+            onKeyDown={(e) => e.key === 'Enter' && sendReply()}
+          />
+          <button onClick={sendReply} className="btn-solid shrink-0 text-sm">
+            Send
+          </button>
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <p className="eyebrow">Internal Notes &mdash; not visible to the student</p>
+        {notes.map((n) => (
+          <div key={n.id} className="rounded-md border border-white/10 bg-white/5 p-3 text-sm text-white/70">
+            {n.body}
+          </div>
+        ))}
+        <div className="flex gap-2">
+          <input
+            value={noteDraft}
+            onChange={(e) => setNoteDraft(e.target.value)}
+            placeholder="Note for staff only…"
+            className={`${inputClass} py-2 text-sm`}
+            onKeyDown={(e) => e.key === 'Enter' && sendNote()}
+          />
+          <button onClick={sendNote} className="btn-outline shrink-0 text-sm">
+            Add Note
+          </button>
+        </div>
       </div>
     </div>
   )

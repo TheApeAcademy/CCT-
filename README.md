@@ -1,8 +1,51 @@
 # MFM Children's Ministry Bible Quiz
 
-A "Who Wants to Be a Millionaire" style Bible quiz built for MFM Children's Ministry, for Sunday school teachers and students. Fully offline, installable as an app, and free of any external dependencies at runtime.
+A full Children's Ministry platform for MFM: teacher and student accounts, classes, a leaderboard, messaging, and
+a private confession box, built around a "Who Wants to Be a Millionaire" style Bible quiz. The quiz itself is fully
+offline (installable as an app, no server needed to play); accounts, classes, messaging, and the leaderboard need
+an internet connection since they're backed by Supabase.
 
-## Features
+## Accounts & classes
+
+There are three separate portals, all inside this one app:
+
+- **🛡️ Admin (`/admin`)** — for the senior pastor / ministry admin only. Approves teacher applications, manages
+  seasons, sees every class, and can promote other admins. Admin access is never self-service: signing up just
+  creates a normal account, an existing admin has to promote it (see "First admin account" below).
+- **👩‍🏫 Teacher (`/teacher`)** — sign up, fill out a short "Apply to Teach" form, and wait for admin approval.
+  Once approved, a teacher can create classes (each gets a join code and a shareable link), build a roster, remove
+  or move students between classes, message students, and answer confessions.
+- **🧒 Student (`/join` to join, `/student` for the dashboard)** — no email needed. A kid opens their class's link
+  or types the class code, taps their name on the roster, and sets a 4-6 digit PIN. From their dashboard they see
+  their points and leaderboard position, edit their profile (photo, bio, favorite verse/quote), generate a
+  shareable digital ID card, message their teacher, and use the anonymous-or-not confession box.
+
+### First admin account
+
+Admin access can't be requested from the UI on purpose. To make the first admin: open `/admin`, sign up with an
+email and password, then run this once in the Supabase SQL editor for the `mfm-childrens-ministry` project
+(replace the email):
+
+```sql
+update public.profiles set role = 'admin'
+where id = (select id from auth.users where email = 'you@example.com');
+```
+
+After that, that admin can promote anyone else straight from the Admins tab in the Control Centre.
+
+### Deploying the join-class Edge Function
+
+Claiming a roster spot and setting a PIN is handled by a Supabase Edge Function (`supabase/functions/join-class`)
+that needs the service role key, so it can't run in the browser. It's written and ready in this repo but still
+needs to be deployed once:
+
+```bash
+supabase functions deploy join-class --project-ref zdgbatkxjxiecqshnmwh --no-verify-jwt
+```
+
+(or deploy it from the Supabase dashboard). Until it's deployed, kids can't complete the "join my class" flow.
+
+## Bible Quiz features
 
 - **Fully offline.** Installable as a PWA (Progressive Web App); once installed it never needs wifi or a server.
 - **Seasons.** Run the quiz in seasons (e.g. one per term). Question sets and matches are tagged with the active season, so results can be grouped by season in History and Match Results. Manage seasons from the 🗓️ Seasons page.
@@ -43,5 +86,7 @@ The production build in `dist/` is a self-contained static site with a service w
 
 - Vite + React + TypeScript
 - Tailwind CSS v4
-- Dexie (IndexedDB) for local, offline data storage
+- Dexie (IndexedDB) for local, offline quiz data storage
+- Supabase (Postgres, Auth, Edge Functions) for accounts, classes, messaging, and the leaderboard, in its own
+  dedicated project (`mfm-childrens-ministry`), kept separate from any other apps
 - `vite-plugin-pwa` for offline caching and installability

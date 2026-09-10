@@ -20,11 +20,13 @@ import TransitionLectureDetail from './pages/TransitionLectureDetail'
 import TransitionCheckpoint from './pages/TransitionCheckpoint'
 import MockExam from './pages/MockExam'
 
-// These two are the only screens that need the network (Supabase). Lazy
-// load them so the @supabase/supabase-js bundle never has to be fetched or
-// parsed by kids using the fully offline parts of the app.
-const AskShare = lazy(() => import('./pages/AskShare'))
-const TeacherDashboard = lazy(() => import('./pages/TeacherDashboard'))
+// These are the only screens that need the network (Supabase accounts,
+// classes, messaging). Lazy load them so the @supabase/supabase-js bundle
+// never has to be fetched or parsed by kids using the fully offline quiz.
+const AdminPortal = lazy(() => import('./pages/AdminPortal'))
+const TeacherPortal = lazy(() => import('./pages/TeacherPortal'))
+const StudentPortal = lazy(() => import('./pages/StudentPortal'))
+const JoinClass = lazy(() => import('./pages/JoinClass'))
 
 function LazyFallback() {
   return <div className="py-20 text-center text-xl">Loading…</div>
@@ -77,10 +79,10 @@ function App() {
             <Route path="transition/lecture/:id/checkpoint" element={<TransitionCheckpoint />} />
             <Route path="transition/mock-exam" element={<MockExam />} />
             <Route
-              path="ask"
+              path="admin"
               element={
                 <Suspense fallback={<LazyFallback />}>
-                  <AskShare />
+                  <AdminPortal />
                 </Suspense>
               }
             />
@@ -88,7 +90,31 @@ function App() {
               path="teacher"
               element={
                 <Suspense fallback={<LazyFallback />}>
-                  <TeacherDashboard />
+                  <TeacherPortal />
+                </Suspense>
+              }
+            />
+            <Route
+              path="student"
+              element={
+                <Suspense fallback={<LazyFallback />}>
+                  <StudentPortal />
+                </Suspense>
+              }
+            />
+            <Route
+              path="join"
+              element={
+                <Suspense fallback={<LazyFallback />}>
+                  <JoinClass />
+                </Suspense>
+              }
+            />
+            <Route
+              path="join/:code"
+              element={
+                <Suspense fallback={<LazyFallback />}>
+                  <JoinClass />
                 </Suspense>
               }
             />

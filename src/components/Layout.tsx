@@ -6,15 +6,16 @@ import StageBackground from './StageBackground'
 
 const navItems = [
   { to: '/', label: '🏠 Home' },
+  { to: '/join', label: '🔑 Join / My Dashboard' },
   { to: '/questions', label: '📚 Question Bank' },
   { to: '/setup', label: '🎮 New Game' },
   { to: '/seasons', label: '🗓️ Seasons' },
   { to: '/training', label: '🏋️ Training' },
   { to: '/transition', label: '🎓 Transition Class' },
   { to: '/history', label: '🏆 History' },
-  { to: '/ask', label: '💌 Ask & Share' },
   { to: '/anthem', label: '🎶 Anthem' },
-  { to: '/teacher', label: '👩‍🏫 Teacher' },
+  { to: '/teacher', label: '👩‍🏫 Teacher Portal' },
+  { to: '/admin', label: '🛡️ Admin' },
 ]
 
 export default function Layout() {

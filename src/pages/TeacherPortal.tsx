@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   GraduationCap,
   ClipboardList,
@@ -14,6 +15,9 @@ import {
   KeyRound,
   BookOpen,
   FileText,
+  Gamepad2,
+  Trophy,
+  type LucideIcon,
 } from 'lucide-react'
 import { supabase, signOut } from '../lib/supabase'
 import { useMinistryAuth } from '../lib/useMinistryAuth'
@@ -186,7 +190,7 @@ function ApplyForm({ onSubmitted }: { onSubmitted: () => void }) {
 
 // ---------- main dashboard ----------
 
-type Tab = 'classes' | 'messages' | 'ears' | 'profile'
+type Tab = 'classes' | 'quiz' | 'messages' | 'ears' | 'profile'
 
 function TeacherDashboard() {
   const [tab, setTab] = useState<Tab>('classes')
@@ -212,6 +216,7 @@ function TeacherDashboard() {
         }}
         items={[
           { value: 'classes', label: 'Classes', icon: GraduationCap },
+          { value: 'quiz', label: 'Quiz', icon: Gamepad2 },
           { value: 'messages', label: 'Messages', icon: MessageCircle },
           { value: 'ears', label: 'Ears for You', icon: HeartHandshake },
           { value: 'profile', label: 'Profile', icon: Settings },
@@ -219,10 +224,33 @@ function TeacherDashboard() {
       />
 
       {tab === 'classes' && (openClass ? <ClassDetail klass={openClass} onBack={() => setOpenClass(null)} /> : <ClassesTab onOpen={setOpenClass} />)}
+      {tab === 'quiz' && <QuizTab />}
       {tab === 'messages' && <MessagesTab />}
       {tab === 'ears' && <EarsInboxTab />}
       {tab === 'profile' && <ProfileTab />}
     </div>
+  )
+}
+
+function QuizTab() {
+  return (
+    <div className="grid gap-3 sm:grid-cols-3">
+      <QuizLink to="/questions" icon={BookOpen} title="Question Bank" description="Build and manage your trivia questions and sets." />
+      <QuizLink to="/setup" icon={Gamepad2} title="Host a Match" description="Run a live quiz-show match on the big screen." />
+      <QuizLink to="/history" icon={Trophy} title="History" description="Every completed match, team score, and full recap." />
+    </div>
+  )
+}
+
+function QuizLink({ to, icon: Icon, title, description }: { to: string; icon: LucideIcon; title: string; description: string }) {
+  return (
+    <Link to={to} onClick={() => playClick()} className="panel panel-interactive flex flex-col gap-2 p-5">
+      <span className="flex h-10 w-10 items-center justify-center rounded-md border border-[var(--hairline-strong)] text-[var(--gold)]">
+        <Icon className="h-5 w-5" strokeWidth={1.75} />
+      </span>
+      <p className="font-display text-lg font-bold">{title}</p>
+      <p className="text-sm text-[var(--ink-muted)]">{description}</p>
+    </Link>
   )
 }
 

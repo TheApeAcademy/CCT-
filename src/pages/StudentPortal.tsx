@@ -88,7 +88,7 @@ export default function StudentPortal() {
   return <Dashboard />
 }
 
-type Tab = 'home' | 'class' | 'bible' | 'leaderboard' | 'profile' | 'messages' | 'ears'
+type Tab = 'home' | 'class' | 'bible' | 'leaderboard' | 'profile' | 'messages' | 'ears' | 'game'
 
 const TAB_TITLE: Record<Tab, string> = {
   home: 'My House',
@@ -98,6 +98,7 @@ const TAB_TITLE: Record<Tab, string> = {
   profile: 'My Card',
   messages: 'My Teacher',
   ears: 'Ears for You',
+  game: 'Live Quiz Match',
 }
 
 function Dashboard() {
@@ -206,6 +207,7 @@ function Dashboard() {
                   </div>
                 ))}
               {tab === 'ears' && <EarsTab klass={klass} />}
+              {tab === 'game' && <GameTab />}
             </div>
           </motion.div>
         )}
@@ -275,16 +277,25 @@ function HomeTab({
         <HomeLink to="/training" icon={Dumbbell} accent="var(--lp-accent-training)" title="Practice Bible Quiz" description="Unlimited solo practice, no pressure, no timer." />
         <HomeLink to="/transition" icon={School} accent="var(--lp-accent-class)" title="Transition Class" description="Get ready for teenage church." />
         <HomeLink to="/anthem" icon={Music} accent="var(--lp-accent-anthem)" title="Our Anthem" description="Sing along with the children's ministry anthem." />
-        <div className="lp-panel lp-panel-accented flex items-start gap-4 p-5 opacity-60" style={{ ['--card-accent' as string]: 'var(--lp-muted)' }}>
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--lp-hairline-strong)] text-[var(--lp-muted)]">
-            <Gamepad2 className="h-5 w-5" strokeWidth={1.75} />
-          </span>
-          <div>
-            <p className="lp-heading font-display text-lg font-bold">Live Quiz Match</p>
-            <p className="mt-1 text-sm text-[var(--lp-muted)]">Ask your teacher to start a live match on the big screen for your class!</p>
-          </div>
-        </div>
       </div>
+    </div>
+  )
+}
+
+function GameTab() {
+  return (
+    <div className="lp-panel lp-panel-accented flex flex-col items-center gap-3 p-8 text-center" style={{ ['--card-accent' as string]: 'var(--lp-accent-compete)' }}>
+      <span
+        className="flex h-14 w-14 items-center justify-center rounded-2xl"
+        style={{ background: 'color-mix(in srgb, var(--lp-accent-compete) 16%, transparent)', color: 'var(--lp-accent-compete)' }}
+      >
+        <Gamepad2 className="h-7 w-7" strokeWidth={1.75} />
+      </span>
+      <p className="lp-heading font-display text-xl font-bold">Live Quiz Match</p>
+      <p className="max-w-xs text-sm text-[var(--lp-muted)]">
+        Ask your teacher to start a live match on the big screen for your class! When they do, you&apos;ll join
+        from here.
+      </p>
     </div>
   )
 }

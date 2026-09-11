@@ -2,7 +2,7 @@ import { useReducedMotion, motion, AnimatePresence } from 'framer-motion'
 import { User } from 'lucide-react'
 import { playClick } from '../lib/sound'
 
-export type VillageTab = 'home' | 'class' | 'bible' | 'leaderboard' | 'profile' | 'messages' | 'ears'
+export type VillageTab = 'home' | 'class' | 'bible' | 'leaderboard' | 'profile' | 'messages' | 'ears' | 'game'
 
 interface Building {
   id: VillageTab
@@ -24,16 +24,17 @@ interface Building {
 // Positions were hand-marked directly on the map art (circled spot by spot), not guessed:
 // the stone dais courtyard (My Class), the open grass opposite My House (Leaderboard),
 // open lawn by the pond (My Card), the shaded dirt patch under the tree (Bible), the oval
-// lawn (My House), open lawn near the flower bed (Ears for You), and open lawn by the
-// willow tree (My Teacher).
+// lawn (My House), and open lawn near the flower bed, shared by Ears for You and Game
+// (My Teacher's spot is open lawn by the willow tree).
 const BUILDINGS: Building[] = [
   { id: 'class', label: 'My Class', image: '/village/class-backpack.png', x: 73, y: 31, width: 24, heightPct: 12.7, accent: 'var(--lp-accent-class)' },
   { id: 'leaderboard', label: 'Leaderboard', image: '/feature-leaderboard.png', x: 77, y: 87, width: 16, heightPct: 10.6, accent: 'var(--lp-accent-leaderboard)' },
   { id: 'profile', label: 'My Card', image: '/village/profile-card.png', x: 38, y: 48, width: 16, heightPct: 9.4, accent: 'var(--lp-accent-achievements)' },
   { id: 'bible', label: 'Bible', image: '/village/bible-church.png', x: 81, y: 59, width: 22, heightPct: 15.5, accent: 'var(--lp-accent-bible)' },
   { id: 'home', label: 'My House', image: '/village/home-house.png', x: 33, y: 79, width: 28, heightPct: 16.6, accent: 'var(--hero-accent)' },
-  { id: 'ears', label: 'Ears for You', image: '/village/ears-hearttree.png', x: 26, y: 18, width: 16, heightPct: 10.1, accent: 'var(--lp-accent-ears)' },
-  { id: 'messages', label: 'My Teacher', image: '/village/messages-teacher.png', x: 78, y: 19, width: 18, heightPct: 8.9, accent: 'var(--lp-accent-training)' },
+  { id: 'ears', label: 'Ears for You', image: '/village/ears-app.png', x: 18, y: 20, width: 15, heightPct: 8.7, accent: 'var(--lp-accent-ears)' },
+  { id: 'game', label: 'Live Quiz Match', image: '/village/game-rocket.png', x: 37, y: 18, width: 15, heightPct: 8.4, accent: 'var(--lp-accent-compete)' },
+  { id: 'messages', label: 'My Teacher', image: '/village/messages-teacherhome.png', x: 78, y: 19, width: 18, heightPct: 9.6, accent: 'var(--lp-accent-training)' },
 ]
 
 const BY_ID = Object.fromEntries(BUILDINGS.map((b) => [b.id, b])) as Record<VillageTab, Building>

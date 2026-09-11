@@ -962,6 +962,16 @@ button:active, a:active {
     transform: translateY(-12px) rotate(10deg);
   }
 }
+/* A cloud drifting left-to-right across the VillageMap's sky, looping
+   from just off the left edge to just off the right. */
+@keyframes village-cloud-drift {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(420px);
+  }
+}
 .lp-sprinkle {
   position: absolute;
   border-radius: 999px;

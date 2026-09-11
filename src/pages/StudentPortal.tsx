@@ -27,6 +27,7 @@ import {
 import { supabase, signOut } from '../lib/supabase'
 import { useMinistryAuth } from '../lib/useMinistryAuth'
 import TabBar from '../components/ui/TabBar'
+import VillageMap from '../components/VillageMap'
 import {
   getMyStudentProfile,
   updateMyStudentProfile,
@@ -130,6 +131,10 @@ function Dashboard() {
         <button onClick={() => signOut()} className="btn-outline text-sm">
           Sign Out
         </button>
+      </div>
+
+      <div className="mx-auto w-full max-w-sm sm:max-w-md">
+        <VillageMap active={tab} onNavigate={setTab} avatarUrl={student?.avatar_url} />
       </div>
 
       <TabBar

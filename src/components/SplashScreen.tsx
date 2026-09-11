@@ -23,9 +23,11 @@ export default function SplashScreen({ ready, onDone }: { ready: boolean; onDone
         fading ? 'pointer-events-none opacity-0' : 'opacity-100'
       }`}
     >
-      <div className="animate-number-pop rounded-xl bg-white p-3 shadow-2xl shadow-black/50">
-        <img src="/church-logo.png" alt="MFM Children's Ministry" className="h-28 w-28 sm:h-32 sm:w-32" />
-      </div>
+      <img
+        src="/children-ministry-logo-splash.png"
+        alt="MFM Children's Ministry"
+        className="animate-number-pop h-48 w-48 object-contain drop-shadow-[0_12px_32px_rgba(0,0,0,0.5)] sm:h-56 sm:w-56"
+      />
       <p className="font-display text-xl font-bold tracking-wide text-[var(--gold)] sm:text-2xl">MFM Children's Ministry Bible Quiz</p>
       <div className="flex gap-2">
         {[0, 1, 2].map((i) => (

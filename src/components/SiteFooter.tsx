@@ -41,7 +41,7 @@ export default function SiteFooter() {
         <div className="grid gap-10 lg:grid-cols-[1.3fr_1fr_1fr_1fr]">
           <div>
             <div className="flex items-center gap-2.5">
-              <img src="/church-logo.png" alt="" className="crest h-9 w-9 shrink-0 object-cover" />
+              <img src="/children-ministry-seal.png" alt="" className="h-11 w-11 shrink-0 object-contain" />
               <span className="font-display text-[0.95rem] font-extrabold leading-tight tracking-tight">
                 MFM Children&apos;s Ministry
               </span>
@@ -55,7 +55,7 @@ export default function SiteFooter() {
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => playClick()}
-              className="btn-outline mt-5 inline-flex !gap-1.5 !px-4 !py-2 text-xs"
+              className="nav-cta-solid mt-5 inline-flex !gap-1.5 !px-4 !py-2 text-xs uppercase"
             >
               <Radio className="h-3.5 w-3.5" strokeWidth={2.25} />
               Join Us Live

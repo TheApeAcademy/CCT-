@@ -41,10 +41,11 @@
   --gold: #e8b923;
   --gold-ink: #1b1030;
 
-  /* Hero-only accent, matching mountainoffire.org's carousel styling -
-     scoped to .hero-* classes, never used outside HeroCarousel. */
-  --hero-accent: #7a2bd1;
-  --hero-accent-hover: #8f3ee6;
+  /* Purple accent matching mountainoffire.org's own carousel + nav CTAs -
+     scoped to .hero- and .nav-cta- classes only; the rest of the app keeps
+     its plain gold accent untouched. */
+  --hero-accent: #9c2bb0;
+  --hero-accent-hover: #b136c7;
 }
 
 html, body, #root {
@@ -557,9 +558,6 @@ button:active, a:active {
 .hero-title-font {
   font-family: 'Poppins', var(--font-body);
 }
-.hero-accent-bar {
-  background: var(--hero-accent);
-}
 .hero-btn-solid {
   display: inline-flex;
   align-items: center;
@@ -594,6 +592,43 @@ button:active, a:active {
   transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 .hero-btn-outline:hover {
+  border-color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Header nav CTAs (Live/Join) - same purple-accent family as the hero,
+   replacing the gold buttons the rest of the app still uses everywhere
+   else, matching mountainoffire.org's LIVE (solid) / GIVE (outline) pair. */
+.nav-cta-solid {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  background: var(--hero-accent);
+  color: #fff;
+  font-weight: 800;
+  border-radius: 8px;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+.nav-cta-solid:hover {
+  background: var(--hero-accent-hover);
+}
+.nav-cta-solid:active {
+  transform: scale(0.97);
+}
+.nav-cta-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  background: transparent;
+  color: #fff;
+  font-weight: 800;
+  border-radius: 8px;
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.nav-cta-outline:hover {
   border-color: #fff;
   background: rgba(255, 255, 255, 0.08);
 }

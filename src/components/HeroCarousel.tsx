@@ -11,7 +11,6 @@ import '@fontsource/poppins/800.css'
 import '@fontsource/poppins/900.css'
 
 export interface HeroSlide {
-  eyebrow: string
   title: string
   body: string
   image: string
@@ -46,38 +45,33 @@ export default function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
   }
 
   // Layered content choreography: each element in the active slide enters at
-  // a slightly offset moment (eyebrow -> accent rule -> title -> body ->
-  // quote -> CTAs) rather than one flat fade, so the slide feels directed
-  // instead of just cross-faded. The background image/Ken Burns crossfade
-  // itself stays on the CSS .hero-slide/.is-active transition below - a
-  // separate layer, on purpose.
+  // a slightly offset moment (title -> body -> quote -> CTAs) rather than
+  // one flat fade, so the slide feels directed instead of just cross-faded.
+  // The background image/Ken Burns crossfade itself stays on the CSS
+  // .hero-slide/.is-active transition below - a separate layer, on purpose.
   useEffect(() => {
     const el = contentRefs.current[index]
     if (!el) return
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
     const ctx = gsap.context(() => {
-      const eyebrow = el.querySelector('[data-hero-el="eyebrow"]')
-      const accent = el.querySelector('[data-hero-el="accent"]')
       const title = el.querySelector('[data-hero-el="title"]')
       const body = el.querySelector('[data-hero-el="body"]')
       const quote = el.querySelector('[data-hero-el="quote"]')
       const cta = el.querySelector('[data-hero-el="cta"]')
-      const targets = [eyebrow, accent, title, body, quote, cta].filter(Boolean) as Element[]
+      const targets = [title, body, quote, cta].filter(Boolean) as Element[]
 
       if (reduced) {
-        gsap.set(targets, { opacity: 1, y: 0, scaleX: 1 })
+        gsap.set(targets, { opacity: 1, y: 0 })
         return
       }
 
       gsap.set(targets, { opacity: 0 })
       const tl = gsap.timeline({ defaults: { ease: 'power3.out' } })
-      if (eyebrow) tl.fromTo(eyebrow, { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.45 }, 0)
-      if (accent) tl.fromTo(accent, { opacity: 0, scaleX: 0 }, { opacity: 1, scaleX: 1, duration: 0.4, ease: 'power2.out' }, 0.18)
-      if (title) tl.fromTo(title, { opacity: 0, y: 28 }, { opacity: 1, y: 0, duration: 0.7 }, 0.1)
-      if (body) tl.fromTo(body, { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.55 }, 0.28)
-      if (quote) tl.fromTo(quote, { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.5 }, 0.4)
-      if (cta) tl.fromTo(cta, { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.5 }, quote ? 0.48 : 0.4)
+      if (title) tl.fromTo(title, { opacity: 0, y: 28 }, { opacity: 1, y: 0, duration: 0.7 }, 0)
+      if (body) tl.fromTo(body, { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.55 }, 0.2)
+      if (quote) tl.fromTo(quote, { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.5 }, 0.32)
+      if (cta) tl.fromTo(cta, { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.5 }, quote ? 0.4 : 0.32)
     }, el)
 
     return () => ctx.revert()
@@ -115,13 +109,9 @@ export default function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
             }}
             className="relative z-10 flex h-full flex-col items-center justify-center px-4 pb-16 pt-24 text-center sm:pt-28"
           >
-            <p data-hero-el="eyebrow" className="eyebrow text-xs sm:text-sm">
-              {slide.eyebrow}
-            </p>
-            <span data-hero-el="accent" className="hero-accent-bar mt-3 h-[3px] w-14 origin-center rounded-full" />
             <h1
               data-hero-el="title"
-              className="hero-title-font mt-5 max-w-5xl text-balance text-4xl font-extrabold uppercase leading-[1.05] tracking-tight text-white sm:text-6xl lg:text-7xl"
+              className="hero-title-font max-w-5xl text-balance text-4xl font-extrabold uppercase leading-[1.05] tracking-tight text-white sm:text-6xl lg:text-7xl"
             >
               {slide.title}
             </h1>

@@ -23,7 +23,6 @@ import { playClick } from '../lib/sound'
 
 const slides: HeroSlide[] = [
   {
-    eyebrow: 'Mountain of Fire and Miracles Ministries · Wuye',
     title: "The Children's Ministry",
     body: 'Raising children in the Word through classes, a Bible Quiz built for the ministry, and a place every child in this church can call theirs.',
     primaryCta: { label: 'Apply as a Kid', to: '/join' },
@@ -32,7 +31,6 @@ const slides: HeroSlide[] = [
     image: '/hero-kids.jpg',
   },
   {
-    eyebrow: 'A Children’s Ministry Feature',
     title: 'Know the Word. Play the Quiz.',
     body: 'Live trivia on the shared screen, team lifelines, seasons and a leaderboard that means something — every question is a chance to know Scripture a little better.',
     primaryCta: { label: 'Host a Match', to: '/setup' },
@@ -40,7 +38,6 @@ const slides: HeroSlide[] = [
     image: '/hero-quiz.jpg',
   },
   {
-    eyebrow: 'Every Child, Every Day',
     title: 'Nourish Your Soul. Read Daily.',
     body: 'A short Bible reading and a streak that keeps count — come back tomorrow and it grows, right there on your own dashboard.',
     primaryCta: { label: 'Apply as a Kid', to: '/join' },
@@ -48,7 +45,6 @@ const slides: HeroSlide[] = [
     image: '/hero-bible.jpg',
   },
   {
-    eyebrow: 'Meet the Team',
     title: 'Our Sunday School Teachers',
     body: 'Real classrooms, real teachers — approved by the ministry and ready to walk with your child through the Word, every single week.',
     primaryCta: { label: 'Apply to Teach', to: '/teacher' },

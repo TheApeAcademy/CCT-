@@ -104,7 +104,7 @@ export default function Layout() {
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <NavLink to="/" className="flex min-w-0 shrink-0 items-center gap-2.5">
-            <img src="/church-logo.png" alt="" className="crest h-9 w-9 shrink-0 object-cover" />
+            <img src="/children-ministry-seal.png" alt="" className="h-12 w-12 shrink-0 object-contain sm:h-14 sm:w-14" />
             <span className="hidden truncate font-display text-[0.95rem] font-extrabold leading-tight tracking-tight sm:block">
               MFM Children&apos;s
               <br />
@@ -174,12 +174,12 @@ export default function Layout() {
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => playClick()}
-              className="btn-outline hidden !gap-1.5 !px-4 !py-2 text-xs sm:inline-flex"
+              className="nav-cta-solid hidden !gap-1.5 !px-4 !py-2 text-xs uppercase sm:inline-flex"
             >
               <Radio className="h-3.5 w-3.5" strokeWidth={2.25} />
               Live
             </a>
-            <NavLink to="/join" onClick={() => playNav()} className="btn-solid hidden !px-4 !py-2 text-xs sm:inline-flex">
+            <NavLink to="/join" onClick={() => playNav()} className="nav-cta-outline hidden !px-4 !py-2 text-xs uppercase sm:inline-flex">
               Join
             </NavLink>
 
@@ -241,7 +241,7 @@ export default function Layout() {
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => playClick()}
-              className="btn-outline inline-flex !justify-center !gap-1.5"
+              className="nav-cta-solid inline-flex !justify-center !gap-1.5 !px-4 !py-2.5 uppercase"
             >
               <Radio className="h-3.5 w-3.5" strokeWidth={2.25} />
               Live
@@ -249,7 +249,7 @@ export default function Layout() {
           </div>
         </nav>
       </header>
-      <main className={`relative z-10 mx-auto max-w-6xl px-4 pb-6 ${isHome ? 'pt-0' : 'pt-[4.75rem]'}`}>
+      <main className={`relative z-10 mx-auto max-w-6xl px-4 pb-6 ${isHome ? 'pt-0' : 'pt-[5.5rem]'}`}>
         <div key={location.pathname} className="animate-page-in">
           <Outlet />
         </div>

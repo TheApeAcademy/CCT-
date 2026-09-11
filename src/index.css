@@ -544,6 +544,237 @@ button:active, a:active {
   background: rgba(18, 10, 31, 0.7);
 }
 
+/* ==================== landing page theme (scoped) ====================
+   Applied only via [data-landing-theme] on Home's own wrapper div, never on
+   <html>/<body> - the rest of the app (quiz, portals, admin) stays on the
+   plain dark --ink/--gold tokens above regardless of what a visitor picks
+   here. Light mode is "white canvas + purple feature bands" per design
+   spec; dark mode keeps the same tonal-hierarchy purple the rest of the
+   app already uses. Feature accent hues stay constant across both themes -
+   they're brand-safe identity colours, not surface tokens. */
+
+[data-landing-theme] {
+  --lp-radius-card: 20px;
+  --lp-radius-feature: 24px;
+  --lp-radius-pill: 999px;
+  --lp-shadow-card: 0 16px 40px -20px rgba(20, 8, 40, 0.35);
+  --lp-accent-fill: #e8b923;
+  --lp-accent-fill-ink: #1b1030;
+
+  --lp-accent-compete: #e8b923;
+  --lp-accent-training: #2fb8a6;
+  --lp-accent-transition: #b56bd9;
+  --lp-accent-seasons: #4caf6d;
+  --lp-accent-questions: #4f9ce8;
+  --lp-accent-history: #e0793f;
+  --lp-accent-anthem: #e05fa0;
+  --lp-accent-leaderboard: #f0b429;
+  --lp-accent-bible: #e0793f;
+  --lp-accent-achievements: #b56bd9;
+  --lp-accent-ears: #4f9ce8;
+
+  transition: background-color 0.35s ease, color 0.35s ease;
+}
+
+[data-landing-theme='dark'] {
+  color-scheme: dark;
+  --lp-bg: #120a1f;
+  --lp-bg-raised: #1b1030;
+  --lp-bg-panel: #1f1436;
+  --lp-bg-alt: #241a3d;
+  --lp-bg-deep: #1b1030;
+  --lp-hairline: rgba(255, 255, 255, 0.09);
+  --lp-hairline-strong: rgba(255, 255, 255, 0.16);
+  --lp-heading: #ffffff;
+  --lp-body: rgba(237, 233, 246, 0.8);
+  --lp-muted: rgba(237, 233, 246, 0.62);
+  --lp-faint: rgba(237, 233, 246, 0.4);
+  --lp-accent-text: #e8b923;
+  --lp-band-deep-heading: #ffffff;
+  --lp-band-deep-body: rgba(237, 233, 246, 0.8);
+}
+
+[data-landing-theme='light'] {
+  color-scheme: light;
+  --lp-bg: #ffffff;
+  --lp-bg-raised: #faf8ff;
+  --lp-bg-panel: #f4f0fb;
+  --lp-bg-alt: #efe9fb;
+  --lp-bg-deep: #2a1b47;
+  --lp-hairline: rgba(42, 27, 71, 0.1);
+  --lp-hairline-strong: rgba(42, 27, 71, 0.18);
+  --lp-heading: #1c1030;
+  --lp-body: rgba(28, 16, 48, 0.78);
+  --lp-muted: rgba(28, 16, 48, 0.6);
+  --lp-faint: rgba(28, 16, 48, 0.42);
+  --lp-accent-text: #8a5b00;
+  --lp-band-deep-heading: #ffffff;
+  --lp-band-deep-body: rgba(237, 233, 246, 0.82);
+}
+
+.lp-page {
+  background: var(--lp-bg);
+  color: var(--lp-body);
+}
+
+.lp-eyebrow {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--lp-accent-text);
+}
+
+.lp-heading {
+  color: var(--lp-heading);
+}
+
+.lp-band {
+  border-top: 1px solid var(--lp-hairline);
+  border-bottom: 1px solid var(--lp-hairline);
+  background: var(--lp-bg);
+}
+.lp-band-alt {
+  background: var(--lp-bg-alt);
+}
+.lp-band-raised {
+  background: var(--lp-bg-raised);
+}
+.lp-band-deep {
+  background: linear-gradient(180deg, var(--lp-bg-deep) 0%, #170c29 100%);
+  color: var(--lp-band-deep-body);
+}
+.lp-band-deep .lp-heading {
+  color: var(--lp-band-deep-heading);
+}
+.lp-band-deep .lp-eyebrow {
+  color: #f0c94c;
+}
+
+.lp-panel {
+  background: var(--lp-bg-panel);
+  border: 1px solid var(--lp-hairline);
+  border-radius: var(--lp-radius-card);
+  box-shadow: var(--lp-shadow-card);
+}
+.lp-panel-interactive {
+  transition: transform 0.18s ease, border-color 0.18s ease, background-color 0.18s ease;
+}
+.lp-panel-interactive:hover {
+  transform: translateY(-3px);
+  border-color: var(--card-accent, var(--lp-hairline-strong));
+}
+.lp-panel-interactive:active {
+  transform: translateY(-1px) scale(0.99);
+}
+
+.lp-stat-strip {
+  display: grid;
+  background: var(--lp-bg-panel);
+  border: 1px solid var(--lp-hairline);
+  border-radius: var(--lp-radius-card);
+  box-shadow: var(--lp-shadow-card);
+  overflow: hidden;
+}
+.lp-stat-cell {
+  padding: 1.1rem 0.75rem;
+  text-align: center;
+  border-left: 1px solid var(--lp-hairline);
+}
+.lp-stat-cell:first-child {
+  border-left: none;
+}
+.lp-stat-value {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--lp-heading);
+  line-height: 1.1;
+}
+.lp-stat-label {
+  margin-top: 0.2rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--lp-faint);
+}
+
+.lp-btn-solid {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: var(--lp-accent-fill);
+  color: var(--lp-accent-fill-ink);
+  font-weight: 800;
+  border-radius: 8px;
+  padding: 0.7rem 1.35rem;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+.lp-btn-solid:hover {
+  background: #f2c94c;
+}
+.lp-btn-solid:active {
+  transform: scale(0.97);
+}
+
+.lp-btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: transparent;
+  color: var(--lp-heading);
+  font-weight: 700;
+  border-radius: 8px;
+  border: 1px solid var(--lp-hairline-strong);
+  padding: 0.68rem 1.3rem;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.lp-btn-outline:hover {
+  border-color: var(--card-accent, var(--lp-accent-fill));
+  background: var(--lp-bg-raised);
+}
+
+.lp-icon-chip {
+  display: inline-flex;
+  height: 2.5rem;
+  width: 2.5rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  color: var(--card-accent, var(--lp-accent-fill));
+  background: color-mix(in srgb, var(--card-accent, var(--lp-accent-fill)) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--card-accent, var(--lp-accent-fill)) 30%, transparent);
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+.lp-panel-interactive:hover .lp-icon-chip {
+  background: var(--card-accent, var(--lp-accent-fill));
+  color: var(--lp-accent-fill-ink);
+}
+
+.lp-theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.5rem;
+  width: 2.5rem;
+  border-radius: var(--lp-radius-pill);
+  border: 1px solid var(--lp-hairline-strong);
+  background: color-mix(in srgb, var(--lp-bg-panel) 70%, transparent);
+  color: var(--lp-heading);
+  backdrop-filter: blur(6px);
+  transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
+}
+.lp-theme-toggle:hover {
+  border-color: var(--lp-accent-fill);
+}
+.lp-theme-toggle:active {
+  transform: scale(0.93);
+}
+
 /* A deliberate, designed stand-in for a photo that doesn't exist yet -
    a monogram badge, never a "broken image" icon or bracketed dev note. */
 .crest-badge {
@@ -554,6 +785,16 @@ button:active, a:active {
   background:
     radial-gradient(ellipse 90% 70% at 30% 20%, rgba(232, 185, 35, 0.16), transparent 60%),
     linear-gradient(155deg, #241a3d 0%, #1b1030 100%);
+}
+[data-landing-theme='light'] .crest-badge {
+  border-color: var(--lp-hairline-strong);
+  background:
+    radial-gradient(ellipse 90% 70% at 30% 20%, rgba(138, 91, 0, 0.08), transparent 60%),
+    linear-gradient(155deg, #f4f0fb 0%, #efe9fb 100%);
+}
+[data-landing-theme='light'] .crest-badge::before {
+  filter: grayscale(1);
+  opacity: 0.12;
 }
 .crest-badge::before {
   content: '';

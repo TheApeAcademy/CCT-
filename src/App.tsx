@@ -5,7 +5,6 @@ import PortalShell from './components/PortalShell'
 import SplashScreen from './components/SplashScreen'
 import { db, ensureSeedData } from './db/db'
 import { unlockAudio } from './lib/sound'
-import Home from './pages/Home'
 import QuestionBank from './pages/QuestionBank'
 import GameSetup from './pages/GameSetup'
 import GroundRules from './pages/GroundRules'
@@ -28,6 +27,12 @@ const AdminPortal = lazy(() => import('./pages/AdminPortal'))
 const TeacherPortal = lazy(() => import('./pages/TeacherPortal'))
 const StudentPortal = lazy(() => import('./pages/StudentPortal'))
 const JoinClass = lazy(() => import('./pages/JoinClass'))
+
+// The landing page carries its own motion libraries (framer-motion, gsap)
+// for its cinematic hero/scroll choreography. Lazy load it too so that
+// weight never lands in the shared entry chunk kids on the offline quiz
+// screens (Training, Gameplay, ...) have to download and parse.
+const Home = lazy(() => import('./pages/Home'))
 
 function LazyFallback() {
   return <div className="py-20 text-center text-xl">Loading…</div>
@@ -83,7 +88,14 @@ function App() {
       <HashRouter>
         <Routes>
           <Route element={<Layout />}>
-            <Route index element={<Home />} />
+            <Route
+              index
+              element={
+                <Suspense fallback={<LazyFallback />}>
+                  <Home />
+                </Suspense>
+              }
+            />
             <Route path="questions" element={<QuestionBank />} />
             <Route path="setup" element={<GameSetup />} />
             <Route path="ground-rules" element={<GroundRules />} />

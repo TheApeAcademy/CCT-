@@ -95,20 +95,16 @@ export default function VillageMap({
               whileHover={reduced ? undefined : { scale: 1.1, rotate: 0, transition: { duration: 0.25 } }}
               whileTap={reduced ? undefined : { scale: 0.92 }}
             >
-              <img
-                src={b.image}
-                alt=""
-                className="w-full object-contain"
-                style={{
-                  filter: isActive
-                    ? `drop-shadow(0 0 16px ${b.accent}) drop-shadow(0 6px 8px rgba(0,0,0,0.35))`
-                    : 'drop-shadow(0 6px 8px rgba(0,0,0,0.35))',
-                }}
-              />
+              <img src={b.image} alt="" className="w-full object-contain" style={{ filter: 'drop-shadow(0 6px 8px rgba(0,0,0,0.35))' }} />
             </motion.button>
             <span
-              className="absolute left-1/2 top-full -translate-x-1/2 whitespace-nowrap rounded-full border border-[var(--lp-hairline-strong)] bg-white px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide text-[var(--lp-heading)] shadow-md sm:text-xs"
-              style={{ marginTop: '2%' }}
+              className="absolute left-1/2 top-full -translate-x-1/2 whitespace-nowrap rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide shadow-md sm:text-xs"
+              style={{
+                marginTop: '2%',
+                border: `1.5px solid ${isActive ? b.accent : 'var(--lp-hairline-strong)'}`,
+                background: isActive ? b.accent : 'white',
+                color: isActive ? 'white' : 'var(--lp-heading)',
+              }}
             >
               {b.label}
             </span>

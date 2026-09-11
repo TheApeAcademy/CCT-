@@ -429,6 +429,11 @@ function ClassDetail({ klass, onBack }: { klass: ClassRow; onBack: () => void })
   )
 }
 
+const WORK_TAB_LABEL: Record<'lectures' | 'assignments', string> = {
+  lectures: 'Sunday School',
+  assignments: 'Assignments',
+}
+
 function ClassWorkTab({ classId }: { classId: string }) {
   const [sub, setSub] = useState<'lectures' | 'assignments'>('lectures')
 
@@ -439,10 +444,10 @@ function ClassWorkTab({ classId }: { classId: string }) {
           <button
             key={t}
             onClick={() => setSub(t)}
-            className={`flex items-center gap-1.5 rounded px-4 py-1.5 text-sm font-bold capitalize transition ${sub === t ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'text-[var(--fg)]/60 hover:text-[var(--fg)]'}`}
+            className={`flex items-center gap-1.5 rounded px-4 py-1.5 text-sm font-bold transition ${sub === t ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'text-[var(--fg)]/60 hover:text-[var(--fg)]'}`}
           >
             {t === 'lectures' ? <BookOpen className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />}
-            {t}
+            {WORK_TAB_LABEL[t]}
           </button>
         ))}
       </div>
@@ -485,7 +490,7 @@ function LecturesManager({ classId }: { classId: string }) {
   return (
     <div className="space-y-4">
       <div className="panel space-y-3 p-5">
-        <p className="eyebrow">New Lecture</p>
+        <p className="eyebrow">New Sunday School Lesson</p>
         <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Title" className={`${inputClass} py-2 text-sm`} />
         <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="What are you teaching this week?" rows={3} className={`${inputClass} text-sm`} />
         <button onClick={create} disabled={creating} className="btn-solid text-sm">
@@ -493,7 +498,7 @@ function LecturesManager({ classId }: { classId: string }) {
         </button>
       </div>
       {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
-      {!loading && lectures.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No lectures yet. Create your first one above.</p>}
+      {!loading && lectures.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No Sunday School lessons yet. Create your first one above.</p>}
       <div className="space-y-2">
         {lectures.map((l) => (
           <div key={l.id} className="panel p-4">

@@ -13,7 +13,11 @@ import {
 } from 'lucide-react'
 import HeroCarousel, { type HeroSlide } from '../components/HeroCarousel'
 import QuizFeatureIntro from '../components/QuizFeatureIntro'
-import DashboardPreview from '../components/DashboardPreview'
+import BibleFeatureIntro from '../components/BibleFeatureIntro'
+import LeaderboardFeatureIntro from '../components/LeaderboardFeatureIntro'
+import AchievementsFeatureIntro from '../components/AchievementsFeatureIntro'
+import EarsForYouFeatureIntro from '../components/EarsForYouFeatureIntro'
+import FloatingArt from '../components/FloatingArt'
 import Reveal, { RevealStagger, RevealItem } from '../components/Reveal'
 import { playClick } from '../lib/sound'
 // A third, deliberately bouncier display face (distinct from the hero's
@@ -65,7 +69,10 @@ export default function Home() {
         <div className="mx-auto max-w-6xl">
           <div className="grid items-center gap-10 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
             <Reveal direction="left">
-              <p className="lp-eyebrow" style={{ ['--card-accent' as string]: 'var(--lp-accent-compete)' }}>
+              <FloatingArt className="w-20 sm:w-24">
+                <img src="/feature-quiz.png" alt="" className="w-full drop-shadow-lg" />
+              </FloatingArt>
+              <p className="lp-eyebrow mt-3" style={{ ['--card-accent' as string]: 'var(--lp-accent-compete)' }}>
                 The Bible Quiz
               </p>
               <h2 className="lp-heading mt-3 text-balance font-display text-3xl font-extrabold leading-[1.05] sm:text-5xl">
@@ -161,8 +168,8 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ---------- once you join: the kids dashboard ---------- */}
-      <div className="lp-band-deep full-bleed px-4 py-16 sm:py-24">
+      {/* ---------- bridge: sets up the dashboard-only features below ---------- */}
+      <div className="lp-band-deep full-bleed px-4 py-14 sm:py-16">
         <div className="mx-auto max-w-6xl">
           <Reveal className="text-center">
             <p className="lp-eyebrow justify-center" style={{ ['--card-accent' as string]: 'var(--lp-accent-leaderboard)' }}>
@@ -172,28 +179,37 @@ export default function Home() {
               A dashboard that&apos;s actually theirs
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed sm:text-lg" style={{ color: 'var(--lp-band-deep-body)' }}>
-              Every kid who joins a class gets their own home base &mdash; here&apos;s what&apos;s waiting inside.
+              Every kid who joins a class gets their own home base. Here&apos;s a look at what&apos;s waiting inside.
             </p>
-          </Reveal>
-          <RevealStagger className="mt-10 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <DashboardPreview />
-          </RevealStagger>
-          <Reveal delay={0.1} className="mt-9 text-center">
-            <Link to="/join" onClick={() => playClick()} className="lp-btn-solid !px-7 !py-3.5 !text-base">
-              Apply as a Kid
-            </Link>
           </Reveal>
         </div>
       </div>
 
-      {/* ---------- how it works ---------- */}
+      {/* ---------- bible: calm, meaningful contrast to the quiz ---------- */}
+      <BibleFeatureIntro />
+
+      {/* ---------- leaderboard: celebratory, high energy ---------- */}
+      <LeaderboardFeatureIntro />
+
+      {/* ---------- achievements: collectible ---------- */}
+      <AchievementsFeatureIntro />
+
+      {/* ---------- ears for you: deliberately the quietest section ---------- */}
+      <EarsForYouFeatureIntro />
+
+      {/* ---------- how it works: your class, your journey ---------- */}
       <div className="lp-band full-bleed px-4 py-16 sm:py-20">
         <div className="mx-auto max-w-6xl">
-          <Reveal>
-            <p className="lp-eyebrow" style={{ ['--card-accent' as string]: 'var(--lp-accent-transition)' }}>
-              How It Works
-            </p>
-            <h2 className="lp-heading mt-1 font-display text-2xl font-extrabold sm:text-3xl">From Sign-Up to Sunday</h2>
+          <Reveal className="flex flex-col items-start gap-6 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="lp-eyebrow" style={{ ['--card-accent' as string]: 'var(--lp-accent-transition)' }}>
+                Your Class, Your People
+              </p>
+              <h2 className="lp-heading mt-1 font-display text-2xl font-extrabold sm:text-3xl">From Sign-Up to Sunday</h2>
+            </div>
+            <FloatingArt className="w-24 shrink-0 sm:w-28">
+              <img src="/feature-class.png" alt="" className="w-full drop-shadow-lg" />
+            </FloatingArt>
           </Reveal>
           <RevealStagger className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
@@ -313,17 +329,21 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ---------- final CTA: apply as a kid or teacher, only here ---------- */}
+      {/* ---------- final CTA: brings the whole ecosystem together ---------- */}
       <div className="stage-glow full-bleed border-t border-[var(--hairline)] px-4 py-16 text-center sm:py-20">
         <Reveal>
-          <p className="eyebrow justify-center">Get Started</p>
-          <h2 className="mt-2 font-display text-3xl font-extrabold text-white sm:text-4xl">Ready to join?</h2>
+          <FloatingArt className="mx-auto w-36 sm:w-44">
+            <img src="/feature-rocket.png" alt="" className="w-full drop-shadow-2xl" />
+          </FloatingArt>
+          <p className="eyebrow mt-2 justify-center">You&apos;ve Seen the World</p>
+          <h2 className="mt-2 font-display text-3xl font-extrabold text-white sm:text-4xl">Now step inside.</h2>
           <p className="mx-auto mt-3 max-w-md text-sm text-[var(--ink-muted)] sm:text-base">
-            Kids join a class in under a minute. Teachers apply and the admin reviews it from the Control Centre.
+            The Quiz, the Bible streak, the leaderboard, achievements, a teacher who listens &mdash; kids join a
+            class in under a minute, and teachers apply straight to the Control Centre.
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
             <Link to="/join" onClick={() => playClick()} className="hero-btn-solid !px-7 !py-3.5 !text-base uppercase">
-              Apply as a Kid
+              Enter the Children&apos;s Platform
             </Link>
             <Link to="/teacher" onClick={() => playClick()} className="hero-btn-outline !px-7 !py-3.5 !text-base uppercase">
               Apply to Teach

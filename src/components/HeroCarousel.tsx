@@ -48,7 +48,7 @@ export default function HeroCarousel({ slides, badge }: { slides: HeroSlide[]; b
 
   return (
     <div
-      className="stage-beams full-bleed relative -mt-6 h-[86vh] min-h-[520px] overflow-hidden border-b border-[var(--hairline)] sm:h-[88vh] sm:min-h-[620px]"
+      className="hero-photo full-bleed relative -mt-6 h-[86vh] min-h-[520px] overflow-hidden border-b border-[var(--hairline)] sm:h-[88vh] sm:min-h-[620px]"
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
       role="region"
@@ -92,14 +92,14 @@ export default function HeroCarousel({ slides, badge }: { slides: HeroSlide[]; b
         <>
           <button
             onClick={() => restart(index - 1)}
-            className="hero-arrow absolute left-4 top-1/2 z-10 hidden -translate-y-1/2 sm:left-8 sm:flex"
+            className="hero-arrow absolute left-4 top-1/2 z-10 hidden -translate-y-1/2 items-center justify-center sm:left-8 sm:flex"
             aria-label="Previous slide"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
           <button
             onClick={() => restart(index + 1)}
-            className="hero-arrow absolute right-4 top-1/2 z-10 hidden -translate-y-1/2 sm:right-8 sm:flex"
+            className="hero-arrow absolute right-4 top-1/2 z-10 hidden -translate-y-1/2 items-center justify-center sm:right-8 sm:flex"
             aria-label="Next slide"
           >
             <ChevronRight className="h-4 w-4" />

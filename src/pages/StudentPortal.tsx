@@ -225,16 +225,16 @@ function HomeTab({
       )}
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <HomeLink to="/training" icon={Dumbbell} title="Practice Bible Quiz" description="Unlimited solo practice, no pressure, no timer." />
-        <HomeLink to="/transition" icon={School} title="Transition Class" description="Get ready for teenage church." />
-        <HomeLink to="/anthem" icon={Music} title="Our Anthem" description="Sing along with the children's ministry anthem." />
-        <div className="panel flex items-start gap-4 p-5 opacity-60">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-[var(--hairline-strong)] text-[var(--gold)]">
+        <HomeLink to="/training" icon={Dumbbell} accent="var(--lp-accent-training)" title="Practice Bible Quiz" description="Unlimited solo practice, no pressure, no timer." />
+        <HomeLink to="/transition" icon={School} accent="var(--lp-accent-class)" title="Transition Class" description="Get ready for teenage church." />
+        <HomeLink to="/anthem" icon={Music} accent="var(--lp-accent-anthem)" title="Our Anthem" description="Sing along with the children's ministry anthem." />
+        <div className="lp-panel lp-panel-accented flex items-start gap-4 p-5 opacity-60" style={{ ['--card-accent' as string]: 'var(--lp-muted)' }}>
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--lp-hairline-strong)] text-[var(--lp-muted)]">
             <Gamepad2 className="h-5 w-5" strokeWidth={1.75} />
           </span>
           <div>
-            <p className="font-display text-lg font-bold">Live Quiz Match</p>
-            <p className="mt-1 text-sm text-[var(--ink-muted)]">Ask your teacher to start a live match on the big screen for your class!</p>
+            <p className="lp-heading font-display text-lg font-bold">Live Quiz Match</p>
+            <p className="mt-1 text-sm text-[var(--lp-muted)]">Ask your teacher to start a live match on the big screen for your class!</p>
           </div>
         </div>
       </div>
@@ -242,15 +242,35 @@ function HomeTab({
   )
 }
 
-function HomeLink({ to, icon: Icon, title, description }: { to: string; icon: typeof Dumbbell; title: string; description: string }) {
+function HomeLink({
+  to,
+  icon: Icon,
+  accent,
+  title,
+  description,
+}: {
+  to: string
+  icon: typeof Dumbbell
+  accent: string
+  title: string
+  description: string
+}) {
   return (
-    <Link to={to} onClick={() => playClick()} className="panel panel-interactive flex items-start gap-4 p-5">
-      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-[var(--hairline-strong)] text-[var(--gold)]">
+    <Link
+      to={to}
+      onClick={() => playClick()}
+      className="lp-panel lp-panel-accented lp-panel-interactive flex items-start gap-4 p-5"
+      style={{ ['--card-accent' as string]: accent }}
+    >
+      <span
+        className="lp-icon-chip flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+        style={{ background: 'color-mix(in srgb, ' + accent + ' 16%, transparent)', color: accent }}
+      >
         <Icon className="h-5 w-5" strokeWidth={1.75} />
       </span>
       <div>
-        <p className="font-display text-lg font-bold">{title}</p>
-        <p className="mt-1 text-sm text-[var(--ink-muted)]">{description}</p>
+        <p className="lp-heading font-display text-lg font-bold">{title}</p>
+        <p className="mt-1 text-sm text-[var(--lp-body)]">{description}</p>
       </div>
     </Link>
   )
@@ -292,7 +312,7 @@ function ClassTab({ klass }: { klass: (ClassRow & { teacher_name: string }) | nu
           <button
             key={t}
             onClick={() => setSub(t)}
-            className={`flex items-center gap-1.5 rounded px-4 py-1.5 text-sm font-bold capitalize transition ${sub === t ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'text-white/60 hover:text-white'}`}
+            className={`flex items-center gap-1.5 rounded px-4 py-1.5 text-sm font-bold capitalize transition ${sub === t ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'text-[var(--ink-muted)] hover:text-[var(--fg)]'}`}
           >
             {t === 'lectures' ? <BookOpen className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />}
             {t}
@@ -311,7 +331,7 @@ function ClassTab({ klass }: { klass: (ClassRow & { teacher_name: string }) | nu
             <div key={l.id} className="panel p-4">
               <p className="font-bold">{l.title}</p>
               {l.description && <p className="mt-1 text-sm text-[var(--ink-muted)]">{l.description}</p>}
-              {l.body && <p className="mt-2 whitespace-pre-wrap text-sm text-white/80">{l.body}</p>}
+              {l.body && <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--ink-muted)]">{l.body}</p>}
             </div>
           ))}
         </div>
@@ -379,7 +399,7 @@ function AssignmentCard({ assignment }: { assignment: AssignmentRow }) {
             submitted?.grade !== null && submitted?.grade !== undefined
               ? 'bg-emerald-500/15 text-emerald-400'
               : submitted
-                ? 'bg-white/10 text-white/60'
+                ? 'bg-[var(--ink-panel)] text-[var(--ink-muted)]'
                 : overdue
                   ? 'bg-red-500/15 text-red-400'
                   : 'bg-[var(--gold)]/15 text-[var(--gold)]'
@@ -391,14 +411,14 @@ function AssignmentCard({ assignment }: { assignment: AssignmentRow }) {
 
       {expanded && loaded && (
         <div className="mt-3 space-y-2">
-          {assignment.instructions && <p className="whitespace-pre-wrap text-sm text-white/80">{assignment.instructions}</p>}
+          {assignment.instructions && <p className="whitespace-pre-wrap text-sm text-[var(--ink-muted)]">{assignment.instructions}</p>}
           {submitted?.grade !== null && submitted?.grade !== undefined ? (
             <div className="rounded-md bg-emerald-500/10 p-3 text-sm">
               <p className="font-bold text-emerald-400">
                 Grade: {submitted.grade}
                 {assignment.max_score ? ` / ${assignment.max_score}` : ''}
               </p>
-              {submitted.feedback && <p className="mt-1 text-white/80">{submitted.feedback}</p>}
+              {submitted.feedback && <p className="mt-1 text-[var(--ink-muted)]">{submitted.feedback}</p>}
             </div>
           ) : (
             <>
@@ -480,7 +500,7 @@ function BibleTab() {
           <p className="eyebrow">{reading.plan_title} &middot; Day {reading.day_number}</p>
           <h2 className="font-display text-2xl font-extrabold">{reading.title}</h2>
           <p className="font-semibold text-[var(--gold)]">{reading.reference}</p>
-          {reading.passage_text && <p className="whitespace-pre-wrap text-sm leading-relaxed text-white/80">{reading.passage_text}</p>}
+          {reading.passage_text && <p className="whitespace-pre-wrap text-sm leading-relaxed text-[var(--ink-muted)]">{reading.passage_text}</p>}
           {completed ? (
             <p className="flex items-center gap-1.5 text-sm font-bold text-emerald-400">
               <Check className="h-4 w-4" /> Read today. Come back tomorrow to keep your streak!
@@ -677,7 +697,7 @@ function MessagesTab({ teacherId, teacherName }: { teacherId: string; teacherNam
       <h3 className="font-display text-lg font-bold">Chat with {teacherName}</h3>
       <div className="panel space-y-2 p-4">
         {messages.map((m) => (
-          <div key={m.id} className={`max-w-[80%] rounded-md px-3 py-2 text-sm ${m.sender_id === myId ? 'ml-auto bg-[var(--gold)]/15 text-right' : 'bg-white/5'}`}>
+          <div key={m.id} className={`max-w-[80%] rounded-md px-3 py-2 text-sm ${m.sender_id === myId ? 'ml-auto bg-[var(--gold)]/15 text-right' : 'bg-[var(--ink-panel)]'}`}>
             {m.body}
           </div>
         ))}
@@ -743,14 +763,14 @@ function EarsTab({ klass }: { klass: (ClassRow & { teacher_name: string }) | nul
         <div className="grid gap-2 sm:grid-cols-2">
           <button
             onClick={() => setAnonymous(true)}
-            className={`rounded-md border p-3 text-left text-sm transition ${anonymous ? 'border-[var(--gold)] bg-[var(--gold)]/10' : 'border-[var(--hairline-strong)] hover:border-white/30'}`}
+            className={`rounded-md border p-3 text-left text-sm transition ${anonymous ? 'border-[var(--gold)] bg-[var(--gold)]/10' : 'border-[var(--hairline-strong)] hover:border-[var(--ink-muted)]'}`}
           >
             <p className="font-bold">Anonymous</p>
             <p className="text-[var(--ink-muted)]">Your teacher won&apos;t know it&apos;s you.</p>
           </button>
           <button
             onClick={() => setAnonymous(false)}
-            className={`rounded-md border p-3 text-left text-sm transition ${!anonymous ? 'border-[var(--gold)] bg-[var(--gold)]/10' : 'border-[var(--hairline-strong)] hover:border-white/30'}`}
+            className={`rounded-md border p-3 text-left text-sm transition ${!anonymous ? 'border-[var(--gold)] bg-[var(--gold)]/10' : 'border-[var(--hairline-strong)] hover:border-[var(--ink-muted)]'}`}
           >
             <p className="font-bold">With My Name</p>
             <p className="text-[var(--ink-muted)]">Your teacher can follow up with you.</p>
@@ -783,7 +803,7 @@ function EarsHistoryItem({ message }: { message: EarsMessageRow }) {
   return (
     <div className="panel p-4">
       <div className="flex items-start justify-between gap-2">
-        <p className="text-sm text-white/80">{message.body}</p>
+        <p className="text-sm text-[var(--ink-muted)]">{message.body}</p>
         <span className="shrink-0 rounded px-2 py-1 text-xs font-bold text-[var(--ink-muted)]">{EARS_STATUS_LABEL[message.status] ?? message.status}</span>
       </div>
       {replies?.map((r) => (

@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, Suspense, lazy } from 'react'
 import { HashRouter, Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout'
 import PortalShell from './components/PortalShell'
+import KidsShell from './components/KidsShell'
 import SplashScreen from './components/SplashScreen'
 import { db, ensureSeedData } from './db/db'
 import { unlockAudio } from './lib/sound'
@@ -135,7 +136,7 @@ function App() {
               }
             />
           </Route>
-          <Route path="student" element={<PortalShell eyebrow="Kids Dashboard" />}>
+          <Route path="student" element={<KidsShell eyebrow="Kids Dashboard" />}>
             <Route
               index
               element={
@@ -145,7 +146,7 @@ function App() {
               }
             />
           </Route>
-          <Route path="join" element={<PortalShell eyebrow="Create Your Account" />}>
+          <Route path="join" element={<KidsShell eyebrow="Create Your Account" />}>
             <Route
               index
               element={

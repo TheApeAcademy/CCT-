@@ -1,42 +1,55 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Check, Copy, KeyRound, Sparkles, User } from 'lucide-react'
+import { ArrowLeft, Check, Copy, KeyRound, Phone, Sparkles, User } from 'lucide-react'
 import { registerStudent, studentSignInByCode } from '../lib/ministry'
 import { playClick, playNav } from '../lib/sound'
 import { haptics } from '../lib/haptics'
+import FloatingArt from '../components/FloatingArt'
+import ColorSprinkles from '../components/ColorSprinkles'
+// Landing page's playful display face for the big student code / step
+// numbers - safe to pull in here since /join is already its own lazy
+// route, never loaded by the offline quiz.
+import '@fontsource/fredoka/700.css'
 
 type Mode = 'new' | 'returning'
 
 const inputClass =
-  'w-full rounded-md border border-[var(--hairline-strong)] bg-transparent px-4 py-3 outline-none focus:border-[var(--gold)]'
+  'w-full rounded-xl border-2 border-[var(--lp-hairline-strong)] bg-[var(--lp-bg)] px-4 py-3 text-[var(--lp-heading)] outline-none transition-colors focus:border-[var(--hero-accent)]'
 
 export default function JoinClass() {
   const [mode, setMode] = useState<Mode>('new')
 
   return (
-    <div className="mx-auto max-w-md space-y-8">
+    <div className="relative mx-auto max-w-md space-y-8">
+      <ColorSprinkles />
       <div className="text-center">
-        <div className="mx-auto w-fit rounded-xl bg-white p-4 shadow-lg shadow-black/30">
-          <img src="/ministry-logo-full.png" alt="MFM Children's Ministry" className="h-24 w-auto sm:h-28" />
-        </div>
-        <p className="eyebrow mt-4">The Ultimate Bible Quiz Adventure</p>
-        <h1 className="mt-1 font-display text-2xl font-extrabold leading-tight sm:text-3xl">
+        <FloatingArt className="mx-auto w-28 sm:w-32">
+          <img src="/children-ministry-logo-splash.png" alt="MFM Children's Ministry" className="w-full drop-shadow-xl" />
+        </FloatingArt>
+        <p className="lp-eyebrow mt-4 justify-center" style={{ ['--card-accent' as string]: 'var(--lp-accent-compete)' }}>
+          The Ultimate Bible Quiz Adventure
+        </p>
+        <h1 className="lp-heading mt-2 font-display text-2xl font-extrabold leading-tight sm:text-3xl">
           Know the Word. Play the Quiz.
           <br />
           Grow in Faith.
         </h1>
       </div>
 
-      <div className="flex gap-1 rounded-md border border-[var(--hairline-strong)] p-1">
+      <div className="flex gap-1 rounded-xl border-2 border-[var(--lp-hairline-strong)] bg-[var(--lp-bg-panel)] p-1">
         <button
           onClick={() => setMode('new')}
-          className={`flex-1 rounded px-4 py-2 text-sm font-bold transition ${mode === 'new' ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'text-white/70 hover:text-white'}`}
+          className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-bold transition ${
+            mode === 'new' ? 'bg-[var(--hero-accent)] text-white shadow-md' : 'text-[var(--lp-muted)] hover:text-[var(--lp-heading)]'
+          }`}
         >
           I&apos;m new here
         </button>
         <button
           onClick={() => setMode('returning')}
-          className={`flex-1 rounded px-4 py-2 text-sm font-bold transition ${mode === 'returning' ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'text-white/70 hover:text-white'}`}
+          className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-bold transition ${
+            mode === 'returning' ? 'bg-[var(--hero-accent)] text-white shadow-md' : 'text-[var(--lp-muted)] hover:text-[var(--lp-heading)]'
+          }`}
         >
           I have a Student Code
         </button>
@@ -44,9 +57,11 @@ export default function JoinClass() {
 
       {mode === 'new' ? <NewStudentFlow /> : <ReturningStudentFlow />}
 
-      <p className="mx-auto max-w-sm text-center text-sm italic text-[var(--ink-muted)]">
+      <p className="mx-auto max-w-sm text-center text-sm italic text-[var(--lp-muted)]">
         &ldquo;Thy word have I hid in mine heart, that I might not sin against thee.&rdquo;
-        <span className="mt-1 block not-italic text-xs font-bold uppercase tracking-wide text-[var(--gold)]">Psalm 119:11</span>
+        <span className="mt-1 block not-italic text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--lp-accent-compete)' }}>
+          Psalm 119:11
+        </span>
       </p>
     </div>
   )
@@ -57,6 +72,15 @@ export default function JoinClass() {
 type Step = 'name' | 'phone' | 'passcode' | 'confirm' | 'generating' | 'code'
 
 const STEP_ORDER: Step[] = ['name', 'phone', 'passcode', 'confirm', 'generating', 'code']
+
+const STEP_ACCENT: Record<Step, string> = {
+  name: 'var(--lp-accent-compete)',
+  phone: 'var(--lp-accent-training)',
+  passcode: 'var(--lp-accent-achievements)',
+  confirm: 'var(--lp-accent-leaderboard)',
+  generating: 'var(--hero-accent)',
+  code: 'var(--lp-accent-class)',
+}
 
 function NewStudentFlow() {
   const navigate = useNavigate()
@@ -106,13 +130,16 @@ function NewStudentFlow() {
   return (
     <div className="animate-page-in space-y-4">
       {step !== 'generating' && (
-        <div className="h-1 w-full overflow-hidden rounded-full bg-white/10">
-          <div className="h-full rounded-full bg-[var(--gold)] transition-all duration-500" style={{ width: `${progress}%` }} />
+        <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--lp-bg-panel)]">
+          <div
+            className="h-full rounded-full transition-all duration-500"
+            style={{ width: `${progress}%`, background: STEP_ACCENT[step] }}
+          />
         </div>
       )}
 
       {step === 'name' && (
-        <StepPanel icon={User} question="What's your name?">
+        <StepPanel icon={User} accent={STEP_ACCENT.name} question="What's your name?">
           <input
             autoFocus
             value={fullName}
@@ -121,13 +148,13 @@ function NewStudentFlow() {
             className={inputClass}
             onKeyDown={(e) => e.key === 'Enter' && fullName.trim().length >= 2 && advance('phone')}
           />
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {error && <p className="text-sm text-red-500">{error}</p>}
           <button
             onClick={() => {
               if (fullName.trim().length < 2) return setError('Please enter your full name.')
               advance('phone')
             }}
-            className="btn-solid w-full py-3 text-base"
+            className="lp-btn-solid w-full py-3 text-base"
           >
             Continue
           </button>
@@ -135,7 +162,7 @@ function NewStudentFlow() {
       )}
 
       {step === 'phone' && (
-        <StepPanel icon={User} question="Parent or guardian's phone number?" hint="Optional — in case we ever need to reach home.">
+        <StepPanel icon={Phone} accent={STEP_ACCENT.phone} question="Parent or guardian's phone number?" hint="Optional — in case we ever need to reach home.">
           <input
             autoFocus
             value={guardianPhone}
@@ -146,18 +173,18 @@ function NewStudentFlow() {
             onKeyDown={(e) => e.key === 'Enter' && advance('passcode')}
           />
           <div className="flex gap-2">
-            <button onClick={() => advance('name')} className="btn-outline px-4 py-3">
+            <button onClick={() => advance('name')} className="lp-btn-outline px-4 py-3">
               <ArrowLeft className="h-4 w-4" />
             </button>
-            <button onClick={() => advance('passcode')} className="btn-solid flex-1 py-3 text-base">
-              {guardianPhone.trim() ? 'Continue' : "Skip for now"}
+            <button onClick={() => advance('passcode')} className="lp-btn-solid flex-1 py-3 text-base">
+              {guardianPhone.trim() ? 'Continue' : 'Skip for now'}
             </button>
           </div>
         </StepPanel>
       )}
 
       {step === 'passcode' && (
-        <StepPanel icon={KeyRound} question="Choose a 4-digit passcode" hint="You'll use this to sign in next time.">
+        <StepPanel icon={KeyRound} accent={STEP_ACCENT.passcode} question="Choose a 4-digit passcode" hint="You'll use this to sign in next time.">
           <input
             autoFocus
             value={passcode}
@@ -168,9 +195,9 @@ function NewStudentFlow() {
             className={`${inputClass} text-center text-2xl tracking-[0.5em]`}
             onKeyDown={(e) => e.key === 'Enter' && passcode.length === 4 && advance('confirm')}
           />
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {error && <p className="text-sm text-red-500">{error}</p>}
           <div className="flex gap-2">
-            <button onClick={() => advance('phone')} className="btn-outline px-4 py-3">
+            <button onClick={() => advance('phone')} className="lp-btn-outline px-4 py-3">
               <ArrowLeft className="h-4 w-4" />
             </button>
             <button
@@ -178,7 +205,7 @@ function NewStudentFlow() {
                 if (passcode.length !== 4) return setError('Your passcode needs to be exactly 4 digits.')
                 advance('confirm')
               }}
-              className="btn-solid flex-1 py-3 text-base"
+              className="lp-btn-solid flex-1 py-3 text-base"
             >
               Continue
             </button>
@@ -187,7 +214,7 @@ function NewStudentFlow() {
       )}
 
       {step === 'confirm' && (
-        <StepPanel icon={KeyRound} question="Type your passcode again" hint="Just to make sure you didn't miss a digit.">
+        <StepPanel icon={KeyRound} accent={STEP_ACCENT.confirm} question="Type your passcode again" hint="Just to make sure you didn't miss a digit.">
           <input
             autoFocus
             value={confirmPasscode}
@@ -198,9 +225,9 @@ function NewStudentFlow() {
             className={`${inputClass} text-center text-2xl tracking-[0.5em]`}
             onKeyDown={(e) => e.key === 'Enter' && confirmPasscode.length === 4 && submit()}
           />
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {error && <p className="text-sm text-red-500">{error}</p>}
           <div className="flex gap-2">
-            <button onClick={() => advance('passcode')} className="btn-outline px-4 py-3">
+            <button onClick={() => advance('passcode')} className="lp-btn-outline px-4 py-3">
               <ArrowLeft className="h-4 w-4" />
             </button>
             <button
@@ -208,7 +235,7 @@ function NewStudentFlow() {
                 if (confirmPasscode !== passcode) return setError("Those don't match. Try again.")
                 submit()
               }}
-              className="btn-solid flex-1 py-3 text-base"
+              className="lp-btn-solid flex-1 py-3 text-base"
             >
               Create My Account
             </button>
@@ -217,23 +244,27 @@ function NewStudentFlow() {
       )}
 
       {step === 'generating' && (
-        <div className="panel flex flex-col items-center gap-3 p-8 text-center">
-          <Sparkles className="h-8 w-8 animate-pulse text-[var(--gold)]" strokeWidth={1.5} />
-          <p className="font-display text-lg font-bold">Almost ready&hellip;</p>
-          <p className="text-sm text-[var(--ink-muted)]">Setting up your space.</p>
+        <div className="lp-panel flex flex-col items-center gap-3 p-8 text-center">
+          <Sparkles className="h-8 w-8 animate-pulse" strokeWidth={1.5} style={{ color: 'var(--hero-accent)' }} />
+          <p className="lp-heading font-display text-lg font-bold">Almost ready&hellip;</p>
+          <p className="text-sm text-[var(--lp-muted)]">Setting up your space.</p>
         </div>
       )}
 
       {step === 'code' && (
         <div className="animate-page-in space-y-4">
-          <div className="panel space-y-3 p-6 text-center">
-            <p className="eyebrow justify-center">Your Student Code</p>
-            <p className="font-display text-4xl font-extrabold tracking-widest text-[var(--gold)]">{studentCode}</p>
-            <button onClick={copyCode} className="btn-outline mx-auto flex items-center gap-1.5 px-4 py-2 text-xs">
+          <div className="lp-panel lp-panel-accented space-y-3 p-6 text-center" style={{ ['--card-accent' as string]: STEP_ACCENT.code }}>
+            <p className="lp-eyebrow justify-center" style={{ ['--card-accent' as string]: STEP_ACCENT.code }}>
+              Your Student Code
+            </p>
+            <p className="font-display text-4xl font-extrabold tracking-widest" style={{ fontFamily: 'Fredoka, var(--font-display)', color: STEP_ACCENT.code }}>
+              {studentCode}
+            </p>
+            <button onClick={copyCode} className="lp-btn-outline mx-auto flex items-center gap-1.5 px-4 py-2 text-xs">
               {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
               {copied ? 'Copied' : 'Copy code'}
             </button>
-            <p className="text-sm text-[var(--ink-muted)]">
+            <p className="text-sm text-[var(--lp-muted)]">
               Keep this safe. You&apos;ll use it, with your passcode, to sign in next time.
             </p>
           </div>
@@ -242,7 +273,7 @@ function NewStudentFlow() {
               playNav()
               navigate('/student')
             }}
-            className="btn-solid w-full py-3 text-base"
+            className="lp-btn-solid w-full py-3 text-base"
           >
             Welcome! Let&apos;s go
           </button>
@@ -254,23 +285,28 @@ function NewStudentFlow() {
 
 function StepPanel({
   icon: Icon,
+  accent,
   question,
   hint,
   children,
 }: {
   icon: typeof User
+  accent: string
   question: string
   hint?: string
   children: React.ReactNode
 }) {
   return (
-    <div className="panel space-y-3 p-6">
-      <span className="flex h-9 w-9 items-center justify-center rounded-md border border-[var(--hairline-strong)] text-[var(--gold)]">
-        <Icon className="h-4.5 w-4.5" strokeWidth={1.75} />
+    <div className="lp-panel lp-panel-accented space-y-3 p-6" style={{ ['--card-accent' as string]: accent }}>
+      <span
+        className="lp-icon-chip flex h-10 w-10 items-center justify-center rounded-xl"
+        style={{ ['--card-accent' as string]: accent, background: 'color-mix(in srgb, ' + accent + ' 16%, transparent)' }}
+      >
+        <Icon className="h-5 w-5" strokeWidth={1.75} style={{ color: accent }} />
       </span>
       <div>
-        <p className="font-display text-lg font-bold">{question}</p>
-        {hint && <p className="text-sm text-[var(--ink-muted)]">{hint}</p>}
+        <p className="lp-heading font-display text-lg font-bold">{question}</p>
+        {hint && <p className="text-sm text-[var(--lp-muted)]">{hint}</p>}
       </div>
       {children}
     </div>
@@ -305,15 +341,15 @@ function ReturningStudentFlow() {
   }
 
   return (
-    <div className="panel space-y-3 p-6">
-      <label className="block text-sm font-bold text-white/80">Your Student Code</label>
+    <div className="lp-panel lp-panel-accented space-y-3 p-6" style={{ ['--card-accent' as string]: 'var(--hero-accent)' }}>
+      <label className="block text-sm font-bold text-[var(--lp-heading)]">Your Student Code</label>
       <input
         value={studentCode}
         onChange={(e) => setStudentCode(e.target.value.toUpperCase())}
         placeholder="MFM4827"
         className={`${inputClass} text-center text-xl font-bold tracking-widest`}
       />
-      <label className="block text-sm font-bold text-white/80">Your passcode</label>
+      <label className="block text-sm font-bold text-[var(--lp-heading)]">Your passcode</label>
       <input
         value={passcode}
         onChange={(e) => setPasscode(e.target.value.replace(/\D/g, '').slice(0, 4))}
@@ -323,8 +359,8 @@ function ReturningStudentFlow() {
         className={`${inputClass} text-center text-2xl tracking-[0.5em]`}
         onKeyDown={(e) => e.key === 'Enter' && submit()}
       />
-      {error && <p className="text-sm text-red-400">{error}</p>}
-      <button onClick={submit} disabled={submitting} className="btn-solid w-full py-3 text-base">
+      {error && <p className="text-sm text-red-500">{error}</p>}
+      <button onClick={submit} disabled={submitting} className="lp-btn-solid w-full py-3 text-base">
         {submitting ? 'Signing in…' : 'Sign In'}
       </button>
     </div>

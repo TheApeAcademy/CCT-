@@ -29,7 +29,7 @@ export default function TabBar<T extends string>({
               playClick()
             }}
             className={`flex items-center gap-1.5 border-b-2 px-3.5 py-2.5 text-sm font-bold transition ${
-              active ? 'border-[var(--gold)] text-[var(--gold)]' : 'border-transparent text-white/60 hover:text-white'
+              active ? 'border-[var(--gold)] text-[var(--gold)]' : 'border-transparent text-[var(--ink-muted)] hover:text-[var(--fg)]'
             }`}
           >
             {Icon && <Icon className="h-4 w-4" strokeWidth={1.75} />}

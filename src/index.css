@@ -40,12 +40,38 @@
   --ink-faint: rgba(237, 233, 246, 0.4);
   --gold: #e8b923;
   --gold-ink: #1b1030;
+  /* Primary text colour for the shared chrome system - defaults to white
+     (the app's implicit colour up to now, via PortalShell's text-white),
+     given a name so .kids-theme below can flip it without redefining
+     every component that used to assume white. */
+  --fg: #ffffff;
 
   /* Purple accent matching mountainoffire.org's own carousel + nav CTAs -
      scoped to .hero- and .nav-cta- classes only; the rest of the app keeps
      its plain gold accent untouched. */
   --hero-accent: #9c2bb0;
   --hero-accent-hover: #b136c7;
+}
+
+/* Re-themes the shared "site chrome" design system (.panel, .btn-solid,
+   .btn-outline, .eyebrow, .stat-strip, TabBar's CSS vars) to the landing
+   page's light, colourful language, wherever it's nested inside the kids
+   sign-up/dashboard experience - without touching the same classes'
+   dark-theme values used everywhere else (offline quiz screens, Admin,
+   Teacher). Pairs with data-landing-theme="light" on the same element so
+   --lp-* tokens/classes are also available for bespoke playful touches. */
+.kids-theme {
+  color-scheme: light;
+  --ink: #ffffff;
+  --ink-raised: #faf8ff;
+  --ink-panel: #f4f0fb;
+  --hairline: rgba(42, 27, 71, 0.1);
+  --hairline-strong: rgba(42, 27, 71, 0.18);
+  --ink-muted: rgba(28, 16, 48, 0.62);
+  --ink-faint: rgba(28, 16, 48, 0.42);
+  --gold: #9c2bb0;
+  --gold-ink: #ffffff;
+  --fg: #1c1030;
 }
 
 html, body, #root {
@@ -379,7 +405,7 @@ button:active, a:active {
   justify-content: center;
   gap: 0.5rem;
   background: transparent;
-  color: #fff;
+  color: var(--fg);
   font-weight: 700;
   border-radius: 6px;
   border: 1px solid var(--hairline-strong);
@@ -431,7 +457,7 @@ button:active, a:active {
   font-family: var(--font-display);
   font-size: 1.6rem;
   font-weight: 800;
-  color: #fff;
+  color: var(--fg);
   line-height: 1.1;
 }
 .stat-cell-label {

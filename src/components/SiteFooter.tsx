@@ -19,7 +19,6 @@ const columns = [
     links: [
       { to: '/setup', label: 'New Match' },
       { to: '/training', label: 'Training Mode' },
-      { to: '/transition', label: 'Transition Class' },
       { to: '/seasons', label: 'Seasons' },
     ],
   },

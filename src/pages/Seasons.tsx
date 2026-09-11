@@ -39,39 +39,37 @@ export default function Seasons() {
   })
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div data-landing-theme="light" className="site-light-theme lp-page full-bleed px-4 py-6">
+      <div className="mx-auto max-w-2xl space-y-6">
       <div>
         <h1 className="font-display text-3xl font-extrabold">🗓️ Seasons</h1>
-        <p className="mt-1 text-sm text-white/60">
+        <p className="mt-1 text-sm text-[var(--ink-muted)]">
           Run the Bible quiz in seasons, e.g. "Season 1: Junior Church 2026". Question sets and matches are tagged
           with whichever season is active when they're created, so History and results can be grouped by season.
         </p>
       </div>
 
-      <div className="space-y-3 rounded-2xl border border-white/5 bg-white/5 p-5 shadow-lg shadow-black/20">
-        {seasons.length === 0 && <p className="text-sm text-white/50">Setting up your first season…</p>}
+      <div className="panel space-y-3 p-5">
+        {seasons.length === 0 && <p className="text-sm text-[var(--ink-faint)]">Setting up your first season…</p>}
         {seasons.map((season) => {
           const counts = countsFor(season.id)
           return (
             <div
               key={season.id}
               className={`flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 transition ${
-                season.isActive ? 'bg-amber-400/15 ring-1 ring-amber-400/40' : 'bg-black/20'
+                season.isActive ? 'bg-[var(--gold)]/15 ring-1 ring-[var(--gold)]/40' : 'bg-[var(--ink-raised)]'
               }`}
             >
               <div>
                 <p className="font-display text-lg font-bold">
-                  {season.name} {season.isActive && <span className="ml-1 text-xs font-semibold text-amber-300">● ACTIVE</span>}
+                  {season.name} {season.isActive && <span className="ml-1 text-xs font-semibold text-[var(--gold)]">● ACTIVE</span>}
                 </p>
-                <p className="text-xs text-white/50">
+                <p className="text-xs text-[var(--ink-faint)]">
                   {counts.sets} question set{counts.sets === 1 ? '' : 's'} · {counts.matches} match{counts.matches === 1 ? '' : 'es'}
                 </p>
               </div>
               {!season.isActive && (
-                <button
-                  onClick={() => handleActivate(season.id!)}
-                  className="rounded-lg bg-white/10 px-4 py-2 text-sm font-semibold transition hover:scale-105 hover:bg-white/20"
-                >
+                <button onClick={() => handleActivate(season.id!)} className="btn-outline px-4 py-2 text-sm">
                   Make active
                 </button>
               )}
@@ -81,20 +79,20 @@ export default function Seasons() {
       </div>
 
       {creating ? (
-        <div className="space-y-2 rounded-2xl border border-white/5 bg-white/5 p-5">
+        <div className="panel space-y-2 p-5">
           <input
             autoFocus
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             placeholder='e.g. "Season 2: Summer 2026"'
-            className="w-full rounded-lg bg-white/10 px-4 py-3 outline-none focus:ring-2 focus:ring-amber-400"
+            className="w-full rounded-md border border-[var(--hairline-strong)] bg-transparent px-4 py-3 outline-none focus:border-[var(--gold)]"
             onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
           />
           <div className="flex gap-2">
-            <button onClick={handleCreate} className="flex-1 rounded-lg bg-amber-400 py-2 font-semibold text-purple-950">
-              Create & make active
+            <button onClick={handleCreate} className="btn-solid flex-1 py-2">
+              Create &amp; make active
             </button>
-            <button onClick={() => setCreating(false)} className="flex-1 rounded-lg bg-white/10 py-2">
+            <button onClick={() => setCreating(false)} className="btn-outline flex-1 py-2">
               Cancel
             </button>
           </div>
@@ -102,11 +100,12 @@ export default function Seasons() {
       ) : (
         <button
           onClick={() => setCreating(true)}
-          className="w-full rounded-2xl border border-dashed border-white/30 py-3 text-sm text-white/70 transition hover:scale-[1.01] hover:bg-white/5"
+          className="w-full rounded-2xl border border-dashed border-[var(--hairline-strong)] py-3 text-sm text-[var(--ink-muted)] transition hover:scale-[1.01] hover:bg-[var(--ink-panel)]"
         >
           + Start a new season
         </button>
       )}
+      </div>
     </div>
   )
 }

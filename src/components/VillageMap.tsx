@@ -19,11 +19,11 @@ interface Building {
 // Coordinates are hand-matched to the clearings on /kids-village-map.jpg -
 // the mirror & flower nook, the round stone dais, the birdbath, the open
 // oval lawn, the vegetable bed, the fenced flower garden by the gate, and
-// the mailbox at the foot of the path. Leaderboard and Profile don't have a
-// matching illustration yet, so they still fall back to a plain icon pin.
+// the mailbox at the foot of the path.
 const BUILDINGS: Building[] = [
-  { id: 'profile', label: 'My Card', icon: IdCard, accent: 'var(--lp-accent-achievements)', x: 15, y: 9 },
-  { id: 'leaderboard', label: 'Leaderboard', icon: Trophy, accent: 'var(--lp-accent-leaderboard)', x: 72, y: 26 },
+  { id: 'profile', label: 'My Card', icon: IdCard, accent: 'var(--lp-accent-achievements)', x: 15, y: 9, image: '/village/profile-card.png' },
+  // Reuses the same trophy art as the landing page's Leaderboard section for a consistent identity.
+  { id: 'leaderboard', label: 'Leaderboard', icon: Trophy, accent: 'var(--lp-accent-leaderboard)', x: 72, y: 26, image: '/feature-leaderboard.png' },
   { id: 'ears', label: 'Ears for You', icon: HeartHandshake, accent: 'var(--lp-accent-ears)', x: 27, y: 52, image: '/village/ears-hearttree.png' },
   { id: 'bible', label: 'Bible', icon: BookOpen, accent: 'var(--lp-accent-bible)', x: 42, y: 73, image: '/village/bible-church.png' },
   { id: 'class', label: 'My Class', icon: School, accent: 'var(--lp-accent-class)', x: 18, y: 65, image: '/village/class-backpack.png' },

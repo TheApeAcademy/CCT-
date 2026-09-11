@@ -5,6 +5,7 @@ const tiles = [
   {
     key: 'bible',
     icon: Flame,
+    iconImage: null as string | null,
     accent: 'var(--lp-accent-bible)',
     title: 'Bible & Streak',
     body: "A short daily reading with a streak that keeps count — come back tomorrow and it grows.",
@@ -23,6 +24,7 @@ const tiles = [
   {
     key: 'leaderboard',
     icon: Trophy,
+    iconImage: '/trophy-leaderboard.jpg' as string | null,
     accent: 'var(--lp-accent-leaderboard)',
     title: 'Leaderboard',
     body: 'Every quiz point counts toward a real class ranking — see exactly where you stand.',
@@ -54,6 +56,7 @@ const tiles = [
   {
     key: 'achievements',
     icon: Award,
+    iconImage: null as string | null,
     accent: 'var(--lp-accent-achievements)',
     title: 'Achievements',
     body: 'Badges for streaks, match wins, and milestones — collected right on your profile.',
@@ -77,6 +80,7 @@ const tiles = [
   {
     key: 'ears',
     icon: MessageCircle,
+    iconImage: null as string | null,
     accent: 'var(--lp-accent-ears)',
     title: 'Ears For You',
     body: 'A safe, private line to your class teacher — for whenever you need to talk.',
@@ -102,8 +106,12 @@ export default function DashboardPreview() {
       {tiles.map((tile) => (
         <RevealItem key={tile.key}>
           <div className="lp-panel h-full p-5" style={{ ['--card-accent' as string]: tile.accent }}>
-            <span className="lp-icon-chip">
-              <tile.icon className="h-5 w-5" strokeWidth={1.75} />
+            <span className="lp-icon-chip overflow-hidden">
+              {tile.iconImage ? (
+                <img src={tile.iconImage} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <tile.icon className="h-5 w-5" strokeWidth={1.75} />
+              )}
             </span>
             <p className="lp-heading mt-3 font-display text-base font-bold">{tile.title}</p>
             <p className="mt-1 text-sm leading-relaxed text-[var(--lp-muted)]">{tile.body}</p>

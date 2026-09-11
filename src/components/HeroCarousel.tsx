@@ -3,11 +3,18 @@ import { Link } from 'react-router-dom'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { gsap } from 'gsap'
 import { playClick, playNav } from '../lib/sound'
+// Matches the reference site's hero headline typeface (a clean geometric
+// grotesk) - scoped to this component's own chunk (Home is lazy-loaded) so
+// the offline quiz routes never download it, same reasoning as main.tsx's
+// Baloo 2 / Nunito imports for the rest of the app.
+import '@fontsource/poppins/800.css'
+import '@fontsource/poppins/900.css'
 
 export interface HeroSlide {
   eyebrow: string
   title: string
   body: string
+  image: string
   primaryCta: { label: string; to: string }
   secondaryCta?: { label: string; to: string }
   quote?: { text: string; source: string }
@@ -88,7 +95,7 @@ export default function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
 
   return (
     <div
-      className="hero-photo full-bleed relative h-[100vh] min-h-[640px] overflow-hidden sm:h-[100vh]"
+      className="full-bleed relative h-[100vh] min-h-[640px] overflow-hidden sm:h-[100vh]"
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
       role="region"
@@ -96,42 +103,47 @@ export default function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
       aria-label="Featured"
     >
       {slides.map((slide, i) => (
-        <div key={i} className={`hero-slide ${i === index ? 'is-active' : ''}`} aria-hidden={i !== index}>
+        <div
+          key={i}
+          className={`hero-slide ${i === index ? 'is-active' : ''}`}
+          style={{ ['--hero-slide-image' as string]: `url(${slide.image})` }}
+          aria-hidden={i !== index}
+        >
           <div
             ref={(el) => {
               contentRefs.current[i] = el
             }}
-            className="flex h-full flex-col items-center justify-center px-4 pb-16 pt-24 text-center sm:pt-28"
+            className="relative z-10 flex h-full flex-col items-center justify-center px-4 pb-16 pt-24 text-center sm:pt-28"
           >
             <p data-hero-el="eyebrow" className="eyebrow text-xs sm:text-sm">
               {slide.eyebrow}
             </p>
-            <span data-hero-el="accent" className="mt-3 h-[3px] w-14 origin-center rounded-full bg-[var(--gold)]" />
+            <span data-hero-el="accent" className="hero-accent-bar mt-3 h-[3px] w-14 origin-center rounded-full" />
             <h1
               data-hero-el="title"
-              className="mt-5 max-w-5xl text-balance font-display text-5xl font-extrabold uppercase leading-[0.98] tracking-tight text-white sm:text-7xl lg:text-8xl"
+              className="hero-title-font mt-5 max-w-5xl text-balance text-4xl font-extrabold uppercase leading-[1.05] tracking-tight text-white sm:text-6xl lg:text-7xl"
             >
               {slide.title}
             </h1>
-            <p data-hero-el="body" className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-[var(--ink-muted)] sm:text-lg">
+            <p data-hero-el="body" className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-white/70 sm:text-lg">
               {slide.body}
             </p>
 
             {slide.quote && (
-              <p data-hero-el="quote" className="mx-auto mt-6 max-w-xl text-base italic text-white/75 sm:text-lg">
+              <p data-hero-el="quote" className="mx-auto mt-6 max-w-xl text-base italic leading-relaxed text-white/90 sm:text-lg">
                 &ldquo;{slide.quote.text}&rdquo;
-                <span className="mt-2 block not-italic text-xs font-bold uppercase tracking-wide text-[var(--gold)]">
+                <span className="mt-2 block text-sm italic text-white/60 sm:text-base">
                   &mdash; {slide.quote.source}
                 </span>
               </p>
             )}
 
             <div data-hero-el="cta" className="mt-9 flex flex-wrap items-center justify-center gap-3">
-              <Link to={slide.primaryCta.to} onClick={() => playClick()} className="btn-solid !px-7 !py-3.5 !text-base">
+              <Link to={slide.primaryCta.to} onClick={() => playClick()} className="hero-btn-solid !px-7 !py-3.5 !text-base uppercase">
                 {slide.primaryCta.label}
               </Link>
               {slide.secondaryCta && (
-                <Link to={slide.secondaryCta.to} onClick={() => playClick()} className="btn-outline !px-7 !py-3.5 !text-base">
+                <Link to={slide.secondaryCta.to} onClick={() => playClick()} className="hero-btn-outline !px-7 !py-3.5 !text-base uppercase">
                   {slide.secondaryCta.label}
                 </Link>
               )}
@@ -144,17 +156,17 @@ export default function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
         <>
           <button
             onClick={() => restart(index - 1)}
-            className="hero-arrow absolute left-4 top-1/2 z-10 hidden -translate-y-1/2 items-center justify-center sm:left-8 sm:flex"
+            className="hero-arrow absolute left-2 top-1/2 z-10 hidden -translate-y-1/2 items-center justify-center p-3 sm:left-4 sm:flex"
             aria-label="Previous slide"
           >
-            <ChevronLeft className="h-4 w-4" />
+            <ChevronLeft className="h-7 w-7" strokeWidth={1.75} />
           </button>
           <button
             onClick={() => restart(index + 1)}
-            className="hero-arrow absolute right-4 top-1/2 z-10 hidden -translate-y-1/2 items-center justify-center sm:right-8 sm:flex"
+            className="hero-arrow absolute right-2 top-1/2 z-10 hidden -translate-y-1/2 items-center justify-center p-3 sm:right-4 sm:flex"
             aria-label="Next slide"
           >
-            <ChevronRight className="h-4 w-4" />
+            <ChevronRight className="h-7 w-7" strokeWidth={1.75} />
           </button>
           <div className="absolute bottom-8 left-1/2 z-10 flex -translate-x-1/2 gap-2">
             {slides.map((_, i) => (

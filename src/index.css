@@ -40,6 +40,11 @@
   --ink-faint: rgba(237, 233, 246, 0.4);
   --gold: #e8b923;
   --gold-ink: #1b1030;
+
+  /* Hero-only accent, matching mountainoffire.org's carousel styling -
+     scoped to .hero-* classes, never used outside HeroCarousel. */
+  --hero-accent: #7a2bd1;
+  --hero-accent-hover: #8f3ee6;
 }
 
 html, body, #root {
@@ -475,19 +480,6 @@ button:active, a:active {
     linear-gradient(180deg, #221537 0%, #170c29 50%, #0e0619 100%);
 }
 
-/* Real hero photography + a purple/ink gradient overlay for text contrast,
-   the same treatment mountainoffire.org uses. Replaces .stage-beams on the
-   hero now that a real photo exists; .stage-beams itself stays defined in
-   case a future section needs the placeholder-gradient look again. */
-.hero-photo {
-  background-image:
-    linear-gradient(180deg, rgba(14, 6, 25, 0.86) 0%, rgba(23, 12, 41, 0.68) 30%, rgba(23, 12, 41, 0.74) 70%, rgba(14, 6, 25, 0.92) 100%),
-    url('/hero-kids.jpg');
-  background-size: cover;
-  background-position: center 38%;
-  background-repeat: no-repeat;
-}
-
 /* Same purple/gold family as .stage-beams, but for short full-bleed bands
    (not the viewport-tall hero) - the hero's conic-gradient wedges stretch
    into a harsh, broken-looking diagonal slice at low box heights, so short
@@ -499,6 +491,9 @@ button:active, a:active {
     linear-gradient(180deg, #221537 0%, #170c29 50%, #0e0619 100%);
 }
 
+/* Each slide carries its own photo now (was one shared background for every
+   slide) - background-size/position/repeat stay centralized here, only the
+   url() itself comes in per-slide via inline style (--hero-slide-image). */
 .hero-slide {
   position: absolute;
   inset: 0;
@@ -506,11 +501,27 @@ button:active, a:active {
   transform: scale(1.03);
   transition: opacity 0.7s ease, transform 7s ease;
   pointer-events: none;
+  background-image: var(--hero-slide-image);
+  background-size: cover;
+  background-position: center 38%;
+  background-repeat: no-repeat;
 }
 .hero-slide.is-active {
   opacity: 1;
   transform: scale(1);
   pointer-events: auto;
+}
+/* Purple/ink gradient overlay for text contrast, same treatment on every
+   slide regardless of its photo - sits between the photo (z-index auto,
+   painted by background-image above) and the slide's own content, via
+   pseudo-element rather than a shared sibling so each slide keeps it during
+   the opacity crossfade. */
+.hero-slide::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(180deg, rgba(14, 6, 25, 0.86) 0%, rgba(23, 12, 41, 0.68) 30%, rgba(23, 12, 41, 0.74) 70%, rgba(14, 6, 25, 0.92) 100%);
+  pointer-events: none;
 }
 
 .hero-dot {
@@ -521,27 +532,70 @@ button:active, a:active {
   transition: background-color 0.2s ease, width 0.2s ease;
 }
 .hero-dot.is-active {
-  background: var(--gold);
+  background: #fff;
   width: 34px;
 }
 
 /* display/alignment deliberately left to Tailwind utilities in the JSX
    (hidden sm:flex items-center justify-center) rather than set here - a
    plain custom rule after Tailwind's @import wins cascade ties by source
-   order and silently defeats the responsive "hidden" utility otherwise. */
+   order and silently defeats the responsive "hidden" utility otherwise.
+   Plain chevrons, no circle/blur backing - matches the reference site's
+   minimal arrow treatment. */
 .hero-arrow {
-  width: 38px;
-  height: 38px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  background: rgba(18, 10, 31, 0.45);
-  color: #fff;
-  backdrop-filter: blur(6px);
-  transition: border-color 0.15s ease, background-color 0.15s ease;
+  color: rgba(255, 255, 255, 0.85);
+  transition: color 0.15s ease, transform 0.15s ease;
 }
 .hero-arrow:hover {
-  border-color: var(--gold);
-  background: rgba(18, 10, 31, 0.7);
+  color: #fff;
+  transform: scale(1.12);
+}
+
+/* Hero-only accent + typeface, scoped to HeroCarousel so the rest of the
+   app keeps its plain gold/Baloo 2 identity untouched - this is a
+   deliberate one-off match of mountainoffire.org's own hero styling. */
+.hero-title-font {
+  font-family: 'Poppins', var(--font-body);
+}
+.hero-accent-bar {
+  background: var(--hero-accent);
+}
+.hero-btn-solid {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: var(--hero-accent);
+  color: #fff;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  border-radius: 8px;
+  padding: 0.7rem 1.35rem;
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+.hero-btn-solid:hover {
+  background: var(--hero-accent-hover);
+}
+.hero-btn-solid:active {
+  transform: scale(0.97);
+}
+.hero-btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: transparent;
+  color: #fff;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  border-radius: 8px;
+  border: 1.5px solid rgba(255, 255, 255, 0.75);
+  padding: 0.68rem 1.3rem;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.hero-btn-outline:hover {
+  border-color: #fff;
+  background: rgba(255, 255, 255, 0.08);
 }
 
 /* ==================== landing page theme (scoped) ====================

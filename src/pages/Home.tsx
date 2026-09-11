@@ -29,6 +29,7 @@ const slides: HeroSlide[] = [
     primaryCta: { label: 'Apply as a Kid', to: '/join' },
     secondaryCta: { label: 'Apply to Teach', to: '/teacher' },
     quote: { text: 'But upon mount Zion shall be deliverance, and there shall be holiness', source: 'Obadiah 1:17' },
+    image: '/hero-kids.jpg',
   },
   {
     eyebrow: 'A Children’s Ministry Feature',
@@ -36,13 +37,23 @@ const slides: HeroSlide[] = [
     body: 'Live trivia on the shared screen, team lifelines, seasons and a leaderboard that means something — every question is a chance to know Scripture a little better.',
     primaryCta: { label: 'Host a Match', to: '/setup' },
     secondaryCta: { label: 'Practice Mode', to: '/training' },
+    image: '/hero-quiz.jpg',
   },
   {
     eyebrow: 'Every Child, Every Day',
-    title: 'A dashboard built for them',
-    body: 'A Bible streak, a leaderboard rank, achievement badges, and a private line to their own teacher — the whole dashboard unlocks the moment a kid joins a class.',
+    title: 'Nourish Your Soul. Read Daily.',
+    body: 'A short Bible reading and a streak that keeps count — come back tomorrow and it grows, right there on your own dashboard.',
     primaryCta: { label: 'Apply as a Kid', to: '/join' },
     quote: { text: 'Thy word have I hid in mine heart, that I might not sin against thee', source: 'Psalm 119:11' },
+    image: '/hero-bible.jpg',
+  },
+  {
+    eyebrow: 'Meet the Team',
+    title: 'Our Sunday School Teachers',
+    body: 'Real classrooms, real teachers — approved by the ministry and ready to walk with your child through the Word, every single week.',
+    primaryCta: { label: 'Apply to Teach', to: '/teacher' },
+    secondaryCta: { label: 'Apply as a Kid', to: '/join' },
+    image: '/hero-teachers.jpg',
   },
 ]
 
@@ -244,7 +255,7 @@ export default function Home() {
       </div>
 
       {/* ---------- MFM Wuye branch ---------- */}
-      <InstitutionalBand id="wuye" eyebrow="Our Branch" title="MFM Wuye">
+      <InstitutionalBand id="wuye" eyebrow="Our Branch" title="MFM Wuye" image="/mfm-wuye-building.jpg" imageAlt="MFM Wuye branch building">
         <p className="text-[15px] leading-relaxed text-[var(--lp-body)] sm:text-base">
           MFM Wuye is a branch of Mountain of Fire and Miracles Ministries, carrying the same call to prayer,
           holiness, and deliverance to its community. Full branch details, service times, and photos are being
@@ -253,12 +264,27 @@ export default function Home() {
       </InstitutionalBand>
 
       {/* ---------- SRO ---------- */}
-      <InstitutionalBand id="leadership" eyebrow="Leadership" title="Pastor Edwin Etomi" deep imageFirst>
+      <InstitutionalBand
+        id="leadership"
+        eyebrow="Leadership"
+        title="Pastor Edwin Etomi"
+        deep
+        imageFirst
+        image="/pastor-edwin-etomi.jpg"
+        imageAlt="Pastor Edwin Etomi"
+      >
         <p className="lp-eyebrow !mt-0">Senior Regional Overseer, MFM International Headquarters Annex, Wuye</p>
       </InstitutionalBand>
 
       {/* ---------- Children's Ministry ---------- */}
-      <InstitutionalBand id="ministry" eyebrow="This Platform" title="The Children's Ministry" alt>
+      <InstitutionalBand
+        id="ministry"
+        eyebrow="This Platform"
+        title="The Children's Ministry"
+        alt
+        image="/children-pastor.jpg"
+        imageAlt="Head of the Children's Department"
+      >
         <p className="lp-eyebrow !mt-0">Head of Children&apos;s Department &mdash; Olusanu Olukunle</p>
         <p className="mt-3 text-[15px] leading-relaxed text-[var(--lp-body)] sm:text-base">
           This platform exists to serve the Children&apos;s Ministry directly &mdash; giving teachers real
@@ -322,6 +348,8 @@ function InstitutionalBand({
   alt,
   deep,
   imageFirst,
+  image,
+  imageAlt,
 }: {
   id?: string
   eyebrow: string
@@ -330,6 +358,8 @@ function InstitutionalBand({
   alt?: boolean
   deep?: boolean
   imageFirst?: boolean
+  image?: string
+  imageAlt?: string
 }) {
   return (
     <div
@@ -339,7 +369,11 @@ function InstitutionalBand({
       <div className="mx-auto max-w-6xl">
         <div className={`grid items-center gap-8 sm:grid-cols-[1fr_1.2fr] sm:gap-12 ${imageFirst ? '' : 'sm:[&>*:first-child]:order-2'}`}>
           <Reveal direction={imageFirst ? 'left' : 'right'}>
-            <div className="crest-badge aspect-[4/3] w-full" />
+            {image ? (
+              <img src={image} alt={imageAlt ?? ''} className="aspect-[4/3] w-full rounded-2xl border border-[var(--lp-hairline-strong)] object-cover shadow-[var(--lp-shadow-card)]" />
+            ) : (
+              <div className="crest-badge aspect-[4/3] w-full" />
+            )}
           </Reveal>
           <Reveal direction={imageFirst ? 'right' : 'left'} delay={0.08}>
             <p className="lp-eyebrow">{eyebrow}</p>

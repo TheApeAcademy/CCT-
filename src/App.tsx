@@ -16,10 +16,6 @@ import History from './pages/History'
 import Seasons from './pages/Seasons'
 import Anthem from './pages/Anthem'
 import Training from './pages/Training'
-import TransitionClass from './pages/TransitionClass'
-import TransitionLectureDetail from './pages/TransitionLectureDetail'
-import TransitionCheckpoint from './pages/TransitionCheckpoint'
-import MockExam from './pages/MockExam'
 
 // These are the only screens that need the network (Supabase accounts,
 // classes, messaging). Lazy load them so the @supabase/supabase-js bundle
@@ -107,10 +103,6 @@ function App() {
             <Route path="seasons" element={<Seasons />} />
             <Route path="anthem" element={<Anthem />} />
             <Route path="training" element={<Training />} />
-            <Route path="transition" element={<TransitionClass />} />
-            <Route path="transition/lecture/:id" element={<TransitionLectureDetail />} />
-            <Route path="transition/lecture/:id/checkpoint" element={<TransitionCheckpoint />} />
-            <Route path="transition/mock-exam" element={<MockExam />} />
           </Route>
 
           {/* Admin, Teacher, and Kids are deliberately NOT nested under the

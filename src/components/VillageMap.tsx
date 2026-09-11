@@ -32,7 +32,7 @@ const BUILDINGS: Building[] = [
   { id: 'class', label: 'My Class', image: '/village/class-house1.png', x: 34, y: 18, width: 30, heightPct: 16.8, tilt: -4, accent: 'var(--lp-accent-class)' },
   { id: 'leaderboard', label: 'Leaderboard', image: '/feature-leaderboard.png', x: 77, y: 87, width: 16, heightPct: 11.5, tilt: 5, accent: 'var(--lp-accent-leaderboard)' },
   { id: 'profile', label: 'My Card', image: '/village/profile-card.png', x: 38, y: 48, width: 16, heightPct: 9.1, tilt: -6, accent: 'var(--lp-accent-achievements)' },
-  { id: 'bible', label: 'Bible', image: '/village/bible-book.png', x: 81, y: 59, width: 22, heightPct: 13.0, tilt: 3, accent: 'var(--lp-accent-bible)' },
+  { id: 'bible', label: 'Sunday School', image: '/village/bible-book.png', x: 81, y: 59, width: 22, heightPct: 13.0, tilt: 3, accent: 'var(--lp-accent-bible)' },
   { id: 'home', label: 'My House', image: '/village/home-brickbuilding.png', x: 33, y: 79, width: 42, heightPct: 21.3, tilt: 2, accent: 'var(--hero-accent)' },
   { id: 'ears', label: 'Ears for You', image: '/village/ears-hearttree.png', x: 17, y: 20, width: 13, heightPct: 8.0, tilt: -5, accent: 'var(--lp-accent-ears)' },
   { id: 'game', label: 'Games', image: '/village/game-rocket.png', x: 73, y: 31, width: 16, heightPct: 8.7, tilt: -5, accent: 'var(--lp-accent-compete)' },

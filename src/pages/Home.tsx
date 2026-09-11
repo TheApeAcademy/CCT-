@@ -5,7 +5,6 @@ import {
   BookOpen,
   Trophy,
   Music,
-  School,
   CalendarRange,
   Mail,
   ArrowRight,
@@ -117,20 +116,13 @@ export default function Home() {
             </p>
             <h2 className="lp-heading mt-1 font-display text-2xl font-extrabold sm:text-3xl">What Else You Can Do</h2>
           </Reveal>
-          <RevealStagger className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <RevealStagger className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
             <SectionCard
               to="/training"
               icon={Dumbbell}
               accent="var(--lp-accent-training)"
               title="Training Mode"
               description="Unlimited solo practice. No teams, no timer, no pressure."
-            />
-            <SectionCard
-              to="/transition"
-              icon={School}
-              accent="var(--lp-accent-transition)"
-              title="Transition Class"
-              description="Lectures, Bible citations, checkpoint quizzes, and mock exams."
             />
             <SectionCard
               to="/seasons"

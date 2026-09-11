@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   Trophy,
   Dumbbell,
-  School,
   Music,
   Gamepad2,
   Send,
@@ -15,7 +14,6 @@ import {
   Check,
   Copy,
   BookOpen,
-  FileText,
   Clock,
   Flame,
   Swords,
@@ -93,7 +91,7 @@ type Tab = 'home' | 'class' | 'bible' | 'leaderboard' | 'profile' | 'messages' |
 const TAB_TITLE: Record<Tab, string> = {
   home: 'My House',
   class: 'My Class',
-  bible: 'Bible',
+  bible: 'Sunday School',
   leaderboard: 'Leaderboard',
   profile: 'My Card',
   messages: 'My Teacher',
@@ -132,6 +130,15 @@ function Dashboard() {
     setView('map')
   }
 
+  // My House sits near the bottom of the map art, so kids should land there
+  // first (their home) and scroll up to discover the rest, not the reverse.
+  const mapScrollRef = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    if (view !== 'map') return
+    const el = mapScrollRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [view])
+
   // Fixed, full-viewport: this is the whole kids app once signed in - it
   // deliberately breaks out of KidsShell's padded max-w-3xl column so the
   // village map and each section can go edge to edge, game-screen style.
@@ -141,6 +148,7 @@ function Dashboard() {
         {view === 'map' ? (
           <motion.div
             key="map"
+            ref={mapScrollRef}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -192,7 +200,7 @@ function Dashboard() {
             <div className="mx-auto max-w-2xl p-4 pb-12">
               {tab === 'home' && <HomeTab student={student} klass={klass} rank={rank} achievements={achievements} />}
               {tab === 'class' && <ClassTab klass={klass} />}
-              {tab === 'bible' && <BibleTab />}
+              {tab === 'bible' && <SundaySchoolTab klass={klass} />}
               {tab === 'leaderboard' && <LeaderboardTab myId={student?.id ?? null} />}
               {tab === 'profile' && student && <ProfileTab student={student} klass={klass} onSaved={load} />}
               {tab === 'messages' &&
@@ -274,8 +282,6 @@ function HomeTab({
       )}
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <HomeLink to="/training" icon={Dumbbell} accent="var(--lp-accent-training)" title="Practice Bible Quiz" description="Unlimited solo practice, no pressure, no timer." />
-        <HomeLink to="/transition" icon={School} accent="var(--lp-accent-class)" title="Transition Class" description="Get ready for teenage church." />
         <HomeLink to="/anthem" icon={Music} accent="var(--lp-accent-anthem)" title="Our Anthem" description="Sing along with the children's ministry anthem." />
       </div>
     </div>
@@ -284,18 +290,21 @@ function HomeTab({
 
 function GameTab() {
   return (
-    <div className="lp-panel lp-panel-accented flex flex-col items-center gap-3 p-8 text-center" style={{ ['--card-accent' as string]: 'var(--lp-accent-compete)' }}>
-      <span
-        className="flex h-14 w-14 items-center justify-center rounded-2xl"
-        style={{ background: 'color-mix(in srgb, var(--lp-accent-compete) 16%, transparent)', color: 'var(--lp-accent-compete)' }}
-      >
-        <Gamepad2 className="h-7 w-7" strokeWidth={1.75} />
-      </span>
-      <p className="lp-heading font-display text-xl font-bold">Games</p>
-      <p className="max-w-xs text-sm text-[var(--lp-muted)]">
-        Ask your teacher to start a live match on the big screen for your class! When they do, you&apos;ll join
-        from here.
-      </p>
+    <div className="space-y-4">
+      <div className="lp-panel lp-panel-accented flex flex-col items-center gap-3 p-8 text-center" style={{ ['--card-accent' as string]: 'var(--lp-accent-compete)' }}>
+        <span
+          className="flex h-14 w-14 items-center justify-center rounded-2xl"
+          style={{ background: 'color-mix(in srgb, var(--lp-accent-compete) 16%, transparent)', color: 'var(--lp-accent-compete)' }}
+        >
+          <Gamepad2 className="h-7 w-7" strokeWidth={1.75} />
+        </span>
+        <p className="lp-heading font-display text-xl font-bold">Games</p>
+        <p className="max-w-xs text-sm text-[var(--lp-muted)]">
+          Ask your teacher to start a live match on the big screen for your class! When they do, you&apos;ll join
+          from here.
+        </p>
+      </div>
+      <HomeLink to="/training" icon={Dumbbell} accent="var(--lp-accent-training)" title="Practice Bible Quiz" description="Unlimited solo practice, no pressure, no timer." />
     </div>
   )
 }
@@ -335,8 +344,6 @@ function HomeLink({
 }
 
 function ClassTab({ klass }: { klass: (ClassRow & { teacher_name: string }) | null }) {
-  const [sub, setSub] = useState<'lectures' | 'assignments'>('lectures')
-  const [lectures, setLectures] = useState<LectureRow[]>([])
   const [assignments, setAssignments] = useState<AssignmentRow[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -345,8 +352,7 @@ function ClassTab({ klass }: { klass: (ClassRow & { teacher_name: string }) | nu
       setLoading(false)
       return
     }
-    Promise.all([listPublishedLectures(klass.id), listPublishedAssignments(klass.id)]).then(([l, a]) => {
-      setLectures(l)
+    listPublishedAssignments(klass.id).then((a) => {
       setAssignments(a)
       setLoading(false)
     })
@@ -365,37 +371,9 @@ function ClassTab({ klass }: { klass: (ClassRow & { teacher_name: string }) | nu
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-1 rounded-md border border-[var(--hairline-strong)] p-1 w-fit">
-        {(['lectures', 'assignments'] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setSub(t)}
-            className={`flex items-center gap-1.5 rounded px-4 py-1.5 text-sm font-bold capitalize transition ${sub === t ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'text-[var(--ink-muted)] hover:text-[var(--fg)]'}`}
-          >
-            {t === 'lectures' ? <BookOpen className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />}
-            {t}
-          </button>
-        ))}
-      </div>
-
       {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
 
-      {!loading && sub === 'lectures' && (
-        <div className="space-y-2">
-          {lectures.length === 0 && (
-            <p className="text-sm text-[var(--ink-muted)]">Nothing here yet. Your teacher hasn&apos;t posted a lecture — check back soon.</p>
-          )}
-          {lectures.map((l) => (
-            <div key={l.id} className="panel p-4">
-              <p className="font-bold">{l.title}</p>
-              {l.description && <p className="mt-1 text-sm text-[var(--ink-muted)]">{l.description}</p>}
-              {l.body && <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--ink-muted)]">{l.body}</p>}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {!loading && sub === 'assignments' && (
+      {!loading && (
         <div className="space-y-2">
           {assignments.length === 0 && (
             <p className="text-sm text-[var(--ink-muted)]">No assignments right now. When your teacher posts one, you&apos;ll see it here.</p>
@@ -498,11 +476,13 @@ function AssignmentCard({ assignment }: { assignment: AssignmentRow }) {
   )
 }
 
-function BibleTab() {
+function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string }) | null }) {
   const [reading, setReading] = useState<TodaysReading | null | 'loading'>('loading')
   const [streak, setStreak] = useState(0)
   const [completed, setCompleted] = useState(false)
   const [completing, setCompleting] = useState(false)
+  const [lessons, setLessons] = useState<LectureRow[]>([])
+  const [lessonsLoading, setLessonsLoading] = useState(true)
 
   const load = () => {
     getTodaysBibleReading().then((r) => {
@@ -514,6 +494,17 @@ function BibleTab() {
   useEffect(() => {
     load()
   }, [])
+
+  useEffect(() => {
+    if (!klass) {
+      setLessonsLoading(false)
+      return
+    }
+    listPublishedLectures(klass.id).then((l) => {
+      setLessons(l)
+      setLessonsLoading(false)
+    })
+  }, [klass])
 
   const markComplete = async () => {
     if (reading === 'loading' || !reading) return
@@ -530,46 +521,73 @@ function BibleTab() {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="stat-strip grid-cols-2">
-        <div className="stat-cell">
-          <div className="stat-cell-value flex items-center justify-center gap-1.5">
-            <Flame className="h-5 w-5 text-[var(--gold)]" /> {streak}
+    <div className="space-y-8">
+      <div className="space-y-3">
+        <p className="eyebrow">Sunday School Lessons</p>
+        {!klass && (
+          <p className="text-sm text-[var(--ink-muted)]">
+            You&apos;re not in a class yet. Give your Student Code to your Sunday school teacher and they&apos;ll add you.
+          </p>
+        )}
+        {klass && lessonsLoading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
+        {klass && !lessonsLoading && (
+          <div className="space-y-2">
+            {lessons.length === 0 && (
+              <p className="text-sm text-[var(--ink-muted)]">Nothing here yet. Your teacher hasn&apos;t posted a lesson — check back soon.</p>
+            )}
+            {lessons.map((l) => (
+              <div key={l.id} className="panel p-4">
+                <p className="font-bold">{l.title}</p>
+                {l.description && <p className="mt-1 text-sm text-[var(--ink-muted)]">{l.description}</p>}
+                {l.body && <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--ink-muted)]">{l.body}</p>}
+              </div>
+            ))}
           </div>
-          <div className="stat-cell-label">Day Streak</div>
-        </div>
-        <div className="stat-cell">
-          <div className="stat-cell-value">{completed ? '✓' : '—'}</div>
-          <div className="stat-cell-label">Today</div>
-        </div>
+        )}
       </div>
 
-      {reading === 'loading' && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
-
-      {reading === null && (
-        <div className="panel p-6 text-center">
-          <p className="font-display text-lg font-bold">No reading plan is active yet</p>
-          <p className="mt-1 text-sm text-[var(--ink-muted)]">Check back soon — your admin sets up the next plan.</p>
+      <div className="space-y-3">
+        <p className="eyebrow">Bible Reading Plan</p>
+        <div className="stat-strip grid-cols-2">
+          <div className="stat-cell">
+            <div className="stat-cell-value flex items-center justify-center gap-1.5">
+              <Flame className="h-5 w-5 text-[var(--gold)]" /> {streak}
+            </div>
+            <div className="stat-cell-label">Day Streak</div>
+          </div>
+          <div className="stat-cell">
+            <div className="stat-cell-value">{completed ? '✓' : '—'}</div>
+            <div className="stat-cell-label">Today</div>
+          </div>
         </div>
-      )}
 
-      {reading && reading !== 'loading' && (
-        <div className="panel space-y-3 p-6">
-          <p className="eyebrow">{reading.plan_title} &middot; Day {reading.day_number}</p>
-          <h2 className="font-display text-2xl font-extrabold">{reading.title}</h2>
-          <p className="font-semibold text-[var(--gold)]">{reading.reference}</p>
-          {reading.passage_text && <p className="whitespace-pre-wrap text-sm leading-relaxed text-[var(--ink-muted)]">{reading.passage_text}</p>}
-          {completed ? (
-            <p className="flex items-center gap-1.5 text-sm font-bold text-emerald-400">
-              <Check className="h-4 w-4" /> Read today. Come back tomorrow to keep your streak!
-            </p>
-          ) : (
-            <button onClick={markComplete} disabled={completing} className="btn-solid w-full py-3">
-              {completing ? 'Saving…' : 'Mark as Read'}
-            </button>
-          )}
-        </div>
-      )}
+        {reading === 'loading' && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
+
+        {reading === null && (
+          <div className="panel p-6 text-center">
+            <p className="font-display text-lg font-bold">No reading plan is active yet</p>
+            <p className="mt-1 text-sm text-[var(--ink-muted)]">Check back soon — your admin sets up the next plan.</p>
+          </div>
+        )}
+
+        {reading && reading !== 'loading' && (
+          <div className="panel space-y-3 p-6">
+            <p className="eyebrow">{reading.plan_title} &middot; Day {reading.day_number}</p>
+            <h2 className="font-display text-2xl font-extrabold">{reading.title}</h2>
+            <p className="font-semibold text-[var(--gold)]">{reading.reference}</p>
+            {reading.passage_text && <p className="whitespace-pre-wrap text-sm leading-relaxed text-[var(--ink-muted)]">{reading.passage_text}</p>}
+            {completed ? (
+              <p className="flex items-center gap-1.5 text-sm font-bold text-emerald-400">
+                <Check className="h-4 w-4" /> Read today. Come back tomorrow to keep your streak!
+              </p>
+            ) : (
+              <button onClick={markComplete} disabled={completing} className="btn-solid w-full py-3">
+                {completing ? 'Saving…' : 'Mark as Read'}
+              </button>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   )
 }

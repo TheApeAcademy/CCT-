@@ -783,6 +783,7 @@ button:active, a:active {
    grey boxes with only a small icon differing. */
 .lp-panel-accented {
   border-top: 4px solid var(--card-accent, var(--lp-accent-fill));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--card-accent, var(--lp-accent-fill)) 8%, var(--lp-bg-panel)), var(--lp-bg-panel) 65%);
 }
 /* A card can float on a .lp-band-deep background (e.g. the dashboard
    preview tiles inside "Once You Join a Class") while staying its own
@@ -851,21 +852,6 @@ button:active, a:active {
   color: var(--lp-faint);
 }
 
-/* Institutional band photos: no card box, no border - the edge facing the
-   text column softly fades to transparent (revealing the band's own
-   background) instead of ending in a hard rectangle, so the photo reads as
-   bleeding into the page rather than sitting in a floating card. */
-.lp-bleed-photo-left {
-  border-radius: 22px 0 0 22px;
-  -webkit-mask-image: linear-gradient(to right, black 72%, transparent 100%);
-  mask-image: linear-gradient(to right, black 72%, transparent 100%);
-}
-.lp-bleed-photo-right {
-  border-radius: 0 22px 22px 0;
-  -webkit-mask-image: linear-gradient(to left, black 72%, transparent 100%);
-  mask-image: linear-gradient(to left, black 72%, transparent 100%);
-}
-
 /* Soft blurred colour blobs for a couple of key sections - tasteful
    background energy (not clipart), contained to that section only. */
 .lp-blob-bg {
@@ -907,15 +893,15 @@ button:active, a:active {
    section already carries for its eyebrow/icons. */
 .lp-band-tinted {
   background:
-    radial-gradient(ellipse 85% 55% at 12% -5%, color-mix(in srgb, var(--card-accent, var(--lp-accent-fill)) 28%, transparent), transparent 64%),
-    radial-gradient(ellipse 65% 50% at 105% 105%, color-mix(in srgb, var(--card-accent, var(--lp-accent-fill)) 19%, transparent), transparent 62%),
+    radial-gradient(ellipse 85% 55% at 12% -5%, color-mix(in srgb, var(--card-accent, var(--lp-accent-fill)) 36%, transparent), transparent 66%),
+    radial-gradient(ellipse 65% 50% at 105% 105%, color-mix(in srgb, var(--card-accent, var(--lp-accent-fill)) 25%, transparent), transparent 64%),
     var(--lp-bg);
 }
 /* A quieter version for sections that should stay calm (Ears For You) -
    still a whisper of colour so it doesn't look unfinished next to its
    louder neighbours, without competing for energy. */
 .lp-band-tinted-soft {
-  background: radial-gradient(ellipse 70% 60% at 50% 0%, color-mix(in srgb, var(--card-accent, var(--lp-accent-fill)) 13%, transparent), transparent 68%), var(--lp-bg);
+  background: radial-gradient(ellipse 70% 60% at 50% 0%, color-mix(in srgb, var(--card-accent, var(--lp-accent-fill)) 18%, transparent), transparent 68%), var(--lp-bg);
 }
 
 /* A second display voice for the calmer sections (Bible, Ears For You) -
@@ -928,6 +914,25 @@ button:active, a:active {
   font-family: 'Poppins', var(--font-body);
   font-weight: 700;
   letter-spacing: -0.01em;
+}
+
+/* Small colourful dots scattered across a feature-intro section's empty
+   space - filling the negative space around the copy/image with a bit of
+   confetti-like colour instead of leaving it flat, without adding new
+   content. Purely decorative (aria-hidden), one shared keyframe. */
+@keyframes lp-sprinkle-float {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-12px) rotate(10deg);
+  }
+}
+.lp-sprinkle {
+  position: absolute;
+  border-radius: 999px;
+  opacity: 0.55;
+  animation: lp-sprinkle-float 4.5s ease-in-out infinite;
 }
 
 .lp-btn-solid {

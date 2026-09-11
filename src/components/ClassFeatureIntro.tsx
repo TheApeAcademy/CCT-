@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, useInView, useReducedMotion } from 'framer-motion'
 import { Users } from 'lucide-react'
+import ColorSprinkles from './ColorSprinkles'
 import FloatingArt from './FloatingArt'
 import Reveal from './Reveal'
 import { playClick } from '../lib/sound'
@@ -30,9 +31,10 @@ export default function ClassFeatureIntro() {
 
   return (
     <div
-      className="lp-band-tinted full-bleed px-4 py-16 sm:py-24"
+      className="lp-band-tinted full-bleed relative isolate px-4 py-16 sm:py-24"
       style={{ ['--card-accent' as string]: 'var(--lp-accent-class)' }}
     >
+      <ColorSprinkles />
       <div className="mx-auto max-w-6xl">
         <div className="grid items-center gap-10 lg:grid-cols-[1fr_1.05fr] lg:gap-16">
           <Reveal direction="left">

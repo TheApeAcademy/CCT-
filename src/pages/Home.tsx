@@ -20,6 +20,7 @@ import AchievementsFeatureIntro from '../components/AchievementsFeatureIntro'
 import EarsForYouFeatureIntro from '../components/EarsForYouFeatureIntro'
 import FloatingArt from '../components/FloatingArt'
 import ScrollProgressBar from '../components/ScrollProgressBar'
+import ColorSprinkles from '../components/ColorSprinkles'
 import Reveal, { RevealStagger, RevealItem } from '../components/Reveal'
 import { playClick } from '../lib/sound'
 // A third, deliberately bouncier display face (distinct from the hero's
@@ -68,7 +69,8 @@ export default function Home() {
       <HeroCarousel slides={slides} />
 
       {/* ---------- flagship feature: the quiz, demonstrated ---------- */}
-      <div className="lp-band lp-blob-bg full-bleed px-4 py-16 sm:py-24">
+      <div className="lp-band lp-blob-bg full-bleed isolate px-4 py-16 sm:py-24">
+        <ColorSprinkles />
         <div className="mx-auto max-w-6xl">
           <div className="grid items-center gap-10 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
             <Reveal direction="left">
@@ -203,80 +205,69 @@ export default function Home() {
       {/* ---------- ears for you: deliberately the quietest section ---------- */}
       <EarsForYouFeatureIntro />
 
-      {/* ---------- MFM worldwide ---------- */}
-      <div id="about" className="lp-band-alt full-bleed scroll-mt-20 px-4 py-16 sm:py-24">
+      {/* ---------- about: ministry, branch, and leadership in one continuous view ---------- */}
+      <div id="about" className="lp-band-alt full-bleed scroll-mt-20 px-4 py-14 sm:py-16">
         <div className="mx-auto max-w-6xl">
           <Reveal className="relative flex flex-col-reverse items-center gap-2 sm:flex-row sm:items-center sm:justify-start">
             <div className="relative z-10 max-w-2xl">
               <p className="lp-eyebrow" style={{ ['--card-accent' as string]: 'var(--lp-accent-anthem)' }}>
                 About the Ministry
               </p>
-              <h2 className="lp-heading mt-3 text-balance font-display text-3xl font-extrabold leading-[1.05] sm:text-5xl lg:text-6xl">
+              <h2 className="lp-heading mt-3 text-balance font-display text-2xl font-extrabold leading-[1.05] sm:text-4xl">
                 Mountain of Fire and Miracles Ministries
               </h2>
-              <p className="mt-5 max-w-xl text-base leading-relaxed text-[var(--lp-body)] sm:text-lg">
+              <p className="mt-3 max-w-xl text-sm leading-relaxed text-[var(--lp-body)] sm:text-base">
                 A full-gospel ministry devoted to revival, holiness, prayer, and deliverance, founded and led by
-                Dr.&nbsp;Daniel Kolawole Olukoya as General Overseer. From its beginnings, MFM has grown into a worldwide
-                ministry with branches across nations, all carrying the same call to prayer and holy living.
+                Dr.&nbsp;Daniel Kolawole Olukoya as General Overseer &mdash; grown into a worldwide ministry with
+                branches across nations, all carrying the same call to prayer and holy living.
               </p>
             </div>
-            <FloatingArt className="relative z-0 w-32 shrink-0 opacity-80 sm:-ml-28 sm:w-56 lg:-ml-36 lg:w-64">
+            <FloatingArt className="relative z-0 w-24 shrink-0 opacity-80 sm:-ml-20 sm:w-36 lg:-ml-24 lg:w-40">
               <img src="/mfm-logo.png" alt="Mountain of Fire and Miracles Ministries" className="w-full drop-shadow-2xl" />
             </FloatingArt>
           </Reveal>
+
+          <RevealStagger className="mt-8 grid gap-4 sm:grid-cols-3">
+            <RevealItem>
+              <ProfileCard
+                id="wuye"
+                image="/mfm-wuye-building.jpg"
+                imageAlt="MFM Wuye branch building"
+                eyebrow="Our Branch"
+                eyebrowAccent="var(--lp-accent-seasons)"
+                title="MFM Wuye"
+              >
+                Carrying the same call to prayer, holiness, and deliverance to its community.
+              </ProfileCard>
+            </RevealItem>
+            <RevealItem>
+              <ProfileCard
+                id="leadership"
+                image="/pastor-edwin-etomi.jpg"
+                imageAlt="Pastor Edwin Etomi"
+                eyebrow="Leadership"
+                eyebrowAccent="var(--lp-accent-leaderboard)"
+                title="Pastor Edwin Etomi"
+              >
+                Senior Regional Overseer, MFM International Headquarters Annex, Wuye.
+              </ProfileCard>
+            </RevealItem>
+            <RevealItem>
+              <ProfileCard
+                id="ministry"
+                image="/children-pastor.jpg"
+                imageAlt="Head of the Children's Department"
+                eyebrow="This Platform"
+                eyebrowAccent="var(--lp-accent-history)"
+                title="The Children's Ministry"
+              >
+                Head of Children&apos;s Department &mdash; Olusanu Olukunle. This platform exists to serve the
+                ministry directly.
+              </ProfileCard>
+            </RevealItem>
+          </RevealStagger>
         </div>
       </div>
-
-      {/* ---------- MFM Wuye branch ---------- */}
-      <InstitutionalBand
-        id="wuye"
-        eyebrow="Our Branch"
-        eyebrowAccent="var(--lp-accent-seasons)"
-        title="MFM Wuye"
-        image="/mfm-wuye-building.jpg"
-        imageAlt="MFM Wuye branch building"
-      >
-        <p className="text-[15px] leading-relaxed text-[var(--lp-body)] sm:text-base">
-          MFM Wuye is a branch of Mountain of Fire and Miracles Ministries, carrying the same call to prayer,
-          holiness, and deliverance to its community. Full branch details, service times, and photos are being
-          finalized with the ministry and will appear here soon.
-        </p>
-      </InstitutionalBand>
-
-      {/* ---------- SRO ---------- */}
-      <InstitutionalBand
-        id="leadership"
-        eyebrow="Leadership"
-        eyebrowAccent="var(--lp-accent-leaderboard)"
-        title="Pastor Edwin Etomi"
-        deep
-        imageFirst
-        image="/pastor-edwin-etomi.jpg"
-        imageAlt="Pastor Edwin Etomi"
-      >
-        <p className="lp-eyebrow !mt-0" style={{ ['--card-accent' as string]: 'var(--lp-accent-leaderboard)' }}>
-          Senior Regional Overseer, MFM International Headquarters Annex, Wuye
-        </p>
-      </InstitutionalBand>
-
-      {/* ---------- Children's Ministry ---------- */}
-      <InstitutionalBand
-        id="ministry"
-        eyebrow="This Platform"
-        eyebrowAccent="var(--lp-accent-history)"
-        title="The Children's Ministry"
-        alt
-        image="/children-pastor.jpg"
-        imageAlt="Head of the Children's Department"
-      >
-        <p className="lp-eyebrow !mt-0" style={{ ['--card-accent' as string]: 'var(--lp-accent-history)' }}>
-          Head of Children&apos;s Department &mdash; Olusanu Olukunle
-        </p>
-        <p className="mt-3 text-[15px] leading-relaxed text-[var(--lp-body)] sm:text-base">
-          This platform exists to serve the Children&apos;s Ministry directly &mdash; giving teachers real
-          classrooms to run and children a place of their own to learn, play, and grow in the Word.
-        </p>
-      </InstitutionalBand>
 
       {/* ---------- contact us ---------- */}
       <div id="contact" className="lp-band full-bleed scroll-mt-20 px-4 py-16 sm:py-20">
@@ -332,15 +323,15 @@ export default function Home() {
   )
 }
 
-function InstitutionalBand({
+/** A compact card, not a full-bleed band - three of these sit side by side
+ * so "MFM worldwide, the Wuye branch, and its leadership" reads as one
+ * continuous view instead of three stacked full-height sections. */
+function ProfileCard({
   id,
   eyebrow,
   eyebrowAccent = 'var(--lp-accent-text)',
   title,
   children,
-  alt,
-  deep,
-  imageFirst,
   image,
   imageAlt,
 }: {
@@ -349,38 +340,22 @@ function InstitutionalBand({
   eyebrowAccent?: string
   title: string
   children: ReactNode
-  alt?: boolean
-  deep?: boolean
-  imageFirst?: boolean
   image?: string
   imageAlt?: string
 }) {
   return (
-    <div
-      id={id}
-      className={`full-bleed scroll-mt-20 px-4 py-16 sm:py-20 ${deep ? 'lp-band-deep' : alt ? 'lp-band-alt' : 'lp-band'}`}
-    >
-      <div className="mx-auto max-w-6xl">
-        <div className={`grid items-center gap-3 sm:grid-cols-[1fr_1.2fr] sm:gap-4 ${imageFirst ? '' : 'sm:[&>*:first-child]:order-2'}`}>
-          <Reveal direction={imageFirst ? 'left' : 'right'}>
-            {image ? (
-              <img
-                src={image}
-                alt={imageAlt ?? ''}
-                className={`aspect-[4/3] w-full object-cover sm:aspect-[5/4] ${imageFirst ? 'lp-bleed-photo-left' : 'lp-bleed-photo-right'}`}
-              />
-            ) : (
-              <div className="crest-badge aspect-[4/3] w-full rounded-2xl" />
-            )}
-          </Reveal>
-          <Reveal direction={imageFirst ? 'right' : 'left'} delay={0.08}>
-            <p className="lp-eyebrow" style={{ ['--card-accent' as string]: eyebrowAccent }}>
-              {eyebrow}
-            </p>
-            <h2 className="lp-heading mt-2 font-display text-2xl font-extrabold sm:text-4xl">{title}</h2>
-            <div className="mt-4 space-y-3">{children}</div>
-          </Reveal>
-        </div>
+    <div id={id} className="lp-panel lp-panel-accented scroll-mt-20 overflow-hidden" style={{ ['--card-accent' as string]: eyebrowAccent }}>
+      {image ? (
+        <img src={image} alt={imageAlt ?? ''} className="h-36 w-full object-cover sm:h-40" />
+      ) : (
+        <div className="crest-badge h-36 w-full sm:h-40" />
+      )}
+      <div className="p-4">
+        <p className="lp-eyebrow !mt-0" style={{ ['--card-accent' as string]: eyebrowAccent }}>
+          {eyebrow}
+        </p>
+        <h3 className="lp-heading mt-2 font-display text-lg font-extrabold">{title}</h3>
+        <p className="mt-1.5 text-[13px] leading-relaxed text-[var(--lp-body)]">{children}</p>
       </div>
     </div>
   )

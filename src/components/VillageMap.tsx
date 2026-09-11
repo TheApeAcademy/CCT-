@@ -9,15 +9,17 @@ interface Building {
   label: string
   image: string
   /** x/y is the building's GROUND point on /kids-village-map.jpg (where its base/feet
-   * touch down), not its center - the image is anchored bottom-center to it so it reads
-   * as standing on the spot instead of floating with the spot at its middle. width is a
-   * percent of the map's own width; heightPct is that same image's rendered height as a
-   * percent of the map's height (map is a fixed 24:43 box), precomputed from each PNG's
-   * real aspect ratio so the avatar can hover just above the roof, not through it. */
+   * touch down), not its center - the image is anchored bottom-center to it, cropped
+   * flush to its own base (no padding under it) so the anchor is accurate. width is a
+   * percent of the map's own width; heightPct is that image's rendered height as a
+   * percent of the map's height, precomputed from its real aspect ratio so the ground
+   * shadow, avatar and label all land at the right spot. tilt gives each one a few
+   * degrees of a "toy placed down by hand" lean instead of sitting dead upright. */
   x: number
   y: number
   width: number
   heightPct: number
+  tilt: number
   accent: string
 }
 
@@ -27,14 +29,14 @@ interface Building {
 // lawn (My House), and open lawn near the flower bed, shared by Ears for You and Game
 // (My Teacher's spot is open lawn by the willow tree).
 const BUILDINGS: Building[] = [
-  { id: 'class', label: 'My Class', image: '/village/class-backpack.png', x: 73, y: 31, width: 24, heightPct: 12.7, accent: 'var(--lp-accent-class)' },
-  { id: 'leaderboard', label: 'Leaderboard', image: '/feature-leaderboard.png', x: 77, y: 87, width: 16, heightPct: 10.6, accent: 'var(--lp-accent-leaderboard)' },
-  { id: 'profile', label: 'My Card', image: '/village/profile-card.png', x: 38, y: 48, width: 16, heightPct: 9.4, accent: 'var(--lp-accent-achievements)' },
-  { id: 'bible', label: 'Bible', image: '/village/bible-church.png', x: 81, y: 59, width: 22, heightPct: 15.5, accent: 'var(--lp-accent-bible)' },
-  { id: 'home', label: 'My House', image: '/village/home-house.png', x: 33, y: 79, width: 28, heightPct: 16.6, accent: 'var(--hero-accent)' },
-  { id: 'ears', label: 'Ears for You', image: '/village/ears-app.png', x: 18, y: 20, width: 15, heightPct: 8.7, accent: 'var(--lp-accent-ears)' },
-  { id: 'game', label: 'Live Quiz Match', image: '/village/game-rocket.png', x: 37, y: 18, width: 15, heightPct: 8.4, accent: 'var(--lp-accent-compete)' },
-  { id: 'messages', label: 'My Teacher', image: '/village/messages-teacherhome.png', x: 78, y: 19, width: 18, heightPct: 9.6, accent: 'var(--lp-accent-training)' },
+  { id: 'class', label: 'My Class', image: '/village/class-backpack.png', x: 73, y: 31, width: 24, heightPct: 12.3, tilt: -4, accent: 'var(--lp-accent-class)' },
+  { id: 'leaderboard', label: 'Leaderboard', image: '/feature-leaderboard.png', x: 77, y: 87, width: 16, heightPct: 10.6, tilt: 5, accent: 'var(--lp-accent-leaderboard)' },
+  { id: 'profile', label: 'My Card', image: '/village/profile-card.png', x: 38, y: 48, width: 16, heightPct: 9.1, tilt: -6, accent: 'var(--lp-accent-achievements)' },
+  { id: 'bible', label: 'Bible', image: '/village/bible-church.png', x: 81, y: 59, width: 22, heightPct: 15.2, tilt: 3, accent: 'var(--lp-accent-bible)' },
+  { id: 'home', label: 'My House', image: '/village/home-house.png', x: 33, y: 79, width: 28, heightPct: 16.2, tilt: -3, accent: 'var(--hero-accent)' },
+  { id: 'ears', label: 'Ears for You', image: '/village/ears-app.png', x: 17, y: 20, width: 11, heightPct: 6.2, tilt: 6, accent: 'var(--lp-accent-ears)' },
+  { id: 'game', label: 'Live Quiz Match', image: '/village/game-rocket.png', x: 34, y: 18, width: 15, heightPct: 8.2, tilt: -5, accent: 'var(--lp-accent-compete)' },
+  { id: 'messages', label: 'My Teacher', image: '/village/messages-teacherhome.png', x: 78, y: 19, width: 18, heightPct: 9.3, tilt: 4, accent: 'var(--lp-accent-training)' },
 ]
 
 const BY_ID = Object.fromEntries(BUILDINGS.map((b) => [b.id, b])) as Record<VillageTab, Building>
@@ -61,36 +63,56 @@ export default function VillageMap({
         draggable={false}
       />
 
-      {/* ---------- the 7 building spots ---------- */}
+      {/* ---------- the 8 building spots ---------- */}
       {BUILDINGS.map((b) => {
         const isActive = b.id === active
         return (
-          <motion.button
-            key={b.id}
-            type="button"
-            onClick={() => {
-              playClick()
-              onNavigate(b.id)
-            }}
-            aria-label={b.label}
-            className="absolute -translate-x-1/2 -translate-y-full"
-            style={{ left: `${b.x}%`, top: `${b.y}%`, width: `${b.width}%` }}
-            animate={reduced ? undefined : { y: [0, -3, 0] }}
-            transition={reduced ? undefined : { duration: 3, repeat: Infinity, ease: 'easeInOut', delay: b.x / 20 }}
-            whileHover={reduced ? undefined : { scale: 1.1, transition: { duration: 0.25 } }}
-            whileTap={reduced ? undefined : { scale: 0.92 }}
-          >
-            <img
-              src={b.image}
-              alt=""
-              className="w-full object-contain"
+          <div key={b.id} className="absolute -translate-x-1/2 -translate-y-full" style={{ left: `${b.x}%`, top: `${b.y}%`, width: `${b.width}%` }}>
+            {/* contact shadow - grounds the sprite even where the art's own baked-in shadow is faint */}
+            <div
+              className="absolute rounded-[50%]"
               style={{
-                filter: isActive
-                  ? `drop-shadow(0 0 16px ${b.accent}) drop-shadow(0 8px 14px rgba(0,0,0,0.4))`
-                  : 'drop-shadow(0 8px 14px rgba(0,0,0,0.4))',
+                left: '50%',
+                bottom: '-2%',
+                width: '80%',
+                height: '18%',
+                transform: 'translateX(-50%)',
+                background: 'radial-gradient(ellipse at center, rgba(20,15,10,0.38) 0%, rgba(20,15,10,0) 72%)',
+                filter: 'blur(1.5px)',
               }}
             />
-          </motion.button>
+            <motion.button
+              type="button"
+              onClick={() => {
+                playClick()
+                onNavigate(b.id)
+              }}
+              aria-label={b.label}
+              className="relative block w-full"
+              initial={{ rotate: b.tilt }}
+              animate={reduced ? { rotate: b.tilt } : { rotate: b.tilt, y: [0, -3, 0] }}
+              transition={reduced ? undefined : { duration: 3, repeat: Infinity, ease: 'easeInOut', delay: b.x / 20 }}
+              whileHover={reduced ? undefined : { scale: 1.1, rotate: 0, transition: { duration: 0.25 } }}
+              whileTap={reduced ? undefined : { scale: 0.92 }}
+            >
+              <img
+                src={b.image}
+                alt=""
+                className="w-full object-contain"
+                style={{
+                  filter: isActive
+                    ? `drop-shadow(0 0 16px ${b.accent}) drop-shadow(0 6px 8px rgba(0,0,0,0.35))`
+                    : 'drop-shadow(0 6px 8px rgba(0,0,0,0.35))',
+                }}
+              />
+            </motion.button>
+            <span
+              className="absolute left-1/2 top-full -translate-x-1/2 whitespace-nowrap rounded-full border border-[var(--lp-hairline-strong)] bg-white px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide text-[var(--lp-heading)] shadow-md sm:text-xs"
+              style={{ marginTop: '2%' }}
+            >
+              {b.label}
+            </span>
+          </div>
         )
       })}
 

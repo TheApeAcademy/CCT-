@@ -82,6 +82,15 @@ const STEP_ACCENT: Record<Step, string> = {
   code: 'var(--lp-accent-class)',
 }
 
+// Kids don't pick a passcode - it's built from their own first name so it's
+// easy to remember: first name + "mfm" + one random digit (e.g. "joshmfm7").
+function generatePasscode(fullName: string): string {
+  const firstName = fullName.trim().split(/\s+/)[0] ?? ''
+  const base = firstName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'kid'
+  const digit = Math.floor(Math.random() * 10)
+  return `${base}mfm${digit}`
+}
+
 function NewStudentFlow() {
   const navigate = useNavigate()
   const [step, setStep] = useState<Step>('name')
@@ -91,6 +100,7 @@ function NewStudentFlow() {
   const [confirmPasscode, setConfirmPasscode] = useState('')
   const [studentCode, setStudentCode] = useState('')
   const [copied, setCopied] = useState(false)
+  const [passcodeCopied, setPasscodeCopied] = useState(false)
   const [error, setError] = useState('')
 
   const progress = ((STEP_ORDER.indexOf(step) + 1) / STEP_ORDER.length) * 100
@@ -99,6 +109,12 @@ function NewStudentFlow() {
     setError('')
     setStep(next)
     playNav()
+  }
+
+  const goToPasscode = () => {
+    setPasscode(generatePasscode(fullName))
+    setConfirmPasscode('')
+    advance('passcode')
   }
 
   const submit = async () => {
@@ -124,6 +140,17 @@ function NewStudentFlow() {
       window.setTimeout(() => setCopied(false), 2000)
     } catch {
       // clipboard unavailable — the code is already visible on screen
+    }
+  }
+
+  const copyPasscode = async () => {
+    try {
+      await navigator.clipboard.writeText(passcode)
+      setPasscodeCopied(true)
+      playClick()
+      window.setTimeout(() => setPasscodeCopied(false), 2000)
+    } catch {
+      // clipboard unavailable — the passcode is already visible on screen
     }
   }
 
@@ -170,13 +197,13 @@ function NewStudentFlow() {
             placeholder="Optional"
             type="tel"
             className={inputClass}
-            onKeyDown={(e) => e.key === 'Enter' && advance('passcode')}
+            onKeyDown={(e) => e.key === 'Enter' && goToPasscode()}
           />
           <div className="flex gap-2">
             <button onClick={() => advance('name')} className="lp-btn-outline px-4 py-3">
               <ArrowLeft className="h-4 w-4" />
             </button>
-            <button onClick={() => advance('passcode')} className="lp-btn-solid flex-1 py-3 text-base">
+            <button onClick={goToPasscode} className="lp-btn-solid flex-1 py-3 text-base">
               {guardianPhone.trim() ? 'Continue' : 'Skip for now'}
             </button>
           </div>
@@ -184,46 +211,48 @@ function NewStudentFlow() {
       )}
 
       {step === 'passcode' && (
-        <StepPanel icon={KeyRound} accent={STEP_ACCENT.passcode} question="Choose a 4-digit passcode" hint="You'll use this to sign in next time.">
-          <input
-            autoFocus
-            value={passcode}
-            onChange={(e) => setPasscode(e.target.value.replace(/\D/g, '').slice(0, 4))}
-            type="password"
-            inputMode="numeric"
-            placeholder="• • • •"
-            className={`${inputClass} text-center text-2xl tracking-[0.5em]`}
-            onKeyDown={(e) => e.key === 'Enter' && passcode.length === 4 && advance('confirm')}
-          />
+        <StepPanel icon={KeyRound} accent={STEP_ACCENT.passcode} question="Here's your passcode" hint="We made it from your name so it's easy to remember.">
+          <div className="rounded-xl border-2 border-[var(--lp-hairline-strong)] bg-[var(--lp-bg)] py-5 text-center">
+            <p
+              className="font-display text-3xl font-extrabold tracking-widest"
+              style={{ fontFamily: 'Fredoka, var(--font-display)', color: STEP_ACCENT.passcode }}
+            >
+              {passcode}
+            </p>
+          </div>
+          <button onClick={copyPasscode} className="lp-btn-outline mx-auto flex items-center gap-1.5 px-4 py-2 text-xs">
+            {passcodeCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+            {passcodeCopied ? 'Copied' : 'Copy passcode'}
+          </button>
+          <p className="text-sm text-[var(--lp-muted)]">
+            Copy it or write it down somewhere safe. You&apos;ll need it, with your Student Code, to sign in next
+            time — even though it&apos;s easy to remember!
+          </p>
           {error && <p className="text-sm text-red-500">{error}</p>}
           <div className="flex gap-2">
             <button onClick={() => advance('phone')} className="lp-btn-outline px-4 py-3">
               <ArrowLeft className="h-4 w-4" />
             </button>
-            <button
-              onClick={() => {
-                if (passcode.length !== 4) return setError('Your passcode needs to be exactly 4 digits.')
-                advance('confirm')
-              }}
-              className="lp-btn-solid flex-1 py-3 text-base"
-            >
-              Continue
+            <button onClick={() => advance('confirm')} className="lp-btn-solid flex-1 py-3 text-base">
+              I&apos;ve saved it
             </button>
           </div>
         </StepPanel>
       )}
 
       {step === 'confirm' && (
-        <StepPanel icon={KeyRound} accent={STEP_ACCENT.confirm} question="Type your passcode again" hint="Just to make sure you didn't miss a digit.">
+        <StepPanel icon={KeyRound} accent={STEP_ACCENT.confirm} question="Type your passcode again" hint="Just to make sure you saved it right.">
           <input
             autoFocus
             value={confirmPasscode}
-            onChange={(e) => setConfirmPasscode(e.target.value.replace(/\D/g, '').slice(0, 4))}
-            type="password"
-            inputMode="numeric"
-            placeholder="• • • •"
-            className={`${inputClass} text-center text-2xl tracking-[0.5em]`}
-            onKeyDown={(e) => e.key === 'Enter' && confirmPasscode.length === 4 && submit()}
+            onChange={(e) => setConfirmPasscode(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))}
+            type="text"
+            autoCapitalize="off"
+            autoCorrect="off"
+            spellCheck={false}
+            placeholder="Type your passcode"
+            className={`${inputClass} text-center text-xl tracking-wide`}
+            onKeyDown={(e) => e.key === 'Enter' && confirmPasscode && submit()}
           />
           {error && <p className="text-sm text-red-500">{error}</p>}
           <div className="flex gap-2">
@@ -232,7 +261,7 @@ function NewStudentFlow() {
             </button>
             <button
               onClick={() => {
-                if (confirmPasscode !== passcode) return setError("Those don't match. Try again.")
+                if (confirmPasscode !== passcode) return setError("That doesn't match. Tap back to see it again.")
                 submit()
               }}
               className="lp-btn-solid flex-1 py-3 text-base"
@@ -324,7 +353,7 @@ function ReturningStudentFlow() {
 
   const submit = async () => {
     if (!studentCode.trim()) return setError('Enter your Student Code.')
-    if (passcode.length !== 4) return setError('Enter your 4-digit passcode.')
+    if (!passcode.trim()) return setError('Enter your passcode.')
     setSubmitting(true)
     setError('')
     try {
@@ -352,11 +381,13 @@ function ReturningStudentFlow() {
       <label className="block text-sm font-bold text-[var(--lp-heading)]">Your passcode</label>
       <input
         value={passcode}
-        onChange={(e) => setPasscode(e.target.value.replace(/\D/g, '').slice(0, 4))}
-        type="password"
-        inputMode="numeric"
-        placeholder="• • • •"
-        className={`${inputClass} text-center text-2xl tracking-[0.5em]`}
+        onChange={(e) => setPasscode(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))}
+        type="text"
+        autoCapitalize="off"
+        autoCorrect="off"
+        spellCheck={false}
+        placeholder="e.g. joshmfm7"
+        className={`${inputClass} text-center text-xl tracking-wide`}
         onKeyDown={(e) => e.key === 'Enter' && submit()}
       />
       {error && <p className="text-sm text-red-500">{error}</p>}

@@ -1,11 +1,14 @@
 // Edge Function: student-register
 //
-// Creates a student's account from just a name + 4-digit passcode (guardian
-// phone optional). No class code needed anymore — class enrollment happens
-// separately, after signup, when a teacher looks the student up by their
-// Student Code. Runs with the service role key server-side only; never
-// exposed to the browser. verify_jwt stays OFF since a not-yet-authenticated
-// kid is the one calling this.
+// Creates a student's account from just a name + passcode (guardian phone
+// optional). The passcode is generated client-side from the kid's own name
+// (firstname + "mfm" + a random digit, e.g. "joshmfm7") so it's easy for a
+// child to remember — this function just validates the shape it can take,
+// it doesn't regenerate it. No class code needed anymore — class enrollment
+// happens separately, after signup, when a teacher looks the student up by
+// their Student Code. Runs with the service role key server-side only;
+// never exposed to the browser. verify_jwt stays OFF since a
+// not-yet-authenticated kid is the one calling this.
 //
 // Deploy: supabase functions deploy student-register --project-ref zdgbatkxjxiecqshnmwh
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -46,8 +49,8 @@ Deno.serve(async (req: Request) => {
   if (fullName.length < 2 || fullName.length > 80) {
     return json({ error: "Please enter your full name." }, 400);
   }
-  if (!/^[0-9]{4}$/.test(passcode)) {
-    return json({ error: "Your passcode must be exactly 4 digits." }, 400);
+  if (!/^[a-z0-9]{4,40}$/.test(passcode)) {
+    return json({ error: "That passcode doesn't look right. Please try again." }, 400);
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;

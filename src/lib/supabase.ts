@@ -7,7 +7,16 @@ import { createClient } from '@supabase/supabase-js'
 const SUPABASE_URL = 'https://zdgbatkxjxiecqshnmwh.supabase.co'
 const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_-fgDSztaoa-JWaHBCfYK3g__Y-MQsLe'
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY)
+// Kids (and admins/teachers) stay signed in on a device until they explicitly
+// sign out - persistSession + autoRefreshToken keep the session alive across
+// reloads and browser restarts via the refresh token in localStorage.
+// detectSessionInUrl is off on purpose: every sign-in here goes through
+// signInWithPassword (never a magic-link/OAuth redirect), and the app uses
+// HashRouter, so leaving it on would mean every route change gets scanned as
+// a possible auth redirect for no reason.
+export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
+})
 
 // The Edge Function that creates a student's account (name + PIN, no email
 // needed). Runs with the service role key server-side, never in the browser.

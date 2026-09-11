@@ -1,13 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 export type LandingTheme = 'light' | 'dark'
 
 const STORAGE_KEY = 'landing-theme'
-
-function systemPreference(): LandingTheme {
-  if (typeof window === 'undefined' || !window.matchMedia) return 'dark'
-  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'
-}
+const DEFAULT_THEME: LandingTheme = 'light'
 
 function readStored(): LandingTheme | null {
   try {
@@ -19,21 +15,15 @@ function readStored(): LandingTheme | null {
 }
 
 /**
- * Landing-page-only theme state. Deliberately not global: every other route
- * (quiz, portals, admin) has no toggle and always renders the app's plain
- * dark tokens, so this never touches <html>/<body> - callers apply it via
- * data-landing-theme on the page's own wrapper element instead.
+ * Landing-page-only theme state, defaulting to light regardless of the
+ * visitor's OS preference (only an explicit toggle click overrides it).
+ * Deliberately not global: every other route (quiz, portals, admin) has no
+ * toggle and always renders the app's plain dark tokens, so this never
+ * touches <html>/<body> - callers apply it via data-landing-theme on the
+ * page's own wrapper element instead.
  */
 export function useLandingTheme() {
-  const [theme, setTheme] = useState<LandingTheme>(() => readStored() ?? systemPreference())
-
-  useEffect(() => {
-    if (readStored()) return // user already made an explicit choice, don't override it
-    const mql = window.matchMedia('(prefers-color-scheme: light)')
-    const onChange = (e: MediaQueryListEvent) => setTheme(e.matches ? 'light' : 'dark')
-    mql.addEventListener('change', onChange)
-    return () => mql.removeEventListener('change', onChange)
-  }, [])
+  const [theme, setTheme] = useState<LandingTheme>(() => readStored() ?? DEFAULT_THEME)
 
   const toggle = () => {
     setTheme((current) => {

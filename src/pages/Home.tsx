@@ -16,9 +16,7 @@ import CountUp from '../components/CountUp'
 import HeroCarousel, { type HeroSlide } from '../components/HeroCarousel'
 import QuizFeatureIntro from '../components/QuizFeatureIntro'
 import DashboardPreview from '../components/DashboardPreview'
-import ThemeToggle from '../components/ThemeToggle'
 import Reveal, { RevealStagger, RevealItem } from '../components/Reveal'
-import { useLandingTheme } from '../lib/landingTheme'
 import { playClick } from '../lib/sound'
 
 const slides: HeroSlide[] = [
@@ -55,7 +53,6 @@ const slides: HeroSlide[] = [
 
 export default function Home() {
   const [stats, setStats] = useState({ questions: 0, sets: 0, games: 0, kids: 0 })
-  const { theme, toggle } = useLandingTheme()
 
   useEffect(() => {
     ensureSeedData().then(async () => {
@@ -70,26 +67,22 @@ export default function Home() {
   }, [])
 
   return (
-    <div data-landing-theme={theme} className="lp-page full-bleed relative space-y-0 pb-10">
-      <div className="fixed bottom-5 right-4 z-30 sm:bottom-6 sm:right-6">
-        <ThemeToggle theme={theme} onToggle={toggle} />
-      </div>
-
+    <div className="lp-page full-bleed relative space-y-0 pb-10">
       {/* ---------- hero ---------- */}
       <HeroCarousel slides={slides} />
 
       {/* ---------- stats ---------- */}
       <div className="mx-auto -mt-10 w-full max-w-6xl px-4">
         <div className="lp-stat-strip grid-cols-4">
-          <StatCell label="Questions" value={stats.questions} />
-          <StatCell label="Question Sets" value={stats.sets} />
-          <StatCell label="Matches Played" value={stats.games} />
-          <StatCell label="Kids" value={stats.kids} />
+          <StatCell label="Questions" value={stats.questions} accent="var(--lp-accent-questions)" />
+          <StatCell label="Question Sets" value={stats.sets} accent="var(--lp-accent-seasons)" />
+          <StatCell label="Matches Played" value={stats.games} accent="var(--lp-accent-compete)" />
+          <StatCell label="Kids" value={stats.kids} accent="var(--lp-accent-anthem)" />
         </div>
       </div>
 
       {/* ---------- flagship feature: the quiz, demonstrated ---------- */}
-      <div className="lp-band full-bleed mt-16 px-4 py-16 sm:py-24">
+      <div className="lp-band lp-blob-bg full-bleed mt-16 px-4 py-16 sm:py-24">
         <div className="mx-auto max-w-6xl">
           <div className="grid items-center gap-10 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
             <Reveal direction="left">
@@ -103,7 +96,7 @@ export default function Home() {
                 teacher builds.
               </p>
               <div className="mt-7 flex flex-wrap items-center gap-3">
-                <Link to="/setup" onClick={() => playClick()} className="btn-solid !px-6 !py-3 !text-[15px]">
+                <Link to="/setup" onClick={() => playClick()} className="lp-btn-solid !px-6 !py-3 !text-[15px]">
                   Host a Match
                 </Link>
                 <Link
@@ -123,7 +116,7 @@ export default function Home() {
       </div>
 
       {/* ---------- what we do ---------- */}
-      <div className="lp-band-alt full-bleed px-4 py-16 sm:py-20">
+      <div className="lp-band-alt lp-blob-bg full-bleed px-4 py-16 sm:py-20" style={{ ['--lp-blob-accent-2' as string]: 'var(--lp-accent-seasons)' }}>
         <div className="mx-auto max-w-6xl">
           <Reveal>
             <p className="lp-eyebrow">A Children&apos;s Ministry Feature</p>
@@ -199,7 +192,7 @@ export default function Home() {
             <DashboardPreview />
           </RevealStagger>
           <Reveal delay={0.1} className="mt-9 text-center">
-            <Link to="/join" onClick={() => playClick()} className="btn-solid !px-7 !py-3.5 !text-base">
+            <Link to="/join" onClick={() => playClick()} className="lp-btn-solid !px-7 !py-3.5 !text-base">
               Apply as a Kid
             </Link>
           </Reveal>
@@ -317,10 +310,10 @@ export default function Home() {
             Kids join a class in under a minute. Teachers apply and the admin reviews it from the Control Centre.
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-            <Link to="/join" onClick={() => playClick()} className="btn-solid !px-7 !py-3.5 !text-base">
+            <Link to="/join" onClick={() => playClick()} className="hero-btn-solid !px-7 !py-3.5 !text-base uppercase">
               Apply as a Kid
             </Link>
-            <Link to="/teacher" onClick={() => playClick()} className="btn-outline !px-7 !py-3.5 !text-base">
+            <Link to="/teacher" onClick={() => playClick()} className="hero-btn-outline !px-7 !py-3.5 !text-base uppercase">
               Apply to Teach
             </Link>
           </div>
@@ -363,12 +356,16 @@ function InstitutionalBand({
       className={`full-bleed scroll-mt-20 px-4 py-16 sm:py-20 ${deep ? 'lp-band-deep' : alt ? 'lp-band-alt' : 'lp-band'}`}
     >
       <div className="mx-auto max-w-6xl">
-        <div className={`grid items-center gap-8 sm:grid-cols-[1fr_1.2fr] sm:gap-12 ${imageFirst ? '' : 'sm:[&>*:first-child]:order-2'}`}>
+        <div className={`grid items-center gap-3 sm:grid-cols-[1fr_1.2fr] sm:gap-4 ${imageFirst ? '' : 'sm:[&>*:first-child]:order-2'}`}>
           <Reveal direction={imageFirst ? 'left' : 'right'}>
             {image ? (
-              <img src={image} alt={imageAlt ?? ''} className="aspect-[4/3] w-full rounded-2xl border border-[var(--lp-hairline-strong)] object-cover shadow-[var(--lp-shadow-card)]" />
+              <img
+                src={image}
+                alt={imageAlt ?? ''}
+                className={`aspect-[4/3] w-full object-cover sm:aspect-[5/4] ${imageFirst ? 'lp-bleed-photo-left' : 'lp-bleed-photo-right'}`}
+              />
             ) : (
-              <div className="crest-badge aspect-[4/3] w-full" />
+              <div className="crest-badge aspect-[4/3] w-full rounded-2xl" />
             )}
           </Reveal>
           <Reveal direction={imageFirst ? 'right' : 'left'} delay={0.08}>
@@ -382,9 +379,9 @@ function InstitutionalBand({
   )
 }
 
-function StatCell({ label, value }: { label: string; value: number }) {
+function StatCell({ label, value, accent }: { label: string; value: number; accent: string }) {
   return (
-    <div className="lp-stat-cell">
+    <div className="lp-stat-cell" style={{ ['--card-accent' as string]: accent }}>
       <div className="lp-stat-value">
         <CountUp value={value} durationMs={900} />
       </div>

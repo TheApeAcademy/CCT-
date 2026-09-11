@@ -26,7 +26,7 @@ export default function SplashScreen({ ready, onDone }: { ready: boolean; onDone
       <img
         src="/children-ministry-logo-splash.png"
         alt="MFM Children's Ministry"
-        className="animate-number-pop h-48 w-48 object-contain drop-shadow-[0_12px_32px_rgba(0,0,0,0.5)] sm:h-56 sm:w-56"
+        className="animate-number-pop h-64 w-64 object-contain drop-shadow-[0_12px_32px_rgba(0,0,0,0.5)] sm:h-72 sm:w-72"
       />
       <p className="font-display text-xl font-bold tracking-wide text-[var(--gold)] sm:text-2xl">MFM Children's Ministry Bible Quiz</p>
       <div className="flex gap-2">

@@ -5,6 +5,8 @@ import { setMuted, isMuted, playToggle, playNav, playClick } from '../lib/sound'
 import { haptics } from '../lib/haptics'
 import StageBackground from './StageBackground'
 import SiteFooter from './SiteFooter'
+import ThemeToggle from './ThemeToggle'
+import { useLandingTheme } from '../lib/landingTheme'
 
 const MFM_LIVE_URL = 'https://www.mountainoffire.org/live'
 
@@ -51,6 +53,11 @@ export default function Layout() {
   const navRef = useRef<HTMLDivElement>(null)
   const location = useLocation()
   const isHome = location.pathname === '/'
+  // Theme state lives here (not in Home) so the toggle can sit in the shared
+  // navbar - only actually applied (via data-landing-theme below) while on
+  // the landing page itself; every other route stays on the app's plain
+  // dark tokens regardless of what this holds.
+  const { theme, toggle: toggleTheme } = useLandingTheme()
   // Home gets a transparent header floating over the full-bleed hero photo,
   // matching mountainoffire.org — no separate solid bar pushing the image
   // down. It solidifies once scrolled so nav stays legible over page content
@@ -95,7 +102,7 @@ export default function Layout() {
   }
 
   return (
-    <div className="relative min-h-screen text-white">
+    <div data-landing-theme={isHome ? theme : undefined} className="relative min-h-screen text-white">
       <StageBackground />
       <header
         className={`fixed inset-x-0 top-0 z-40 transition-colors duration-300 ${
@@ -103,13 +110,12 @@ export default function Layout() {
         }`}
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-          <NavLink to="/" className="flex min-w-0 shrink-0 items-center gap-2.5">
-            <img src="/children-ministry-seal.png" alt="" className="h-12 w-12 shrink-0 object-contain sm:h-14 sm:w-14" />
-            <span className="hidden truncate font-display text-[0.95rem] font-extrabold leading-tight tracking-tight sm:block">
-              MFM Children&apos;s
-              <br />
-              Ministry
-            </span>
+          <NavLink to="/" className="flex min-w-0 shrink-0 items-center">
+            <img
+              src="/children-ministry-logo-splash.png"
+              alt="MFM Children's Ministry"
+              className="h-16 w-auto shrink-0 object-contain sm:h-20"
+            />
           </NavLink>
 
           <nav ref={navRef} className="hidden flex-1 items-center gap-1 md:flex">
@@ -183,6 +189,8 @@ export default function Layout() {
               Join
             </NavLink>
 
+            {isHome && <ThemeToggle theme={theme} onToggle={toggleTheme} />}
+
             <button
               onClick={toggleMute}
               className="btn-outline !border-0 !bg-transparent p-2 text-base"
@@ -249,7 +257,7 @@ export default function Layout() {
           </div>
         </nav>
       </header>
-      <main className={`relative z-10 mx-auto max-w-6xl px-4 pb-6 ${isHome ? 'pt-0' : 'pt-[5.5rem]'}`}>
+      <main className={`relative z-10 mx-auto max-w-6xl px-4 pb-6 ${isHome ? 'pt-0' : 'pt-24 sm:pt-28'}`}>
         <div key={location.pathname} className="animate-page-in">
           <Outlet />
         </div>

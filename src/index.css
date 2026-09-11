@@ -487,9 +487,9 @@ button:active, a:active {
    bands get soft radial glows only, no conic gradients. */
 .stage-glow {
   background:
-    radial-gradient(ellipse 60% 120% at 8% 0%, rgba(232, 185, 35, 0.16), transparent 60%),
-    radial-gradient(ellipse 50% 100% at 100% 100%, rgba(232, 185, 35, 0.12), transparent 65%),
-    linear-gradient(180deg, #221537 0%, #170c29 50%, #0e0619 100%);
+    radial-gradient(ellipse 60% 120% at 8% 0%, rgba(232, 185, 35, 0.14), transparent 60%),
+    radial-gradient(ellipse 55% 110% at 100% 100%, rgba(200, 45, 190, 0.32), transparent 65%),
+    linear-gradient(155deg, #1b0930 0%, #3d1259 40%, #6d1b8f 75%, #170c29 100%);
 }
 
 /* Each slide carries its own photo now (was one shared background for every
@@ -598,9 +598,14 @@ button:active, a:active {
 
 /* Header nav CTAs (Live/Join) - same purple-accent family as the hero,
    replacing the gold buttons the rest of the app still uses everywhere
-   else, matching mountainoffire.org's LIVE (solid) / GIVE (outline) pair. */
+   else, matching mountainoffire.org's LIVE (solid) / GIVE (outline) pair.
+   display deliberately NOT set here - every usage already carries its own
+   Tailwind display utility (hidden/sm:inline-flex or inline-flex) in the
+   JSX, and this file's plain CSS sits outside Tailwind's utility layer, so
+   a display set here would always win cascade ties and silently defeat
+   the responsive "hidden" utility (see .hero-arrow above for the same
+   lesson learned the hard way). */
 .nav-cta-solid {
-  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
@@ -617,7 +622,6 @@ button:active, a:active {
   transform: scale(0.97);
 }
 .nav-cta-outline {
-  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
@@ -647,8 +651,9 @@ button:active, a:active {
   --lp-radius-feature: 24px;
   --lp-radius-pill: 999px;
   --lp-shadow-card: 0 16px 40px -20px rgba(20, 8, 40, 0.35);
-  --lp-accent-fill: #e8b923;
-  --lp-accent-fill-ink: #1b1030;
+  --lp-accent-fill: var(--hero-accent);
+  --lp-accent-fill-hover: var(--hero-accent-hover);
+  --lp-accent-fill-ink: #ffffff;
 
   --lp-accent-compete: #e8b923;
   --lp-accent-training: #2fb8a6;
@@ -678,7 +683,7 @@ button:active, a:active {
   --lp-body: rgba(237, 233, 246, 0.8);
   --lp-muted: rgba(237, 233, 246, 0.62);
   --lp-faint: rgba(237, 233, 246, 0.4);
-  --lp-accent-text: #e8b923;
+  --lp-accent-text: #e078e0;
   --lp-band-deep-heading: #ffffff;
   --lp-band-deep-body: rgba(237, 233, 246, 0.8);
 }
@@ -696,7 +701,7 @@ button:active, a:active {
   --lp-body: rgba(28, 16, 48, 0.78);
   --lp-muted: rgba(28, 16, 48, 0.6);
   --lp-faint: rgba(28, 16, 48, 0.42);
-  --lp-accent-text: #8a5b00;
+  --lp-accent-text: #9c2bb0;
   --lp-band-deep-heading: #ffffff;
   --lp-band-deep-body: rgba(237, 233, 246, 0.82);
 }
@@ -730,7 +735,10 @@ button:active, a:active {
   background: var(--lp-bg-raised);
 }
 .lp-band-deep {
-  background: linear-gradient(180deg, var(--lp-bg-deep) 0%, #170c29 100%);
+  background:
+    radial-gradient(ellipse 70% 100% at 85% 0%, rgba(255, 105, 210, 0.22), transparent 60%),
+    radial-gradient(ellipse 60% 90% at 8% 100%, rgba(156, 43, 176, 0.3), transparent 65%),
+    linear-gradient(155deg, #1b0930 0%, #3d1259 45%, #6d1b8f 80%, #8f2496 100%);
   color: var(--lp-band-deep-body);
 }
 .lp-band-deep .lp-heading {
@@ -745,16 +753,28 @@ button:active, a:active {
   border: 1px solid var(--lp-hairline);
   border-radius: var(--lp-radius-card);
   box-shadow: var(--lp-shadow-card);
+  color: var(--lp-body);
+}
+/* A card can float on a .lp-band-deep background (e.g. the dashboard
+   preview tiles inside "Once You Join a Class") while staying its own
+   theme-coloured surface - re-assert normal heading/eyebrow colour so the
+   deep band's white-text override above doesn't bleed onto text sitting on
+   a light card, which would go white-on-white in light mode. */
+.lp-panel .lp-heading {
+  color: var(--lp-heading);
+}
+.lp-panel .lp-eyebrow {
+  color: var(--lp-accent-text);
 }
 .lp-panel-interactive {
-  transition: transform 0.18s ease, border-color 0.18s ease, background-color 0.18s ease;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.18s ease, background-color 0.18s ease;
 }
 .lp-panel-interactive:hover {
-  transform: translateY(-3px);
+  transform: translateY(-5px) rotate(-0.75deg) scale(1.015);
   border-color: var(--card-accent, var(--lp-hairline-strong));
 }
 .lp-panel-interactive:active {
-  transform: translateY(-1px) scale(0.99);
+  transform: translateY(-1px) scale(0.98);
 }
 
 .lp-stat-strip {
@@ -766,27 +786,86 @@ button:active, a:active {
   overflow: hidden;
 }
 .lp-stat-cell {
-  padding: 1.1rem 0.75rem;
+  position: relative;
+  padding: 1.25rem 0.75rem;
   text-align: center;
   border-left: 1px solid var(--lp-hairline);
 }
 .lp-stat-cell:first-child {
   border-left: none;
 }
+.lp-stat-cell::after {
+  content: '';
+  position: absolute;
+  bottom: 0.55rem;
+  left: 50%;
+  width: 26px;
+  height: 4px;
+  border-radius: 999px;
+  transform: translateX(-50%);
+  background: var(--card-accent, var(--lp-accent-fill));
+}
 .lp-stat-value {
   font-family: var(--font-display);
-  font-size: 1.6rem;
+  font-size: 2rem;
   font-weight: 800;
-  color: var(--lp-heading);
+  color: var(--card-accent, var(--lp-heading));
   line-height: 1.1;
 }
 .lp-stat-label {
-  margin-top: 0.2rem;
+  margin-top: 0.35rem;
+  padding-bottom: 0.5rem;
   font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--lp-faint);
+}
+
+/* Institutional band photos: no card box, no border - the edge facing the
+   text column softly fades to transparent (revealing the band's own
+   background) instead of ending in a hard rectangle, so the photo reads as
+   bleeding into the page rather than sitting in a floating card. */
+.lp-bleed-photo-left {
+  border-radius: 22px 0 0 22px;
+  -webkit-mask-image: linear-gradient(to right, black 72%, transparent 100%);
+  mask-image: linear-gradient(to right, black 72%, transparent 100%);
+}
+.lp-bleed-photo-right {
+  border-radius: 0 22px 22px 0;
+  -webkit-mask-image: linear-gradient(to left, black 72%, transparent 100%);
+  mask-image: linear-gradient(to left, black 72%, transparent 100%);
+}
+
+/* Soft blurred colour blobs for a couple of key sections - tasteful
+   background energy (not clipart), contained to that section only. */
+.lp-blob-bg {
+  position: relative;
+  overflow: hidden;
+}
+.lp-blob-bg::before,
+.lp-blob-bg::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  border-radius: 999px;
+  filter: blur(70px);
+  pointer-events: none;
+  opacity: 0.3;
+}
+.lp-blob-bg::before {
+  top: -12%;
+  right: -6%;
+  width: 22rem;
+  height: 22rem;
+  background: var(--hero-accent);
+}
+.lp-blob-bg::after {
+  bottom: -18%;
+  left: -8%;
+  width: 18rem;
+  height: 18rem;
+  background: var(--lp-blob-accent-2, var(--lp-accent-training));
 }
 
 .lp-btn-solid {
@@ -802,10 +881,11 @@ button:active, a:active {
   transition: background-color 0.15s ease, transform 0.1s ease;
 }
 .lp-btn-solid:hover {
-  background: #f2c94c;
+  background: var(--lp-accent-fill-hover);
+  transform: translateY(-2px) scale(1.03);
 }
 .lp-btn-solid:active {
-  transform: scale(0.97);
+  transform: scale(0.96);
 }
 
 .lp-btn-outline {
@@ -828,20 +908,21 @@ button:active, a:active {
 
 .lp-icon-chip {
   display: inline-flex;
-  height: 2.5rem;
-  width: 2.5rem;
+  height: 2.75rem;
+  width: 2.75rem;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  border-radius: 12px;
+  border-radius: 14px;
   color: var(--card-accent, var(--lp-accent-fill));
-  background: color-mix(in srgb, var(--card-accent, var(--lp-accent-fill)) 14%, transparent);
-  border: 1px solid color-mix(in srgb, var(--card-accent, var(--lp-accent-fill)) 30%, transparent);
-  transition: background-color 0.18s ease, color 0.18s ease;
+  background: color-mix(in srgb, var(--card-accent, var(--lp-accent-fill)) 16%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--card-accent, var(--lp-accent-fill)) 35%, transparent);
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .lp-panel-interactive:hover .lp-icon-chip {
   background: var(--card-accent, var(--lp-accent-fill));
   color: var(--lp-accent-fill-ink);
+  transform: rotate(-8deg) scale(1.08);
 }
 
 .lp-theme-toggle {
@@ -862,6 +943,19 @@ button:active, a:active {
 }
 .lp-theme-toggle:active {
   transform: scale(0.93);
+}
+@keyframes lp-theme-icon-pop {
+  from {
+    transform: rotate(-90deg) scale(0.6);
+    opacity: 0;
+  }
+  to {
+    transform: rotate(0deg) scale(1);
+    opacity: 1;
+  }
+}
+.lp-theme-toggle-icon {
+  animation: lp-theme-icon-pop 0.25s ease-out;
 }
 
 /* A deliberate, designed stand-in for a photo that doesn't exist yet -

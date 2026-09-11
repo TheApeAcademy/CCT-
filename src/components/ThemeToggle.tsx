@@ -1,9 +1,12 @@
 import { Sun, Moon } from 'lucide-react'
-import { motion } from 'framer-motion'
 import type { LandingTheme } from '../lib/landingTheme'
 import { playToggle } from '../lib/sound'
 import { haptics } from '../lib/haptics'
 
+// Plain CSS animation, not framer-motion - this renders from Layout.tsx,
+// which every route (including the offline quiz) loads eagerly, so it must
+// stay dependency-free. framer-motion/gsap stay scoped to Home's own lazy
+// chunk (HeroCarousel, Reveal, QuizFeatureIntro).
 export default function ThemeToggle({
   theme,
   onToggle,
@@ -25,15 +28,9 @@ export default function ThemeToggle({
       aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
       title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
     >
-      <motion.span
-        key={theme}
-        initial={{ rotate: -90, opacity: 0, scale: 0.6 }}
-        animate={{ rotate: 0, opacity: 1, scale: 1 }}
-        transition={{ duration: 0.25, ease: 'easeOut' }}
-        className="flex items-center justify-center"
-      >
+      <span key={theme} className="lp-theme-toggle-icon flex items-center justify-center">
         {theme === 'dark' ? <Sun className="h-4 w-4" strokeWidth={2} /> : <Moon className="h-4 w-4" strokeWidth={2} />}
-      </motion.span>
+      </span>
     </button>
   )
 }

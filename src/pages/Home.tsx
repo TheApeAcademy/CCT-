@@ -178,13 +178,14 @@ export default function Home() {
         <div className="mx-auto max-w-6xl">
           <Reveal className="text-center">
             <p className="lp-eyebrow justify-center" style={{ ['--card-accent' as string]: 'var(--lp-accent-leaderboard)' }}>
-              Once You Join a Class
+              From the Moment You Sign Up
             </p>
             <h2 className="lp-heading mt-2 text-balance font-display text-3xl font-extrabold sm:text-5xl">
               A dashboard that&apos;s actually theirs
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed sm:text-lg" style={{ color: 'var(--lp-band-deep-body)' }}>
-              Every kid who joins a class gets their own home base. Here&apos;s a look at what&apos;s waiting inside.
+              Every kid gets their own home base the moment they sign up &mdash; no class code needed. Here&apos;s a
+              look at what&apos;s waiting inside.
             </p>
           </Reveal>
         </div>

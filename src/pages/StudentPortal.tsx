@@ -76,9 +76,12 @@ export default function StudentPortal() {
           <User className="h-6 w-6" strokeWidth={1.75} />
         </span>
         <h1 className="font-display text-2xl font-extrabold sm:text-3xl">Kids&apos; Dashboard</h1>
-        <p className="text-sm text-[var(--ink-muted)]">You need to join your class first to get your own dashboard.</p>
+        <p className="text-sm text-[var(--ink-muted)]">
+          Sign up with just your name and a passcode to get your own dashboard &mdash; no class code needed. Your
+          teacher will add you to your class once you&apos;re in.
+        </p>
         <Link to="/join" className="btn-solid inline-flex">
-          Join My Class
+          Sign Up
         </Link>
       </div>
     )
@@ -148,7 +151,17 @@ function Dashboard() {
       {tab === 'bible' && <BibleTab />}
       {tab === 'leaderboard' && <LeaderboardTab myId={student?.id ?? null} />}
       {tab === 'profile' && student && <ProfileTab student={student} klass={klass} onSaved={load} />}
-      {tab === 'messages' && klass && <MessagesTab teacherId={klass.teacher_id} teacherName={klass.teacher_name} />}
+      {tab === 'messages' &&
+        (klass ? (
+          <MessagesTab teacherId={klass.teacher_id} teacherName={klass.teacher_name} />
+        ) : (
+          <div className="panel p-6 text-center">
+            <p className="font-display text-lg font-bold">No teacher yet</p>
+            <p className="mt-1 text-sm text-[var(--ink-muted)]">
+              Once your teacher adds you to their class, you&apos;ll be able to message them here.
+            </p>
+          </div>
+        ))}
       {tab === 'ears' && <EarsTab klass={klass} />}
     </div>
   )

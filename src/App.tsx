@@ -145,7 +145,7 @@ function App() {
               }
             />
           </Route>
-          <Route path="join" element={<PortalShell eyebrow="Join Your Class" />}>
+          <Route path="join" element={<PortalShell eyebrow="Create Your Account" />}>
             <Route
               index
               element={

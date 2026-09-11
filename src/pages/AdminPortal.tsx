@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { ShieldCheck, FileText, School, CalendarRange, Users, Check, X, BookOpen, ArrowLeft } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { ShieldCheck, FileText, School, CalendarRange, Users, Check, X, BookOpen, ArrowLeft, Gamepad2, Trophy, type LucideIcon } from 'lucide-react'
 import { signOut } from '../lib/supabase'
 import { useMinistryAuth } from '../lib/useMinistryAuth'
 import AuthCard from '../components/ui/AuthCard'
@@ -68,7 +69,7 @@ function NotAuthorized() {
   )
 }
 
-type Tab = 'applications' | 'classes' | 'seasons' | 'bible' | 'admins'
+type Tab = 'applications' | 'classes' | 'seasons' | 'quiz' | 'bible' | 'admins'
 
 function AdminDashboard() {
   const [tab, setTab] = useState<Tab>('applications')
@@ -92,6 +93,7 @@ function AdminDashboard() {
           { value: 'applications', label: 'Teacher Applications', icon: FileText },
           { value: 'classes', label: 'All Classes', icon: School },
           { value: 'seasons', label: 'Seasons', icon: CalendarRange },
+          { value: 'quiz', label: 'Quiz', icon: Gamepad2 },
           { value: 'bible', label: 'Bible Plans', icon: BookOpen },
           { value: 'admins', label: 'Admins', icon: Users },
         ]}
@@ -100,9 +102,31 @@ function AdminDashboard() {
       {tab === 'applications' && <ApplicationsTab />}
       {tab === 'classes' && <ClassesTab />}
       {tab === 'seasons' && <SeasonsTab />}
+      {tab === 'quiz' && <QuizTab />}
       {tab === 'bible' && <BiblePlansTab />}
       {tab === 'admins' && <AdminsTab />}
     </div>
+  )
+}
+
+function QuizTab() {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2">
+      <QuizLink to="/questions" icon={BookOpen} title="Question Bank" description="Oversee every trivia question and set across the ministry." />
+      <QuizLink to="/history" icon={Trophy} title="History" description="Every completed match, team score, and full recap." />
+    </div>
+  )
+}
+
+function QuizLink({ to, icon: Icon, title, description }: { to: string; icon: LucideIcon; title: string; description: string }) {
+  return (
+    <Link to={to} onClick={() => playClick()} className="panel panel-interactive flex flex-col gap-2 p-5">
+      <span className="flex h-10 w-10 items-center justify-center rounded-md border border-[var(--hairline-strong)] text-[var(--gold)]">
+        <Icon className="h-5 w-5" strokeWidth={1.75} />
+      </span>
+      <p className="font-display text-lg font-bold">{title}</p>
+      <p className="text-sm text-[var(--ink-muted)]">{description}</p>
+    </Link>
   )
 }
 

@@ -31,7 +31,7 @@ export default function AchievementsFeatureIntro() {
   }, [unlocked, reduced])
 
   return (
-    <div className="lp-band-alt full-bleed px-4 py-16 sm:py-24">
+    <div className="lp-band-tinted full-bleed px-4 py-16 sm:py-24" style={{ ['--card-accent' as string]: 'var(--lp-accent-achievements)' }}>
       <div className="mx-auto max-w-6xl">
         <div className="grid items-center gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
           <Reveal direction="left">

@@ -667,6 +667,7 @@ button:active, a:active {
   --lp-accent-bible: #e0793f;
   --lp-accent-achievements: #b56bd9;
   --lp-accent-ears: #4f9ce8;
+  --lp-accent-class: #4caf6d;
 
   transition: background-color 0.35s ease, color 0.35s ease;
 }
@@ -894,6 +895,37 @@ button:active, a:active {
   width: 18rem;
   height: 18rem;
   background: var(--lp-blob-accent-2, var(--lp-accent-training));
+}
+
+/* Each feature-intro section washes its own accent colour top-to-bottom
+   instead of sitting on the same flat white/lavender as every other band -
+   the difference reads instantly while scrolling, not just in the small
+   eyebrow/icon chips. Fades out by mid-section so body copy and cards keep
+   full contrast. --card-accent is set per instance, same token every
+   section already carries for its eyebrow/icons. */
+.lp-band-tinted {
+  background:
+    radial-gradient(ellipse 85% 55% at 12% -5%, color-mix(in srgb, var(--card-accent, var(--lp-accent-fill)) 20%, transparent), transparent 62%),
+    radial-gradient(ellipse 65% 50% at 105% 105%, color-mix(in srgb, var(--card-accent, var(--lp-accent-fill)) 13%, transparent), transparent 60%),
+    var(--lp-bg);
+}
+/* A quieter version for sections that should stay calm (Ears For You) -
+   still a whisper of colour so it doesn't look unfinished next to its
+   louder neighbours, without competing for energy. */
+.lp-band-tinted-soft {
+  background: radial-gradient(ellipse 70% 60% at 50% 0%, color-mix(in srgb, var(--card-accent, var(--lp-accent-fill)) 9%, transparent), transparent 68%), var(--lp-bg);
+}
+
+/* A second display voice for the calmer sections (Bible, Ears For You) -
+   the clean geometric grotesk already used for the hero, standing in
+   deliberate contrast to Baloo 2's bounce on the higher-energy sections
+   (Quiz, Class, Leaderboard, Achievements). Same pairing logic as the
+   hero: distinct typefaces marking distinct emotional registers, not
+   variety for its own sake. */
+.lp-heading-calm {
+  font-family: 'Poppins', var(--font-body);
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 .lp-btn-solid {

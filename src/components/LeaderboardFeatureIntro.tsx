@@ -37,7 +37,7 @@ export default function LeaderboardFeatureIntro() {
   const reduced = useReducedMotion()
 
   return (
-    <div className="lp-band-alt lp-blob-bg full-bleed px-4 py-16 sm:py-24" style={{ ['--lp-blob-accent-2' as string]: 'var(--lp-accent-leaderboard)' }}>
+    <div className="lp-band-tinted full-bleed px-4 py-16 sm:py-24" style={{ ['--card-accent' as string]: 'var(--lp-accent-leaderboard)' }}>
       <div className="mx-auto max-w-6xl">
         <div className="grid items-center gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
           <Reveal direction="left">

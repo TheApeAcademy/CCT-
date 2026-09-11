@@ -10,41 +10,64 @@ const SAMPLE_QUESTIONS = [
   { q: 'Who led the Israelites out of Egypt?', options: ['Joshua', 'Moses', 'Aaron', 'Samuel'], correct: 1 },
 ]
 
-const PHASE_MS = { question: 1100, selected: 700, revealed: 1400 } as const
+// A visitor who taps gets an immediate response; one who just scrolls past
+// still sees the demo play itself out after a short idle window, so the
+// section is never frozen waiting on an interaction that never comes.
+const AUTO_TAP_MS = 4200
+const REVEAL_MS = 1500
 
 /**
- * A self-playing preview of what the actual quiz feels like - question,
- * an answer getting picked, the reveal, the score ticking up - so a
- * visitor sees the feature before ever entering it (design spec's Quiz
- * Introduction model). Purely presentational: no real scoring, no link
- * to the live question bank.
+ * A tap-to-answer preview of what the actual quiz feels like (design
+ * spec's Quiz Introduction model: tap an answer, get an immediate visual
+ * response, see it revealed, watch the score move). Purely presentational
+ * - no real scoring, no link to the live question bank.
  */
 export default function QuizFeatureIntro() {
   const reduced = useReducedMotion()
   const [qIndex, setQIndex] = useState(0)
   const [phase, setPhase] = useState<Phase>('question')
+  const [picked, setPicked] = useState<number | null>(null)
   const [score, setScore] = useState(0)
 
   const current = SAMPLE_QUESTIONS[qIndex]
 
+  const answer = (i: number) => {
+    if (phase !== 'question') return
+    setPicked(i)
+    setPhase('selected')
+  }
+
   useEffect(() => {
+    if (phase !== 'question') return
     if (reduced) {
       setPhase('revealed')
       return
     }
-    const delay = PHASE_MS[phase]
+    // Nobody tapped - the demo answers for itself so the preview keeps moving.
+    const t = window.setTimeout(() => answer(current.correct), AUTO_TAP_MS)
+    return () => window.clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, qIndex, reduced])
+
+  useEffect(() => {
+    if (phase !== 'selected') return
     const t = window.setTimeout(() => {
-      if (phase === 'question') setPhase('selected')
-      else if (phase === 'selected') {
-        setPhase('revealed')
-        setScore((s) => s + 10)
-      } else {
-        const next = (qIndex + 1) % SAMPLE_QUESTIONS.length
-        if (next === 0) setScore(0)
-        setQIndex(next)
-        setPhase('question')
-      }
-    }, delay)
+      setPhase('revealed')
+      setScore((s) => s + 10)
+    }, 500)
+    return () => window.clearTimeout(t)
+  }, [phase])
+
+  useEffect(() => {
+    if (phase !== 'revealed') return
+    if (reduced) return
+    const t = window.setTimeout(() => {
+      const next = (qIndex + 1) % SAMPLE_QUESTIONS.length
+      if (next === 0) setScore(0)
+      setQIndex(next)
+      setPicked(null)
+      setPhase('question')
+    }, REVEAL_MS)
     return () => window.clearTimeout(t)
   }, [phase, qIndex, reduced])
 
@@ -77,30 +100,41 @@ export default function QuizFeatureIntro() {
           className="mt-4"
         >
           <p className="lp-heading text-lg font-bold leading-snug sm:text-xl">{current.q}</p>
+          {phase === 'question' && (
+            <p className="mt-1 text-xs font-semibold text-[var(--lp-faint)]">Tap an answer</p>
+          )}
 
           <div className="mt-4 grid grid-cols-2 gap-2.5">
             {current.options.map((option, i) => {
               const isCorrect = i === current.correct
-              const isSelected = phase !== 'question' && isCorrect
+              const isPicked = i === picked
               const showReveal = phase === 'revealed' && isCorrect
+              const showWrongPick = phase !== 'question' && isPicked && !isCorrect
               return (
-                <motion.div
+                <motion.button
                   key={option}
+                  type="button"
+                  onClick={() => answer(i)}
+                  disabled={phase !== 'question'}
+                  whileTap={reduced || phase !== 'question' ? undefined : { scale: 0.96 }}
                   animate={
                     reduced
                       ? undefined
                       : {
-                          scale: isSelected && phase === 'selected' ? 1.03 : 1,
-                          borderColor: showReveal ? 'var(--lp-accent-training)' : undefined,
+                          scale: isPicked && phase === 'selected' ? 1.03 : 1,
                         }
                   }
                   transition={{ duration: 0.25 }}
-                  className={`flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-sm font-semibold transition-colors ${
+                  className={`flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
+                    phase === 'question' ? 'cursor-pointer hover:border-[var(--lp-accent-compete)]' : 'cursor-default'
+                  } ${
                     showReveal
                       ? 'border-[var(--lp-accent-training)] bg-[color-mix(in_srgb,var(--lp-accent-training)_14%,transparent)] text-[var(--lp-heading)]'
-                      : isSelected
-                        ? 'border-[var(--lp-accent-compete)] text-[var(--lp-heading)]'
-                        : 'border-[var(--lp-hairline)] text-[var(--lp-body)]'
+                      : showWrongPick
+                        ? 'border-[#e0576b] bg-[color-mix(in_srgb,#e0576b_12%,transparent)] text-[var(--lp-heading)]'
+                        : isPicked
+                          ? 'border-[var(--lp-accent-compete)] text-[var(--lp-heading)]'
+                          : 'border-[var(--lp-hairline)] text-[var(--lp-body)]'
                   }`}
                 >
                   {option}
@@ -114,7 +148,7 @@ export default function QuizFeatureIntro() {
                       <Check className="h-3 w-3" strokeWidth={3} />
                     </motion.span>
                   )}
-                </motion.div>
+                </motion.button>
               )
             })}
           </div>

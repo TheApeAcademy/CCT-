@@ -14,6 +14,7 @@ import {
 import HeroCarousel, { type HeroSlide } from '../components/HeroCarousel'
 import QuizFeatureIntro from '../components/QuizFeatureIntro'
 import BibleFeatureIntro from '../components/BibleFeatureIntro'
+import ClassFeatureIntro from '../components/ClassFeatureIntro'
 import LeaderboardFeatureIntro from '../components/LeaderboardFeatureIntro'
 import AchievementsFeatureIntro from '../components/AchievementsFeatureIntro'
 import EarsForYouFeatureIntro from '../components/EarsForYouFeatureIntro'
@@ -188,6 +189,9 @@ export default function Home() {
       {/* ---------- bible: calm, meaningful contrast to the quiz ---------- */}
       <BibleFeatureIntro />
 
+      {/* ---------- class: belonging, learning, community ---------- */}
+      <ClassFeatureIntro />
+
       {/* ---------- leaderboard: celebratory, high energy ---------- */}
       <LeaderboardFeatureIntro />
 
@@ -197,61 +201,26 @@ export default function Home() {
       {/* ---------- ears for you: deliberately the quietest section ---------- */}
       <EarsForYouFeatureIntro />
 
-      {/* ---------- how it works: your class, your journey ---------- */}
-      <div className="lp-band full-bleed px-4 py-16 sm:py-20">
-        <div className="mx-auto max-w-6xl">
-          <Reveal className="flex flex-col items-start gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="lp-eyebrow" style={{ ['--card-accent' as string]: 'var(--lp-accent-transition)' }}>
-                Your Class, Your People
-              </p>
-              <h2 className="lp-heading mt-1 font-display text-2xl font-extrabold sm:text-3xl">From Sign-Up to Sunday</h2>
-            </div>
-            <FloatingArt className="w-24 shrink-0 sm:w-28">
-              <img src="/feature-class.png" alt="" className="w-full drop-shadow-lg" />
-            </FloatingArt>
-          </Reveal>
-          <RevealStagger className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { text: 'Teachers apply for an account; the admin approves them from the Control Centre.', accent: 'var(--lp-accent-transition)' },
-              { text: 'A teacher creates a class and shares its join code or link with their kids.', accent: 'var(--lp-accent-training)' },
-              { text: 'Kids sign up with just their name and a passcode — no email needed.', accent: 'var(--lp-accent-questions)' },
-              {
-                text: 'From their dashboard, kids play the Bible Quiz, climb the leaderboard, and message their teacher.',
-                accent: 'var(--lp-accent-leaderboard)',
-              },
-            ].map(({ text, accent }, i) => (
-              <RevealItem key={i}>
-                <div className="lp-panel lp-panel-accented flex h-full gap-3 p-5" style={{ ['--card-accent' as string]: accent }}>
-                  <span
-                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
-                    style={{ fontFamily: 'Fredoka, var(--font-body)', background: accent }}
-                  >
-                    {i + 1}
-                  </span>
-                  <p className="text-sm leading-relaxed text-[var(--lp-body)]">{text}</p>
-                </div>
-              </RevealItem>
-            ))}
-          </RevealStagger>
-        </div>
-      </div>
-
       {/* ---------- MFM worldwide ---------- */}
       <div id="about" className="lp-band-alt full-bleed scroll-mt-20 px-4 py-16 sm:py-24">
         <div className="mx-auto max-w-6xl">
-          <Reveal>
-            <p className="lp-eyebrow" style={{ ['--card-accent' as string]: 'var(--lp-accent-anthem)' }}>
-              About the Ministry
-            </p>
-            <h2 className="lp-heading mt-3 max-w-2xl text-balance font-display text-3xl font-extrabold leading-[1.05] sm:text-5xl lg:text-6xl">
-              Mountain of Fire and Miracles Ministries
-            </h2>
-            <p className="mt-5 max-w-2xl text-base leading-relaxed text-[var(--lp-body)] sm:text-lg">
-              A full-gospel ministry devoted to revival, holiness, prayer, and deliverance, founded and led by
-              Dr.&nbsp;Daniel Kolawole Olukoya as General Overseer. From its beginnings, MFM has grown into a worldwide
-              ministry with branches across nations, all carrying the same call to prayer and holy living.
-            </p>
+          <Reveal className="flex flex-col-reverse items-center gap-10 sm:flex-row sm:items-center sm:justify-between sm:gap-12">
+            <div className="max-w-2xl">
+              <p className="lp-eyebrow" style={{ ['--card-accent' as string]: 'var(--lp-accent-anthem)' }}>
+                About the Ministry
+              </p>
+              <h2 className="lp-heading mt-3 text-balance font-display text-3xl font-extrabold leading-[1.05] sm:text-5xl lg:text-6xl">
+                Mountain of Fire and Miracles Ministries
+              </h2>
+              <p className="mt-5 text-base leading-relaxed text-[var(--lp-body)] sm:text-lg">
+                A full-gospel ministry devoted to revival, holiness, prayer, and deliverance, founded and led by
+                Dr.&nbsp;Daniel Kolawole Olukoya as General Overseer. From its beginnings, MFM has grown into a worldwide
+                ministry with branches across nations, all carrying the same call to prayer and holy living.
+              </p>
+            </div>
+            <FloatingArt className="w-36 shrink-0 sm:w-48 lg:w-56">
+              <img src="/mfm-logo.png" alt="Mountain of Fire and Miracles Ministries" className="w-full drop-shadow-2xl" />
+            </FloatingArt>
           </Reveal>
         </div>
       </div>

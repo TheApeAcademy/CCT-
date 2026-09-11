@@ -5,6 +5,9 @@ import { Flame } from 'lucide-react'
 import FloatingArt from './FloatingArt'
 import Reveal from './Reveal'
 import { playClick } from '../lib/sound'
+// Same clean grotesk as the hero, reused here (not Baloo 2) to mark this
+// as one of the page's calmer, more meaningful sections - see .lp-heading-calm.
+import '@fontsource/poppins/700.css'
 
 const VERSE = {
   text: 'Thy word have I hid in mine heart, that I might not sin against thee.',
@@ -37,7 +40,7 @@ function StreakCount({ to }: { to: number }) {
 /** Calm, meaningful contrast to the Quiz section - a verse reveal and a streak, not a game. */
 export default function BibleFeatureIntro() {
   return (
-    <div className="lp-band full-bleed px-4 py-16 sm:py-24">
+    <div className="lp-band-tinted-soft full-bleed px-4 py-16 sm:py-24" style={{ ['--card-accent' as string]: 'var(--lp-accent-bible)' }}>
       <div className="mx-auto max-w-6xl">
         <div className="grid items-center gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
           <Reveal direction="left">
@@ -50,7 +53,7 @@ export default function BibleFeatureIntro() {
             <p className="lp-eyebrow" style={{ ['--card-accent' as string]: 'var(--lp-accent-bible)' }}>
               Today&apos;s Reading
             </p>
-            <h2 className="lp-heading mt-3 text-balance font-display text-3xl font-extrabold leading-[1.05] sm:text-5xl">
+            <h2 className="lp-heading lp-heading-calm mt-3 text-balance text-3xl leading-[1.05] sm:text-5xl">
               Nourish your soul, one verse at a time.
             </h2>
             <p className="mt-5 max-w-lg text-base leading-relaxed text-[var(--lp-body)] sm:text-lg">

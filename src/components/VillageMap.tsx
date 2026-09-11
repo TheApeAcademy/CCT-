@@ -19,15 +19,16 @@ interface Building {
 // Coordinates are hand-matched to the clearings on /kids-village-map.jpg -
 // the mirror & flower nook, the round stone dais, the birdbath, the open
 // oval lawn, the vegetable bed, the fenced flower garden by the gate, and
-// the mailbox at the foot of the path.
+// the mailbox at the foot of the path. Leaderboard and Profile don't have a
+// matching illustration yet, so they still fall back to a plain icon pin.
 const BUILDINGS: Building[] = [
   { id: 'profile', label: 'My Card', icon: IdCard, accent: 'var(--lp-accent-achievements)', x: 15, y: 9 },
   { id: 'leaderboard', label: 'Leaderboard', icon: Trophy, accent: 'var(--lp-accent-leaderboard)', x: 72, y: 26 },
-  { id: 'ears', label: 'Ears for You', icon: HeartHandshake, accent: 'var(--lp-accent-ears)', x: 27, y: 52 },
-  { id: 'bible', label: 'Bible', icon: BookOpen, accent: 'var(--lp-accent-bible)', x: 42, y: 73 },
-  { id: 'class', label: 'My Class', icon: School, accent: 'var(--lp-accent-class)', x: 18, y: 65 },
-  { id: 'home', label: 'My House', icon: HomeIcon, accent: 'var(--hero-accent)', x: 17, y: 89 },
-  { id: 'messages', label: 'My Teacher', icon: MessageCircle, accent: 'var(--lp-accent-training)', x: 62, y: 93 },
+  { id: 'ears', label: 'Ears for You', icon: HeartHandshake, accent: 'var(--lp-accent-ears)', x: 27, y: 52, image: '/village/ears-hearttree.png' },
+  { id: 'bible', label: 'Bible', icon: BookOpen, accent: 'var(--lp-accent-bible)', x: 42, y: 73, image: '/village/bible-church.png' },
+  { id: 'class', label: 'My Class', icon: School, accent: 'var(--lp-accent-class)', x: 18, y: 65, image: '/village/class-backpack.png' },
+  { id: 'home', label: 'My House', icon: HomeIcon, accent: 'var(--hero-accent)', x: 17, y: 89, image: '/village/home-house.png' },
+  { id: 'messages', label: 'My Teacher', icon: MessageCircle, accent: 'var(--lp-accent-training)', x: 62, y: 93, image: '/village/messages-teacher.png' },
 ]
 
 const BY_ID = Object.fromEntries(BUILDINGS.map((b) => [b.id, b])) as Record<VillageTab, Building>
@@ -70,11 +71,20 @@ export default function VillageMap({
             style={{ left: `${b.x}%`, top: `${b.y}%` }}
             animate={reduced ? undefined : { y: [0, -4, 0] }}
             transition={reduced ? undefined : { duration: 3, repeat: Infinity, ease: 'easeInOut', delay: b.x / 20 }}
-            whileHover={reduced ? undefined : { scale: 1.16, transition: { duration: 0.25 } }}
-            whileTap={reduced ? undefined : { scale: 0.88 }}
+            whileHover={reduced ? undefined : { scale: 1.12, transition: { duration: 0.25 } }}
+            whileTap={reduced ? undefined : { scale: 0.9 }}
           >
             {b.image ? (
-              <img src={b.image} alt="" className="h-16 w-16 object-contain drop-shadow-lg sm:h-20 sm:w-20" />
+              <img
+                src={b.image}
+                alt=""
+                className="h-20 w-20 object-contain sm:h-24 sm:w-24"
+                style={{
+                  filter: isActive
+                    ? `drop-shadow(0 0 14px ${b.accent}) drop-shadow(0 6px 10px rgba(0,0,0,0.35))`
+                    : 'drop-shadow(0 6px 10px rgba(0,0,0,0.35))',
+                }}
+              />
             ) : (
               <span
                 className="flex h-11 w-11 items-center justify-center rounded-full border-2 border-white shadow-lg sm:h-12 sm:w-12"

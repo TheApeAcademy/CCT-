@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { useLiveQuery } from 'dexie-react-hooks'
 import {
   Swords,
   Dumbbell,
@@ -14,12 +13,11 @@ import {
 } from 'lucide-react'
 import { db, ensureSeedData } from '../db/db'
 import CountUp from '../components/CountUp'
-import HeroCarousel, { SeasonBadge, type HeroSlide } from '../components/HeroCarousel'
+import HeroCarousel, { type HeroSlide } from '../components/HeroCarousel'
 import { playClick } from '../lib/sound'
 
 export default function Home() {
   const [stats, setStats] = useState({ questions: 0, sets: 0, games: 0, kids: 0 })
-  const activeSeason = useLiveQuery(() => db.seasons.filter((s) => s.isActive).first(), [])
 
   useEffect(() => {
     ensureSeedData().then(async () => {
@@ -61,7 +59,7 @@ export default function Home() {
   return (
     <div className="space-y-16 pb-10">
       {/* ---------- hero ---------- */}
-      <HeroCarousel slides={slides} badge={activeSeason ? <SeasonBadge name={activeSeason.name} /> : undefined} />
+      <HeroCarousel slides={slides} />
 
       {/* ---------- stats ---------- */}
       <div className="mx-auto -mt-10 w-full max-w-6xl px-4">

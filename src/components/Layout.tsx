@@ -47,13 +47,29 @@ export default function Layout() {
   const [muted, setMutedState] = useState(isMuted())
   const [menuOpen, setMenuOpen] = useState(false)
   const [openDropdown, setOpenDropdown] = useState<string | null>(null)
+  const [scrolled, setScrolled] = useState(false)
   const navRef = useRef<HTMLDivElement>(null)
   const location = useLocation()
+  const isHome = location.pathname === '/'
+  // Home gets a transparent header floating over the full-bleed hero photo,
+  // matching mountainoffire.org — no separate solid bar pushing the image
+  // down. It solidifies once scrolled so nav stays legible over page content
+  // and reachable without scrolling back to top. Every other route keeps the
+  // header solid immediately since there's no hero photo to float over.
+  const solidHeader = scrolled || !isHome
 
   useEffect(() => {
     setMenuOpen(false)
     setOpenDropdown(null)
   }, [location.pathname])
+
+  useEffect(() => {
+    if (!isHome) return
+    const onScroll = () => setScrolled(window.scrollY > 60)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [isHome])
 
   useEffect(() => {
     if (!openDropdown) return
@@ -81,7 +97,11 @@ export default function Layout() {
   return (
     <div className="relative min-h-screen text-white">
       <StageBackground />
-      <header className="site-header sticky top-0 z-40">
+      <header
+        className={`fixed inset-x-0 top-0 z-40 transition-colors duration-300 ${
+          solidHeader ? 'site-header' : 'border-b border-transparent bg-transparent'
+        }`}
+      >
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <NavLink to="/" className="flex min-w-0 shrink-0 items-center gap-2.5">
             <img src="/church-logo.png" alt="" className="crest h-9 w-9 shrink-0 object-cover" />
@@ -229,7 +249,7 @@ export default function Layout() {
           </div>
         </nav>
       </header>
-      <main className="relative z-10 mx-auto max-w-6xl px-4 py-6">
+      <main className={`relative z-10 mx-auto max-w-6xl px-4 pb-6 ${isHome ? 'pt-0' : 'pt-[4.75rem]'}`}>
         <div key={location.pathname} className="animate-page-in">
           <Outlet />
         </div>

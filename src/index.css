@@ -785,6 +785,14 @@ button:active, a:active {
   border-top: 4px solid var(--card-accent, var(--lp-accent-fill));
   background: linear-gradient(180deg, color-mix(in srgb, var(--card-accent, var(--lp-accent-fill)) 8%, var(--lp-bg-panel)), var(--lp-bg-panel) 65%);
 }
+/* A profile card's photo dissolves into the card body instead of ending
+   in a hard edge - the fade only eats into the photo itself, never the
+   text below, which sits on the card's own solid background and stays
+   fully legible either way. */
+.lp-card-photo-bleed {
+  -webkit-mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+}
 /* A card can float on a .lp-band-deep background (e.g. the dashboard
    preview tiles inside "Once You Join a Class") while staying its own
    theme-coloured surface - re-assert normal heading/eyebrow colour so the

@@ -208,21 +208,21 @@ export default function Home() {
       {/* ---------- about: ministry, branch, and leadership in one continuous view ---------- */}
       <div id="about" className="lp-band-alt full-bleed scroll-mt-20 px-4 py-14 sm:py-16">
         <div className="mx-auto max-w-6xl">
-          <Reveal className="relative flex flex-col-reverse items-center gap-2 sm:flex-row sm:items-center sm:justify-start">
-            <div className="relative z-10 max-w-2xl">
+          <Reveal className="relative flex flex-col-reverse items-center gap-2 sm:flex-row sm:items-end sm:justify-start">
+            <div className="relative z-10 max-w-xl shrink-0">
               <p className="lp-eyebrow" style={{ ['--card-accent' as string]: 'var(--lp-accent-anthem)' }}>
                 About the Ministry
               </p>
               <h2 className="lp-heading mt-3 text-balance font-display text-2xl font-extrabold leading-[1.05] sm:text-4xl">
                 Mountain of Fire and Miracles Ministries
               </h2>
-              <p className="mt-3 max-w-xl text-sm leading-relaxed text-[var(--lp-body)] sm:text-base">
+              <p className="mt-3 text-sm leading-relaxed text-[var(--lp-body)] sm:text-base">
                 A full-gospel ministry devoted to revival, holiness, prayer, and deliverance, founded and led by
                 Dr.&nbsp;Daniel Kolawole Olukoya as General Overseer &mdash; grown into a worldwide ministry with
                 branches across nations, all carrying the same call to prayer and holy living.
               </p>
             </div>
-            <FloatingArt className="relative z-0 w-24 shrink-0 opacity-80 sm:-ml-20 sm:w-36 lg:-ml-24 lg:w-40">
+            <FloatingArt className="relative z-0 mx-auto w-32 shrink-0 opacity-90 sm:mx-0 sm:w-48 lg:w-64">
               <img src="/mfm-logo.png" alt="Mountain of Fire and Miracles Ministries" className="w-full drop-shadow-2xl" />
             </FloatingArt>
           </Reveal>
@@ -346,11 +346,15 @@ function ProfileCard({
   return (
     <div id={id} className="lp-panel lp-panel-accented scroll-mt-20 overflow-hidden" style={{ ['--card-accent' as string]: eyebrowAccent }}>
       {image ? (
-        <img src={image} alt={imageAlt ?? ''} className="h-36 w-full object-cover sm:h-40" />
+        <img
+          src={image}
+          alt={imageAlt ?? ''}
+          className="lp-card-photo-bleed relative z-0 -mb-9 h-40 w-full object-cover object-top sm:h-44"
+        />
       ) : (
-        <div className="crest-badge h-36 w-full sm:h-40" />
+        <div className="crest-badge -mb-9 h-40 w-full sm:h-44" />
       )}
-      <div className="p-4">
+      <div className="relative z-10 p-4 pt-9">
         <p className="lp-eyebrow !mt-0" style={{ ['--card-accent' as string]: eyebrowAccent }}>
           {eyebrow}
         </p>

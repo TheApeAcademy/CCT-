@@ -8,25 +8,32 @@ interface Building {
   id: VillageTab
   label: string
   image: string
-  /** Percent position + width on /kids-village-map.jpg, hand-marked. */
+  /** x/y is the building's GROUND point on /kids-village-map.jpg (where its base/feet
+   * touch down), not its center - the image is anchored bottom-center to it so it reads
+   * as standing on the spot instead of floating with the spot at its middle. width is a
+   * percent of the map's own width; heightPct is that same image's rendered height as a
+   * percent of the map's height (map is a fixed 24:43 box), precomputed from each PNG's
+   * real aspect ratio so the avatar can hover just above the roof, not through it. */
   x: number
   y: number
   width: number
+  heightPct: number
   accent: string
 }
 
 // Positions were hand-marked directly on the map art (circled spot by spot), not guessed:
-// the stone dais courtyard (My Class), the birdbath (Leaderboard), open lawn by the pond
-// (My Card), the shaded dirt patch under the tree (Bible), the oval lawn (My House), open
-// lawn near the flower bed (Ears for You), and open lawn by the willow tree (My Teacher).
+// the stone dais courtyard (My Class), the open grass opposite My House (Leaderboard),
+// open lawn by the pond (My Card), the shaded dirt patch under the tree (Bible), the oval
+// lawn (My House), open lawn near the flower bed (Ears for You), and open lawn by the
+// willow tree (My Teacher).
 const BUILDINGS: Building[] = [
-  { id: 'class', label: 'My Class', image: '/village/class-backpack.png', x: 73, y: 27, width: 24, accent: 'var(--lp-accent-class)' },
-  { id: 'leaderboard', label: 'Leaderboard', image: '/feature-leaderboard.png', x: 27, y: 53, width: 14, accent: 'var(--lp-accent-leaderboard)' },
-  { id: 'profile', label: 'My Card', image: '/village/profile-card.png', x: 38, y: 46, width: 16, accent: 'var(--lp-accent-achievements)' },
-  { id: 'bible', label: 'Bible', image: '/village/bible-church.png', x: 81, y: 58, width: 22, accent: 'var(--lp-accent-bible)' },
-  { id: 'home', label: 'My House', image: '/village/home-house.png', x: 33, y: 76, width: 28, accent: 'var(--hero-accent)' },
-  { id: 'ears', label: 'Ears for You', image: '/village/ears-hearttree.png', x: 26, y: 15, width: 16, accent: 'var(--lp-accent-ears)' },
-  { id: 'messages', label: 'My Teacher', image: '/village/messages-teacher.png', x: 78, y: 16, width: 18, accent: 'var(--lp-accent-training)' },
+  { id: 'class', label: 'My Class', image: '/village/class-backpack.png', x: 73, y: 31, width: 24, heightPct: 12.7, accent: 'var(--lp-accent-class)' },
+  { id: 'leaderboard', label: 'Leaderboard', image: '/feature-leaderboard.png', x: 77, y: 87, width: 16, heightPct: 10.6, accent: 'var(--lp-accent-leaderboard)' },
+  { id: 'profile', label: 'My Card', image: '/village/profile-card.png', x: 38, y: 48, width: 16, heightPct: 9.4, accent: 'var(--lp-accent-achievements)' },
+  { id: 'bible', label: 'Bible', image: '/village/bible-church.png', x: 81, y: 59, width: 22, heightPct: 15.5, accent: 'var(--lp-accent-bible)' },
+  { id: 'home', label: 'My House', image: '/village/home-house.png', x: 33, y: 79, width: 28, heightPct: 16.6, accent: 'var(--hero-accent)' },
+  { id: 'ears', label: 'Ears for You', image: '/village/ears-hearttree.png', x: 26, y: 18, width: 16, heightPct: 10.1, accent: 'var(--lp-accent-ears)' },
+  { id: 'messages', label: 'My Teacher', image: '/village/messages-teacher.png', x: 78, y: 19, width: 18, heightPct: 8.9, accent: 'var(--lp-accent-training)' },
 ]
 
 const BY_ID = Object.fromEntries(BUILDINGS.map((b) => [b.id, b])) as Record<VillageTab, Building>
@@ -65,7 +72,7 @@ export default function VillageMap({
               onNavigate(b.id)
             }}
             aria-label={b.label}
-            className="absolute -translate-x-1/2 -translate-y-1/2"
+            className="absolute -translate-x-1/2 -translate-y-full"
             style={{ left: `${b.x}%`, top: `${b.y}%`, width: `${b.width}%` }}
             animate={reduced ? undefined : { y: [0, -3, 0] }}
             transition={reduced ? undefined : { duration: 3, repeat: Infinity, ease: 'easeInOut', delay: b.x / 20 }}
@@ -92,7 +99,7 @@ export default function VillageMap({
           key="avatar"
           className="pointer-events-none absolute z-20 -translate-x-1/2"
           initial={false}
-          animate={{ left: `${avatarAt.x}%`, top: `${avatarAt.y - avatarAt.width * 0.55}%` }}
+          animate={{ left: `${avatarAt.x}%`, top: `${avatarAt.y - avatarAt.heightPct - 2}%` }}
           transition={reduced ? { duration: 0 } : { type: 'spring', stiffness: 130, damping: 15 }}
         >
           <motion.div

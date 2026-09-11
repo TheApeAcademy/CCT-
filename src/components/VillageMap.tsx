@@ -36,7 +36,7 @@ const BUILDINGS: Building[] = [
   { id: 'home', label: 'My House', image: '/village/home-brickbuilding.png', x: 33, y: 79, width: 28, heightPct: 17.4, tilt: -3, accent: 'var(--hero-accent)' },
   { id: 'ears', label: 'Ears for You', image: '/village/ears-hearttree.png', x: 17, y: 20, width: 13, heightPct: 8.0, tilt: 6, accent: 'var(--lp-accent-ears)' },
   { id: 'game', label: 'Games', image: '/village/game-rocket.png', x: 34, y: 18, width: 15, heightPct: 8.2, tilt: -5, accent: 'var(--lp-accent-compete)' },
-  { id: 'messages', label: 'My Teacher', image: '/village/messages-teacherhome.png', x: 78, y: 19, width: 18, heightPct: 8.3, tilt: 4, accent: 'var(--lp-accent-training)' },
+  { id: 'messages', label: 'My Teacher', image: '/village/messages-teacherhome.png', x: 75, y: 17, width: 18, heightPct: 8.3, tilt: 4, accent: 'var(--lp-accent-training)' },
 ]
 
 const BY_ID = Object.fromEntries(BUILDINGS.map((b) => [b.id, b])) as Record<VillageTab, Building>

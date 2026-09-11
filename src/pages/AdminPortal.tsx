@@ -41,7 +41,7 @@ export default function AdminPortal() {
         afterSignUp={(email) => (
           <>
             <p>Admin access isn't self-service &mdash; an existing admin (or the senior pastor) needs to promote your account.</p>
-            <p className="mt-2 text-white/70">
+            <p className="mt-2 text-[var(--fg)]/70">
               Tell them the email you signed up with: <span className="font-bold text-[var(--gold)]">{email}</span>
             </p>
           </>
@@ -134,7 +134,7 @@ function ApplicationsTab() {
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`rounded px-3 py-1.5 text-xs font-bold capitalize transition ${filter === f ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'text-white/60 hover:text-white'}`}
+            className={`rounded px-3 py-1.5 text-xs font-bold capitalize transition ${filter === f ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'text-[var(--fg)]/60 hover:text-[var(--fg)]'}`}
           >
             {f}
           </button>
@@ -160,7 +160,7 @@ function ApplicationsTab() {
                 {a.status}
               </span>
             </div>
-            {a.message && <p className="mt-2 whitespace-pre-wrap text-sm text-white/80">{a.message}</p>}
+            {a.message && <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--fg)]/80">{a.message}</p>}
             {a.status === 'pending' && (
               <div className="mt-3 flex gap-2">
                 <button onClick={() => handle(a.id, true)} className="flex items-center gap-1.5 rounded-md bg-emerald-500/15 px-4 py-2 text-sm font-bold text-emerald-400 transition hover:bg-emerald-500/25">
@@ -199,7 +199,7 @@ function ClassesTab() {
           </div>
           <div className="flex items-center gap-2">
             <span className="rounded border border-[var(--hairline-strong)] px-2.5 py-1 font-mono text-xs">{c.join_code}</span>
-            {c.archived && <span className="rounded bg-white/10 px-2.5 py-1 text-xs">Archived</span>}
+            {c.archived && <span className="rounded bg-[var(--fg)]/10 px-2.5 py-1 text-xs">Archived</span>}
           </div>
         </div>
       ))}
@@ -375,7 +375,7 @@ function BiblePlanReadings({ plan, onBack }: { plan: BiblePlanRow; onBack: () =>
 
   return (
     <div className="space-y-4">
-      <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-[var(--ink-muted)] hover:text-white">
+      <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-[var(--ink-muted)] hover:text-[var(--fg)]">
         <ArrowLeft className="h-4 w-4" /> Back to plans
       </button>
       <h3 className="font-display text-lg font-bold">{plan.title}</h3>

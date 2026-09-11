@@ -68,13 +68,13 @@ export default function AuthCard({
       <div className="flex gap-1 rounded-md border border-[var(--hairline-strong)] p-1">
         <button
           onClick={() => setTab('signin')}
-          className={`flex-1 rounded px-4 py-2 text-sm font-bold transition ${tab === 'signin' ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'text-white/70 hover:text-white'}`}
+          className={`flex-1 rounded px-4 py-2 text-sm font-bold transition ${tab === 'signin' ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'text-[var(--fg)]/70 hover:text-[var(--fg)]'}`}
         >
           Sign In
         </button>
         <button
           onClick={() => setTab('signup')}
-          className={`flex-1 rounded px-4 py-2 text-sm font-bold transition ${tab === 'signup' ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'text-white/70 hover:text-white'}`}
+          className={`flex-1 rounded px-4 py-2 text-sm font-bold transition ${tab === 'signup' ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'text-[var(--fg)]/70 hover:text-[var(--fg)]'}`}
         >
           {signUpLabel}
         </button>

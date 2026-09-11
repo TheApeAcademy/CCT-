@@ -340,7 +340,7 @@ function ClassDetail({ klass, onBack }: { klass: ClassRow; onBack: () => void })
 
   return (
     <div className="space-y-6">
-      <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-[var(--ink-muted)] hover:text-white">
+      <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-[var(--ink-muted)] hover:text-[var(--fg)]">
         <ArrowLeft className="h-4 w-4" /> Back to classes
       </button>
 
@@ -356,7 +356,7 @@ function ClassDetail({ klass, onBack }: { klass: ClassRow; onBack: () => void })
           <button
             key={t}
             onClick={() => setDetailTab(t)}
-            className={`rounded px-4 py-1.5 text-sm font-bold capitalize transition ${detailTab === t ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'text-white/60 hover:text-white'}`}
+            className={`rounded px-4 py-1.5 text-sm font-bold capitalize transition ${detailTab === t ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'text-[var(--fg)]/60 hover:text-[var(--fg)]'}`}
           >
             {t === 'students' ? 'Students' : 'Class Work'}
           </button>
@@ -368,7 +368,7 @@ function ClassDetail({ klass, onBack }: { klass: ClassRow; onBack: () => void })
       {detailTab === 'students' && (
         <>
           <div className="panel space-y-3 p-5">
-            <label className="flex items-center gap-2 text-sm font-bold text-white/80">
+            <label className="flex items-center gap-2 text-sm font-bold text-[var(--fg)]/80">
               <KeyRound className="h-4 w-4 text-[var(--gold)]" />
               Add a student by their Student Code
             </label>
@@ -439,7 +439,7 @@ function ClassWorkTab({ classId }: { classId: string }) {
           <button
             key={t}
             onClick={() => setSub(t)}
-            className={`flex items-center gap-1.5 rounded px-4 py-1.5 text-sm font-bold capitalize transition ${sub === t ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'text-white/60 hover:text-white'}`}
+            className={`flex items-center gap-1.5 rounded px-4 py-1.5 text-sm font-bold capitalize transition ${sub === t ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'text-[var(--fg)]/60 hover:text-[var(--fg)]'}`}
           >
             {t === 'lectures' ? <BookOpen className="h-3.5 w-3.5" /> : <FileText className="h-3.5 w-3.5" />}
             {t}
@@ -504,7 +504,7 @@ function LecturesManager({ classId }: { classId: string }) {
               </div>
               <span
                 className={`shrink-0 rounded px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${
-                  l.status === 'published' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-white/10 text-white/60'
+                  l.status === 'published' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-[var(--fg)]/10 text-[var(--fg)]/60'
                 }`}
               >
                 {l.status}
@@ -579,7 +579,7 @@ function AssignmentsManager({ classId }: { classId: string }) {
               </div>
               <span
                 className={`shrink-0 rounded px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${
-                  a.status === 'published' ? 'bg-emerald-500/15 text-emerald-400' : a.status === 'closed' ? 'bg-white/10 text-white/60' : 'bg-[var(--gold)]/15 text-[var(--gold)]'
+                  a.status === 'published' ? 'bg-emerald-500/15 text-emerald-400' : a.status === 'closed' ? 'bg-[var(--fg)]/10 text-[var(--fg)]/60' : 'bg-[var(--gold)]/15 text-[var(--gold)]'
                 }`}
               >
                 {a.status}
@@ -621,7 +621,7 @@ function SubmissionsView({ assignment, onBack }: { assignment: AssignmentRow; on
 
   return (
     <div className="space-y-4">
-      <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-[var(--ink-muted)] hover:text-white">
+      <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-[var(--ink-muted)] hover:text-[var(--fg)]">
         <ArrowLeft className="h-4 w-4" /> Back to assignments
       </button>
       <h3 className="font-display text-lg font-bold">{assignment.title}</h3>
@@ -631,7 +631,7 @@ function SubmissionsView({ assignment, onBack }: { assignment: AssignmentRow; on
         {subs.map((s) => (
           <div key={s.id} className="panel p-4">
             <p className="font-semibold">{s.full_name}</p>
-            {s.body && <p className="mt-2 whitespace-pre-wrap text-sm text-white/80">{s.body}</p>}
+            {s.body && <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--fg)]/80">{s.body}</p>}
             <p className="mt-1 text-xs text-[var(--ink-faint)]">Submitted {new Date(s.submitted_at).toLocaleString()}</p>
             {s.grade !== null ? (
               <p className="mt-2 text-sm font-bold text-emerald-400">
@@ -715,13 +715,13 @@ function ThreadView({ conversationId, title, onBack }: { conversationId: string;
 
   return (
     <div className="space-y-4">
-      <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-[var(--ink-muted)] hover:text-white">
+      <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-[var(--ink-muted)] hover:text-[var(--fg)]">
         <ArrowLeft className="h-4 w-4" /> Back to messages
       </button>
       <h3 className="font-display text-lg font-bold">{title}</h3>
       <div className="panel space-y-2 p-4">
         {messages.map((m) => (
-          <div key={m.id} className={`max-w-[80%] rounded-md px-3 py-2 text-sm ${m.sender_id === myId ? 'ml-auto bg-[var(--gold)]/15 text-right' : 'bg-white/5'}`}>
+          <div key={m.id} className={`max-w-[80%] rounded-md px-3 py-2 text-sm ${m.sender_id === myId ? 'ml-auto bg-[var(--gold)]/15 text-right' : 'bg-[var(--fg)]/5'}`}>
             {m.body}
           </div>
         ))}
@@ -745,7 +745,7 @@ function ThreadView({ conversationId, title, onBack }: { conversationId: string;
 
 const EARS_STATUS_STYLE: Record<EarsStatus, string> = {
   new: 'bg-[var(--gold)]/15 text-[var(--gold)]',
-  acknowledged: 'bg-white/10 text-white/60',
+  acknowledged: 'bg-[var(--fg)]/10 text-[var(--fg)]/60',
   in_progress: 'bg-sky-500/15 text-sky-400',
   escalated: 'bg-red-500/15 text-red-400',
   resolved: 'bg-emerald-500/15 text-emerald-400',
@@ -783,7 +783,7 @@ function EarsInboxTab() {
               <p className="text-sm font-semibold text-[var(--ink-muted)]">{m.is_anonymous ? 'Anonymous' : m.student_name || 'A student'}</p>
               <span className={`rounded px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${EARS_STATUS_STYLE[m.status]}`}>{m.status.replace('_', ' ')}</span>
             </div>
-            <p className="mt-2 line-clamp-2 whitespace-pre-wrap text-sm text-white/80">{m.body}</p>
+            <p className="mt-2 line-clamp-2 whitespace-pre-wrap text-sm text-[var(--fg)]/80">{m.body}</p>
           </button>
         ))}
       </div>
@@ -843,7 +843,7 @@ function EarsDetail({ message, onBack }: { message: EarsMessageRow; onBack: () =
 
   return (
     <div className="space-y-4">
-      <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-[var(--ink-muted)] hover:text-white">
+      <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-[var(--ink-muted)] hover:text-[var(--fg)]">
         <ArrowLeft className="h-4 w-4" /> Back to inbox
       </button>
 
@@ -907,7 +907,7 @@ function EarsDetail({ message, onBack }: { message: EarsMessageRow; onBack: () =
       <div className="space-y-2">
         <p className="eyebrow">Internal Notes &mdash; not visible to the student</p>
         {notes.map((n) => (
-          <div key={n.id} className="rounded-md border border-white/10 bg-white/5 p-3 text-sm text-white/70">
+          <div key={n.id} className="rounded-md border border-[var(--fg)]/10 bg-[var(--fg)]/5 p-3 text-sm text-[var(--fg)]/70">
             {n.body}
           </div>
         ))}

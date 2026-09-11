@@ -306,12 +306,6 @@ export default function Home() {
           </div>
         </Reveal>
       </div>
-
-      <div className="text-center">
-        <Link to="/admin" className="text-xs text-[var(--lp-faint)] transition hover:text-[var(--lp-muted)]">
-          Admin sign in
-        </Link>
-      </div>
     </div>
   )
 }

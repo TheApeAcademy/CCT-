@@ -11,6 +11,14 @@ import { Link, Outlet } from 'react-router-dom'
 export default function PortalShell({ eyebrow }: { eyebrow: string }) {
   return (
     <div data-landing-theme="light" className="site-light-theme lp-page relative isolate min-h-screen">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 z-0"
+        style={{
+          backgroundImage: 'radial-gradient(var(--lp-hairline-strong) 1px, transparent 1px)',
+          backgroundSize: '22px 22px',
+        }}
+      />
       <header className="relative z-10 border-b border-[var(--lp-hairline)]">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
           <Link to="/" className="flex min-w-0 shrink-0 items-center">

@@ -20,6 +20,8 @@ const emptyQuestionForm = {
   funFact: '',
 }
 
+const inputClass = 'w-full rounded-md border border-[var(--hairline-strong)] bg-transparent px-3 py-2 outline-none focus:border-[var(--gold)]'
+
 export default function GameSetup() {
   const navigate = useNavigate()
   useEffect(() => {
@@ -261,12 +263,13 @@ export default function GameSetup() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div data-landing-theme="light" className="site-light-theme lp-page full-bleed px-4 py-6">
+      <div className="mx-auto max-w-2xl space-y-6">
       <h1 className="font-display text-3xl font-extrabold">🎮 New Game Setup</h1>
 
-      <div className="space-y-3 rounded-2xl border border-white/5 bg-white/5 p-5 shadow-lg shadow-black/20 transition hover:bg-white/[0.07]">
-        <label className="block text-sm font-semibold text-white/80">
-          Teams / Players <span className="font-normal text-white/40">(each takes a turn, in order)</span>
+      <div className="panel space-y-3 p-5 transition hover:bg-[var(--ink-raised)]">
+        <label className="block text-sm font-semibold text-[var(--fg)]/80">
+          Teams / Players <span className="font-normal text-[var(--ink-faint)]">(each takes a turn, in order)</span>
         </label>
         <div className="space-y-2">
           {teamNames.map((name, i) => (
@@ -276,10 +279,10 @@ export default function GameSetup() {
                   <img
                     src={teamPhotos[i]}
                     alt=""
-                    className="h-9 w-9 rounded-full object-cover ring-2 ring-amber-400/60"
+                    className="h-9 w-9 rounded-full object-cover ring-2 ring-[var(--gold)]/60"
                   />
                 ) : (
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-400/20 text-sm font-bold text-amber-300">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--gold)]/20 text-sm font-bold text-[var(--gold)]">
                     {i + 1}
                   </span>
                 )}
@@ -290,7 +293,7 @@ export default function GameSetup() {
                   className="hidden"
                   onChange={(e) => handlePhotoPick(i, e.target.files?.[0])}
                 />
-                <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-purple-950 text-[9px] ring-1 ring-white/30">
+                <span className="absolute -bottom-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--gold-ink)] text-[9px] ring-1 ring-[var(--hairline-strong)]">
                   📷
                 </span>
               </label>
@@ -298,12 +301,12 @@ export default function GameSetup() {
                 value={name}
                 onChange={(e) => updateTeamName(i, e.target.value)}
                 placeholder={i === 0 ? 'e.g. Ellie, or Team Rainbow' : `Team ${i + 1}`}
-                className="w-full rounded-lg bg-white/10 px-4 py-3 text-lg outline-none focus:ring-2 focus:ring-amber-400"
+                className={`${inputClass} py-3 text-lg`}
               />
               {teamPhotos[i] && (
                 <button
                   onClick={() => removePhoto(i)}
-                  className="shrink-0 rounded-lg bg-white/10 px-2 py-3 text-xs text-white/60 transition hover:scale-105 hover:bg-white/20"
+                  className="btn-outline shrink-0 px-2 py-3 text-xs"
                   title="Remove photo"
                 >
                   🚫📷
@@ -312,7 +315,7 @@ export default function GameSetup() {
               {teamNames.length > 1 && (
                 <button
                   onClick={() => removeTeamSlot(i)}
-                  className="shrink-0 rounded-lg bg-white/10 px-3 py-3 text-sm text-white/60 transition hover:scale-105 hover:bg-red-500/30 hover:text-red-300"
+                  className="btn-outline shrink-0 px-3 py-3 text-sm hover:border-red-400 hover:text-red-600"
                   title="Remove team"
                 >
                   ✕
@@ -325,7 +328,7 @@ export default function GameSetup() {
         {teamNames.length < MAX_TEAMS && (
           <button
             onClick={() => addTeamSlot()}
-            className="w-full rounded-lg border border-dashed border-white/30 py-2 text-sm text-white/70 transition hover:scale-[1.01] hover:bg-white/5"
+            className="w-full rounded-lg border border-dashed border-[var(--hairline-strong)] py-2 text-sm text-[var(--ink-muted)] transition hover:scale-[1.01] hover:bg-[var(--ink-panel)]"
           >
             + Add another team
           </button>
@@ -334,30 +337,30 @@ export default function GameSetup() {
         {!linkOpen ? (
           <button
             onClick={openLinking}
-            className="w-full rounded-lg border border-white/10 py-2 text-xs text-white/50 transition hover:bg-white/5 hover:text-white/70"
+            className="w-full rounded-lg border border-[var(--hairline)] py-2 text-xs text-[var(--ink-faint)] transition hover:bg-[var(--ink-panel)] hover:text-[var(--ink-muted)]"
           >
             Running this for the ministry leaderboard? Link teams to Student Codes (optional)
           </button>
         ) : (
-          <div className="space-y-2 rounded-lg border border-amber-400/20 bg-amber-400/5 p-3">
-            {linkChecking && <p className="text-sm text-white/60">Checking…</p>}
+          <div className="space-y-2 rounded-lg border border-[var(--gold)]/20 bg-[var(--gold)]/5 p-3">
+            {linkChecking && <p className="text-sm text-[var(--ink-muted)]">Checking…</p>}
             {!linkChecking && linkAuthorized === false && (
-              <p className="text-sm text-white/60">
+              <p className="text-sm text-[var(--ink-muted)]">
                 Sign in as a teacher or admin to link teams to the leaderboard — matches still work fine without it.
               </p>
             )}
             {!linkChecking && linkAuthorized === true && (
               <>
-                <p className="text-xs text-white/50">
+                <p className="text-xs text-[var(--ink-faint)]">
                   Match each team to their Student Code. Results save locally either way — this just makes them count toward the leaderboard.
                 </p>
                 {teamNames.map(
                   (name, i) =>
                     name.trim() && (
                       <div key={i} className="flex items-center gap-2">
-                        <span className="w-24 shrink-0 truncate text-sm text-white/70">{name}</span>
+                        <span className="w-24 shrink-0 truncate text-sm text-[var(--ink-muted)]">{name}</span>
                         {linkedStudents[i] ? (
-                          <span className="flex-1 rounded-lg bg-emerald-500/15 px-3 py-2 text-sm text-emerald-300">
+                          <span className="flex-1 rounded-lg bg-emerald-500/15 px-3 py-2 text-sm text-emerald-600">
                             Linked to {linkedStudents[i]!.full_name}
                           </span>
                         ) : (
@@ -366,19 +369,19 @@ export default function GameSetup() {
                               value={studentCodes[i] ?? ''}
                               onChange={(e) => setStudentCodes((prev) => prev.map((c, idx) => (idx === i ? e.target.value.toUpperCase() : c)))}
                               placeholder="MFM4827"
-                              className="flex-1 rounded-lg bg-white/10 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-400"
+                              className={`${inputClass} flex-1 text-sm`}
                               onKeyDown={(e) => e.key === 'Enter' && linkTeamByCode(i)}
                             />
                             <button
                               onClick={() => linkTeamByCode(i)}
                               disabled={linkBusyIndex === i}
-                              className="shrink-0 rounded-lg bg-white/10 px-3 py-2 text-xs text-white/70 hover:bg-white/20"
+                              className="btn-outline shrink-0 px-3 py-2 text-xs"
                             >
                               {linkBusyIndex === i ? '…' : 'Link'}
                             </button>
                           </>
                         )}
-                        {linkErrors[i] && <span className="text-xs text-red-400">{linkErrors[i]}</span>}
+                        {linkErrors[i] && <span className="text-xs text-red-600">{linkErrors[i]}</span>}
                       </div>
                     )
                 )}
@@ -393,7 +396,7 @@ export default function GameSetup() {
               <button
                 key={p.id}
                 onClick={() => quickAddPlayer(p.name)}
-                className="rounded-full bg-white/10 px-3 py-1 text-xs transition hover:scale-105 hover:bg-white/20"
+                className="rounded-full bg-[var(--ink-panel)] px-3 py-1 text-xs transition hover:scale-105 hover:bg-[var(--ink-raised)]"
               >
                 + {p.name}
               </button>
@@ -403,15 +406,15 @@ export default function GameSetup() {
       </div>
 
       {seasons.length > 1 && (
-        <div className="space-y-2 rounded-2xl border border-white/5 bg-white/5 p-5 shadow-lg shadow-black/20 transition hover:bg-white/[0.07]">
-          <label className="block text-sm font-semibold text-white/80">Season</label>
+        <div className="panel space-y-2 p-5 transition hover:bg-[var(--ink-raised)]">
+          <label className="block text-sm font-semibold text-[var(--fg)]/80">Season</label>
           <select
             value={seasonFilter}
             onChange={(e) => {
               setSeasonFilter(e.target.value === 'all' ? 'all' : Number(e.target.value))
               playClick()
             }}
-            className="w-full rounded-lg bg-white/10 px-4 py-3 outline-none focus:ring-2 focus:ring-amber-400"
+            className={inputClass}
           >
             <option value="all" className="text-black">
               All seasons
@@ -425,10 +428,10 @@ export default function GameSetup() {
         </div>
       )}
 
-      <div className="space-y-2 rounded-2xl border border-white/5 bg-white/5 p-5 shadow-lg shadow-black/20 transition hover:bg-white/[0.07]">
-        <label className="block text-sm font-semibold text-white/80">Question Set</label>
+      <div className="panel space-y-2 p-5 transition hover:bg-[var(--ink-raised)]">
+        <label className="block text-sm font-semibold text-[var(--fg)]/80">Question Set</label>
         {sets.length === 0 ? (
-          <p className="text-sm text-white/50">No question sets in this season yet. Add one in the Question Bank.</p>
+          <p className="text-sm text-[var(--ink-faint)]">No question sets in this season yet. Add one in the Question Bank.</p>
         ) : (
           <select
             value={setId ?? ''}
@@ -436,7 +439,7 @@ export default function GameSetup() {
               setSetId(Number(e.target.value))
               playClick()
             }}
-            className="w-full rounded-lg bg-white/10 px-4 py-3 outline-none focus:ring-2 focus:ring-amber-400"
+            className={inputClass}
           >
             {sets.map((s) => (
               <option key={s.id} value={s.id} className="text-black">
@@ -445,7 +448,7 @@ export default function GameSetup() {
             ))}
           </select>
         )}
-        <p className="text-xs text-white/50">{questionCount} question{questionCount === 1 ? '' : 's'} available in this set (10 needed).</p>
+        <p className="text-xs text-[var(--ink-faint)]">{questionCount} question{questionCount === 1 ? '' : 's'} available in this set (10 needed).</p>
 
         {setId && (
           <div className="pt-1">
@@ -454,32 +457,32 @@ export default function GameSetup() {
                 setShowQuickAdd((v) => !v)
                 playClick()
               }}
-              className="w-full rounded-lg border border-dashed border-white/30 py-2 text-sm text-white/70 transition hover:scale-[1.01] hover:bg-white/5"
+              className="w-full rounded-lg border border-dashed border-[var(--hairline-strong)] py-2 text-sm text-[var(--ink-muted)] transition hover:scale-[1.01] hover:bg-[var(--ink-panel)]"
             >
               {showQuickAdd ? '▲ Hide question bank' : '📚 Add a question to this set (admin)'}
             </button>
             {showQuickAdd && (
-              <div className="mt-3 space-y-2 rounded-xl bg-black/20 p-4">
-                {quickError && <p className="text-sm text-red-400">{quickError}</p>}
-                {quickSaved && <p className="text-sm text-green-400">Question added! ✅</p>}
+              <div className="mt-3 space-y-2 rounded-xl bg-[var(--ink-panel)] p-4">
+                {quickError && <p className="text-sm text-red-600">{quickError}</p>}
+                {quickSaved && <p className="text-sm text-emerald-600">Question added! ✅</p>}
                 <textarea
                   value={quickForm.text}
                   onChange={(e) => setQuickForm({ ...quickForm, text: e.target.value })}
                   placeholder="Question text"
                   rows={2}
-                  className="w-full rounded-lg bg-white/10 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-400"
+                  className={`${inputClass} text-sm`}
                 />
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                   <input
                     value={quickForm.category}
                     onChange={(e) => setQuickForm({ ...quickForm, category: e.target.value })}
                     placeholder="Category"
-                    className="col-span-2 rounded-lg bg-white/10 px-3 py-2 text-sm sm:col-span-2 outline-none focus:ring-2 focus:ring-amber-400"
+                    className={`${inputClass} col-span-2 text-sm sm:col-span-2`}
                   />
                   <select
                     value={quickForm.difficulty}
                     onChange={(e) => setQuickForm({ ...quickForm, difficulty: Number(e.target.value) as 1 | 2 | 3 | 4 | 5 })}
-                    className="col-span-2 rounded-lg bg-white/10 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-400 sm:col-span-2"
+                    className={`${inputClass} col-span-2 text-sm sm:col-span-2`}
                   >
                     {[1, 2, 3, 4, 5].map((d) => (
                       <option key={d} value={d} className="text-black">
@@ -495,7 +498,7 @@ export default function GameSetup() {
                         type="button"
                         onClick={() => setQuickForm({ ...quickForm, correctIndex: i as 0 | 1 | 2 | 3 })}
                         className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
-                          quickForm.correctIndex === i ? 'bg-green-500 text-white' : 'bg-white/10 text-white/60'
+                          quickForm.correctIndex === i ? 'bg-emerald-500 text-white' : 'bg-[var(--ink-raised)] text-[var(--ink-muted)]'
                         }`}
                         title="Mark as correct answer"
                       >
@@ -509,15 +512,12 @@ export default function GameSetup() {
                           setQuickForm({ ...quickForm, options })
                         }}
                         placeholder={`Option ${String.fromCharCode(65 + i)}`}
-                        className="flex-1 rounded-lg bg-white/10 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-amber-400"
+                        className={`${inputClass} flex-1 text-sm`}
                       />
                     </div>
                   ))}
                 </div>
-                <button
-                  onClick={handleQuickAddQuestion}
-                  className="w-full rounded-lg bg-amber-400 py-2 text-sm font-semibold text-purple-950 transition hover:scale-[1.01]"
-                >
+                <button onClick={handleQuickAddQuestion} className="btn-solid w-full py-2 text-sm">
                   + Add question to "{sets.find((s) => s.id === setId)?.name}"
                 </button>
               </div>
@@ -526,8 +526,8 @@ export default function GameSetup() {
         )}
       </div>
 
-      <div className="space-y-2 rounded-2xl border border-white/5 bg-white/5 p-5 shadow-lg shadow-black/20 transition hover:bg-white/[0.07]">
-        <label className="block text-sm font-semibold text-white/80">Timer per Question</label>
+      <div className="panel space-y-2 p-5 transition hover:bg-[var(--ink-raised)]">
+        <label className="block text-sm font-semibold text-[var(--fg)]/80">Timer per Question</label>
         <div className="flex flex-wrap gap-2">
           {TIMER_OPTIONS.map((t) => (
             <button
@@ -537,7 +537,7 @@ export default function GameSetup() {
                 playClick()
               }}
               className={`rounded-full px-4 py-2 text-sm font-semibold transition hover:scale-105 ${
-                timerSeconds === t ? 'bg-amber-400 text-purple-950 shadow-lg shadow-amber-400/30' : 'bg-white/10 hover:bg-white/20'
+                timerSeconds === t ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'bg-[var(--ink-panel)] hover:bg-[var(--ink-raised)]'
               }`}
             >
               {t}s
@@ -546,29 +546,26 @@ export default function GameSetup() {
         </div>
       </div>
 
-      <div className="space-y-3 rounded-2xl border border-white/5 bg-white/5 p-5 shadow-lg shadow-black/20 transition hover:bg-white/[0.07]">
-        <label className="block text-sm font-semibold text-white/80">Lifelines (per team, per turn)</label>
+      <div className="panel space-y-3 p-5 transition hover:bg-[var(--ink-raised)]">
+        <label className="block text-sm font-semibold text-[var(--fg)]/80">Lifelines (per team, per turn)</label>
         <LifelineToggle label="50/50: remove two wrong answers" checked={fiftyFifty} onChange={setFiftyFifty} />
         <LifelineToggle label="Ask the Church: poll the room" checked={askChurch} onChange={setAskChurch} />
         <LifelineToggle label="Phone a Friend: get a hint" checked={phoneFriend} onChange={setPhoneFriend} />
       </div>
 
-      {error && <p className={`text-sm text-red-400 ${errorShake ? 'animate-screen-shake' : ''}`}>{error}</p>}
+      {error && <p className={`text-sm text-red-600 ${errorShake ? 'animate-screen-shake' : ''}`}>{error}</p>}
 
-      <button
-        onClick={handleStart}
-        disabled={starting}
-        className="w-full rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-500 py-4 text-xl font-bold text-purple-950 shadow-lg shadow-amber-400/20 transition hover:scale-[1.02] disabled:opacity-60"
-      >
+      <button onClick={handleStart} disabled={starting} className="btn-solid w-full py-4 text-xl disabled:opacity-60">
         {starting ? 'Starting…' : 'Start Game →'}
       </button>
+      </div>
     </div>
   )
 }
 
 function LifelineToggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
-    <label className="flex cursor-pointer items-center justify-between rounded-lg bg-white/5 px-4 py-3 transition hover:bg-white/10">
+    <label className="flex cursor-pointer items-center justify-between rounded-lg bg-[var(--ink-panel)] px-4 py-3 transition hover:bg-[var(--ink-raised)]">
       <span className="text-sm">{label}</span>
       <input
         type="checkbox"
@@ -577,7 +574,7 @@ function LifelineToggle({ label, checked, onChange }: { label: string; checked: 
           onChange(e.target.checked)
           playToggle(e.target.checked)
         }}
-        className="h-5 w-5 accent-amber-400"
+        className="h-5 w-5 accent-[var(--gold)]"
       />
     </label>
   )

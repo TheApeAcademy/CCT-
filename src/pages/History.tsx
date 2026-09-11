@@ -38,23 +38,24 @@ export default function History() {
   }
 
   return (
-    <div className="space-y-8">
+    <div data-landing-theme="light" className="site-light-theme lp-page full-bleed px-4 py-6">
+      <div className="mx-auto max-w-3xl space-y-8">
       <h1 className="font-display text-3xl font-extrabold">🏆 History</h1>
 
       {leaderboard.length > 0 && (
-        <div className="rounded-2xl border border-white/5 bg-white/5 p-5 shadow-lg shadow-black/20">
+        <div className="panel p-5">
           <h2 className="mb-3 font-display text-lg font-bold">Top Scores</h2>
           <div className="space-y-1">
             {leaderboard.map(([name, points], i) => (
               <div
                 key={name}
-                className="animate-page-in flex items-center justify-between rounded-lg bg-black/20 px-4 py-2 transition hover:scale-[1.01] hover:bg-black/30"
+                className="animate-page-in flex items-center justify-between rounded-lg bg-[var(--ink-raised)] px-4 py-2 transition hover:scale-[1.01]"
                 style={{ animationDelay: `${i * 70}ms` }}
               >
                 <span className="font-semibold">
                   {['🥇', '🥈', '🥉', '4.', '5.'][i]} {name}
                 </span>
-                <span className="font-bold text-amber-300">{points.toLocaleString()} 👑</span>
+                <span className="font-bold text-[var(--gold)]">{points.toLocaleString()} 👑</span>
               </div>
             ))}
           </div>
@@ -66,7 +67,7 @@ export default function History() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search by kid's name or question set…"
-          className="flex-1 rounded-lg bg-white/10 px-4 py-2 outline-none focus:ring-2 focus:ring-amber-400"
+          className="flex-1 rounded-md border border-[var(--hairline-strong)] bg-transparent px-4 py-2 outline-none focus:border-[var(--gold)]"
         />
         {sessions.length > 0 && (
           <button
@@ -74,7 +75,7 @@ export default function History() {
               playClick()
               handleClearAll()
             }}
-            className="rounded-lg bg-red-500/20 px-4 py-2 text-sm text-red-300 transition hover:scale-105 hover:bg-red-500/30"
+            className="rounded-lg bg-red-500/10 px-4 py-2 text-sm text-red-600 transition hover:scale-105 hover:bg-red-500/20"
           >
             Clear all history
           </button>
@@ -82,20 +83,20 @@ export default function History() {
       </div>
 
       <div className="space-y-2">
-        {filtered.length === 0 && <p className="text-white/50">No games played yet.</p>}
+        {filtered.length === 0 && <p className="text-[var(--ink-faint)]">No games played yet.</p>}
         {filtered.map((s, i) => (
           <div
             key={s.id}
-            className="animate-page-in flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white/5 p-4 transition hover:bg-white/[0.08]"
+            className="panel animate-page-in flex flex-wrap items-center justify-between gap-3 p-4 transition hover:bg-[var(--ink-raised)]"
             style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}
           >
             <div className="flex items-center gap-3">
               {s.playerPhoto && (
-                <img src={s.playerPhoto} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-amber-400/50" />
+                <img src={s.playerPhoto} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-[var(--gold)]/50" />
               )}
               <div>
                 <p className="font-bold">{s.playerName}</p>
-                <p className="text-sm text-white/60">
+                <p className="text-sm text-[var(--ink-muted)]">
                   {new Date(s.finishedAt).toLocaleString()} · {s.setName}
                   {s.seasonName ? ` · ${s.seasonName}` : ''}
                 </p>
@@ -104,12 +105,12 @@ export default function History() {
             <div className="flex items-center gap-4">
               <OutcomeBadge outcome={s.outcome} correctCount={s.correctCount} totalLevels={s.totalLevels} />
               <div className="text-right">
-                <p className="font-bold text-amber-300">{s.pointsWon.toLocaleString()} 👑</p>
-                <p className="text-xs text-white/50">{s.correctCount}/{s.totalLevels} correct</p>
+                <p className="font-bold text-[var(--gold)]">{s.pointsWon.toLocaleString()} 👑</p>
+                <p className="text-xs text-[var(--ink-faint)]">{s.correctCount}/{s.totalLevels} correct</p>
               </div>
               <button
                 onClick={() => handleDelete(s.id!)}
-                className="rounded-lg bg-white/10 px-3 py-1.5 text-xs transition hover:scale-105 hover:bg-red-500/30"
+                className="btn-outline px-3 py-1.5 text-xs hover:border-red-400 hover:text-red-600"
               >
                 Delete
               </button>
@@ -117,16 +118,17 @@ export default function History() {
           </div>
         ))}
       </div>
+      </div>
     </div>
   )
 }
 
 function OutcomeBadge({ outcome, correctCount, totalLevels }: { outcome: string; correctCount: number; totalLevels: number }) {
   if (outcome === 'ended_early') {
-    return <span className="rounded-full bg-blue-400/30 px-3 py-1 text-xs font-bold text-blue-300">🚪 Ended Early</span>
+    return <span className="rounded-full bg-sky-500/15 px-3 py-1 text-xs font-bold text-sky-600">🚪 Ended Early</span>
   }
   if (correctCount === totalLevels) {
-    return <span className="rounded-full bg-amber-400/30 px-3 py-1 text-xs font-bold text-amber-300">👑 Perfect!</span>
+    return <span className="rounded-full bg-[var(--gold)]/15 px-3 py-1 text-xs font-bold text-[var(--gold)]">👑 Perfect!</span>
   }
-  return <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white/60">✓ Completed</span>
+  return <span className="rounded-full bg-[var(--ink-panel)] px-3 py-1 text-xs font-bold text-[var(--ink-muted)]">✓ Completed</span>
 }

@@ -70,24 +70,22 @@ export default function Anthem() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 text-center">
+    <div data-landing-theme="light" className="site-light-theme lp-page full-bleed px-4 py-6">
+      <div className="mx-auto max-w-2xl space-y-6 text-center">
       <div>
         <p className="text-4xl">🎶🧒🎤</p>
         <h1 className="font-display text-3xl font-extrabold sm:text-4xl">{TITLE}</h1>
-        <p className="mt-1 text-white/60">{SUBTITLE}</p>
+        <p className="mt-1 text-[var(--ink-muted)]">{SUBTITLE}</p>
       </div>
 
-      <button
-        onClick={sing}
-        className="rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-500 px-6 py-3 font-bold text-purple-950 shadow-lg shadow-amber-400/20 transition hover:scale-105"
-      >
+      <button onClick={sing} className="btn-solid px-6 py-3 text-base">
         {speaking ? '⏹ Stop' : '🔊 Read the Anthem Aloud'}
       </button>
 
-      <div className="space-y-5 rounded-2xl border border-white/5 bg-white/5 p-6 text-left shadow-lg shadow-black/20">
+      <div className="panel space-y-5 p-6 text-left">
         {VERSES.map((v, i) => (
           <div key={i}>
-            <p className="mb-1 text-xs font-bold uppercase tracking-widest text-amber-300/80">{v.label}</p>
+            <p className="mb-1 text-xs font-bold uppercase tracking-widest text-[var(--gold)]/80">{v.label}</p>
             {v.lines.map((line, j) => (
               <p key={j} className="text-lg leading-snug">
                 {line}
@@ -97,10 +95,11 @@ export default function Anthem() {
         ))}
       </div>
 
-      <p className="text-xs text-white/40">
+      <p className="text-xs text-[var(--ink-faint)]">
         Suggested tune: a bright, bouncy 4/4 melody (think a simple major-key sing-along, around 110-120 BPM) so the
         whole class can clap along. Sheet music and a recorded track can be added by the music team.
       </p>
+      </div>
     </div>
   )
 }

@@ -98,7 +98,7 @@ const TAB_TITLE: Record<Tab, string> = {
   profile: 'My Card',
   messages: 'My Teacher',
   ears: 'Ears for You',
-  game: 'Live Quiz Match',
+  game: 'Games',
 }
 
 function Dashboard() {
@@ -291,7 +291,7 @@ function GameTab() {
       >
         <Gamepad2 className="h-7 w-7" strokeWidth={1.75} />
       </span>
-      <p className="lp-heading font-display text-xl font-bold">Live Quiz Match</p>
+      <p className="lp-heading font-display text-xl font-bold">Games</p>
       <p className="max-w-xs text-sm text-[var(--lp-muted)]">
         Ask your teacher to start a live match on the big screen for your class! When they do, you&apos;ll join
         from here.

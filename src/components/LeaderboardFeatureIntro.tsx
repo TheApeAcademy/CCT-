@@ -59,7 +59,7 @@ export default function LeaderboardFeatureIntro() {
 
           <Reveal direction="right" delay={0.08}>
             <div className="mx-auto max-w-sm">
-              <FloatingArt className="mx-auto w-24 sm:w-28">
+              <FloatingArt className="mx-auto w-40 sm:w-48">
                 <img src="/feature-leaderboard.png" alt="" className="w-full drop-shadow-xl" />
               </FloatingArt>
               <div ref={podiumRef} className="mt-2 flex w-full items-end justify-center gap-3">

@@ -19,6 +19,7 @@ import LeaderboardFeatureIntro from '../components/LeaderboardFeatureIntro'
 import AchievementsFeatureIntro from '../components/AchievementsFeatureIntro'
 import EarsForYouFeatureIntro from '../components/EarsForYouFeatureIntro'
 import FloatingArt from '../components/FloatingArt'
+import ScrollProgressBar from '../components/ScrollProgressBar'
 import Reveal, { RevealStagger, RevealItem } from '../components/Reveal'
 import { playClick } from '../lib/sound'
 // A third, deliberately bouncier display face (distinct from the hero's
@@ -62,6 +63,7 @@ const slides: HeroSlide[] = [
 export default function Home() {
   return (
     <div className="lp-page full-bleed relative space-y-0 pb-10">
+      <ScrollProgressBar />
       {/* ---------- hero ---------- */}
       <HeroCarousel slides={slides} />
 
@@ -70,7 +72,7 @@ export default function Home() {
         <div className="mx-auto max-w-6xl">
           <div className="grid items-center gap-10 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
             <Reveal direction="left">
-              <FloatingArt className="w-20 sm:w-24">
+              <FloatingArt className="w-28 sm:w-36">
                 <img src="/feature-quiz.png" alt="" className="w-full drop-shadow-lg" />
               </FloatingArt>
               <p className="lp-eyebrow mt-3" style={{ ['--card-accent' as string]: 'var(--lp-accent-compete)' }}>
@@ -204,21 +206,21 @@ export default function Home() {
       {/* ---------- MFM worldwide ---------- */}
       <div id="about" className="lp-band-alt full-bleed scroll-mt-20 px-4 py-16 sm:py-24">
         <div className="mx-auto max-w-6xl">
-          <Reveal className="flex flex-col-reverse items-center gap-10 sm:flex-row sm:items-center sm:justify-between sm:gap-12">
-            <div className="max-w-2xl">
+          <Reveal className="relative flex flex-col-reverse items-center gap-2 sm:flex-row sm:items-center sm:justify-start">
+            <div className="relative z-10 max-w-2xl">
               <p className="lp-eyebrow" style={{ ['--card-accent' as string]: 'var(--lp-accent-anthem)' }}>
                 About the Ministry
               </p>
               <h2 className="lp-heading mt-3 text-balance font-display text-3xl font-extrabold leading-[1.05] sm:text-5xl lg:text-6xl">
                 Mountain of Fire and Miracles Ministries
               </h2>
-              <p className="mt-5 text-base leading-relaxed text-[var(--lp-body)] sm:text-lg">
+              <p className="mt-5 max-w-xl text-base leading-relaxed text-[var(--lp-body)] sm:text-lg">
                 A full-gospel ministry devoted to revival, holiness, prayer, and deliverance, founded and led by
                 Dr.&nbsp;Daniel Kolawole Olukoya as General Overseer. From its beginnings, MFM has grown into a worldwide
                 ministry with branches across nations, all carrying the same call to prayer and holy living.
               </p>
             </div>
-            <FloatingArt className="w-36 shrink-0 sm:w-48 lg:w-56">
+            <FloatingArt className="relative z-0 w-32 shrink-0 opacity-80 sm:-ml-28 sm:w-56 lg:-ml-36 lg:w-64">
               <img src="/mfm-logo.png" alt="Mountain of Fire and Miracles Ministries" className="w-full drop-shadow-2xl" />
             </FloatingArt>
           </Reveal>

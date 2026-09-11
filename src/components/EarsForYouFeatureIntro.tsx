@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { MessageCircle } from 'lucide-react'
+import FloatingArt from './FloatingArt'
 import Reveal from './Reveal'
 import { playClick } from '../lib/sound'
 // Same clean grotesk as the hero, reused here (not Baloo 2) to mark this
@@ -8,28 +9,29 @@ import '@fontsource/poppins/700.css'
 
 /**
  * Deliberately the calmest section on the page - trust over excitement.
- * No floating/looping motion, no counters, no colourful blob background -
- * just a single fade-in (the one thing every section already gets) and a
- * quiet reassuring tone, on purpose, contrasting the energy around it.
+ * Centred, small, and quiet next to its louder neighbours: no card stack,
+ * no counters, just one small image and a reassuring line.
  */
 export default function EarsForYouFeatureIntro() {
   return (
     <div className="lp-band-tinted-soft full-bleed px-4 py-16 sm:py-20" style={{ ['--card-accent' as string]: 'var(--lp-accent-ears)' }}>
       <div className="mx-auto max-w-6xl">
-        <Reveal className="grid items-center gap-10 sm:grid-cols-[0.8fr_1.2fr] sm:gap-14">
-          <img src="/feature-ears.png" alt="" className="mx-auto w-40 rounded-3xl sm:w-full sm:max-w-xs" />
+        <Reveal className="mx-auto flex max-w-md flex-col items-center gap-5 text-center">
+          <FloatingArt className="w-24 sm:w-32">
+            <img src="/feature-ears.png" alt="" className="w-full rounded-3xl" />
+          </FloatingArt>
           <div>
-            <p className="lp-eyebrow" style={{ ['--card-accent' as string]: 'var(--lp-accent-ears)' }}>
+            <p className="lp-eyebrow justify-center" style={{ ['--card-accent' as string]: 'var(--lp-accent-ears)' }}>
               Ears For You
             </p>
             <h2 className="lp-heading lp-heading-calm mt-3 text-balance text-2xl leading-[1.1] sm:text-4xl">
               You can talk to us.
             </h2>
-            <p className="mt-4 max-w-lg text-base leading-relaxed text-[var(--lp-body)] sm:text-lg">
+            <p className="mt-4 text-base leading-relaxed text-[var(--lp-body)] sm:text-lg">
               A safe, private line to your class teacher — for whenever something&apos;s on your mind. No pressure,
               no judgement, just a place to be heard.
             </p>
-            <div className="mt-6">
+            <div className="mt-6 flex justify-center">
               <Link
                 to="/join"
                 onClick={() => playClick()}

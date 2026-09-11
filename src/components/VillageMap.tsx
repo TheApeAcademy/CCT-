@@ -30,7 +30,7 @@ interface Building {
 // (My Teacher's spot is open lawn by the willow tree).
 const BUILDINGS: Building[] = [
   { id: 'class', label: 'My Class', image: '/village/class-house1.png', x: 34, y: 18, width: 15, heightPct: 8.4, tilt: -4, accent: 'var(--lp-accent-class)' },
-  { id: 'leaderboard', label: 'Leaderboard', image: '/feature-leaderboard.png', x: 77, y: 87, width: 16, heightPct: 10.6, tilt: 5, accent: 'var(--lp-accent-leaderboard)' },
+  { id: 'leaderboard', label: 'Leaderboard', image: '/feature-leaderboard.png', x: 77, y: 87, width: 16, heightPct: 11.5, tilt: 5, accent: 'var(--lp-accent-leaderboard)' },
   { id: 'profile', label: 'My Card', image: '/village/profile-card.png', x: 38, y: 48, width: 16, heightPct: 9.1, tilt: -6, accent: 'var(--lp-accent-achievements)' },
   { id: 'bible', label: 'Bible', image: '/village/bible-book.png', x: 81, y: 59, width: 22, heightPct: 13.0, tilt: 3, accent: 'var(--lp-accent-bible)' },
   { id: 'home', label: 'My House', image: '/village/home-brickbuilding.png', x: 33, y: 79, width: 28, heightPct: 14.2, tilt: -3, accent: 'var(--hero-accent)' },

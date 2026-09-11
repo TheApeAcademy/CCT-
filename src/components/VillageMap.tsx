@@ -46,7 +46,7 @@ export default function VillageMap({
   const avatarAt = BY_ID[active] ?? BY_ID.home
 
   return (
-    <div className="relative overflow-hidden rounded-[28px] border-2 border-[var(--lp-hairline-strong)] shadow-xl" style={{ aspectRatio: '24 / 43' }}>
+    <div className="relative w-full" style={{ aspectRatio: '24 / 43' }}>
       <img
         src="/kids-village-map.jpg"
         alt=""

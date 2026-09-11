@@ -1,12 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   User,
-  Home as HomeIcon,
+  ArrowLeft,
   Trophy,
-  IdCard,
-  MessageCircle,
-  HeartHandshake,
   Dumbbell,
   School,
   Music,
@@ -26,7 +24,6 @@ import {
 } from 'lucide-react'
 import { supabase, signOut } from '../lib/supabase'
 import { useMinistryAuth } from '../lib/useMinistryAuth'
-import TabBar from '../components/ui/TabBar'
 import VillageMap from '../components/VillageMap'
 import {
   getMyStudentProfile,
@@ -92,8 +89,19 @@ export default function StudentPortal() {
 
 type Tab = 'home' | 'class' | 'bible' | 'leaderboard' | 'profile' | 'messages' | 'ears'
 
+const TAB_TITLE: Record<Tab, string> = {
+  home: 'My House',
+  class: 'My Class',
+  bible: 'Bible',
+  leaderboard: 'Leaderboard',
+  profile: 'My Card',
+  messages: 'My Teacher',
+  ears: 'Ears for You',
+}
+
 function Dashboard() {
   const [tab, setTab] = useState<Tab>('home')
+  const [view, setView] = useState<'map' | 'tab'>('map')
   const [student, setStudent] = useState<StudentRow | null>(null)
   const [klass, setKlass] = useState<(ClassRow & { teacher_name: string }) | null>(null)
   const [rank, setRank] = useState<number | null>(null)
@@ -112,62 +120,95 @@ function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  const enterTab = (t: Tab) => {
+    playNav()
+    setTab(t)
+    setView('tab')
+  }
+  const backToMap = () => {
+    playClick()
+    setView('map')
+  }
+
+  // Fixed, full-viewport: this is the whole kids app once signed in - it
+  // deliberately breaks out of KidsShell's padded max-w-3xl column so the
+  // village map and each section can go edge to edge, game-screen style.
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          {student?.avatar_url ? (
-            <img src={student.avatar_url} alt="" className="h-12 w-12 rounded-full object-cover ring-2 ring-[var(--gold)]/60" />
-          ) : (
-            <span className="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--hairline-strong)] text-[var(--gold)]">
-              <User className="h-6 w-6" strokeWidth={1.75} />
-            </span>
-          )}
-          <div>
-            <h1 className="font-display text-xl font-extrabold">{student?.full_name ?? 'My Dashboard'}</h1>
-            <p className="text-sm text-[var(--ink-faint)]">{klass?.name ?? 'No class yet'}</p>
-          </div>
-        </div>
-        <button onClick={() => signOut()} className="btn-outline text-sm">
-          Sign Out
-        </button>
-      </div>
-
-      <div className="mx-auto w-full max-w-sm sm:max-w-md">
-        <VillageMap active={tab} onNavigate={setTab} avatarUrl={student?.avatar_url} />
-      </div>
-
-      <TabBar
-        value={tab}
-        onChange={setTab}
-        items={[
-          { value: 'home', label: 'Home', icon: HomeIcon },
-          { value: 'class', label: 'My Class', icon: School },
-          { value: 'bible', label: 'Bible', icon: BookOpen },
-          { value: 'leaderboard', label: 'Leaderboard', icon: Trophy },
-          { value: 'profile', label: 'My Card', icon: IdCard },
-          { value: 'messages', label: 'My Teacher', icon: MessageCircle },
-          { value: 'ears', label: 'Ears for You', icon: HeartHandshake },
-        ]}
-      />
-
-      {tab === 'home' && <HomeTab student={student} klass={klass} rank={rank} achievements={achievements} />}
-      {tab === 'class' && <ClassTab klass={klass} />}
-      {tab === 'bible' && <BibleTab />}
-      {tab === 'leaderboard' && <LeaderboardTab myId={student?.id ?? null} />}
-      {tab === 'profile' && student && <ProfileTab student={student} klass={klass} onSaved={load} />}
-      {tab === 'messages' &&
-        (klass ? (
-          <MessagesTab teacherId={klass.teacher_id} teacherName={klass.teacher_name} />
+    <div className="fixed inset-0 z-30 bg-[var(--ink)]">
+      <AnimatePresence mode="wait" initial={false}>
+        {view === 'map' ? (
+          <motion.div
+            key="map"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="absolute inset-0 overflow-y-auto overflow-x-hidden"
+          >
+            <div className="sticky top-0 z-10 flex items-center justify-between gap-3 p-3">
+              <div className="flex items-center gap-2 rounded-full bg-white/90 py-1.5 pl-1.5 pr-3 shadow-lg backdrop-blur">
+                {student?.avatar_url ? (
+                  <img src={student.avatar_url} alt="" className="h-9 w-9 rounded-full object-cover ring-2 ring-[var(--gold)]/60" />
+                ) : (
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--lp-hairline-strong)] text-[var(--gold)]">
+                    <User className="h-4 w-4" strokeWidth={1.75} />
+                  </span>
+                )}
+                <div className="leading-tight">
+                  <p className="font-display text-sm font-extrabold text-[var(--lp-heading)]">{student?.full_name ?? 'My Dashboard'}</p>
+                  <p className="text-[11px] text-[var(--lp-muted)]">{klass?.name ?? 'No class yet'}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => signOut()}
+                className="rounded-full bg-white/90 px-3 py-2 text-xs font-bold text-[var(--lp-muted)] shadow-lg backdrop-blur transition hover:text-[var(--lp-heading)]"
+              >
+                Sign Out
+              </button>
+            </div>
+            <VillageMap active={tab} onNavigate={enterTab} avatarUrl={student?.avatar_url} />
+          </motion.div>
         ) : (
-          <div className="panel p-6 text-center">
-            <p className="font-display text-lg font-bold">No teacher yet</p>
-            <p className="mt-1 text-sm text-[var(--ink-muted)]">
-              Once your teacher adds you to their class, you&apos;ll be able to message them here.
-            </p>
-          </div>
-        ))}
-      {tab === 'ears' && <EarsTab klass={klass} />}
+          <motion.div
+            key={tab}
+            initial={{ opacity: 0, scale: 0.92 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.96 }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+            className="absolute inset-0 overflow-y-auto bg-[var(--ink)]"
+          >
+            <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-[var(--lp-hairline)] bg-[var(--ink)]/95 px-4 py-3 backdrop-blur">
+              <button
+                onClick={backToMap}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--lp-hairline-strong)] text-[var(--lp-heading)] transition hover:bg-[var(--lp-hairline)]"
+                aria-label="Back to the village map"
+              >
+                <ArrowLeft className="h-4 w-4" strokeWidth={2.25} />
+              </button>
+              <h1 className="font-display text-lg font-extrabold text-[var(--lp-heading)]">{TAB_TITLE[tab]}</h1>
+            </div>
+            <div className="mx-auto max-w-2xl p-4 pb-12">
+              {tab === 'home' && <HomeTab student={student} klass={klass} rank={rank} achievements={achievements} />}
+              {tab === 'class' && <ClassTab klass={klass} />}
+              {tab === 'bible' && <BibleTab />}
+              {tab === 'leaderboard' && <LeaderboardTab myId={student?.id ?? null} />}
+              {tab === 'profile' && student && <ProfileTab student={student} klass={klass} onSaved={load} />}
+              {tab === 'messages' &&
+                (klass ? (
+                  <MessagesTab teacherId={klass.teacher_id} teacherName={klass.teacher_name} />
+                ) : (
+                  <div className="panel p-6 text-center">
+                    <p className="font-display text-lg font-bold">No teacher yet</p>
+                    <p className="mt-1 text-sm text-[var(--ink-muted)]">
+                      Once your teacher adds you to their class, you&apos;ll be able to message them here.
+                    </p>
+                  </div>
+                ))}
+              {tab === 'ears' && <EarsTab klass={klass} />}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

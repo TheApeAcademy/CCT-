@@ -52,9 +52,16 @@ export default function QuizFeatureIntro() {
     <div className="lp-panel relative overflow-hidden p-5 sm:p-6">
       <div className="flex items-center justify-between">
         <span className="lp-eyebrow">Sample Round</span>
-        <span className="flex items-center gap-1.5 rounded-full bg-[color-mix(in_srgb,var(--lp-accent-compete)_16%,transparent)] px-3 py-1 text-xs font-extrabold text-[var(--lp-accent-compete)]">
+        <span className="flex items-center gap-1.5 rounded-full bg-[color-mix(in_srgb,var(--lp-accent-compete)_16%,transparent)] px-3 py-1 text-xs font-bold uppercase tracking-wide text-[var(--lp-accent-compete)]">
           Score
-          <motion.span key={score} initial={{ scale: 1.3 }} animate={{ scale: 1 }} transition={{ duration: 0.25 }}>
+          <motion.span
+            key={score}
+            initial={{ scale: 1.3 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 0.25 }}
+            className="text-sm"
+            style={{ fontFamily: 'Fredoka, var(--font-body)' }}
+          >
             {score}
           </motion.span>
         </span>

@@ -105,7 +105,7 @@ export default function DashboardPreview() {
     <>
       {tiles.map((tile) => (
         <RevealItem key={tile.key}>
-          <div className="lp-panel h-full p-5" style={{ ['--card-accent' as string]: tile.accent }}>
+          <div className="lp-panel lp-panel-accented h-full p-5" style={{ ['--card-accent' as string]: tile.accent }}>
             <span className="lp-icon-chip overflow-hidden">
               {tile.iconImage ? (
                 <img src={tile.iconImage} alt="" className="h-full w-full object-cover" />

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { useEffect, useState, type ReactNode } from 'react'
+import { type ReactNode } from 'react'
 import {
   Dumbbell,
   BookOpen,
@@ -11,13 +11,16 @@ import {
   ArrowRight,
   type LucideIcon,
 } from 'lucide-react'
-import { db, ensureSeedData } from '../db/db'
-import CountUp from '../components/CountUp'
 import HeroCarousel, { type HeroSlide } from '../components/HeroCarousel'
 import QuizFeatureIntro from '../components/QuizFeatureIntro'
 import DashboardPreview from '../components/DashboardPreview'
 import Reveal, { RevealStagger, RevealItem } from '../components/Reveal'
 import { playClick } from '../lib/sound'
+// A third, deliberately bouncier display face (distinct from the hero's
+// clean Poppins and the body's Nunito) for tags/badges/numbers - part of
+// the landing page's own lazy chunk, never loaded by the offline quiz.
+import '@fontsource/fredoka/500.css'
+import '@fontsource/fredoka/700.css'
 
 const slides: HeroSlide[] = [
   {
@@ -52,41 +55,19 @@ const slides: HeroSlide[] = [
 ]
 
 export default function Home() {
-  const [stats, setStats] = useState({ questions: 0, sets: 0, games: 0, kids: 0 })
-
-  useEffect(() => {
-    ensureSeedData().then(async () => {
-      const [questions, sets, games, kids] = await Promise.all([
-        db.questions.count(),
-        db.questionSets.count(),
-        db.gameSessions.count(),
-        db.players.count(),
-      ])
-      setStats({ questions, sets, games, kids })
-    })
-  }, [])
-
   return (
     <div className="lp-page full-bleed relative space-y-0 pb-10">
       {/* ---------- hero ---------- */}
       <HeroCarousel slides={slides} />
 
-      {/* ---------- stats ---------- */}
-      <div className="mx-auto -mt-10 w-full max-w-6xl px-4">
-        <div className="lp-stat-strip grid-cols-4">
-          <StatCell label="Questions" value={stats.questions} accent="var(--lp-accent-questions)" />
-          <StatCell label="Question Sets" value={stats.sets} accent="var(--lp-accent-seasons)" />
-          <StatCell label="Matches Played" value={stats.games} accent="var(--lp-accent-compete)" />
-          <StatCell label="Kids" value={stats.kids} accent="var(--lp-accent-anthem)" />
-        </div>
-      </div>
-
       {/* ---------- flagship feature: the quiz, demonstrated ---------- */}
-      <div className="lp-band lp-blob-bg full-bleed mt-16 px-4 py-16 sm:py-24">
+      <div className="lp-band lp-blob-bg full-bleed px-4 py-16 sm:py-24">
         <div className="mx-auto max-w-6xl">
           <div className="grid items-center gap-10 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
             <Reveal direction="left">
-              <p className="lp-eyebrow">The Bible Quiz</p>
+              <p className="lp-eyebrow" style={{ ['--card-accent' as string]: 'var(--lp-accent-compete)' }}>
+                The Bible Quiz
+              </p>
               <h2 className="lp-heading mt-3 text-balance font-display text-3xl font-extrabold leading-[1.05] sm:text-5xl">
                 See it before you play it.
               </h2>
@@ -119,7 +100,9 @@ export default function Home() {
       <div className="lp-band-alt lp-blob-bg full-bleed px-4 py-16 sm:py-20" style={{ ['--lp-blob-accent-2' as string]: 'var(--lp-accent-seasons)' }}>
         <div className="mx-auto max-w-6xl">
           <Reveal>
-            <p className="lp-eyebrow">A Children&apos;s Ministry Feature</p>
+            <p className="lp-eyebrow" style={{ ['--card-accent' as string]: 'var(--lp-accent-training)' }}>
+              A Children&apos;s Ministry Feature
+            </p>
             <h2 className="lp-heading mt-1 font-display text-2xl font-extrabold sm:text-3xl">What Else You Can Do</h2>
           </Reveal>
           <RevealStagger className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -147,7 +130,9 @@ export default function Home() {
           </RevealStagger>
 
           <Reveal delay={0.05}>
-            <p className="lp-eyebrow mt-10">For Teachers &amp; Kids</p>
+            <p className="lp-eyebrow mt-10" style={{ ['--card-accent' as string]: 'var(--lp-accent-questions)' }}>
+              For Teachers &amp; Kids
+            </p>
             <h2 className="lp-heading mt-1 font-display text-2xl font-extrabold sm:text-3xl">Resources</h2>
           </Reveal>
           <RevealStagger className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -180,7 +165,9 @@ export default function Home() {
       <div className="lp-band-deep full-bleed px-4 py-16 sm:py-24">
         <div className="mx-auto max-w-6xl">
           <Reveal className="text-center">
-            <p className="lp-eyebrow justify-center">Once You Join a Class</p>
+            <p className="lp-eyebrow justify-center" style={{ ['--card-accent' as string]: 'var(--lp-accent-leaderboard)' }}>
+              Once You Join a Class
+            </p>
             <h2 className="lp-heading mt-2 text-balance font-display text-3xl font-extrabold sm:text-5xl">
               A dashboard that&apos;s actually theirs
             </h2>
@@ -203,19 +190,27 @@ export default function Home() {
       <div className="lp-band full-bleed px-4 py-16 sm:py-20">
         <div className="mx-auto max-w-6xl">
           <Reveal>
-            <p className="lp-eyebrow">How It Works</p>
+            <p className="lp-eyebrow" style={{ ['--card-accent' as string]: 'var(--lp-accent-transition)' }}>
+              How It Works
+            </p>
             <h2 className="lp-heading mt-1 font-display text-2xl font-extrabold sm:text-3xl">From Sign-Up to Sunday</h2>
           </Reveal>
           <RevealStagger className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              'Teachers apply for an account; the admin approves them from the Control Centre.',
-              'A teacher creates a class and shares its join code or link with their kids.',
-              'Kids sign up with just their name and a passcode — no email needed.',
-              'From their dashboard, kids play the Bible Quiz, climb the leaderboard, and message their teacher.',
-            ].map((text, i) => (
+              { text: 'Teachers apply for an account; the admin approves them from the Control Centre.', accent: 'var(--lp-accent-transition)' },
+              { text: 'A teacher creates a class and shares its join code or link with their kids.', accent: 'var(--lp-accent-training)' },
+              { text: 'Kids sign up with just their name and a passcode — no email needed.', accent: 'var(--lp-accent-questions)' },
+              {
+                text: 'From their dashboard, kids play the Bible Quiz, climb the leaderboard, and message their teacher.',
+                accent: 'var(--lp-accent-leaderboard)',
+              },
+            ].map(({ text, accent }, i) => (
               <RevealItem key={i}>
-                <div className="lp-panel flex h-full gap-3 p-5">
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[var(--lp-hairline-strong)] font-display text-xs font-bold text-[var(--lp-accent-text)]">
+                <div className="lp-panel lp-panel-accented flex h-full gap-3 p-5" style={{ ['--card-accent' as string]: accent }}>
+                  <span
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
+                    style={{ fontFamily: 'Fredoka, var(--font-body)', background: accent }}
+                  >
                     {i + 1}
                   </span>
                   <p className="text-sm leading-relaxed text-[var(--lp-body)]">{text}</p>
@@ -230,7 +225,9 @@ export default function Home() {
       <div id="about" className="lp-band-alt full-bleed scroll-mt-20 px-4 py-16 sm:py-24">
         <div className="mx-auto max-w-6xl">
           <Reveal>
-            <p className="lp-eyebrow">About the Ministry</p>
+            <p className="lp-eyebrow" style={{ ['--card-accent' as string]: 'var(--lp-accent-anthem)' }}>
+              About the Ministry
+            </p>
             <h2 className="lp-heading mt-3 max-w-2xl text-balance font-display text-3xl font-extrabold leading-[1.05] sm:text-5xl lg:text-6xl">
               Mountain of Fire and Miracles Ministries
             </h2>
@@ -244,7 +241,14 @@ export default function Home() {
       </div>
 
       {/* ---------- MFM Wuye branch ---------- */}
-      <InstitutionalBand id="wuye" eyebrow="Our Branch" title="MFM Wuye" image="/mfm-wuye-building.jpg" imageAlt="MFM Wuye branch building">
+      <InstitutionalBand
+        id="wuye"
+        eyebrow="Our Branch"
+        eyebrowAccent="var(--lp-accent-seasons)"
+        title="MFM Wuye"
+        image="/mfm-wuye-building.jpg"
+        imageAlt="MFM Wuye branch building"
+      >
         <p className="text-[15px] leading-relaxed text-[var(--lp-body)] sm:text-base">
           MFM Wuye is a branch of Mountain of Fire and Miracles Ministries, carrying the same call to prayer,
           holiness, and deliverance to its community. Full branch details, service times, and photos are being
@@ -256,25 +260,31 @@ export default function Home() {
       <InstitutionalBand
         id="leadership"
         eyebrow="Leadership"
+        eyebrowAccent="var(--lp-accent-leaderboard)"
         title="Pastor Edwin Etomi"
         deep
         imageFirst
         image="/pastor-edwin-etomi.jpg"
         imageAlt="Pastor Edwin Etomi"
       >
-        <p className="lp-eyebrow !mt-0">Senior Regional Overseer, MFM International Headquarters Annex, Wuye</p>
+        <p className="lp-eyebrow !mt-0" style={{ ['--card-accent' as string]: 'var(--lp-accent-leaderboard)' }}>
+          Senior Regional Overseer, MFM International Headquarters Annex, Wuye
+        </p>
       </InstitutionalBand>
 
       {/* ---------- Children's Ministry ---------- */}
       <InstitutionalBand
         id="ministry"
         eyebrow="This Platform"
+        eyebrowAccent="var(--lp-accent-history)"
         title="The Children's Ministry"
         alt
         image="/children-pastor.jpg"
         imageAlt="Head of the Children's Department"
       >
-        <p className="lp-eyebrow !mt-0">Head of Children&apos;s Department &mdash; Olusanu Olukunle</p>
+        <p className="lp-eyebrow !mt-0" style={{ ['--card-accent' as string]: 'var(--lp-accent-history)' }}>
+          Head of Children&apos;s Department &mdash; Olusanu Olukunle
+        </p>
         <p className="mt-3 text-[15px] leading-relaxed text-[var(--lp-body)] sm:text-base">
           This platform exists to serve the Children&apos;s Ministry directly &mdash; giving teachers real
           classrooms to run and children a place of their own to learn, play, and grow in the Word.
@@ -285,7 +295,9 @@ export default function Home() {
       <div id="contact" className="lp-band full-bleed scroll-mt-20 px-4 py-16 sm:py-20">
         <div className="mx-auto max-w-6xl">
           <Reveal>
-            <p className="lp-eyebrow">Contact Us</p>
+            <p className="lp-eyebrow" style={{ ['--card-accent' as string]: 'var(--lp-accent-ears)' }}>
+              Contact Us
+            </p>
             <h2 className="lp-heading mt-2 font-display text-2xl font-extrabold sm:text-4xl">Get In Touch</h2>
             <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-[var(--lp-body)] sm:text-base">
               A direct line to MFM Wuye Children&apos;s Ministry &mdash; a branch phone number, email, and service
@@ -332,6 +344,7 @@ export default function Home() {
 function InstitutionalBand({
   id,
   eyebrow,
+  eyebrowAccent = 'var(--lp-accent-text)',
   title,
   children,
   alt,
@@ -342,6 +355,7 @@ function InstitutionalBand({
 }: {
   id?: string
   eyebrow: string
+  eyebrowAccent?: string
   title: string
   children: ReactNode
   alt?: boolean
@@ -369,23 +383,14 @@ function InstitutionalBand({
             )}
           </Reveal>
           <Reveal direction={imageFirst ? 'right' : 'left'} delay={0.08}>
-            <p className="lp-eyebrow">{eyebrow}</p>
+            <p className="lp-eyebrow" style={{ ['--card-accent' as string]: eyebrowAccent }}>
+              {eyebrow}
+            </p>
             <h2 className="lp-heading mt-2 font-display text-2xl font-extrabold sm:text-4xl">{title}</h2>
             <div className="mt-4 space-y-3">{children}</div>
           </Reveal>
         </div>
       </div>
-    </div>
-  )
-}
-
-function StatCell({ label, value, accent }: { label: string; value: number; accent: string }) {
-  return (
-    <div className="lp-stat-cell" style={{ ['--card-accent' as string]: accent }}>
-      <div className="lp-stat-value">
-        <CountUp value={value} durationMs={900} />
-      </div>
-      <div className="lp-stat-label">{label}</div>
     </div>
   )
 }
@@ -408,7 +413,7 @@ function SectionCard({
       <Link
         to={to}
         onClick={() => playClick()}
-        className="lp-panel lp-panel-interactive flex h-full items-start gap-4 p-5"
+        className="lp-panel lp-panel-interactive lp-panel-accented flex h-full items-start gap-4 p-5"
         style={{ ['--card-accent' as string]: accent }}
       >
         <span className="lp-icon-chip">

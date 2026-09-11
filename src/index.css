@@ -569,13 +569,14 @@ button:active, a:active {
   letter-spacing: 0.02em;
   border-radius: 8px;
   padding: 0.7rem 1.35rem;
-  transition: background-color 0.15s ease, transform 0.1s ease;
+  transition: background-color 0.15s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .hero-btn-solid:hover {
   background: var(--hero-accent-hover);
+  transform: translateY(-2px) scale(1.03);
 }
 .hero-btn-solid:active {
-  transform: scale(0.97);
+  transform: scale(0.96);
 }
 .hero-btn-outline {
   display: inline-flex;
@@ -711,12 +712,32 @@ button:active, a:active {
   color: var(--lp-body);
 }
 
+/* A playful pill-shaped tag, not plain label text - Fredoka (bouncier than
+   Poppins/Baloo2/Nunito everywhere else) on a soft tinted chip, colour
+   defaulting to the purple-pink accent but overridable per section via
+   --card-accent so each part of the page can wear its own colour. */
 .lp-eyebrow {
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: 'Fredoka', var(--font-body);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--lp-accent-text);
+  color: var(--card-accent, var(--lp-accent-text));
+  background: color-mix(in srgb, var(--card-accent, var(--lp-accent-text)) 14%, transparent);
+  border: 1.5px solid color-mix(in srgb, var(--card-accent, var(--lp-accent-text)) 30%, transparent);
+  border-radius: 999px;
+  padding: 0.3rem 0.85rem;
+}
+.lp-eyebrow::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+  flex-shrink: 0;
 }
 
 .lp-heading {
@@ -744,9 +765,10 @@ button:active, a:active {
 .lp-band-deep .lp-heading {
   color: var(--lp-band-deep-heading);
 }
-.lp-band-deep .lp-eyebrow {
-  color: #f0c94c;
-}
+/* Eyebrow colour on a deep band comes from --card-accent set inline per
+   instance (default gold, per-section colours elsewhere), not a blanket
+   override here - keeps the pill-badge background/border in sync with
+   its text colour instead of only recolouring the text. */
 
 .lp-panel {
   background: var(--lp-bg-panel);
@@ -754,6 +776,12 @@ button:active, a:active {
   border-radius: var(--lp-radius-card);
   box-shadow: var(--lp-shadow-card);
   color: var(--lp-body);
+}
+/* A colour-coded top edge instead of a plain neutral card, so a grid of
+   cards reads as a row of distinct, colourful tiles rather than identical
+   grey boxes with only a small icon differing. */
+.lp-panel-accented {
+  border-top: 4px solid var(--card-accent, var(--lp-accent-fill));
 }
 /* A card can float on a .lp-band-deep background (e.g. the dashboard
    preview tiles inside "Once You Join a Class") while staying its own

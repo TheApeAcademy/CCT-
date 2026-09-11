@@ -8,6 +8,8 @@ import {
   Trophy,
   Music,
   School,
+  CalendarRange,
+  Mail,
   type LucideIcon,
 } from 'lucide-react'
 import { db, ensureSeedData } from '../db/db'
@@ -109,14 +111,21 @@ export default function Home() {
         </p>
       </InstitutionalBand>
 
-      {/* ---------- quiz ---------- */}
+      {/* ---------- what we do ---------- */}
       <div className="mx-auto w-full max-w-6xl px-4">
         <p className="eyebrow">A Children&apos;s Ministry Feature</p>
-        <h2 className="mt-1 font-display text-2xl font-extrabold sm:text-3xl">Bible Quiz</h2>
-        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <h2 className="mt-1 font-display text-2xl font-extrabold sm:text-3xl">What We Do</h2>
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <SectionCard to="/setup" icon={Swords} title="Compete" description="Host a live trivia match on the shared screen with teams and lifelines." featured />
           <SectionCard to="/training" icon={Dumbbell} title="Training Mode" description="Unlimited solo practice. No teams, no timer, no pressure." />
           <SectionCard to="/transition" icon={School} title="Transition Class" description="Lectures, Bible citations, checkpoint quizzes, and mock exams." />
+          <SectionCard to="/seasons" icon={CalendarRange} title="Seasons" description="Every competition season, past and present, in one place." />
+        </div>
+
+        {/* ---------- resources ---------- */}
+        <p className="eyebrow mt-10">For Teachers &amp; Kids</p>
+        <h2 className="mt-1 font-display text-2xl font-extrabold sm:text-3xl">Resources</h2>
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <SectionCard to="/questions" icon={BookOpen} title="Question Bank" description="Add, edit, import, and export trivia questions and sets." />
           <SectionCard to="/history" icon={Trophy} title="History" description="Every completed match, team score, and full recap." />
           <SectionCard to="/anthem" icon={Music} title="Anthem" description="Our children's ministry anthem, with lyrics and a read-aloud." />
@@ -139,6 +148,24 @@ export default function Home() {
                 <p className="text-sm leading-relaxed text-[var(--ink-muted)]">{text}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ---------- contact us ---------- */}
+      <div id="contact" className="section-band section-band-alt full-bleed scroll-mt-20 px-4 py-16 sm:py-20">
+        <div className="mx-auto max-w-6xl">
+          <p className="eyebrow text-sm">Contact Us</p>
+          <h2 className="mt-2 font-display text-2xl font-extrabold sm:text-4xl">Get In Touch</h2>
+          <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-[var(--ink-muted)] sm:text-base">
+            A direct line to MFM Wuye Children&apos;s Ministry &mdash; a branch phone number, email, and service
+            times &mdash; is being finalized with the ministry and will appear here soon.
+          </p>
+          <div className="mt-5 flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-md border border-[var(--hairline-strong)] text-[var(--gold)]">
+              <Mail className="h-5 w-5" strokeWidth={1.75} />
+            </span>
+            <p className="text-sm font-semibold text-[var(--ink-muted)]">Details coming soon &mdash; check back shortly.</p>
           </div>
         </div>
       </div>

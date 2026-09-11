@@ -41,9 +41,9 @@
   --gold: #e8b923;
   --gold-ink: #1b1030;
   /* Primary text colour for the shared chrome system - defaults to white
-     (the app's implicit colour up to now, via PortalShell's text-white),
-     given a name so .kids-theme below can flip it without redefining
-     every component that used to assume white. */
+     (the app's implicit colour up to now), given a name so .site-light-theme
+     below can flip it without redefining every component that used to
+     assume white. */
   --fg: #ffffff;
 
   /* Purple accent matching mountainoffire.org's own carousel + nav CTAs -
@@ -55,12 +55,12 @@
 
 /* Re-themes the shared "site chrome" design system (.panel, .btn-solid,
    .btn-outline, .eyebrow, .stat-strip, TabBar's CSS vars) to the landing
-   page's light, colourful language, wherever it's nested inside the kids
-   sign-up/dashboard experience - without touching the same classes'
-   dark-theme values used everywhere else (offline quiz screens, Admin,
-   Teacher). Pairs with data-landing-theme="light" on the same element so
-   --lp-* tokens/classes are also available for bespoke playful touches. */
-.kids-theme {
+   page's light, colourful language, wherever it's nested inside the kids,
+   teacher, or admin experience - without touching the same classes'
+   dark-theme values used on the offline quiz screens, which stay as-is.
+   Pairs with data-landing-theme="light" on the same element so --lp-*
+   tokens/classes are also available for bespoke playful touches. */
+.site-light-theme {
   color-scheme: light;
   --ink: #ffffff;
   --ink-raised: #faf8ff;

@@ -29,6 +29,7 @@ export interface StudentRow {
   id: string
   class_id: string | null
   username: string
+  student_code: string | null
   date_of_birth: string | null
   favorite_verse: string | null
   favorite_quote: string | null
@@ -188,7 +189,7 @@ export async function removeRosterEntry(id: string) {
 export async function listStudentsInClass(classId: string): Promise<StudentRow[]> {
   const { data, error } = await supabase
     .from('students')
-    .select('id, class_id, username, date_of_birth, favorite_verse, favorite_quote, bio, total_points, created_at, profiles!inner(full_name, avatar_url)')
+    .select('id, class_id, username, student_code, date_of_birth, favorite_verse, favorite_quote, bio, total_points, created_at, profiles!inner(full_name, avatar_url)')
     .eq('class_id', classId)
   if (error) throw error
   return (data ?? []).map((row: any) => ({
@@ -262,10 +263,19 @@ export async function registerStudent(params: { full_name: string; guardian_phon
   return body as { email: string; student_id: string; student_code: string }
 }
 
-export async function studentSignInByCode(params: { student_code: string; passcode: string }) {
-  const { data: email, error } = await supabase.rpc('get_student_login_email_by_code', { p_code: params.student_code.trim() })
+// Returning students sign in with name + passcode, not a Student Code (that's
+// for teachers enrolling them into a class - see enrollStudentByCode above).
+// The passcode itself is the actual lookup key server-side (it's built from
+// the student's name, so it's already unique); full_name is sent along too
+// so a handful of pre-existing accounts without a login_key can still be
+// found by name as a fallback. See get_student_login_email_by_login_key.
+export async function studentSignInByName(params: { full_name: string; passcode: string }) {
+  const { data: email, error } = await supabase.rpc('get_student_login_email_by_login_key', {
+    p_login_key: params.passcode.trim(),
+    p_full_name: params.full_name.trim(),
+  })
   if (error) throw error
-  if (!email) throw new Error("We couldn't find that Student Code. Double check it and try again.")
+  if (!email) throw new Error("We couldn't find that account. Double check your name and passcode.")
   const { error: signInError } = await supabase.auth.signInWithPassword({ email, password: params.passcode })
   if (signInError) throw new Error('Wrong passcode. Try again, or ask your teacher to help.')
 }
@@ -277,7 +287,7 @@ export async function getMyStudentProfile(): Promise<StudentRow | null> {
   if (!auth.user) return null
   const { data, error } = await supabase
     .from('students')
-    .select('id, class_id, username, date_of_birth, favorite_verse, favorite_quote, bio, total_points, created_at, profiles!inner(full_name, avatar_url)')
+    .select('id, class_id, username, student_code, date_of_birth, favorite_verse, favorite_quote, bio, total_points, created_at, profiles!inner(full_name, avatar_url)')
     .eq('id', auth.user.id)
     .maybeSingle()
   if (error) throw error

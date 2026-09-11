@@ -10,6 +10,7 @@ export interface IdCardData {
   favoriteVerse: string | null
   favoriteQuote: string | null
   churchName: string
+  studentCode: string | null
 }
 
 function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
@@ -142,6 +143,16 @@ export async function renderIdCardPng(data: IdCardData): Promise<string> {
       y += 26
       ctx.fillText(line, W / 2, y)
     }
+  }
+
+  if (data.studentCode) {
+    ctx.fillStyle = 'rgba(250,204,21,0.12)'
+    ctx.beginPath()
+    ctx.roundRect(W / 2 - 110, H - 92, 220, 38, 19)
+    ctx.fill()
+    ctx.font = 'bold 16px sans-serif'
+    ctx.fillStyle = '#fde68a'
+    ctx.fillText(`Student Code: ${data.studentCode}`, W / 2, H - 68)
   }
 
   ctx.font = '14px sans-serif'

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Check, Copy, KeyRound, Phone, Sparkles, User } from 'lucide-react'
-import { registerStudent, studentSignInByCode } from '../lib/ministry'
+import { ArrowLeft, Check, Copy, KeyRound, PartyPopper, Phone, Sparkles, User } from 'lucide-react'
+import { registerStudent, studentSignInByName } from '../lib/ministry'
 import { playClick, playNav } from '../lib/sound'
 import { haptics } from '../lib/haptics'
 import FloatingArt from '../components/FloatingArt'
@@ -51,7 +51,7 @@ export default function JoinClass() {
             mode === 'returning' ? 'bg-[var(--hero-accent)] text-white shadow-md' : 'text-[var(--lp-muted)] hover:text-[var(--lp-heading)]'
           }`}
         >
-          I have a Student Code
+          I&apos;ve signed up before
         </button>
       </div>
 
@@ -69,9 +69,9 @@ export default function JoinClass() {
 
 // ---------- new student: one question at a time ----------
 
-type Step = 'name' | 'phone' | 'passcode' | 'confirm' | 'generating' | 'code'
+type Step = 'name' | 'phone' | 'passcode' | 'confirm' | 'generating' | 'done'
 
-const STEP_ORDER: Step[] = ['name', 'phone', 'passcode', 'confirm', 'generating', 'code']
+const STEP_ORDER: Step[] = ['name', 'phone', 'passcode', 'confirm', 'generating', 'done']
 
 const STEP_ACCENT: Record<Step, string> = {
   name: 'var(--lp-accent-compete)',
@@ -79,7 +79,7 @@ const STEP_ACCENT: Record<Step, string> = {
   passcode: 'var(--lp-accent-achievements)',
   confirm: 'var(--lp-accent-leaderboard)',
   generating: 'var(--hero-accent)',
-  code: 'var(--lp-accent-class)',
+  done: 'var(--lp-accent-class)',
 }
 
 // Kids don't pick a passcode - it's built from their own first name so it's
@@ -98,8 +98,6 @@ function NewStudentFlow() {
   const [guardianPhone, setGuardianPhone] = useState('')
   const [passcode, setPasscode] = useState('')
   const [confirmPasscode, setConfirmPasscode] = useState('')
-  const [studentCode, setStudentCode] = useState('')
-  const [copied, setCopied] = useState(false)
   const [passcodeCopied, setPasscodeCopied] = useState(false)
   const [error, setError] = useState('')
 
@@ -121,25 +119,16 @@ function NewStudentFlow() {
     setStep('generating')
     setError('')
     try {
-      const result = await registerStudent({ full_name: fullName, guardian_phone: guardianPhone || undefined, passcode })
-      setStudentCode(result.student_code)
+      // The Student Code this returns still exists (teachers use it to add a
+      // kid to their class from the roster) - it just isn't shown here
+      // anymore. Kids can find it on their profile / ID card once signed in.
+      await registerStudent({ full_name: fullName, guardian_phone: guardianPhone || undefined, passcode })
       haptics.success()
-      setStep('code')
+      setStep('done')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not create your account. Try again.')
       haptics.error()
       setStep('confirm')
-    }
-  }
-
-  const copyCode = async () => {
-    try {
-      await navigator.clipboard.writeText(studentCode)
-      setCopied(true)
-      playClick()
-      window.setTimeout(() => setCopied(false), 2000)
-    } catch {
-      // clipboard unavailable — the code is already visible on screen
     }
   }
 
@@ -225,8 +214,8 @@ function NewStudentFlow() {
             {passcodeCopied ? 'Copied' : 'Copy passcode'}
           </button>
           <p className="text-sm text-[var(--lp-muted)]">
-            Copy it or write it down somewhere safe. You&apos;ll need it, with your Student Code, to sign in next
-            time — even though it&apos;s easy to remember!
+            Copy it or write it down somewhere safe. You&apos;ll need it, with your name, to sign in next time —
+            even though it&apos;s easy to remember!
           </p>
           {error && <p className="text-sm text-red-500">{error}</p>}
           <div className="flex gap-2">
@@ -280,21 +269,14 @@ function NewStudentFlow() {
         </div>
       )}
 
-      {step === 'code' && (
+      {step === 'done' && (
         <div className="animate-page-in space-y-4">
-          <div className="lp-panel lp-panel-accented space-y-3 p-6 text-center" style={{ ['--card-accent' as string]: STEP_ACCENT.code }}>
-            <p className="lp-eyebrow justify-center" style={{ ['--card-accent' as string]: STEP_ACCENT.code }}>
-              Your Student Code
-            </p>
-            <p className="font-display text-4xl font-extrabold tracking-widest" style={{ fontFamily: 'Fredoka, var(--font-display)', color: STEP_ACCENT.code }}>
-              {studentCode}
-            </p>
-            <button onClick={copyCode} className="lp-btn-outline mx-auto flex items-center gap-1.5 px-4 py-2 text-xs">
-              {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-              {copied ? 'Copied' : 'Copy code'}
-            </button>
+          <div className="lp-panel lp-panel-accented space-y-3 p-6 text-center" style={{ ['--card-accent' as string]: STEP_ACCENT.done }}>
+            <PartyPopper className="mx-auto h-10 w-10" style={{ color: STEP_ACCENT.done }} strokeWidth={1.75} />
+            <p className="lp-heading font-display text-xl font-bold">You&apos;re all set, {fullName.trim().split(/\s+/)[0]}!</p>
             <p className="text-sm text-[var(--lp-muted)]">
-              Keep this safe. You&apos;ll use it, with your passcode, to sign in next time.
+              Your Student Code is waiting on your profile once you&apos;re in — that&apos;s what you&apos;ll give
+              your teacher to get added to your class.
             </p>
           </div>
           <button
@@ -346,18 +328,18 @@ function StepPanel({
 
 function ReturningStudentFlow() {
   const navigate = useNavigate()
-  const [studentCode, setStudentCode] = useState('')
+  const [fullName, setFullName] = useState('')
   const [passcode, setPasscode] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   const submit = async () => {
-    if (!studentCode.trim()) return setError('Enter your Student Code.')
+    if (!fullName.trim()) return setError('Enter your name.')
     if (!passcode.trim()) return setError('Enter your passcode.')
     setSubmitting(true)
     setError('')
     try {
-      await studentSignInByCode({ student_code: studentCode, passcode })
+      await studentSignInByName({ full_name: fullName, passcode })
       playNav()
       haptics.success()
       navigate('/student')
@@ -371,12 +353,13 @@ function ReturningStudentFlow() {
 
   return (
     <div className="lp-panel lp-panel-accented space-y-3 p-6" style={{ ['--card-accent' as string]: 'var(--hero-accent)' }}>
-      <label className="block text-sm font-bold text-[var(--lp-heading)]">Your Student Code</label>
+      <label className="block text-sm font-bold text-[var(--lp-heading)]">Your name</label>
       <input
-        value={studentCode}
-        onChange={(e) => setStudentCode(e.target.value.toUpperCase())}
-        placeholder="MFM4827"
-        className={`${inputClass} text-center text-xl font-bold tracking-widest`}
+        value={fullName}
+        onChange={(e) => setFullName(e.target.value)}
+        placeholder="Your full name"
+        className={inputClass}
+        onKeyDown={(e) => e.key === 'Enter' && submit()}
       />
       <label className="block text-sm font-bold text-[var(--lp-heading)]">Your passcode</label>
       <input

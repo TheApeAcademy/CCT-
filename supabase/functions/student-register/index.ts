@@ -82,6 +82,14 @@ Deno.serve(async (req: Request) => {
     return json({ error: profileError.message }, 500);
   }
 
+  // login_key is the passcode itself, lowercased - it's how a returning
+  // student's sign-in (name + passcode) finds their account without needing
+  // a Student Code. It's fixed per registration attempt (unlike
+  // studentCode below, which re-rolls on collision): a real collision here
+  // means someone else already has this exact firstname+mfm+digit, which
+  // the client can resolve by just resubmitting to get a new random digit.
+  const loginKey = passcode.toLowerCase();
+
   let studentCode: string | null = null;
   for (let attempt = 0; attempt < 8 && !studentCode; attempt++) {
     const candidate = randomStudentCode();
@@ -90,6 +98,7 @@ Deno.serve(async (req: Request) => {
       class_id: null,
       username: candidate,
       student_code: candidate,
+      login_key: loginKey,
       guardian_phone: guardianPhone,
     });
     if (!insertError) {
@@ -102,7 +111,7 @@ Deno.serve(async (req: Request) => {
 
   if (!studentCode) {
     await admin.auth.admin.deleteUser(studentId);
-    return json({ error: "Could not generate a Student Code. Please try again." }, 500);
+    return json({ error: "Could not create your account. Please try again." }, 500);
   }
 
   return json({ email, student_id: studentId, student_code: studentCode });

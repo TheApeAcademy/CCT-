@@ -13,6 +13,7 @@ import {
   Sparkles,
   Share2,
   Check,
+  Copy,
   BookOpen,
   FileText,
   Clock,
@@ -607,10 +608,23 @@ function ProfileTab({ student, klass, onSaved }: { student: StudentRow; klass: (
   const [saved, setSaved] = useState(false)
   const [cardUrl, setCardUrl] = useState<string | null>(null)
   const [rendering, setRendering] = useState(false)
+  const [codeCopied, setCodeCopied] = useState(false)
 
   const pickPhoto = async (file: File | undefined) => {
     if (!file) return
     setAvatar(await fileToResizedDataUrl(file))
+  }
+
+  const copyStudentCode = async () => {
+    if (!student.student_code) return
+    try {
+      await navigator.clipboard.writeText(student.student_code)
+      setCodeCopied(true)
+      playClick()
+      window.setTimeout(() => setCodeCopied(false), 2000)
+    } catch {
+      // clipboard unavailable — the code is already visible on screen
+    }
   }
 
   const save = async () => {
@@ -638,6 +652,7 @@ function ProfileTab({ student, klass, onSaved }: { student: StudentRow; klass: (
         favoriteVerse: verse || null,
         favoriteQuote: quote || null,
         churchName: "MFM Children's Ministry",
+        studentCode: student.student_code,
       })
       setCardUrl(url)
       playNav()
@@ -677,6 +692,24 @@ function ProfileTab({ student, klass, onSaved }: { student: StudentRow; klass: (
           </label>
           <p className="text-sm text-[var(--ink-muted)]">Tap your photo to change it</p>
         </div>
+
+        {student.student_code && (
+          <div className="flex items-center justify-between gap-3 rounded-md border border-[var(--gold)]/30 bg-[var(--gold)]/10 px-4 py-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-[var(--gold)]">Your Student Code</p>
+              <p className="font-display text-lg font-extrabold tracking-widest text-[var(--gold)]">{student.student_code}</p>
+            </div>
+            <button
+              onClick={copyStudentCode}
+              className="flex shrink-0 items-center gap-1.5 rounded-md border border-[var(--gold)]/40 px-3 py-1.5 text-xs font-bold text-[var(--gold)] transition hover:bg-[var(--gold)]/10"
+            >
+              {codeCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+              {codeCopied ? 'Copied' : 'Copy'}
+            </button>
+          </div>
+        )}
+        <p className="text-xs text-[var(--ink-faint)]">Give this to your teacher so they can add you to your class.</p>
+
         <textarea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="A little about me…" rows={2} className={inputClass} />
         <input value={verse} onChange={(e) => setVerse(e.target.value)} placeholder="Favorite Bible verse" className={inputClass} />
         <input value={quote} onChange={(e) => setQuote(e.target.value)} placeholder="Favorite quote" className={inputClass} />

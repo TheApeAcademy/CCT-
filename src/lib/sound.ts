@@ -215,31 +215,34 @@ export function playWhoosh() {
  * header), so this reads as applause rather than reproducing a real
  * recording of one.
  */
-export function playApplause(durationSec = 1.4) {
+// startAt lets a caller stagger this behind another sound fired in the same
+// instant (e.g. the correct-answer chime) so the two read as two distinct
+// events instead of blending into a wash - see reveal() in Gameplay.tsx.
+export function playApplause(durationSec = 1.4, startAt = 0) {
   if (muted) return
-  const clapCount = Math.round(durationSec * 22)
+  const clapCount = Math.round(durationSec * 26)
   for (let i = 0; i < clapCount; i++) {
-    const t = Math.random() * durationSec
-    noiseBurst(t, 0.06 + Math.random() * 0.05, 2200 + Math.random() * 2800, 0.16 + Math.random() * 0.1, 'bandpass')
+    const t = startAt + Math.random() * durationSec
+    noiseBurst(t, 0.06 + Math.random() * 0.05, 2200 + Math.random() * 2800, 0.2 + Math.random() * 0.12, 'bandpass')
   }
   // A few louder, lower-pitched thumps on top of the wash so it reads as
   // clapping hands rather than just static/fizz.
-  const thumpCount = Math.round(durationSec * 6)
+  const thumpCount = Math.round(durationSec * 8)
   for (let i = 0; i < thumpCount; i++) {
-    const t = Math.random() * durationSec
-    noiseBurst(t, 0.1 + Math.random() * 0.05, 900 + Math.random() * 500, 0.22, 'bandpass')
+    const t = startAt + Math.random() * durationSec
+    noiseBurst(t, 0.1 + Math.random() * 0.05, 900 + Math.random() * 500, 0.28, 'bandpass')
   }
 }
 
 /** Applause plus a rising scatter of short pitched tones standing in for a crowd of kids cheering. */
-export function playCheer(durationSec = 2.2) {
-  playApplause(durationSec)
+export function playCheer(durationSec = 2.2, startAt = 0) {
+  playApplause(durationSec, startAt)
   if (muted) return
-  const voices = 14
+  const voices = 16
   for (let i = 0; i < voices; i++) {
-    const t = Math.random() * Math.max(0.1, durationSec - 0.4)
+    const t = startAt + Math.random() * Math.max(0.1, durationSec - 0.4)
     const base = 500 + Math.random() * 500
-    tone(base, t, 0.35 + Math.random() * 0.3, 'sawtooth', 0.1, base * (1.3 + Math.random() * 0.4))
+    tone(base, t, 0.35 + Math.random() * 0.3, 'sawtooth', 0.13, base * (1.3 + Math.random() * 0.4))
   }
 }
 
@@ -323,4 +326,30 @@ export function stopMusic() {
     window.clearTimeout(musicTimer)
     musicTimer = null
   }
+}
+
+/**
+ * A movie-trailer-style hit for a big narrative beat (the curtain rising,
+ * starting the quiz after ground rules) - a low rising drone building into
+ * a sharp low hit, not a light UI chime.
+ */
+export function playDramaticSting() {
+  if (muted) return
+  const c = getCtx()
+  const osc = c.createOscillator()
+  const gain = c.createGain()
+  osc.type = 'sawtooth'
+  osc.frequency.setValueAtTime(55, c.currentTime)
+  osc.frequency.exponentialRampToValueAtTime(115, c.currentTime + 0.85)
+  gain.gain.setValueAtTime(0.0001, c.currentTime)
+  gain.gain.exponentialRampToValueAtTime(0.2, c.currentTime + 0.65)
+  gain.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + 1.0)
+  osc.connect(gain)
+  gain.connect(c.destination)
+  osc.start(c.currentTime)
+  osc.stop(c.currentTime + 1.05)
+
+  noiseBurst(0.78, 0.3, 800, 0.3, 'lowpass')
+  tone(75, 0.78, 0.4, 'square', 0.24)
+  tone(150, 0.78, 0.35, 'sawtooth', 0.16, 55)
 }

@@ -277,7 +277,7 @@ export default function Gameplay() {
         const isMilestone = LADDER.find((l) => l.level === currentLevel)?.isMilestone
         if (correct) {
           sound.playCorrect()
-          sound.playApplause()
+          sound.playApplause(1.4, 0.35)
           haptics.success()
           setFlash('green')
           setShowConfetti(true)
@@ -285,7 +285,6 @@ export default function Gameplay() {
           window.setTimeout(() => setFlash(null), 700)
           window.setTimeout(() => setShowConfetti(false), 1800)
         } else {
-          sound.playWrong()
           sound.playOops()
           haptics.error()
           setFlash('red')
@@ -451,18 +450,40 @@ export default function Gameplay() {
         <div className={`pointer-events-none fixed inset-0 z-40 ${flash === 'green' ? 'animate-flash-green' : 'animate-flash-red'}`} />
       )}
 
+      <div className="fixed right-3 top-3 z-50">
+        <button
+          onClick={() => setShowLadder((v) => !v)}
+          className="flex items-center gap-2 rounded-full bg-black/70 px-4 py-2 text-sm font-semibold shadow-lg backdrop-blur transition hover:bg-black/80"
+        >
+          👑 Leaderboard
+        </button>
+        {showLadder && (
+          <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl bg-indigo-950 p-3 shadow-2xl">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="text-sm font-bold text-white/80">Point Ladder</span>
+              <button onClick={() => setShowLadder(false)} className="rounded-full bg-white/10 px-2 py-0.5 text-xs hover:bg-white/20">
+                ✕
+              </button>
+            </div>
+            <Ladder currentLevel={currentLevel} />
+          </div>
+        )}
+      </div>
+
+      {isHeadToHead && (
+        <SideStrip
+          config={config}
+          teamIdx={0}
+          activeTeamIndex={activeTeamIndex}
+          answersByTeam={answersByTeam}
+          pastSessions={pastSessions}
+          xpTotals={xpTotals}
+        />
+      )}
+
       <div className="flex flex-1 flex-col justify-center gap-2">
         {isHeadToHead ? (
-          <div className="flex items-center gap-2">
-            <div className="flex-1">
-              <HeadToHeadBar
-                config={config}
-                activeTeamIndex={activeTeamIndex}
-                answersByTeam={answersByTeam}
-                pastSessions={pastSessions}
-                xpTotals={xpTotals}
-              />
-            </div>
+          <div className="flex justify-end gap-2">
             <button
               onClick={() => setShowSettings(true)}
               className="shrink-0 rounded-full bg-white/10 px-3 py-2 text-sm hover:bg-white/20"
@@ -667,15 +688,17 @@ export default function Gameplay() {
         )}
       </div>
 
-      <div className="hidden shrink-0 lg:flex lg:w-[220px] lg:flex-col lg:justify-center lg:gap-2">
-        <button
-          onClick={() => setShowLadder((v) => !v)}
-          className="flex items-center justify-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-sm font-semibold transition hover:bg-white/20"
-        >
-          👑 {showLadder ? 'Hide' : 'Show'} Point Ladder
-        </button>
-        {showLadder && <Ladder currentLevel={currentLevel} />}
-        {!isHeadToHead && (
+      {isHeadToHead ? (
+        <SideStrip
+          config={config}
+          teamIdx={1}
+          activeTeamIndex={activeTeamIndex}
+          answersByTeam={answersByTeam}
+          pastSessions={pastSessions}
+          xpTotals={xpTotals}
+        />
+      ) : (
+        <div className="hidden shrink-0 lg:flex lg:w-[220px] lg:flex-col lg:justify-center lg:gap-2">
           <LiveScoreboard
             config={config}
             answersByTeam={answersByTeam}
@@ -683,8 +706,8 @@ export default function Gameplay() {
             pastSessions={pastSessions}
             xpTotals={xpTotals}
           />
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -776,7 +799,7 @@ function IntroCountdown({
       {teamPhoto ? (
         <img src={teamPhoto} alt="" className="h-24 w-24 rounded-full object-cover shadow-xl shadow-black/40 ring-4 ring-amber-400/60" />
       ) : (
-        <img src="/children-ministry-logo-splash.png" alt="" className="h-20 w-20 rounded-full object-contain shadow-xl shadow-black/40 ring-2 ring-amber-400/50" />
+        <img src="/children-ministry-logo-splash.png" alt="" className="h-32 w-auto object-contain drop-shadow-xl" />
       )}
       {totalTeams > 1 && (
         <p className="text-sm uppercase tracking-wide text-white/50">
@@ -798,66 +821,73 @@ function IntroCountdown({
  * for a 2-contestant rotational match: both names/photos, running points,
  * and each one's row of pending/correct/wrong circles side by side, live.
  */
-function HeadToHeadBar({
+/**
+ * One contestant's own vertical strip for a 2-player head-to-head match -
+ * not boxed in a card, just laid directly against the side of the screen:
+ * their all-time XP at the very top, name and photo (falling back to the
+ * ministry logo, never blank, if no photo was set), then their per-question
+ * circles stretching down the full height of the strip (a real flex-1
+ * column, not a fixed-size cluster) to match the question+options block
+ * beside it, and their correct-answer total at the very bottom.
+ */
+function SideStrip({
   config,
+  teamIdx,
   activeTeamIndex,
   answersByTeam,
   pastSessions,
   xpTotals,
 }: {
   config: GameConfig
+  teamIdx: number
   activeTeamIndex: number
   answersByTeam: Record<number, AnswerRecord[]>
   pastSessions: GameSession[]
   xpTotals: Record<number, number>
 }) {
+  const name = config.teamNames[teamIdx]
+  const isActive = teamIdx === activeTeamIndex
+  const finished = pastSessions.find((s) => s.teamIndex === teamIdx)
+  const teamAnswers = answersByTeam[teamIdx] ?? finished?.answers ?? []
+  const correctCount = teamAnswers.filter((a) => a.correct).length
+  const isLinked = !!config.teamStudentIds?.[teamIdx]
+  const photo = config.teamPhotos?.[teamIdx]
+
   return (
-    <div className="grid grid-cols-2 gap-2">
-      {config.teamNames.map((name, idx) => {
-        const isActive = idx === activeTeamIndex
-        const finished = pastSessions.find((s) => s.teamIndex === idx)
-        const teamAnswers = answersByTeam[idx] ?? finished?.answers ?? []
-        const correctCount = teamAnswers.filter((a) => a.correct).length
-        const isLinked = !!config.teamStudentIds?.[idx]
-        return (
-          <div
-            key={idx}
-            className={`flex flex-col items-center gap-1 rounded-2xl p-3 text-center transition ${isActive ? 'bg-amber-400/15 ring-2 ring-amber-400/50' : 'bg-white/5 ring-1 ring-white/10'}`}
-          >
-            {config.teamPhotos?.[idx] && (
-              <img src={config.teamPhotos[idx]} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-amber-400/50" />
-            )}
-            <p className={`truncate text-sm font-bold ${isActive ? 'text-amber-300' : 'text-white/80'}`}>{name}</p>
-            <p className="font-display text-2xl font-extrabold leading-none text-amber-300">
-              <CountUp value={correctCount} durationMs={400} />
-              <span className="text-base font-bold text-amber-300/70">/{LADDER.length}</span>
-            </p>
-            <p className="text-xs text-amber-300/70">correct</p>
-            {isLinked && xpTotals[idx] !== undefined && (
-              <p className="text-[11px] text-white/40">🏆 {xpTotals[idx].toLocaleString()} all-time</p>
-            )}
-            <div className="mt-1 flex flex-col items-center gap-1">
-              {LADDER.map((l) => {
-                const a = teamAnswers.find((rec) => rec.level === l.level)
-                const state = !a ? 'pending' : a.correct ? 'correct' : 'wrong'
-                return (
-                  <span
-                    key={l.level}
-                    title={`Q${l.level}`}
-                    className={`h-2.5 w-2.5 rounded-full border ${
-                      state === 'correct'
-                        ? 'border-green-300 bg-green-500'
-                        : state === 'wrong'
-                          ? 'border-red-300 bg-red-500'
-                          : 'border-white/30 bg-transparent'
-                    }`}
-                  />
-                )
-              })}
-            </div>
-          </div>
-        )
-      })}
+    <div className="flex w-20 shrink-0 flex-col items-center text-center sm:w-24">
+      {isLinked && xpTotals[teamIdx] !== undefined && (
+        <p className="text-[10px] font-bold text-white/40">🏆 {xpTotals[teamIdx].toLocaleString()}</p>
+      )}
+      {photo ? (
+        <img src={photo} alt="" className="mt-1 h-11 w-11 rounded-full object-cover ring-2 ring-amber-400/50" />
+      ) : (
+        <img src="/children-ministry-logo-splash.png" alt="" className="mt-1 h-11 w-auto object-contain opacity-80" />
+      )}
+      <p className={`mt-1 truncate px-1 text-sm font-bold ${isActive ? 'text-amber-300' : 'text-white/80'}`}>{name}</p>
+
+      <div className="my-2 flex flex-1 flex-col justify-evenly gap-1">
+        {LADDER.map((l) => {
+          const a = teamAnswers.find((rec) => rec.level === l.level)
+          const state = !a ? 'pending' : a.correct ? 'correct' : 'wrong'
+          return (
+            <span
+              key={l.level}
+              title={`Q${l.level}`}
+              className={`h-3 w-3 rounded-full border ${
+                state === 'correct'
+                  ? 'border-green-300 bg-green-500'
+                  : state === 'wrong'
+                    ? 'border-red-300 bg-red-500'
+                    : 'border-white/30 bg-transparent'
+              } ${isActive ? 'shadow-[0_0_8px_rgba(250,204,21,0.5)]' : ''}`}
+            />
+          )
+        })}
+      </div>
+
+      <p className="text-xs font-bold text-amber-300">
+        TOTAL: <CountUp value={correctCount} durationMs={400} />
+      </p>
     </div>
   )
 }
@@ -886,19 +916,93 @@ function TimerBar({ timeLeft, total }: { timeLeft: number; total: number }) {
   return (
     <div key={alarming ? timeLeft : 'calm'} className={`flex justify-center ${alarming ? 'animate-screen-shake' : ''}`}>
       <div
-        className={`rounded-2xl border-2 bg-black px-10 py-4 shadow-inner shadow-black/80 transition-colors ${
+        className={`rounded-2xl border-2 bg-black px-8 py-4 shadow-inner shadow-black/80 transition-colors ${
           urgent ? 'border-red-500/70' : 'border-amber-400/50'
         }`}
       >
-        <p
-          className={`flex items-baseline justify-center gap-1.5 font-mono text-8xl font-extrabold tabular-nums tracking-widest [text-shadow:0_0_10px_currentColor,0_0_24px_currentColor] ${
-            alarming ? 'animate-bounce' : urgent ? 'animate-pulse' : ''
-          } ${colorClass}`}
-        >
-          {display}
-          <span className="text-2xl font-bold opacity-70">.{ms.toString().padStart(3, '0')}</span>
-        </p>
+        <div className={`flex items-end gap-2 ${alarming ? 'animate-bounce' : urgent ? 'animate-pulse' : ''} ${colorClass}`}>
+          <SevenSegmentClock text={display} size={1.5} />
+          <SevenSegmentClock text={`.${ms.toString().padStart(3, '0')}`} size={0.6} />
+        </div>
       </div>
+    </div>
+  )
+}
+
+const SEVEN_SEG_MAP: Record<string, string> = {
+  '0': 'abcdef',
+  '1': 'bc',
+  '2': 'abged',
+  '3': 'abgcd',
+  '4': 'fgbc',
+  '5': 'afgcd',
+  '6': 'afgecd',
+  '7': 'abc',
+  '8': 'abcdefg',
+  '9': 'abcdfg',
+}
+
+/**
+ * A genuine seven-segment LCD-style readout - each digit built from real
+ * segment bars (lit vs unlit, both rendered so the "unlit" segments show
+ * faintly like a real display) rather than just a bold monospace font.
+ * `:` renders as two stacked dots and `.` as a single one, both baseline-
+ * aligned with the digits beside them.
+ */
+function SevenSegmentClock({ text, size = 1 }: { text: string; size?: number }) {
+  return (
+    <div className="flex items-end gap-[3px]">
+      {text.split('').map((ch, i) => {
+        if (ch === ':') return <SevenSegColon key={i} size={size} />
+        if (ch === '.') return <SevenSegDot key={i} size={size} />
+        return <SevenSegDigit key={i} lit={SEVEN_SEG_MAP[ch] ?? ''} size={size} />
+      })}
+    </div>
+  )
+}
+
+function SevenSegDigit({ lit, size }: { lit: string; size: number }) {
+  const w = 26 * size
+  const h = 46 * size
+  const t = 5.5 * size
+  const half = h / 2
+  const vH = half - t
+  const has = (s: string) => lit.includes(s)
+  const bar = (on: boolean, style: React.CSSProperties) => (
+    <div
+      style={{ position: 'absolute', borderRadius: t / 2, ...style, background: on ? 'currentColor' : 'rgba(255,255,255,0.07)' }}
+    />
+  )
+  return (
+    <div style={{ position: 'relative', width: w, height: h }}>
+      {bar(has('a'), { top: 0, left: t / 2, width: w - t, height: t })}
+      {bar(has('g'), { top: half - t / 2, left: t / 2, width: w - t, height: t })}
+      {bar(has('d'), { top: h - t, left: t / 2, width: w - t, height: t })}
+      {bar(has('f'), { top: t, left: 0, width: t, height: vH })}
+      {bar(has('b'), { top: t, left: w - t, width: t, height: vH })}
+      {bar(has('e'), { top: half, left: 0, width: t, height: vH })}
+      {bar(has('c'), { top: half, left: w - t, width: t, height: vH })}
+    </div>
+  )
+}
+
+function SevenSegColon({ size }: { size: number }) {
+  const d = 6 * size
+  const h = 46 * size
+  return (
+    <div style={{ position: 'relative', width: d, height: h }}>
+      <div style={{ position: 'absolute', top: h * 0.28, left: 0, width: d, height: d, borderRadius: 999, background: 'currentColor' }} />
+      <div style={{ position: 'absolute', top: h * 0.62, left: 0, width: d, height: d, borderRadius: 999, background: 'currentColor' }} />
+    </div>
+  )
+}
+
+function SevenSegDot({ size }: { size: number }) {
+  const d = 6 * size
+  const h = 46 * size
+  return (
+    <div style={{ position: 'relative', width: d, height: h }}>
+      <div style={{ position: 'absolute', bottom: 0, left: 0, width: d, height: d, borderRadius: 999, background: 'currentColor' }} />
     </div>
   )
 }
@@ -957,6 +1061,7 @@ function SettingsPanel({
   onSetTimer: (seconds: number) => void
   onClose: () => void
 }) {
+  const [customTimer, setCustomTimer] = useState('')
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
       <div
@@ -995,7 +1100,7 @@ function SettingsPanel({
           </div>
           <div>
             <p className="mb-2 text-sm font-semibold text-white/80">Timer per question (from next question)</p>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {SETTINGS_TIMER_OPTIONS.map((t) => (
                 <button
                   key={t}
@@ -1007,6 +1112,26 @@ function SettingsPanel({
                   {t}s
                 </button>
               ))}
+              <div className="flex items-center gap-1.5 rounded-full bg-white/10 pl-3 pr-1.5">
+                <input
+                  type="number"
+                  min={5}
+                  max={600}
+                  value={customTimer}
+                  onChange={(e) => setCustomTimer(e.target.value)}
+                  placeholder="Custom"
+                  className="w-16 bg-transparent py-1.5 text-sm font-semibold text-white outline-none placeholder:text-white/40"
+                />
+                <button
+                  onClick={() => {
+                    const n = Math.round(Number(customTimer))
+                    if (Number.isFinite(n) && n >= 5 && n <= 600) onSetTimer(n)
+                  }}
+                  className="rounded-full bg-amber-400 px-3 py-1 text-xs font-bold text-purple-950 transition hover:scale-105"
+                >
+                  Set
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -97,14 +97,13 @@ export default function Training() {
           return next
         })
         sound.playCorrect()
-        sound.playApplause()
+        sound.playApplause(1.4, 0.35)
         haptics.success()
         setFlash('green')
         setShowConfetti(true)
         window.setTimeout(() => setShowConfetti(false), 1500)
       } else {
         setStreak(0)
-        sound.playWrong()
         sound.playOops()
         haptics.error()
         setFlash('red')
@@ -262,7 +261,7 @@ export default function Training() {
             src="/children-ministry-logo-splash.png"
             alt=""
             aria-hidden="true"
-            className="relative z-10 -mb-8 h-14 w-14 rounded-full object-contain shadow-lg shadow-black/40 ring-2 ring-amber-400/60"
+            className="relative z-10 h-24 w-auto object-contain drop-shadow-lg"
           />
         </div>
         <div className="hex-frame mx-auto w-full">

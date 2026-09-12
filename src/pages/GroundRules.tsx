@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import type { GameConfig } from '../db/types'
-import { playNav, playWhoosh, playClick } from '../lib/sound'
+import { playNav, playWhoosh, playClick, playDramaticSting } from '../lib/sound'
 import { haptics } from '../lib/haptics'
 
 const RULES = [
@@ -80,6 +80,7 @@ export default function GroundRules() {
 
   const raiseCurtain = () => {
     setOpen(true)
+    playDramaticSting()
     playWhoosh()
     haptics.tap()
   }
@@ -108,15 +109,16 @@ export default function GroundRules() {
 
   const beginQuiz = () => {
     if (typeof window !== 'undefined' && window.speechSynthesis) window.speechSynthesis.cancel()
+    playDramaticSting()
     playNav()
     haptics.success()
     navigate('/play', { state: config })
   }
 
   return (
-    <div className="relative mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center overflow-hidden px-4 py-8 text-center">
-      {/* Stage revealed behind the curtain: a real photo backdrop instead of flat gradient + emoji. */}
-      <div className="absolute inset-0 -z-10 overflow-hidden rounded-3xl">
+    <div className="relative flex w-full flex-1 flex-col items-center justify-center overflow-hidden px-4 py-8 text-center">
+      {/* Stage revealed behind the curtain: a real photo backdrop, edge to edge - no rounded card, no max-width. */}
+      <div className="absolute inset-0 -z-10 overflow-hidden">
         <img src="/hero-quiz.jpg" alt="" aria-hidden="true" className="h-full w-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-b from-indigo-950/90 via-purple-950/85 to-indigo-950/95" />
         <div
@@ -125,7 +127,7 @@ export default function GroundRules() {
         />
       </div>
 
-      <div className={`relative z-10 space-y-6 transition-opacity duration-500 ${open ? 'opacity-100' : 'opacity-0'}`}>
+      <div className={`relative z-10 mx-auto max-w-3xl space-y-6 transition-opacity duration-500 ${open ? 'opacity-100' : 'opacity-0'}`}>
         <div>
           <p className="text-sm uppercase tracking-widest text-amber-300/80">Ground Rules</p>
           <h1 className="font-display text-3xl font-extrabold sm:text-4xl">Before We Begin...</h1>

@@ -12,6 +12,8 @@ const emptyForm = {
   options: ['', '', '', ''] as [string, string, string, string],
   correctIndex: 0 as 0 | 1 | 2 | 3,
   funFact: '',
+  reference: '',
+  groups: [] as string[],
 }
 
 const inputClass = 'w-full rounded-md border border-[var(--hairline-strong)] bg-transparent px-3 py-2 outline-none focus:border-[var(--gold)]'
@@ -30,7 +32,19 @@ export default function QuestionBank() {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [form, setForm] = useState(emptyForm)
   const [error, setError] = useState('')
+  const [newGroupName, setNewGroupName] = useState('')
+  const [groupFilter, setGroupFilter] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Groups are freeform labels (e.g. "10-11 years", "Transition Class") that cut
+  // across categories and sets, so the known list is derived from every question
+  // in the bank rather than tracked in its own table.
+  const allQuestionsEverywhere = useLiveQuery(() => db.questions.toArray(), []) ?? []
+  const allGroups = useMemo(() => {
+    const set = new Set<string>()
+    allQuestionsEverywhere.forEach((q) => q.groups?.forEach((g) => set.add(g)))
+    return [...set].sort()
+  }, [allQuestionsEverywhere])
 
   useEffect(() => {
     if (selectedSetId === null && sets.length > 0) {
@@ -44,6 +58,11 @@ export default function QuestionBank() {
   ) ?? []
 
   const selectedSet = useMemo(() => sets.find((s) => s.id === selectedSetId), [sets, selectedSetId])
+
+  const visibleQuestions = useMemo(
+    () => (groupFilter ? questions.filter((q) => q.groups?.includes(groupFilter)) : questions),
+    [questions, groupFilter]
+  )
 
   const resetForm = () => {
     setForm(emptyForm)
@@ -80,7 +99,20 @@ export default function QuestionBank() {
       options: [...q.options] as [string, string, string, string],
       correctIndex: q.correctIndex,
       funFact: q.funFact ?? '',
+      reference: q.reference ?? '',
+      groups: q.groups ? [...q.groups] : [],
     })
+  }
+
+  const toggleFormGroup = (g: string) => {
+    setForm((f) => (f.groups.includes(g) ? { ...f, groups: f.groups.filter((x) => x !== g) } : { ...f, groups: [...f.groups, g] }))
+  }
+
+  const addNewGroup = () => {
+    const g = newGroupName.trim()
+    if (!g) return
+    if (!form.groups.includes(g)) setForm((f) => ({ ...f, groups: [...f.groups, g] }))
+    setNewGroupName('')
   }
 
   const handleSubmit = async () => {
@@ -96,6 +128,8 @@ export default function QuestionBank() {
       options: form.options.map((o) => o.trim()) as [string, string, string, string],
       correctIndex: form.correctIndex,
       funFact: form.funFact.trim() || undefined,
+      reference: form.reference.trim() || undefined,
+      groups: form.groups.length ? form.groups : undefined,
     }
 
     if (editingId) {
@@ -294,12 +328,63 @@ export default function QuestionBank() {
                     </div>
                   ))}
                 </div>
-                <input
-                  value={form.funFact}
-                  onChange={(e) => setForm({ ...form, funFact: e.target.value })}
-                  placeholder="Fun fact / verse reference shown after answering (optional)"
-                  className={inputClass}
-                />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <input
+                    value={form.funFact}
+                    onChange={(e) => setForm({ ...form, funFact: e.target.value })}
+                    placeholder="Fun fact shown after answering (optional)"
+                    className={inputClass}
+                  />
+                  <input
+                    value={form.reference}
+                    onChange={(e) => setForm({ ...form, reference: e.target.value })}
+                    placeholder="Bible reference, e.g. Genesis 1:3"
+                    className={inputClass}
+                  />
+                </div>
+
+                <div>
+                  <p className="mb-1.5 text-sm font-semibold text-[var(--ink-muted)]">Groups</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {allGroups.map((g) => (
+                      <button
+                        key={g}
+                        type="button"
+                        onClick={() => toggleFormGroup(g)}
+                        className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                          form.groups.includes(g) ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'bg-[var(--ink-panel)] text-[var(--ink-muted)] hover:bg-[var(--ink-raised)]'
+                        }`}
+                      >
+                        {g}
+                      </button>
+                    ))}
+                    {form.groups
+                      .filter((g) => !allGroups.includes(g))
+                      .map((g) => (
+                        <button
+                          key={g}
+                          type="button"
+                          onClick={() => toggleFormGroup(g)}
+                          className="rounded-full bg-[var(--gold)] px-3 py-1 text-xs font-semibold text-[var(--gold-ink)]"
+                        >
+                          {g}
+                        </button>
+                      ))}
+                  </div>
+                  <div className="mt-2 flex gap-2">
+                    <input
+                      value={newGroupName}
+                      onChange={(e) => setNewGroupName(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addNewGroup())}
+                      placeholder="New group name, e.g. 10-11 years"
+                      className={`${inputClass} text-sm`}
+                    />
+                    <button type="button" onClick={addNewGroup} className="btn-outline shrink-0 px-4 py-2 text-sm">
+                      + Add Group
+                    </button>
+                  </div>
+                </div>
+
                 <div className="flex gap-2">
                   <button onClick={handleSubmit} className="btn-solid px-5 py-2">
                     {editingId ? 'Save changes' : 'Add question'}
@@ -313,17 +398,48 @@ export default function QuestionBank() {
               </div>
             </div>
 
+            {allGroups.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-sm font-semibold text-[var(--ink-muted)]">Filter by group:</span>
+                <button
+                  onClick={() => setGroupFilter(null)}
+                  className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                    groupFilter === null ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'bg-[var(--ink-panel)] text-[var(--ink-muted)] hover:bg-[var(--ink-raised)]'
+                  }`}
+                >
+                  All
+                </button>
+                {allGroups.map((g) => (
+                  <button
+                    key={g}
+                    onClick={() => setGroupFilter(g)}
+                    className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
+                      groupFilter === g ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'bg-[var(--ink-panel)] text-[var(--ink-muted)] hover:bg-[var(--ink-raised)]'
+                    }`}
+                  >
+                    {g}
+                  </button>
+                ))}
+              </div>
+            )}
+
             <div className="space-y-2">
-              {questions.map((q, i) => (
+              {visibleQuestions.map((q, i) => (
                 <div
                   key={q.id}
                   className="panel animate-page-in flex items-start justify-between gap-3 p-4 transition hover:bg-[var(--ink-raised)]"
                   style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}
                 >
                   <div>
-                    <div className="mb-1 flex gap-2 text-xs">
+                    <div className="mb-1 flex flex-wrap gap-2 text-xs">
                       <span className="rounded-full bg-[var(--hero-accent)]/15 px-2 py-0.5 text-[var(--hero-accent)]">{q.category}</span>
                       <span className="rounded-full bg-[var(--gold)]/15 px-2 py-0.5 text-[var(--gold)]">Difficulty {q.difficulty}</span>
+                      {q.reference && <span className="rounded-full bg-[var(--ink-panel)] px-2 py-0.5 text-[var(--ink-muted)]">📖 {q.reference}</span>}
+                      {q.groups?.map((g) => (
+                        <span key={g} className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-emerald-700">
+                          {g}
+                        </span>
+                      ))}
                     </div>
                     <p className="font-medium">{q.text}</p>
                     <p className="mt-1 text-sm text-[var(--ink-muted)]">
@@ -343,7 +459,11 @@ export default function QuestionBank() {
                   </div>
                 </div>
               ))}
-              {questions.length === 0 && <p className="text-sm text-[var(--ink-faint)]">No questions yet. Add one above.</p>}
+              {visibleQuestions.length === 0 && (
+                <p className="text-sm text-[var(--ink-faint)]">
+                  {groupFilter ? `No questions in "${groupFilter}" yet.` : 'No questions yet. Add one above.'}
+                </p>
+              )}
             </div>
           </>
         )}

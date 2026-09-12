@@ -275,7 +275,7 @@ export default function Layout() {
       {/* The site footer (links, copyright) has no place on the live quiz screens -
           it was pushing "Next Question" etc. below the fold, forcing a scroll to
           reach it on a screen that's supposed to be full-screen. */}
-      {!isFullscreenQuiz && <SiteFooter />
+      {!isFullscreenQuiz && <SiteFooter />}
     </div>
   )
 }

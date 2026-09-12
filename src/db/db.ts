@@ -54,6 +54,9 @@ export class TriviaDB extends Dexie {
     this.version(5).stores({
       pendingLeaderboardSync: '++id, studentId, synced, createdAt',
     })
+    this.version(6).stores({
+      questions: '++id, setId, category, difficulty, *groups',
+    })
   }
 }
 

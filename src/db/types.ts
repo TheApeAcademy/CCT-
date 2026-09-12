@@ -7,6 +7,10 @@ export interface Question {
   options: [string, string, string, string]
   correctIndex: 0 | 1 | 2 | 3
   funFact?: string
+  /** e.g. "Genesis 1:3" - where this question's answer comes from. */
+  reference?: string
+  /** Freeform custom labels cutting across category/set, e.g. "10-11 years", "Transition Class". */
+  groups?: string[]
 }
 
 export interface QuestionSet {

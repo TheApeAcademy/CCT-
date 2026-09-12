@@ -857,6 +857,17 @@ function SideStrip({
   const isLinked = !!config.teamStudentIds?.[teamIdx]
   const photo = config.teamPhotos?.[teamIdx]
 
+  // In rotational (incl. 1v1) mode the shared ladder alternates between
+  // teams, so this contestant only ever answers their own slice of it -
+  // showing the full ladder here left every circle that belonged to the
+  // other team's turn permanently hollow. Marathon mode has no such split:
+  // each team plays the whole ladder on their own turn, so every circle
+  // here is genuinely theirs.
+  const ownLevels =
+    config.mode === 'rotational'
+      ? LADDER.filter((l) => (l.level - 1) % config.teamNames.length === teamIdx)
+      : LADDER
+
   return (
     <div className="flex w-16 shrink-0 flex-col items-center text-center sm:w-24">
       {isLinked && xpTotals[teamIdx] !== undefined && (
@@ -879,7 +890,7 @@ function SideStrip({
           the whole center column - tight, fixed gaps between circles rather
           than justify-evenly spreading them across all available space. */}
       <div className="my-2 flex max-h-[46vh] flex-1 flex-col items-center justify-center gap-2.5 overflow-y-auto">
-        {LADDER.map((l) => {
+        {ownLevels.map((l) => {
           const a = teamAnswers.find((rec) => rec.level === l.level)
           const state = !a ? 'pending' : a.correct ? 'correct' : 'wrong'
           return (

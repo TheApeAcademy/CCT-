@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import type { GameConfig } from '../db/types'
-import { playNav, playWhoosh, playClick, playDramaticSting } from '../lib/sound'
+import { playNav, playWhoosh, playClick, playDramaticSting, playFanfare } from '../lib/sound'
 import { haptics } from '../lib/haptics'
 
 const RULES = [
@@ -80,7 +80,7 @@ export default function GroundRules() {
 
   const raiseCurtain = () => {
     setOpen(true)
-    playDramaticSting()
+    playFanfare()
     playWhoosh()
     haptics.tap()
   }

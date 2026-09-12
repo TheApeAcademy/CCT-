@@ -126,7 +126,7 @@ export default function GameSetup() {
   }
 
   const updateTeamName = (index: number, value: string) => {
-    setTeamNames((prev) => prev.map((n, i) => (i === index ? value : n)))
+    setTeamNames((prev) => prev.map((n, i) => (i === index ? value.toUpperCase() : n)))
   }
 
   const addTeamSlot = (prefill?: string) => {

@@ -12,6 +12,30 @@ function getCtx(): AudioContext {
   return ctx
 }
 
+// Every tone()/noiseBurst() routes through this shared compressor + makeup
+// gain instead of straight to the destination. Without it, effects built
+// from many overlapping short bursts (applause, cheer) average out quiet on
+// small phone speakers even though each individual burst has a healthy peak
+// gain - the compressor keeps the busy passages loud and consistent instead
+// of letting them blur into a faint wash.
+let busInput: AudioNode | null = null
+function getBusInput(c: AudioContext): AudioNode {
+  if (!busInput) {
+    const compressor = c.createDynamicsCompressor()
+    compressor.threshold.setValueAtTime(-26, c.currentTime)
+    compressor.knee.setValueAtTime(18, c.currentTime)
+    compressor.ratio.setValueAtTime(9, c.currentTime)
+    compressor.attack.setValueAtTime(0.003, c.currentTime)
+    compressor.release.setValueAtTime(0.18, c.currentTime)
+    const makeupGain = c.createGain()
+    makeupGain.gain.setValueAtTime(1.35, c.currentTime)
+    compressor.connect(makeupGain)
+    makeupGain.connect(c.destination)
+    busInput = compressor
+  }
+  return busInput
+}
+
 function getNoiseBuffer(c: AudioContext): AudioBuffer {
   if (noiseBuffer) return noiseBuffer
   const length = c.sampleRate * 2
@@ -53,7 +77,7 @@ function tone(freq: number, start: number, duration: number, type: OscillatorTyp
   gain.gain.linearRampToValueAtTime(gainPeak, c.currentTime + start + 0.02)
   gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + start + duration)
   osc.connect(gain)
-  gain.connect(c.destination)
+  gain.connect(getBusInput(c))
   osc.start(c.currentTime + start)
   osc.stop(c.currentTime + start + duration + 0.05)
 }
@@ -72,7 +96,7 @@ function noiseBurst(start: number, duration: number, filterFreq: number, gainPea
   gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + start + duration)
   src.connect(filter)
   filter.connect(gain)
-  gain.connect(c.destination)
+  gain.connect(getBusInput(c))
   src.start(c.currentTime + start)
   src.stop(c.currentTime + start + duration + 0.05)
 }
@@ -220,17 +244,22 @@ export function playWhoosh() {
 // events instead of blending into a wash - see reveal() in Gameplay.tsx.
 export function playApplause(durationSec = 1.4, startAt = 0) {
   if (muted) return
-  const clapCount = Math.round(durationSec * 26)
+  // A single upfront burst before the randomized wash - one unmissable
+  // "crack" of hands so the effect reads as applause starting immediately,
+  // not just a texture that fades in underneath other sounds.
+  noiseBurst(startAt, 0.09, 2600, 0.5, 'bandpass')
+  noiseBurst(startAt, 0.14, 1100, 0.42, 'bandpass')
+  const clapCount = Math.round(durationSec * 34)
   for (let i = 0; i < clapCount; i++) {
     const t = startAt + Math.random() * durationSec
-    noiseBurst(t, 0.06 + Math.random() * 0.05, 2200 + Math.random() * 2800, 0.2 + Math.random() * 0.12, 'bandpass')
+    noiseBurst(t, 0.06 + Math.random() * 0.05, 2200 + Math.random() * 2800, 0.32 + Math.random() * 0.14, 'bandpass')
   }
   // A few louder, lower-pitched thumps on top of the wash so it reads as
   // clapping hands rather than just static/fizz.
-  const thumpCount = Math.round(durationSec * 8)
+  const thumpCount = Math.round(durationSec * 10)
   for (let i = 0; i < thumpCount; i++) {
     const t = startAt + Math.random() * durationSec
-    noiseBurst(t, 0.1 + Math.random() * 0.05, 900 + Math.random() * 500, 0.28, 'bandpass')
+    noiseBurst(t, 0.1 + Math.random() * 0.05, 900 + Math.random() * 500, 0.4, 'bandpass')
   }
 }
 
@@ -238,20 +267,20 @@ export function playApplause(durationSec = 1.4, startAt = 0) {
 export function playCheer(durationSec = 2.2, startAt = 0) {
   playApplause(durationSec, startAt)
   if (muted) return
-  const voices = 16
+  const voices = 22
   for (let i = 0; i < voices; i++) {
     const t = startAt + Math.random() * Math.max(0.1, durationSec - 0.4)
     const base = 500 + Math.random() * 500
-    tone(base, t, 0.35 + Math.random() * 0.3, 'sawtooth', 0.13, base * (1.3 + Math.random() * 0.4))
+    tone(base, t, 0.35 + Math.random() * 0.3, 'sawtooth', 0.2, base * (1.3 + Math.random() * 0.4))
   }
 }
 
 /** Comedic "wrong answer" sting for a missed question - a short buzzer punch followed by a descending sad-trombone slide. */
 export function playOops() {
-  noiseBurst(0, 0.12, 350, 0.22, 'lowpass')
-  tone(180, 0, 0.15, 'square', 0.16)
-  tone(520, 0.1, 0.24, 'sawtooth', 0.18, 280)
-  tone(440, 0.32, 0.34, 'sawtooth', 0.16, 190)
+  noiseBurst(0, 0.15, 350, 0.35, 'lowpass')
+  tone(180, 0, 0.2, 'square', 0.26)
+  tone(520, 0.1, 0.26, 'sawtooth', 0.26, 280)
+  tone(440, 0.32, 0.36, 'sawtooth', 0.24, 190)
 }
 
 export function playCountIn(step: 3 | 2 | 1 | 0) {
@@ -352,4 +381,32 @@ export function playDramaticSting() {
   noiseBurst(0.78, 0.3, 800, 0.3, 'lowpass')
   tone(75, 0.78, 0.4, 'square', 0.24)
   tone(150, 0.78, 0.35, 'sawtooth', 0.16, 55)
+}
+
+/**
+ * A ~5 second trumpet-style fanfare for the curtain rising - three short
+ * announcing notes, a rising run, then a big held final note, all built
+ * from layered sawtooth+square+triangle oscillators (a single sine tone
+ * reads as a UI beep, not brass) so it lands as an actual musical flourish.
+ */
+export function playFanfare() {
+  if (muted) return
+  const notes: [number, number, number][] = [
+    [392.0, 0, 0.28], // G4
+    [392.0, 0.32, 0.28], // G4
+    [392.0, 0.64, 0.4], // G4
+    [523.25, 1.15, 0.3], // C5
+    [659.25, 1.5, 0.3], // E5
+    [783.99, 1.85, 0.35], // G5
+    [880.0, 2.25, 0.35], // A5
+    [1046.5, 2.7, 2.2], // C6 - big held finish
+  ]
+  notes.forEach(([freq, start, dur]) => {
+    tone(freq, start, dur, 'sawtooth', 0.2)
+    tone(freq * 1.004, start, dur, 'square', 0.1)
+    tone(freq / 2, start, dur, 'triangle', 0.07)
+  })
+  // Low brass punch underneath the final held note.
+  tone(130.81, 2.7, 2.2, 'sawtooth', 0.14)
+  noiseBurst(2.68, 0.4, 3200, 0.14, 'highpass')
 }

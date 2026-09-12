@@ -444,7 +444,11 @@ export default function Gameplay() {
   const isHeadToHead = config.teamNames.length === 2
 
   return (
-    <div className={`relative mx-auto flex w-full max-w-6xl flex-1 gap-2 px-3 py-3 ${shake ? 'animate-screen-shake' : ''}`}>
+    <div
+      className={`relative flex flex-1 gap-1 px-1 py-2 sm:gap-3 sm:px-3 sm:py-3 ${shake ? 'animate-screen-shake' : ''} ${
+        isHeadToHead ? 'w-full' : 'mx-auto w-full max-w-6xl'
+      }`}
+    >
       <Confetti active={showConfetti} />
       {flash && (
         <div className={`pointer-events-none fixed inset-0 z-40 ${flash === 'green' ? 'animate-flash-green' : 'animate-flash-red'}`} />
@@ -481,7 +485,9 @@ export default function Gameplay() {
         />
       )}
 
-      <div className="flex flex-1 flex-col justify-center gap-2">
+      <div className={`flex flex-1 flex-col justify-center gap-2 ${isHeadToHead ? 'mx-auto w-full max-w-2xl' : ''}`}>
+        {phase === 'question' && <TimerBar timeLeft={timeLeft} total={timerSeconds} />}
+
         {isHeadToHead ? (
           <div className="flex justify-end gap-2">
             <button
@@ -552,8 +558,6 @@ export default function Gameplay() {
             onClose={() => setShowSettings(false)}
           />
         )}
-
-        {phase === 'question' && <TimerBar timeLeft={timeLeft} total={timerSeconds} />}
 
         <div className="hex-frame mx-auto w-full max-w-3xl">
           <div className="hex-fill flex min-h-[80px] flex-col items-center justify-center gap-1.5 px-6 py-3 text-center sm:min-h-[100px]">
@@ -854,18 +858,27 @@ function SideStrip({
   const photo = config.teamPhotos?.[teamIdx]
 
   return (
-    <div className="flex w-20 shrink-0 flex-col items-center text-center sm:w-24">
+    <div className="flex w-16 shrink-0 flex-col items-center text-center sm:w-24">
       {isLinked && xpTotals[teamIdx] !== undefined && (
         <p className="text-[10px] font-bold text-white/40">🏆 {xpTotals[teamIdx].toLocaleString()}</p>
       )}
       {photo ? (
-        <img src={photo} alt="" className="mt-1 h-11 w-11 rounded-full object-cover ring-2 ring-amber-400/50" />
+        <img
+          src={photo}
+          alt=""
+          className={`mt-1 h-14 w-14 rounded-full object-cover ring-2 sm:h-20 sm:w-20 ${isActive ? 'ring-amber-400' : 'ring-amber-400/40'}`}
+        />
       ) : (
-        <img src="/children-ministry-logo-splash.png" alt="" className="mt-1 h-11 w-auto object-contain opacity-80" />
+        <PersonSilhouette active={isActive} />
       )}
-      <p className={`mt-1 truncate px-1 text-sm font-bold ${isActive ? 'text-amber-300' : 'text-white/80'}`}>{name}</p>
+      <p className={`mt-1.5 truncate px-1 text-base font-extrabold sm:text-lg ${isActive ? 'text-amber-300' : 'text-white/90'}`}>
+        {name}
+      </p>
 
-      <div className="my-2 flex flex-1 flex-col justify-evenly gap-1">
+      {/* Capped to roughly half the strip's height, not stretched to match
+          the whole center column - tight, fixed gaps between circles rather
+          than justify-evenly spreading them across all available space. */}
+      <div className="my-2 flex max-h-[46vh] flex-1 flex-col items-center justify-center gap-2.5 overflow-y-auto">
         {LADDER.map((l) => {
           const a = teamAnswers.find((rec) => rec.level === l.level)
           const state = !a ? 'pending' : a.correct ? 'correct' : 'wrong'
@@ -873,21 +886,37 @@ function SideStrip({
             <span
               key={l.level}
               title={`Q${l.level}`}
-              className={`h-3 w-3 rounded-full border ${
+              className={`h-4 w-4 shrink-0 rounded-full border-2 ${
                 state === 'correct'
-                  ? 'border-green-300 bg-green-500'
+                  ? 'border-green-200 bg-green-500'
                   : state === 'wrong'
-                    ? 'border-red-300 bg-red-500'
-                    : 'border-white/30 bg-transparent'
-              } ${isActive ? 'shadow-[0_0_8px_rgba(250,204,21,0.5)]' : ''}`}
+                    ? 'border-red-200 bg-red-500'
+                    : 'border-white/40 bg-transparent'
+              } ${isActive ? 'shadow-[0_0_10px_rgba(250,204,21,0.6)]' : ''}`}
             />
           )
         })}
       </div>
 
-      <p className="text-xs font-bold text-amber-300">
+      <p className="text-sm font-extrabold text-amber-300">
         TOTAL: <CountUp value={correctCount} durationMs={400} />
       </p>
+    </div>
+  )
+}
+
+/** No-photo fallback: a plain person silhouette rather than the ministry logo, so an empty slot reads as "no photo set" not as a branding mark. */
+function PersonSilhouette({ active }: { active: boolean }) {
+  return (
+    <div
+      className={`mt-1 flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white/10 ring-2 sm:h-20 sm:w-20 ${
+        active ? 'ring-amber-400' : 'ring-white/20'
+      }`}
+    >
+      <svg viewBox="0 0 24 24" className="h-3/4 w-3/4 fill-white/50" aria-hidden="true">
+        <circle cx="12" cy="8" r="4" />
+        <path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8v1H4z" />
+      </svg>
     </div>
   )
 }

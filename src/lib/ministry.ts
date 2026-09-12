@@ -438,6 +438,20 @@ export async function getQuizHistory(limit = 300): Promise<QuizHistoryRow[]> {
   return data ?? []
 }
 
+/** Just the signed-in student's own synced matches - the Kids Dashboard's "My History" tab, filtered server-side by their own student_id rather than trusting a client-side filter. */
+export async function getMyQuizHistory(limit = 100): Promise<QuizHistoryRow[]> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) return []
+  const { data, error } = await supabase
+    .from('quiz_sessions')
+    .select('id, player_name, set_name, season_name, outcome, points_won, correct_count, total_levels, finished_at, answers')
+    .eq('student_id', auth.user.id)
+    .order('finished_at', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  return data ?? []
+}
+
 // Looks a student up by Student Code for linking, without enrolling them
 // anywhere. Teacher/admin only (enforced server-side).
 export async function findStudentByCode(code: string): Promise<{ id: string; full_name: string; class_id: string | null } | null> {
@@ -877,4 +891,11 @@ export async function listMyAchievements(): Promise<EarnedAchievement[]> {
     .order('earned_at', { ascending: false })
   if (error) throw error
   return (data ?? []).map((row: any) => ({ ...row.achievements, earned_at: row.earned_at })) as EarnedAchievement[]
+}
+
+/** The full catalog (earned or not) - the Achievements Wall shows every badge that exists, dimmed until earned, not just the ones already won. */
+export async function listAllAchievements(): Promise<AchievementRow[]> {
+  const { data, error } = await supabase.from('achievements').select('id, code, name, description, icon').eq('active', true).order('name')
+  if (error) throw error
+  return data ?? []
 }

@@ -1,13 +1,18 @@
 import { useReducedMotion, motion, AnimatePresence } from 'framer-motion'
-import { User } from 'lucide-react'
+import { User, Award, History as HistoryIcon, type LucideIcon } from 'lucide-react'
 import { playClick } from '../lib/sound'
 
-export type VillageTab = 'home' | 'class' | 'bible' | 'leaderboard' | 'profile' | 'messages' | 'ears' | 'game'
+export type VillageTab = 'home' | 'class' | 'bible' | 'leaderboard' | 'profile' | 'messages' | 'ears' | 'game' | 'achievements' | 'history'
 
 interface Building {
   id: VillageTab
   label: string
-  image: string
+  /** Either a photoreal sprite (existing 8 buildings) or a simple icon-in-a-
+   * medallion badge (newer categories added on unused garden features already
+   * baked into the map jpg itself - the stone dais, the mailbox - so no new
+   * sprite art was needed for them). Exactly one of image/icon is set. */
+  image?: string
+  icon?: LucideIcon
   /** x/y is the building's GROUND point on /kids-village-map.jpg (where its base/feet
    * touch down), not its center - the image is anchored bottom-center to it, cropped
    * flush to its own base (no padding under it) so the anchor is accurate. width is a
@@ -37,6 +42,11 @@ const BUILDINGS: Building[] = [
   { id: 'ears', label: 'Ears for You', image: '/village/ears-hearttree.png', x: 17, y: 20, width: 13, heightPct: 8.0, tilt: -5, accent: 'var(--lp-accent-ears)' },
   { id: 'game', label: 'Games', image: '/village/game-rocket.png', x: 73, y: 31, width: 16, heightPct: 8.7, tilt: -5, accent: 'var(--lp-accent-compete)' },
   { id: 'messages', label: 'My Teacher', image: '/village/messages-teacherhome.png', x: 75, y: 17, width: 27, heightPct: 13.4, tilt: 4, accent: 'var(--lp-accent-training)' },
+  // The stone dais and the mailbox are already part of the map art itself
+  // (not overlaid sprites), so these two ride on top of existing ground
+  // features instead of needing new custom building art.
+  { id: 'achievements', label: 'Achievements', icon: Award, x: 71, y: 27, width: 11, heightPct: 8, tilt: 0, accent: 'var(--lp-accent-achievements)' },
+  { id: 'history', label: 'My History', icon: HistoryIcon, x: 62, y: 94, width: 9, heightPct: 7, tilt: -3, accent: 'var(--lp-accent-history)' },
 ]
 
 const BY_ID = Object.fromEntries(BUILDINGS.map((b) => [b.id, b])) as Record<VillageTab, Building>
@@ -63,7 +73,7 @@ export default function VillageMap({
         draggable={false}
       />
 
-      {/* ---------- the 8 building spots ---------- */}
+      {/* ---------- the building/badge spots ---------- */}
       {BUILDINGS.map((b) => {
         const isActive = b.id === active
         return (
@@ -95,7 +105,18 @@ export default function VillageMap({
               whileHover={reduced ? undefined : { scale: 1.1, rotate: 0, transition: { duration: 0.25 } }}
               whileTap={reduced ? undefined : { scale: 0.92 }}
             >
-              <img src={b.image} alt="" className="w-full object-contain" style={{ filter: 'drop-shadow(0 6px 8px rgba(0,0,0,0.35))' }} />
+              {b.image ? (
+                <img src={b.image} alt="" className="w-full object-contain" style={{ filter: 'drop-shadow(0 6px 8px rgba(0,0,0,0.35))' }} />
+              ) : (
+                b.icon && (
+                  <span
+                    className="flex aspect-square w-full items-center justify-center rounded-full border-4 border-white shadow-xl"
+                    style={{ background: b.accent, filter: 'drop-shadow(0 6px 8px rgba(0,0,0,0.35))' }}
+                  >
+                    <b.icon className="h-1/2 w-1/2 text-white" strokeWidth={2} />
+                  </span>
+                )
+              )}
             </motion.button>
             <span
               className="absolute left-1/2 top-full -translate-x-1/2 whitespace-nowrap rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide shadow-md sm:text-xs"

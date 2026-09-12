@@ -19,6 +19,8 @@ import {
   Swords,
   Star,
   Award,
+  ChevronDown,
+  ChevronUp,
   type LucideIcon,
 } from 'lucide-react'
 import { supabase, signOut } from '../lib/supabase'
@@ -44,8 +46,12 @@ import {
   completeBibleReading,
   haveICompletedReading,
   listMyAchievements,
+  listAllAchievements,
+  getMyQuizHistory,
   type TodaysReading,
   type EarnedAchievement,
+  type AchievementRow,
+  type QuizHistoryRow,
   type StudentRow,
   type LeaderboardRow,
   type MessageRow,
@@ -86,7 +92,7 @@ export default function StudentPortal() {
   return <Dashboard />
 }
 
-type Tab = 'home' | 'class' | 'bible' | 'leaderboard' | 'profile' | 'messages' | 'ears' | 'game'
+type Tab = 'home' | 'class' | 'bible' | 'leaderboard' | 'profile' | 'messages' | 'ears' | 'game' | 'achievements' | 'history'
 
 const TAB_TITLE: Record<Tab, string> = {
   home: 'My House',
@@ -97,6 +103,8 @@ const TAB_TITLE: Record<Tab, string> = {
   messages: 'My Teacher',
   ears: 'Ears for You',
   game: 'Games',
+  achievements: 'Achievements',
+  history: 'My History',
 }
 
 function Dashboard() {
@@ -216,6 +224,8 @@ function Dashboard() {
                 ))}
               {tab === 'ears' && <EarsTab klass={klass} />}
               {tab === 'game' && <GameTab />}
+              {tab === 'achievements' && <AchievementsWallTab earned={achievements} />}
+              {tab === 'history' && <MyHistoryTab />}
             </div>
           </motion.div>
         )}
@@ -305,6 +315,131 @@ function GameTab() {
         </p>
       </div>
       <HomeLink to="/training" icon={Dumbbell} accent="var(--lp-accent-training)" title="Practice Bible Quiz" description="Unlimited solo practice, no pressure, no timer." />
+    </div>
+  )
+}
+
+function AchievementsWallTab({ earned }: { earned: EarnedAchievement[] }) {
+  const [all, setAll] = useState<AchievementRow[] | null>(null)
+
+  useEffect(() => {
+    listAllAchievements()
+      .then(setAll)
+      .catch(() => setAll([]))
+  }, [])
+
+  const earnedIds = new Set(earned.map((a) => a.id))
+  const earnedAt = new Map(earned.map((a) => [a.id, a.earned_at]))
+
+  if (all === null) return <p className="text-center text-sm text-[var(--ink-muted)]">Loading…</p>
+
+  return (
+    <div className="space-y-4">
+      <p className="text-center text-sm text-[var(--ink-muted)]">
+        {earned.length} of {all.length} badges earned
+      </p>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {all.map((a) => {
+          const Icon = ACHIEVEMENT_ICONS[a.icon] ?? Award
+          const isEarned = earnedIds.has(a.id)
+          return (
+            <div
+              key={a.id}
+              title={a.description}
+              className={`flex flex-col items-center gap-2 rounded-2xl border p-4 text-center transition ${
+                isEarned ? 'border-[var(--gold)]/40 bg-[var(--gold)]/10' : 'border-[var(--hairline)] bg-[var(--ink-panel)] opacity-50'
+              }`}
+            >
+              <span
+                className={`flex h-11 w-11 items-center justify-center rounded-full ${isEarned ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'bg-[var(--ink-raised)] text-[var(--ink-faint)]'}`}
+              >
+                <Icon className="h-5 w-5" strokeWidth={2} />
+              </span>
+              <p className={`text-xs font-bold ${isEarned ? 'text-[var(--gold)]' : 'text-[var(--ink-muted)]'}`}>{a.name}</p>
+              <p className="text-[10px] text-[var(--ink-faint)]">{a.description}</p>
+              {isEarned && earnedAt.get(a.id) && (
+                <p className="text-[10px] text-[var(--ink-faint)]">{new Date(earnedAt.get(a.id)!).toLocaleDateString()}</p>
+              )}
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function MyHistoryTab() {
+  const [rows, setRows] = useState<QuizHistoryRow[] | null>(null)
+  const [openId, setOpenId] = useState<string | null>(null)
+
+  useEffect(() => {
+    getMyQuizHistory()
+      .then(setRows)
+      .catch(() => setRows([]))
+  }, [])
+
+  if (rows === null) return <p className="text-center text-sm text-[var(--ink-muted)]">Loading…</p>
+  if (rows.length === 0) {
+    return (
+      <div className="lp-panel p-6 text-center">
+        <p className="font-display text-lg font-bold">No matches yet</p>
+        <p className="mt-1 text-sm text-[var(--lp-muted)]">Play a Bible Quiz match linked to your Student Code and it&apos;ll show up here.</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-2">
+      {rows.map((r) => {
+        const isOpen = openId === r.id
+        return (
+          <div key={r.id} className="overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--ink-panel)]">
+            <button
+              onClick={() => {
+                playClick()
+                setOpenId(isOpen ? null : r.id)
+              }}
+              className="flex w-full items-center justify-between gap-3 p-4 text-left transition hover:bg-[var(--ink-raised)]"
+            >
+              <div>
+                <p className="font-bold">{r.set_name}</p>
+                <p className="text-xs text-[var(--ink-faint)]">
+                  {new Date(r.finished_at).toLocaleString()}
+                  {r.season_name ? ` · ${r.season_name}` : ''}
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="text-right">
+                  <p className="font-bold text-[var(--gold)]">{r.points_won.toLocaleString()} 👑</p>
+                  <p className="text-[10px] text-[var(--ink-faint)]">
+                    {r.correct_count}/{r.total_levels} correct
+                  </p>
+                </div>
+                {isOpen ? <ChevronUp className="h-4 w-4 text-[var(--ink-faint)]" /> : <ChevronDown className="h-4 w-4 text-[var(--ink-faint)]" />}
+              </div>
+            </button>
+            {isOpen && (
+              <div className="space-y-2 border-t border-[var(--hairline)] p-4">
+                {r.answers.map((a, qi) => (
+                  <div key={qi} className="rounded-xl bg-[var(--ink-raised)] p-3 text-sm">
+                    <p className="text-xs text-[var(--ink-faint)]">Q{a.level}</p>
+                    <p className="font-medium">{a.questionText}</p>
+                    <p className={a.correct ? 'mt-1 text-green-600' : 'mt-1 text-red-600'}>
+                      {a.correct ? '✓ Correct' : a.timedOut ? '⏰ Timed out' : '✗ Wrong'}
+                      {a.selectedIndex !== null && ` — answered: ${a.options[a.selectedIndex]}`}
+                    </p>
+                    {!a.correct && (
+                      <p className="mt-1 text-green-600/90">
+                        Correct answer: <span className="font-semibold">{a.options[a.correctIndex]}</span>
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }

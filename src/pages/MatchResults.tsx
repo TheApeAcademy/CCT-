@@ -19,7 +19,10 @@ export default function MatchResults() {
     Promise.all([db.matches.get(id), getMatchSessions(id)]).then(([m, s]) => {
       if (m) setMatch(m)
       setSessions(s)
-      if (s.length > 1 && s.some((sess) => sess.correctCount === sess.totalLevels)) {
+      // Celebrate the match's winner every time there's a real 2+ team
+      // competition to have one - not gated behind a perfect score, which
+      // made this fire on only a small fraction of matches.
+      if (s.length > 1) {
         setShowFireworks(true)
         playWin()
         playCheer(2.2, 0.4)

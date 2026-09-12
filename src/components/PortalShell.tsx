@@ -1,4 +1,5 @@
 import { Link, Outlet } from 'react-router-dom'
+import BackButton from './BackButton'
 
 /**
  * Chrome for Admin and Teacher - built from the same light, colourful design
@@ -21,9 +22,12 @@ export default function PortalShell({ eyebrow }: { eyebrow: string }) {
       />
       <header className="relative z-10 border-b border-[var(--lp-hairline)]">
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
-          <Link to="/" className="flex min-w-0 shrink-0 items-center">
-            <img src="/children-ministry-logo-splash.png" alt="MFM Children's Ministry" className="h-14 w-auto object-contain sm:h-16" />
-          </Link>
+          <div className="flex min-w-0 shrink-0 items-center gap-2">
+            <BackButton />
+            <Link to="/" className="flex min-w-0 shrink-0 items-center">
+              <img src="/children-ministry-logo-splash.png" alt="MFM Children's Ministry" className="h-14 w-auto object-contain sm:h-16" />
+            </Link>
+          </div>
           <span className="lp-eyebrow">{eyebrow}</span>
         </div>
       </header>

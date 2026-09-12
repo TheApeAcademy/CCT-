@@ -4,6 +4,7 @@ import { Radio } from 'lucide-react'
 import { setMuted, isMuted, playToggle, playNav, playClick } from '../lib/sound'
 import { haptics } from '../lib/haptics'
 import StageBackground from './StageBackground'
+import BackButton from './BackButton'
 import SiteFooter from './SiteFooter'
 import ThemeToggle from './ThemeToggle'
 import { useLandingTheme } from '../lib/landingTheme'
@@ -57,6 +58,11 @@ export default function Layout() {
   // should stay out of the way until the player actually scrolls instead of
   // permanently eating space above a "full screen" game.
   const isFullscreenQuiz = ['/ground-rules', '/play', '/training'].includes(location.pathname) || location.pathname.startsWith('/results/') || location.pathname.startsWith('/match-results/')
+  // Every page gets a way back except the landing page itself (nowhere to
+  // go back to) and the live quiz screen (its own confirm-gated End Turn/
+  // End Match already handles leaving mid-match - a plain back button would
+  // bypass that and could lose a match in progress).
+  const showBack = location.pathname !== '/' && location.pathname !== '/play'
   // Theme state lives here (not in Home) so the toggle can sit in the shared
   // navbar - only actually applied (via data-landing-theme below) while on
   // the landing page itself; every other route stays on the app's plain
@@ -114,13 +120,16 @@ export default function Layout() {
         } ${isFullscreenQuiz && !scrolled ? '-translate-y-full' : 'translate-y-0'}`}
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-          <NavLink to="/" className="flex min-w-0 shrink-0 items-center">
-            <img
-              src="/children-ministry-logo-splash.png"
-              alt="MFM Children's Ministry"
-              className="h-16 w-auto shrink-0 object-contain sm:h-20"
-            />
-          </NavLink>
+          <div className="flex min-w-0 shrink-0 items-center gap-2">
+            {showBack && !isFullscreenQuiz && <BackButton dark />}
+            <NavLink to="/" className="flex min-w-0 shrink-0 items-center">
+              <img
+                src="/children-ministry-logo-splash.png"
+                alt="MFM Children's Ministry"
+                className="h-16 w-auto shrink-0 object-contain sm:h-20"
+              />
+            </NavLink>
+          </div>
 
           <nav ref={navRef} className="hidden flex-1 items-center gap-1 md:flex">
             <NavLink to="/" end onClick={() => playNav()} className={({ isActive }) => `site-tab px-3${isActive ? ' is-active' : ''}`}>
@@ -261,6 +270,7 @@ export default function Layout() {
           </div>
         </nav>
       </header>
+      {showBack && isFullscreenQuiz && <BackButton dark className="fixed left-3 top-3 z-50" />}
       <main
         className={`relative z-10 ${
           isFullscreenQuiz

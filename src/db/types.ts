@@ -99,6 +99,14 @@ export interface Match {
   teamStudentClassIds?: (string | undefined)[]
   createdAt: number
   completedAt?: number
+  /**
+   * "marathon" (default when absent): each team plays the whole ladder in
+   * its own turn, one after another. "rotational": the ladder is shared -
+   * turns alternate who answers the next question as play moves through
+   * it. With exactly two team names, rotational mode is what the setup
+   * screen presents as "1v1" - same engine, just a head-to-head display.
+   */
+  mode?: 'marathon' | 'rotational'
 }
 
 // A quiz result waiting to be pushed to the ministry leaderboard. Written
@@ -141,6 +149,7 @@ export interface GameConfig {
     askChurch: boolean
     phoneFriend: boolean
   }
+  mode?: 'marathon' | 'rotational'
 }
 
 export interface PracticeSession {

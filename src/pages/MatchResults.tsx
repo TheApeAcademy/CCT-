@@ -91,18 +91,23 @@ export default function MatchResults() {
         <h2 className="mb-4 text-center font-display text-lg font-bold">Full Question Recap</h2>
         <div className="space-y-4">
           {match.questionIds.map((_qid, qIndex) => {
-            const sampleAnswer = sessions[0]?.answers[qIndex]
+            const level = qIndex + 1
+            // Looked up by recorded ladder level, not array position: in
+            // rotational mode each team's own answers are a sparse subset of
+            // the shared ladder (only the questions that were their turn),
+            // not one answer per question in order like marathon mode.
+            const sampleAnswer = sessions.map((s) => s.answers.find((a) => a.level === level)).find((a) => a)
             if (!sampleAnswer) return null
             return (
               <div key={qIndex} className="animate-page-in rounded-xl bg-black/20 p-4" style={{ animationDelay: `${qIndex * 40}ms` }}>
-                <p className="text-xs text-white/50">Question {qIndex + 1}</p>
+                <p className="text-xs text-white/50">Question {level}</p>
                 <p className="font-medium">{sampleAnswer.questionText}</p>
                 <p className="mt-1 text-sm text-green-300/90">
                   ✓ Correct answer: <span className="font-semibold">{sampleAnswer.options[sampleAnswer.correctIndex]}</span>
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {sessions.map((s) => {
-                    const a = s.answers[qIndex]
+                    const a = s.answers.find((rec) => rec.level === level)
                     if (!a) return null
                     return (
                       <span

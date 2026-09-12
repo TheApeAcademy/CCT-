@@ -47,6 +47,7 @@ export default function GameSetup() {
   const [linkBusyIndex, setLinkBusyIndex] = useState<number | null>(null)
   const [seasonFilter, setSeasonFilter] = useState<number | 'all'>('all')
   const [setId, setSetId] = useState<number | null>(null)
+  const [mode, setMode] = useState<'marathon' | 'rotational'>('marathon')
   const [timerSeconds, setTimerSeconds] = useState(30)
   const [fiftyFifty, setFiftyFifty] = useState(true)
   const [askChurch, setAskChurch] = useState(true)
@@ -244,6 +245,7 @@ export default function GameSetup() {
       teamPhotos: cleanPhotos,
       teamStudentIds: cleanStudentIds,
       teamStudentClassIds: cleanStudentClassIds,
+      mode,
     })
 
     const config: GameConfig = {
@@ -258,6 +260,7 @@ export default function GameSetup() {
       seasonName: season?.name,
       timerSecondsPerQuestion: timerSeconds,
       lifelines,
+      mode,
     }
     navigate('/ground-rules', { state: config })
   }
@@ -524,6 +527,40 @@ export default function GameSetup() {
             )}
           </div>
         )}
+      </div>
+
+      <div className="panel space-y-2 p-5 transition hover:bg-[var(--ink-raised)]">
+        <label className="block text-sm font-semibold text-[var(--fg)]/80">Match Mode</label>
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              { value: 'marathon' as const, label: 'Marathon', hint: 'Each team plays the whole ladder in its own turn' },
+              { value: 'rotational' as const, label: 'Rotational', hint: 'Turns alternate who answers the next question' },
+              { value: 'rotational' as const, label: '1v1', hint: 'Rotational, best with exactly 2 contestants' },
+            ] as const
+          ).map((opt, i) => (
+            <button
+              key={i}
+              onClick={() => {
+                setMode(opt.value)
+                playClick()
+              }}
+              title={opt.hint}
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition hover:scale-105 ${
+                mode === opt.value && (opt.label !== '1v1' || teamNames.filter((n) => n.trim()).length === 2)
+                  ? 'bg-[var(--gold)] text-[var(--gold-ink)]'
+                  : 'bg-[var(--ink-panel)] hover:bg-[var(--ink-raised)]'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-[var(--ink-faint)]">
+          {mode === 'rotational'
+            ? 'Rotational: the shared question ladder passes between teams one question at a time.'
+            : 'Marathon: each team completes the full ladder before the next team\'s turn begins.'}
+        </p>
       </div>
 
       <div className="panel space-y-2 p-5 transition hover:bg-[var(--ink-raised)]">

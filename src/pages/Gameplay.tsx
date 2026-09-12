@@ -9,7 +9,7 @@ import Ladder from '../components/Ladder'
 import CountUp from '../components/CountUp'
 import type { AnswerRecord, GameConfig, GameOutcome, GameSession, LifelinesUsed, Question } from '../db/types'
 
-type Phase = 'loading' | 'intro' | 'question' | 'locked' | 'feedback' | 'lifeline-audience' | 'lifeline-friend' | 'finishing'
+type Phase = 'loading' | 'intro' | 'switching' | 'question' | 'locked' | 'feedback' | 'lifeline-audience' | 'lifeline-friend' | 'finishing'
 
 const FRIEND_LINES = [
   "Hmm, I'm pretty sure it's...",
@@ -39,7 +39,11 @@ export default function Gameplay() {
   const [lifelinesUsed, setLifelinesUsed] = useState<LifelinesUsed>({ fiftyFifty: false, askChurch: false, phoneFriend: false })
   const [audiencePoll, setAudiencePoll] = useState<number[] | null>(null)
   const [friendHint, setFriendHint] = useState<{ line: string; index: number } | null>(null)
-  const [answers, setAnswers] = useState<AnswerRecord[]>([])
+  // Keyed by team index rather than a single flat list so rotational mode
+  // (where the active team changes every question) can track each
+  // contestant's own answers separately, in the same shape marathon mode
+  // uses for just the one team it's currently running.
+  const [answersByTeam, setAnswersByTeam] = useState<Record<number, AnswerRecord[]>>({})
   const [showConfetti, setShowConfetti] = useState(false)
   const [pastSessions, setPastSessions] = useState<GameSession[]>([])
   const [showLadder, setShowLadder] = useState(false)
@@ -91,11 +95,37 @@ export default function Gameplay() {
     return () => window.clearInterval(interval)
   }, [phase])
 
+  const isRotational = config?.mode === 'rotational'
+  const activeTeamIndex = config ? (isRotational ? (currentLevel - 1) % config.teamNames.length : config.teamIndex) : 0
   const currentQuestion = questions?.[currentLevel - 1]
-  const teamName = config?.teamNames[config.teamIndex] ?? ''
+  const teamName = config?.teamNames[activeTeamIndex] ?? ''
   const isLastTeam = config ? config.teamIndex >= config.teamNames.length - 1 : false
+  const answers = answersByTeam[activeTeamIndex] ?? []
   const runningScore = answers.reduce((sum, a) => sum + (a.correct ? a.points : 0), 0)
 
+  const queueLeaderboardSync = useCallback(
+    async (teamIdx: number, playerName: string, pointsWon: number, correctCount: number) => {
+      if (!config) return
+      const linkedStudentId = config.teamStudentIds?.[teamIdx]
+      if (!linkedStudentId) return
+      await db.pendingLeaderboardSync.add({
+        studentId: linkedStudentId,
+        studentName: playerName,
+        classId: config.teamStudentClassIds?.[teamIdx] ?? null,
+        setName: config.setName,
+        seasonName: config.seasonName,
+        points: pointsWon,
+        correctCount,
+        totalQuestions: LADDER.length,
+        createdAt: Date.now(),
+        synced: 0,
+      })
+      import('../lib/leaderboardSync').then((m) => m.syncPendingLeaderboard())
+    },
+    [config]
+  )
+
+  // Marathon: finishes just the one team this Gameplay mount is running.
   const finishTurn = useCallback(
     async (outcome: GameOutcome, finalAnswers: AnswerRecord[]) => {
       if (!config) return
@@ -124,30 +154,51 @@ export default function Gameplay() {
         timerSecondsPerQuestion: config.timerSecondsPerQuestion,
       })
       if (isLastTeam) await completeMatch(config.matchId)
-
-      // If this team is linked to a registered Student Code, queue the
-      // result for the ministry leaderboard. Always succeeds locally first
-      // — the sync itself (and its Supabase bundle) only loads afterward.
-      const linkedStudentId = config.teamStudentIds?.[config.teamIndex]
-      if (linkedStudentId) {
-        await db.pendingLeaderboardSync.add({
-          studentId: linkedStudentId,
-          studentName: teamName,
-          classId: config.teamStudentClassIds?.[config.teamIndex] ?? null,
-          setName: config.setName,
-          seasonName: config.seasonName,
-          points: pointsWon,
-          correctCount,
-          totalQuestions: LADDER.length,
-          createdAt: Date.now(),
-          synced: 0,
-        })
-        import('../lib/leaderboardSync').then((m) => m.syncPendingLeaderboard())
-      }
-
+      await queueLeaderboardSync(config.teamIndex, teamName, pointsWon, correctCount)
       navigate(`/results/${id}`, { replace: true })
     },
-    [config, lifelinesUsed, navigate, teamName, isLastTeam]
+    [config, lifelinesUsed, navigate, teamName, isLastTeam, queueLeaderboardSync]
+  )
+
+  // Rotational: the shared ladder is done (or ended early) - write every
+  // team's own slice of answers at once and go straight to the match-wide
+  // results, since there's no single "team just finished" screen that fits.
+  const finishRotationalMatch = useCallback(
+    async (outcome: GameOutcome, finalAnswersByTeam: Record<number, AnswerRecord[]>) => {
+      if (!config) return
+      setPhase('finishing')
+      for (let idx = 0; idx < config.teamNames.length; idx++) {
+        const teamAnswers = finalAnswersByTeam[idx] ?? []
+        const name = config.teamNames[idx]
+        await getOrCreatePlayer(name)
+        const correctCount = teamAnswers.filter((a) => a.correct).length
+        const pointsWon = teamAnswers.reduce((sum, a) => sum + (a.correct ? a.points : 0), 0)
+        await db.gameSessions.add({
+          matchId: config.matchId,
+          teamIndex: idx,
+          playerName: name,
+          playerPhoto: config.teamPhotos?.[idx],
+          setId: config.setId,
+          setName: config.setName,
+          seasonName: config.seasonName,
+          startedAt: turnStartRef.current,
+          finishedAt: Date.now(),
+          outcome,
+          levelReached: teamAnswers.length,
+          pointsWon,
+          totalLevels: LADDER.length,
+          correctCount,
+          wrongCount: teamAnswers.length - correctCount,
+          lifelinesUsed,
+          answers: teamAnswers,
+          timerSecondsPerQuestion: config.timerSecondsPerQuestion,
+        })
+        await queueLeaderboardSync(idx, name, pointsWon, correctCount)
+      }
+      await completeMatch(config.matchId)
+      navigate(`/match-results/${config.matchId}`, { replace: true })
+    },
+    [config, lifelinesUsed, navigate, queueLeaderboardSync]
   )
 
   const reveal = useCallback(
@@ -173,8 +224,7 @@ export default function Gameplay() {
         points: pointsForLevel(currentLevel),
         funFact: currentQuestion.funFact,
       }
-      const nextAnswers = [...answers, record]
-      setAnswers(nextAnswers)
+      setAnswersByTeam((prev) => ({ ...prev, [activeTeamIndex]: [...(prev[activeTeamIndex] ?? []), record] }))
 
       sound.playDrumroll(0.85)
 
@@ -202,7 +252,7 @@ export default function Gameplay() {
         window.setTimeout(() => setPhase('feedback'), 300)
       }, 850)
     },
-    [answers, currentLevel, currentQuestion]
+    [activeTeamIndex, currentLevel, currentQuestion]
   )
 
   // Timer: ticks every second, getting faster and more alarming as it nears zero.
@@ -224,14 +274,14 @@ export default function Gameplay() {
     return <div className="py-20 text-center text-xl">Loading game…</div>
   }
 
-  if (phase === 'intro') {
+  if (phase === 'intro' || phase === 'switching') {
     return (
       <IntroCountdown
         teamName={teamName}
-        teamPhoto={config.teamPhotos?.[config.teamIndex]}
-        teamNumber={config.teamIndex + 1}
+        teamPhoto={config.teamPhotos?.[activeTeamIndex]}
+        teamNumber={activeTeamIndex + 1}
         totalTeams={config.teamNames.length}
-        step={introStep}
+        step={phase === 'intro' ? introStep : null}
       />
     )
   }
@@ -243,11 +293,13 @@ export default function Gameplay() {
 
   const handleNext = () => {
     if (currentLevel >= LADDER.length) {
-      finishTurn('completed', answers)
+      if (isRotational) finishRotationalMatch('completed', answersByTeam)
+      else finishTurn('completed', answers)
       return
     }
     sound.playWhoosh()
     haptics.tap()
+    const wasTeamIndex = activeTeamIndex
     setCurrentLevel((l) => l + 1)
     setSelectedIndex(null)
     setDisabledOptions(new Set())
@@ -255,12 +307,30 @@ export default function Gameplay() {
     setFriendHint(null)
     setTimedOut(false)
     setRevealed(false)
+    // In rotational mode, the next question may belong to a different
+    // team - a quick "get ready" beat instead of jumping straight into it.
+    const nextTeamIndex = isRotational ? (currentLevel % config.teamNames.length) : wasTeamIndex
+    if (isRotational && nextTeamIndex !== wasTeamIndex) {
+      setPhase('switching')
+      window.setTimeout(() => {
+        setPhase('question')
+        questionStartRef.current = Date.now()
+      }, 1400)
+      setTimeLeft(config.timerSecondsPerQuestion)
+      return
+    }
     setTimeLeft(config.timerSecondsPerQuestion)
     questionStartRef.current = Date.now()
     setPhase('question')
   }
 
   const handleQuit = () => {
+    if (isRotational) {
+      if (!confirm('End the match now? Every team\'s score so far will be saved.')) return
+      sound.playWalkAway()
+      finishRotationalMatch('ended_early', answersByTeam)
+      return
+    }
     if (!confirm(`End ${teamName}'s turn now? Their score so far will be saved.`)) return
     sound.playWalkAway()
     finishTurn('ended_early', answers)
@@ -322,6 +392,7 @@ export default function Gameplay() {
   const optionLabel = (i: number) => String.fromCharCode(65 + i)
   const showResult = revealed && (phase === 'locked' || phase === 'feedback')
   const suspense = phase === 'locked' && !revealed
+  const isHeadToHead = isRotational && config.teamNames.length === 2
 
   return (
     <div className={`relative mx-auto grid h-full max-w-6xl gap-2 px-3 py-3 lg:grid-cols-[1fr_220px] ${shake ? 'animate-screen-shake' : ''}`}>
@@ -331,34 +402,45 @@ export default function Gameplay() {
       )}
 
       <div className="flex flex-col justify-center gap-2">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-3">
-            {config.teamPhotos?.[config.teamIndex] && (
-              <img
-                src={config.teamPhotos[config.teamIndex]}
-                alt=""
-                className="h-11 w-11 shrink-0 rounded-full object-cover shadow-lg shadow-black/40 ring-2 ring-amber-400/60"
-              />
-            )}
-            <div>
-              <p className="text-sm text-white/60">
-                Team {config.teamIndex + 1} of {config.teamNames.length}
-              </p>
-              <p className="font-display text-xl font-bold">{teamName}</p>
+        {isHeadToHead ? (
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <HeadToHeadBar config={config} activeTeamIndex={activeTeamIndex} answersByTeam={answersByTeam} />
             </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <p className="text-sm text-white/60">Score</p>
-              <p className="text-lg font-bold text-amber-300">
-                <CountUp value={runningScore} durationMs={500} /> 👑
-              </p>
-            </div>
-            <button onClick={handleQuit} className="rounded-full bg-white/10 px-4 py-2 text-sm hover:bg-white/20">
-              End Turn
+            <button onClick={handleQuit} className="shrink-0 rounded-full bg-white/10 px-4 py-2 text-sm hover:bg-white/20">
+              End Match
             </button>
           </div>
-        </div>
+        ) : (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-3">
+              {config.teamPhotos?.[activeTeamIndex] && (
+                <img
+                  src={config.teamPhotos[activeTeamIndex]}
+                  alt=""
+                  className="h-11 w-11 shrink-0 rounded-full object-cover shadow-lg shadow-black/40 ring-2 ring-amber-400/60"
+                />
+              )}
+              <div>
+                <p className="text-sm text-white/60">
+                  Team {activeTeamIndex + 1} of {config.teamNames.length}
+                </p>
+                <p className="font-display text-xl font-bold">{teamName}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="text-right">
+                <p className="text-sm text-white/60">Score</p>
+                <p className="text-lg font-bold text-amber-300">
+                  <CountUp value={runningScore} durationMs={500} /> 👑
+                </p>
+              </div>
+              <button onClick={handleQuit} className="rounded-full bg-white/10 px-4 py-2 text-sm hover:bg-white/20">
+                {isRotational ? 'End Match' : 'End Turn'}
+              </button>
+            </div>
+          </div>
+        )}
 
         {phase === 'question' && <TimerBar timeLeft={timeLeft} total={config.timerSecondsPerQuestion} />}
 
@@ -458,7 +540,7 @@ export default function Gameplay() {
               onClick={handleNext}
               className="animate-pulse-glow rounded-xl bg-amber-400 px-6 py-3 font-bold text-purple-950 transition hover:scale-105"
             >
-              {currentLevel >= LADDER.length ? `Finish ${teamName}'s Turn →` : `Next Question →`}
+              {currentLevel >= LADDER.length ? (isRotational ? 'Finish Match →' : `Finish ${teamName}'s Turn →`) : `Next Question →`}
             </button>
           </div>
         )}
@@ -503,7 +585,9 @@ export default function Gameplay() {
           👑 {showLadder ? 'Hide' : 'Show'} Point Ladder
         </button>
         {showLadder && <Ladder currentLevel={currentLevel} />}
-        <LiveScoreboard config={config} currentTeamIndex={config.teamIndex} liveAnswers={answers} pastSessions={pastSessions} />
+        {!isHeadToHead && (
+          <LiveScoreboard config={config} answersByTeam={answersByTeam} activeTeamIndex={activeTeamIndex} pastSessions={pastSessions} />
+        )}
       </div>
     </div>
   )
@@ -512,28 +596,33 @@ export default function Gameplay() {
 /**
  * Every contestant in the match, live: name, running points, and a row of
  * small circles - one per question - filled green/red as they're answered
- * and left hollow/transparent for whatever hasn't been reached yet. Teams
- * that already finished their turn show their final completed row from
- * pastSessions; the team currently playing shows its answers as they come in.
+ * and left hollow/transparent for whatever hasn't been reached yet. Looks
+ * answers up by their recorded ladder level (not array position), since in
+ * rotational mode a team's own answers are a sparse subset of the shared
+ * ladder rather than one-per-level in order like marathon mode. Teams that
+ * already finished their turn (marathon only) show their final completed
+ * row from pastSessions; everyone else shows their live answersByTeam.
  */
 function LiveScoreboard({
   config,
-  currentTeamIndex,
-  liveAnswers,
+  answersByTeam,
+  activeTeamIndex,
   pastSessions,
 }: {
   config: GameConfig
-  currentTeamIndex: number
-  liveAnswers: AnswerRecord[]
+  answersByTeam: Record<number, AnswerRecord[]>
+  activeTeamIndex: number
   pastSessions: GameSession[]
 }) {
   return (
     <div className="space-y-2">
       {config.teamNames.map((name, idx) => {
-        const isCurrent = idx === currentTeamIndex
+        const isCurrent = idx === activeTeamIndex
         const finished = pastSessions.find((s) => s.teamIndex === idx)
-        const teamAnswers = isCurrent ? liveAnswers : (finished?.answers ?? [])
-        const points = isCurrent ? liveAnswers.reduce((sum, a) => sum + (a.correct ? a.points : 0), 0) : (finished?.pointsWon ?? 0)
+        const teamAnswers = answersByTeam[idx] ?? finished?.answers ?? []
+        const points = answersByTeam[idx]
+          ? teamAnswers.reduce((sum, a) => sum + (a.correct ? a.points : 0), 0)
+          : (finished?.pointsWon ?? 0)
         return (
           <div key={idx} className={`rounded-xl p-3 ${isCurrent ? 'bg-amber-400/10 ring-1 ring-amber-400/40' : 'bg-white/5'}`}>
             <div className="flex items-center justify-between gap-2 text-sm">
@@ -542,7 +631,7 @@ function LiveScoreboard({
             </div>
             <div className="mt-2 flex flex-wrap gap-1">
               {LADDER.map((l) => {
-                const a = teamAnswers[l.level - 1]
+                const a = teamAnswers.find((rec) => rec.level === l.level)
                 const state = !a ? 'pending' : a.correct ? 'correct' : 'wrong'
                 return (
                   <span
@@ -577,7 +666,8 @@ function IntroCountdown({
   teamPhoto?: string
   teamNumber: number
   totalTeams: number
-  step: 3 | 2 | 1 | 0
+  /** null for the brief "up next" beat between rotational turns - no numeric countdown, just the handoff. */
+  step: 3 | 2 | 1 | 0 | null
 }) {
   return (
     <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
@@ -591,10 +681,74 @@ function IntroCountdown({
           Team {teamNumber} of {totalTeams}
         </p>
       )}
-      <p className="text-xl text-white/70">Get ready, {teamName}!</p>
-      <div key={step} className="animate-number-pop font-display text-9xl font-extrabold text-amber-300 drop-shadow-[0_0_40px_rgba(250,204,21,0.6)]">
-        {step === 0 ? 'GO!' : step}
-      </div>
+      <p className="text-xl text-white/70">{step === null ? `Up next, ${teamName}!` : `Get ready, ${teamName}!`}</p>
+      {step !== null && (
+        <div key={step} className="animate-number-pop font-display text-9xl font-extrabold text-amber-300 drop-shadow-[0_0_40px_rgba(250,204,21,0.6)]">
+          {step === 0 ? 'GO!' : step}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/**
+ * The prominent, always-visible (including on mobile) head-to-head display
+ * for a 2-contestant rotational match: both names/photos, running points,
+ * and each one's row of pending/correct/wrong circles side by side, live.
+ */
+function HeadToHeadBar({
+  config,
+  activeTeamIndex,
+  answersByTeam,
+}: {
+  config: GameConfig
+  activeTeamIndex: number
+  answersByTeam: Record<number, AnswerRecord[]>
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      {config.teamNames.map((name, idx) => {
+        const isActive = idx === activeTeamIndex
+        const teamAnswers = answersByTeam[idx] ?? []
+        const points = teamAnswers.reduce((sum, a) => sum + (a.correct ? a.points : 0), 0)
+        return (
+          <div
+            key={idx}
+            className={`rounded-2xl p-2.5 transition ${isActive ? 'bg-amber-400/15 ring-2 ring-amber-400/50' : 'bg-white/5 ring-1 ring-white/10'}`}
+          >
+            <div className="flex items-center gap-2">
+              {config.teamPhotos?.[idx] && (
+                <img src={config.teamPhotos[idx]} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover ring-2 ring-amber-400/50" />
+              )}
+              <div className="min-w-0 flex-1">
+                <p className={`truncate text-sm font-bold ${isActive ? 'text-amber-300' : 'text-white/80'}`}>{name}</p>
+                <p className="font-display text-lg font-extrabold text-amber-300">
+                  <CountUp value={points} durationMs={400} /> 👑
+                </p>
+              </div>
+            </div>
+            <div className="mt-1.5 flex flex-wrap gap-1">
+              {LADDER.map((l) => {
+                const a = teamAnswers.find((rec) => rec.level === l.level)
+                const state = !a ? 'pending' : a.correct ? 'correct' : 'wrong'
+                return (
+                  <span
+                    key={l.level}
+                    title={`Q${l.level}`}
+                    className={`h-2.5 w-2.5 rounded-full border ${
+                      state === 'correct'
+                        ? 'border-green-300 bg-green-500'
+                        : state === 'wrong'
+                          ? 'border-red-300 bg-red-500'
+                          : 'border-white/30 bg-transparent'
+                    }`}
+                  />
+                )
+              })}
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }

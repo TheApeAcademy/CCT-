@@ -97,6 +97,7 @@ export default function Training() {
           return next
         })
         sound.playCorrect()
+        sound.playApplause()
         haptics.success()
         setFlash('green')
         setShowConfetti(true)
@@ -104,6 +105,7 @@ export default function Training() {
       } else {
         setStreak(0)
         sound.playWrong()
+        sound.playOops()
         haptics.error()
         setFlash('red')
         setShake(true)
@@ -150,7 +152,7 @@ export default function Training() {
       return <KidSignupCard subtitle="Sign up once and Training will remember you next time." onDone={saveProfile} />
     }
     return (
-      <div className="mx-auto max-w-2xl space-y-6">
+      <div className="mx-auto max-w-2xl space-y-6 px-4 py-8">
         <div className="text-center">
           <p className="text-4xl">🏋️</p>
           <h1 className="font-display text-3xl font-extrabold">Training Mode</h1>
@@ -191,7 +193,7 @@ export default function Training() {
 
   if (phase === 'summary') {
     return (
-      <div className="mx-auto max-w-2xl space-y-6 text-center">
+      <div className="mx-auto max-w-2xl space-y-6 px-4 py-8 text-center">
         <p className="text-6xl">🎉</p>
         <h1 className="font-display text-4xl font-extrabold">Nice Training Session!</h1>
         <p className="text-white/60">
@@ -230,7 +232,7 @@ export default function Training() {
   const suspense = selectedIndex !== null && !revealed
 
   return (
-    <div className="relative mx-auto max-w-3xl space-y-4">
+    <div className="relative mx-auto max-w-3xl space-y-4 px-4 py-6">
       <Confetti active={showConfetti} />
       {flash && <div className={`pointer-events-none fixed inset-0 z-40 ${flash === 'green' ? 'animate-flash-green' : 'animate-flash-red'}`} />}
 
@@ -257,10 +259,10 @@ export default function Training() {
 
         <div className="mt-6 flex justify-center">
           <img
-            src="/church-logo.png"
+            src="/children-ministry-logo-splash.png"
             alt=""
             aria-hidden="true"
-            className="relative z-10 -mb-8 h-14 w-14 rounded-full shadow-lg shadow-black/40 ring-2 ring-amber-400/60"
+            className="relative z-10 -mb-8 h-14 w-14 rounded-full object-contain shadow-lg shadow-black/40 ring-2 ring-amber-400/60"
           />
         </div>
         <div className="hex-frame mx-auto w-full">

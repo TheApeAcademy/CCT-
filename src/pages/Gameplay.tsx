@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { db, getOrCreatePlayer, completeMatch } from '../db/db'
+import { db, getOrCreatePlayer, completeMatch, getMatchSessions } from '../db/db'
 import { LADDER, pointsForLevel, difficultyForLevel } from '../lib/ladder'
 import * as sound from '../lib/sound'
 import { haptics } from '../lib/haptics'
 import Confetti from '../components/Confetti'
 import Ladder from '../components/Ladder'
 import CountUp from '../components/CountUp'
-import type { AnswerRecord, GameConfig, GameOutcome, LifelinesUsed, Question } from '../db/types'
+import type { AnswerRecord, GameConfig, GameOutcome, GameSession, LifelinesUsed, Question } from '../db/types'
 
 type Phase = 'loading' | 'intro' | 'question' | 'locked' | 'feedback' | 'lifeline-audience' | 'lifeline-friend' | 'finishing'
 
@@ -41,6 +41,8 @@ export default function Gameplay() {
   const [friendHint, setFriendHint] = useState<{ line: string; index: number } | null>(null)
   const [answers, setAnswers] = useState<AnswerRecord[]>([])
   const [showConfetti, setShowConfetti] = useState(false)
+  const [pastSessions, setPastSessions] = useState<GameSession[]>([])
+  const [showLadder, setShowLadder] = useState(false)
 
   const questionStartRef = useRef<number>(Date.now())
   const turnStartRef = useRef<number>(Date.now())
@@ -61,6 +63,7 @@ export default function Gameplay() {
       setTimeLeft(config.timerSecondsPerQuestion)
       setPhase('intro')
     })
+    getMatchSessions(config.matchId).then(setPastSessions)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -180,6 +183,7 @@ export default function Gameplay() {
         const isMilestone = LADDER.find((l) => l.level === currentLevel)?.isMilestone
         if (correct) {
           sound.playCorrect()
+          sound.playApplause()
           haptics.success()
           setFlash('green')
           setShowConfetti(true)
@@ -188,6 +192,7 @@ export default function Gameplay() {
           window.setTimeout(() => setShowConfetti(false), 1800)
         } else {
           sound.playWrong()
+          sound.playOops()
           haptics.error()
           setFlash('red')
           setShake(true)
@@ -319,13 +324,13 @@ export default function Gameplay() {
   const suspense = phase === 'locked' && !revealed
 
   return (
-    <div className={`relative grid gap-4 lg:grid-cols-[1fr_220px] ${shake ? 'animate-screen-shake' : ''}`}>
+    <div className={`relative mx-auto grid h-full max-w-6xl gap-2 px-3 py-3 lg:grid-cols-[1fr_220px] ${shake ? 'animate-screen-shake' : ''}`}>
       <Confetti active={showConfetti} />
       {flash && (
         <div className={`pointer-events-none fixed inset-0 z-40 ${flash === 'green' ? 'animate-flash-green' : 'animate-flash-red'}`} />
       )}
 
-      <div className="space-y-4">
+      <div className="flex flex-col justify-center gap-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-3">
             {config.teamPhotos?.[config.teamIndex] && (
@@ -357,16 +362,8 @@ export default function Gameplay() {
 
         {phase === 'question' && <TimerBar timeLeft={timeLeft} total={config.timerSecondsPerQuestion} />}
 
-        <div className="mt-8 flex justify-center">
-          <img
-            src="/church-logo.png"
-            alt=""
-            aria-hidden="true"
-            className="relative z-10 -mb-8 h-16 w-16 rounded-full shadow-lg shadow-black/40 ring-2 ring-amber-400/60 sm:h-20 sm:w-20"
-          />
-        </div>
         <div className="hex-frame mx-auto w-full max-w-3xl">
-          <div className="hex-fill flex min-h-[110px] flex-col items-center justify-center gap-2 px-10 py-6 text-center sm:min-h-[130px]">
+          <div className="hex-fill flex min-h-[80px] flex-col items-center justify-center gap-1.5 px-6 py-3 text-center sm:min-h-[100px]">
             <div className="flex items-center gap-2 text-xs">
               <span className="rounded-full bg-black/30 px-3 py-1 font-bold">
                 Q{currentLevel} of {LADDER.length}
@@ -374,11 +371,11 @@ export default function Gameplay() {
               <span className="rounded-full bg-black/30 px-3 py-1">{currentQuestion.category}</span>
               {suspense && <span className="animate-pulse text-amber-300">● locking in…</span>}
             </div>
-            <p className="font-display text-xl font-bold leading-snug sm:text-2xl">{currentQuestion.text}</p>
+            <p className="font-display text-lg font-bold leading-snug sm:text-xl">{currentQuestion.text}</p>
           </div>
         </div>
 
-        <div className="grid gap-3 pt-2 sm:grid-cols-2">
+        <div className="grid gap-2 sm:grid-cols-2">
           {currentQuestion.options.map((opt, i) => {
             const isDisabled = disabledOptions.has(i)
             const isSelected = selectedIndex === i
@@ -409,7 +406,7 @@ export default function Gameplay() {
                 key={i}
                 disabled={phase !== 'question' || isDisabled}
                 onClick={() => handleSelect(i)}
-                className={`hex-pill flex items-center gap-3 border-2 bg-gradient-to-br px-6 py-4 text-left text-lg font-semibold text-white transition-all duration-300 ${fillClasses} ${borderClass} ${
+                className={`hex-pill flex items-center gap-3 border-2 bg-gradient-to-br px-5 py-2.5 text-left text-base font-semibold text-white transition-all duration-300 ${fillClasses} ${borderClass} ${
                   isDisabled ? 'opacity-30' : ''
                 } ${phase === 'question' && !isDisabled ? 'cursor-pointer hover:scale-[1.02] hover:brightness-110' : ''} ${
                   suspense && isSelected ? 'animate-drumroll' : ''
@@ -425,7 +422,7 @@ export default function Gameplay() {
           })}
         </div>
 
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-wrap gap-2">
           <LifelineButton label="50/50" icon="✂️" used={lifelinesUsed.fiftyFifty} available={config.lifelines.fiftyFifty} onClick={useFiftyFifty} />
           <LifelineButton
             label="Ask the Church"
@@ -435,7 +432,7 @@ export default function Gameplay() {
             onClick={useAskChurch}
           />
           <LifelineButton
-            label="Phone a Friend"
+            label="Ask a Friend"
             icon="📞"
             used={lifelinesUsed.phoneFriend}
             available={config.lifelines.phoneFriend}
@@ -445,7 +442,7 @@ export default function Gameplay() {
 
         {phase === 'feedback' && (
           <div
-            className={`animate-page-in rounded-2xl p-5 text-center ring-1 ${
+            className={`animate-page-in rounded-2xl p-3 text-center ring-1 ${
               answers[answers.length - 1]?.correct ? 'bg-green-900/40 ring-green-400/30' : 'bg-red-900/30 ring-red-400/30'
             }`}
           >
@@ -486,7 +483,7 @@ export default function Gameplay() {
         )}
 
         {phase === 'lifeline-friend' && friendHint && (
-          <LifelinePanel onDismiss={dismissLifelinePanel} title="📞 Phone a Friend">
+          <LifelinePanel onDismiss={dismissLifelinePanel} title="📞 Ask a Friend">
             <p className="text-lg">
               "{friendHint.line}{' '}
               <span className="font-bold text-amber-300">
@@ -498,9 +495,73 @@ export default function Gameplay() {
         )}
       </div>
 
-      <div className="hidden lg:block">
-        <Ladder currentLevel={currentLevel} />
+      <div className="hidden lg:flex lg:flex-col lg:gap-2">
+        <button
+          onClick={() => setShowLadder((v) => !v)}
+          className="flex items-center justify-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-sm font-semibold transition hover:bg-white/20"
+        >
+          👑 {showLadder ? 'Hide' : 'Show'} Point Ladder
+        </button>
+        {showLadder && <Ladder currentLevel={currentLevel} />}
+        <LiveScoreboard config={config} currentTeamIndex={config.teamIndex} liveAnswers={answers} pastSessions={pastSessions} />
       </div>
+    </div>
+  )
+}
+
+/**
+ * Every contestant in the match, live: name, running points, and a row of
+ * small circles - one per question - filled green/red as they're answered
+ * and left hollow/transparent for whatever hasn't been reached yet. Teams
+ * that already finished their turn show their final completed row from
+ * pastSessions; the team currently playing shows its answers as they come in.
+ */
+function LiveScoreboard({
+  config,
+  currentTeamIndex,
+  liveAnswers,
+  pastSessions,
+}: {
+  config: GameConfig
+  currentTeamIndex: number
+  liveAnswers: AnswerRecord[]
+  pastSessions: GameSession[]
+}) {
+  return (
+    <div className="space-y-2">
+      {config.teamNames.map((name, idx) => {
+        const isCurrent = idx === currentTeamIndex
+        const finished = pastSessions.find((s) => s.teamIndex === idx)
+        const teamAnswers = isCurrent ? liveAnswers : (finished?.answers ?? [])
+        const points = isCurrent ? liveAnswers.reduce((sum, a) => sum + (a.correct ? a.points : 0), 0) : (finished?.pointsWon ?? 0)
+        return (
+          <div key={idx} className={`rounded-xl p-3 ${isCurrent ? 'bg-amber-400/10 ring-1 ring-amber-400/40' : 'bg-white/5'}`}>
+            <div className="flex items-center justify-between gap-2 text-sm">
+              <span className={`truncate font-bold ${isCurrent ? 'text-amber-300' : 'text-white/80'}`}>{name}</span>
+              <span className="shrink-0 font-bold text-amber-300">{points.toLocaleString()} 👑</span>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-1">
+              {LADDER.map((l) => {
+                const a = teamAnswers[l.level - 1]
+                const state = !a ? 'pending' : a.correct ? 'correct' : 'wrong'
+                return (
+                  <span
+                    key={l.level}
+                    title={`Q${l.level}`}
+                    className={`h-3 w-3 rounded-full border ${
+                      state === 'correct'
+                        ? 'border-green-300 bg-green-500'
+                        : state === 'wrong'
+                          ? 'border-red-300 bg-red-500'
+                          : 'border-white/30 bg-transparent'
+                    }`}
+                  />
+                )
+              })}
+            </div>
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -523,7 +584,7 @@ function IntroCountdown({
       {teamPhoto ? (
         <img src={teamPhoto} alt="" className="h-24 w-24 rounded-full object-cover shadow-xl shadow-black/40 ring-4 ring-amber-400/60" />
       ) : (
-        <img src="/church-logo.png" alt="" className="h-20 w-20 rounded-full shadow-xl shadow-black/40 ring-2 ring-amber-400/50" />
+        <img src="/children-ministry-logo-splash.png" alt="" className="h-20 w-20 rounded-full object-contain shadow-xl shadow-black/40 ring-2 ring-amber-400/50" />
       )}
       {totalTeams > 1 && (
         <p className="text-sm uppercase tracking-wide text-white/50">
@@ -539,22 +600,27 @@ function IntroCountdown({
 }
 
 function TimerBar({ timeLeft, total }: { timeLeft: number; total: number }) {
-  const pct = Math.max(0, (timeLeft / total) * 100)
+  void total
   const urgent = timeLeft <= 6
   const alarming = timeLeft <= 3
+  const mm = Math.floor(timeLeft / 60)
+  const ss = timeLeft % 60
+  const display = timeLeft >= 60 ? `${mm}:${ss.toString().padStart(2, '0')}` : ss.toString().padStart(2, '0')
   return (
-    <div key={alarming ? timeLeft : 'calm'} className={`space-y-1 ${alarming ? 'animate-screen-shake' : ''}`}>
-      <div className="h-4 w-full overflow-hidden rounded-full bg-black/30">
-        <div
-          className={`h-full rounded-full transition-all duration-1000 ease-linear ${urgent ? 'bg-red-500' : 'bg-amber-400'} ${
-            alarming ? 'animate-pulse' : ''
+    <div key={alarming ? timeLeft : 'calm'} className={`flex justify-center ${alarming ? 'animate-screen-shake' : ''}`}>
+      <div
+        className={`rounded-2xl border-2 bg-black/60 px-6 py-2 shadow-inner shadow-black/60 transition-colors ${
+          urgent ? 'border-red-500/70' : 'border-amber-400/50'
+        }`}
+      >
+        <p
+          className={`font-mono text-4xl font-extrabold tabular-nums tracking-widest [text-shadow:0_0_12px_currentColor] ${
+            alarming ? 'animate-bounce text-red-400' : urgent ? 'animate-pulse text-red-400' : 'text-amber-300'
           }`}
-          style={{ width: `${pct}%` }}
-        />
+        >
+          {display}
+        </p>
       </div>
-      <p className={`text-center text-sm font-bold ${alarming ? 'animate-bounce text-red-400' : urgent ? 'animate-pulse text-red-400' : 'text-white/60'}`}>
-        {timeLeft}s
-      </p>
     </div>
   )
 }

@@ -209,6 +209,39 @@ export function playWhoosh() {
   filter.frequency.exponentialRampToValueAtTime(3000, c.currentTime + 0.3)
 }
 
+/**
+ * A wash of overlapping hand-claps built from short randomized filtered
+ * noise bursts - there's no recorded audio in this codebase (see the file
+ * header), so this reads as applause rather than reproducing a real
+ * recording of one.
+ */
+export function playApplause(durationSec = 1.4) {
+  if (muted) return
+  const clapCount = Math.round(durationSec * 18)
+  for (let i = 0; i < clapCount; i++) {
+    const t = Math.random() * durationSec
+    noiseBurst(t, 0.04 + Math.random() * 0.03, 2500 + Math.random() * 2500, 0.09 + Math.random() * 0.06, 'bandpass')
+  }
+}
+
+/** Applause plus a rising scatter of short pitched tones standing in for a crowd of kids cheering. */
+export function playCheer(durationSec = 2.2) {
+  playApplause(durationSec)
+  if (muted) return
+  const voices = 10
+  for (let i = 0; i < voices; i++) {
+    const t = Math.random() * Math.max(0.1, durationSec - 0.4)
+    const base = 500 + Math.random() * 500
+    tone(base, t, 0.3 + Math.random() * 0.3, 'sawtooth', 0.05, base * (1.3 + Math.random() * 0.4))
+  }
+}
+
+/** Comedic descending "oops" slide for a wrong answer - two quick downward glides, mini sad-trombone style. */
+export function playOops() {
+  tone(500, 0, 0.22, 'sawtooth', 0.15, 260)
+  tone(420, 0.2, 0.3, 'sawtooth', 0.13, 180)
+}
+
 export function playCountIn(step: 3 | 2 | 1 | 0) {
   if (step === 0) {
     tone(880, 0, 0.15, 'triangle', 0.18)

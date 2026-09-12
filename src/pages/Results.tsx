@@ -25,6 +25,7 @@ export default function Results() {
       if (isPerfect) {
         setShowFireworks(true)
         sound.playWin()
+        sound.playCheer()
         haptics.win()
         window.setTimeout(() => setShowFireworks(false), 4200)
       } else if (s.correctCount > 0) {
@@ -79,7 +80,7 @@ export default function Results() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 text-center">
+    <div className="mx-auto max-w-3xl space-y-6 px-4 py-8 text-center">
       <Confetti active={showConfetti} />
       <Fireworks active={showFireworks} />
 

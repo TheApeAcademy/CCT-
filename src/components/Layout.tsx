@@ -52,6 +52,11 @@ export default function Layout() {
   const navRef = useRef<HTMLDivElement>(null)
   const location = useLocation()
   const isHome = location.pathname === '/'
+  // The live quiz experience (ground rules -> gameplay -> results) wants the
+  // full viewport, not the site's padded max-w-6xl column, and the header
+  // should stay out of the way until the player actually scrolls instead of
+  // permanently eating space above a "full screen" game.
+  const isFullscreenQuiz = ['/ground-rules', '/play', '/training'].includes(location.pathname) || location.pathname.startsWith('/results/') || location.pathname.startsWith('/match-results/')
   // Theme state lives here (not in Home) so the toggle can sit in the shared
   // navbar - only actually applied (via data-landing-theme below) while on
   // the landing page itself; every other route stays on the app's plain
@@ -70,12 +75,12 @@ export default function Layout() {
   }, [location.pathname])
 
   useEffect(() => {
-    if (!isHome) return
+    if (!isHome && !isFullscreenQuiz) return
     const onScroll = () => setScrolled(window.scrollY > 60)
     onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
-  }, [isHome])
+  }, [isHome, isFullscreenQuiz])
 
   useEffect(() => {
     if (!openDropdown) return
@@ -104,9 +109,9 @@ export default function Layout() {
     <div data-landing-theme={isHome ? theme : undefined} className="relative min-h-screen text-white">
       <StageBackground />
       <header
-        className={`fixed inset-x-0 top-0 z-40 transition-colors duration-300 ${
+        className={`fixed inset-x-0 top-0 z-40 transition-all duration-300 ${
           solidHeader ? 'site-header' : 'border-b border-transparent bg-transparent'
-        }`}
+        } ${isFullscreenQuiz && !scrolled ? '-translate-y-full' : 'translate-y-0'}`}
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <NavLink to="/" className="flex min-w-0 shrink-0 items-center">
@@ -256,12 +261,21 @@ export default function Layout() {
           </div>
         </nav>
       </header>
-      <main className={`relative z-10 mx-auto max-w-6xl px-4 pb-6 ${isHome ? 'pt-0' : 'pt-24 sm:pt-28'}`}>
-        <div key={location.pathname} className="animate-page-in">
+      <main
+        className={`relative z-10 ${
+          isFullscreenQuiz
+            ? 'flex min-h-[100dvh] w-full flex-col px-0 pb-0 pt-0'
+            : `mx-auto max-w-6xl px-4 pb-6 ${isHome ? 'pt-0' : 'pt-24 sm:pt-28'}`
+        }`}
+      >
+        <div key={location.pathname} className={isFullscreenQuiz ? 'animate-page-in flex-1' : 'animate-page-in'}>
           <Outlet />
         </div>
       </main>
-      <SiteFooter />
+      {/* The site footer (links, copyright) has no place on the live quiz screens -
+          it was pushing "Next Question" etc. below the fold, forcing a scroll to
+          reach it on a screen that's supposed to be full-screen. */}
+      {!isFullscreenQuiz && <SiteFooter />
     </div>
   )
 }

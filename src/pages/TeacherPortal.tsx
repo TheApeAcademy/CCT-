@@ -54,6 +54,7 @@ import {
   escalateEarsMessage,
   addEarsReply,
   addEarsInternalNote,
+  getLeaderboard,
   type TeacherApplication,
   type ClassRow,
   type StudentRow,
@@ -63,6 +64,7 @@ import {
   type EarsReplyRow,
   type EarsNoteRow,
   type EarsStatus,
+  type LeaderboardRow,
 } from '../lib/ministry'
 import { fileToResizedDataUrl } from '../lib/image'
 import { playClick } from '../lib/sound'
@@ -233,11 +235,42 @@ function TeacherDashboard() {
 }
 
 function QuizTab() {
+  const [rows, setRows] = useState<LeaderboardRow[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    Promise.all([listMyClasses(), getLeaderboard(500)])
+      .then(([classes, leaderboard]) => {
+        const myClassIds = new Set(classes.map((c) => c.id))
+        setRows(leaderboard.filter((r) => r.class_id && myClassIds.has(r.class_id)))
+      })
+      .finally(() => setLoading(false))
+  }, [])
+
   return (
-    <div className="grid gap-3 sm:grid-cols-3">
-      <QuizLink to="/questions" icon={BookOpen} title="Question Bank" description="Build and manage your trivia questions and sets." />
-      <QuizLink to="/setup" icon={Gamepad2} title="Host a Match" description="Run a live quiz-show match on the big screen." />
-      <QuizLink to="/history" icon={Trophy} title="History" description="Every completed match, team score, and full recap." />
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <QuizLink to="/questions" icon={BookOpen} title="Question Bank" description="Build and manage your trivia questions and sets." />
+        <QuizLink to="/setup" icon={Gamepad2} title="Host a Match" description="Run a live quiz-show match on the big screen." />
+        <QuizLink to="/history" icon={Trophy} title="History" description="Every completed match, team score, and full recap." />
+      </div>
+      <div className="panel p-5">
+        <p className="eyebrow mb-3">Your Classes' Leaderboard</p>
+        {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
+        {!loading && rows.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No quiz results recorded yet for your students.</p>}
+        <div className="space-y-1.5">
+          {rows.map((r, i) => (
+            <div key={r.student_id} className="flex items-center justify-between rounded-md px-3 py-2 text-sm odd:bg-[var(--ink-panel)]">
+              <span className="flex min-w-0 items-center gap-2">
+                <span className="w-6 shrink-0 font-bold text-[var(--ink-muted)]">{i + 1}</span>
+                <span className="truncate font-semibold">{r.full_name}</span>
+                {r.class_name && <span className="shrink-0 text-xs text-[var(--ink-faint)]">· {r.class_name}</span>}
+              </span>
+              <span className="shrink-0 font-bold text-[var(--gold)]">{r.total_points.toLocaleString()} pts</span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }

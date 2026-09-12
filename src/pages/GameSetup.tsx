@@ -550,7 +550,7 @@ export default function GameSetup() {
         <label className="block text-sm font-semibold text-[var(--fg)]/80">Lifelines (per team, per turn)</label>
         <LifelineToggle label="50/50: remove two wrong answers" checked={fiftyFifty} onChange={setFiftyFifty} />
         <LifelineToggle label="Ask the Church: poll the room" checked={askChurch} onChange={setAskChurch} />
-        <LifelineToggle label="Phone a Friend: get a hint" checked={phoneFriend} onChange={setPhoneFriend} />
+        <LifelineToggle label="Ask a Friend: get a hint" checked={phoneFriend} onChange={setPhoneFriend} />
       </div>
 
       {error && <p className={`text-sm text-red-600 ${errorShake ? 'animate-screen-shake' : ''}`}>{error}</p>}

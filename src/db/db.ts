@@ -14,6 +14,7 @@ import type {
   PendingLeaderboardSync,
 } from './types'
 import { starterQuestions } from './seedQuestions'
+import { expansionQuestions } from './seedQuestionsExpansion'
 
 export class TriviaDB extends Dexie {
   questions!: Table<Question, number>
@@ -98,19 +99,38 @@ export async function ensureSeedData() {
   const season = await ensureActiveSeason()
 
   const count = await db.questionSets.count()
-  if (count > 0) return
+  if (count === 0) {
+    const setId = await db.questionSets.add({
+      name: 'Bible Basics Starter Pack',
+      description: 'A ready-to-go mix of Old & New Testament questions across all difficulty levels.',
+      createdAt: Date.now(),
+      isStarter: true,
+      seasonId: season.id,
+    })
 
-  const setId = await db.questionSets.add({
-    name: 'Bible Basics Starter Pack',
-    description: 'A ready-to-go mix of Old & New Testament questions across all difficulty levels.',
-    createdAt: Date.now(),
-    isStarter: true,
-    seasonId: season.id,
-  })
+    await db.questions.bulkAdd(
+      starterQuestions.map((q) => ({ ...q, setId: setId as number }))
+    )
+  }
 
-  await db.questions.bulkAdd(
-    starterQuestions.map((q) => ({ ...q, setId: setId as number }))
-  )
+  // Seeded separately (checked by name, not just "any set exists") so this
+  // second, much bigger wave of questions reaches devices that already had
+  // the starter pack from before this was added, not only brand-new installs.
+  const expansionName = 'Bible Trivia Expansion Pack'
+  const hasExpansion = await db.questionSets.where('name').equals(expansionName).count()
+  if (hasExpansion === 0) {
+    const expansionSetId = await db.questionSets.add({
+      name: expansionName,
+      description: '300 more questions spanning Old & New Testament, miracles, parables, kings & prophets, and the books of the Bible.',
+      createdAt: Date.now(),
+      isStarter: true,
+      seasonId: season.id,
+    })
+
+    await db.questions.bulkAdd(
+      expansionQuestions.map((q) => ({ ...q, setId: expansionSetId as number }))
+    )
+  }
 }
 
 export async function createMatch(match: Omit<Match, 'id' | 'createdAt'>): Promise<number> {

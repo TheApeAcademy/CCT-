@@ -306,34 +306,61 @@ button:active, a:active {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 52%;
+  width: 54%;
+  transform-origin: top;
   background:
-    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.12) 0 12px, transparent 12px 26px),
-    linear-gradient(180deg, #b91c1c, #7f1d1d);
-  box-shadow: inset -20px 0 40px rgba(0, 0, 0, 0.4);
+    repeating-linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.24) 0 5px,
+      rgba(255, 255, 255, 0.06) 5px 9px,
+      transparent 9px 23px,
+      rgba(0, 0, 0, 0.18) 23px 36px,
+      transparent 36px 50px
+    ),
+    radial-gradient(ellipse 140% 60% at 30% 0%, rgba(255, 255, 255, 0.14), transparent 55%),
+    linear-gradient(180deg, #c0201f, #7f1d1d 55%, #5c1414);
+  box-shadow:
+    inset -24px 0 50px rgba(0, 0, 0, 0.45),
+    inset 0 -40px 70px rgba(0, 0, 0, 0.35);
+}
+.curtain-panel::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 14%;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.5), transparent);
 }
 .curtain-panel-left {
   left: 0;
-  border-radius: 0 24px 24px 0;
+  border-radius: 0 18px 40px 0;
 }
 .curtain-panel-right {
   right: 0;
-  border-radius: 24px 0 0 24px;
+  border-radius: 18px 0 0 40px;
   transform: scaleX(-1);
 }
+/* Swings from the top edge rather than sliding flat, with a slight
+   overshoot-and-settle so the drape reads as having real weight instead
+   of a flat cardboard-cutout slide. */
 @keyframes curtain-open-left {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-105%); }
+  0% { transform: translateX(0) rotate(0deg); }
+  55% { transform: translateX(-90%) rotate(-3deg); }
+  75% { transform: translateX(-118%) rotate(2deg); }
+  100% { transform: translateX(-105%) rotate(0deg); }
 }
 @keyframes curtain-open-right {
-  0% { transform: scaleX(-1) translateX(0); }
-  100% { transform: scaleX(-1) translateX(-105%); }
+  0% { transform: scaleX(-1) translateX(0) rotate(0deg); }
+  55% { transform: scaleX(-1) translateX(-90%) rotate(-3deg); }
+  75% { transform: scaleX(-1) translateX(-118%) rotate(2deg); }
+  100% { transform: scaleX(-1) translateX(-105%) rotate(0deg); }
 }
 .curtain-open-left {
-  animation: curtain-open-left 1.1s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+  animation: curtain-open-left 1.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 .curtain-open-right {
-  animation: curtain-open-right 1.1s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+  animation: curtain-open-right 1.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: 0.05s;
 }
 
 /* ==================== site chrome primitives ==================== */
@@ -1093,7 +1120,7 @@ button:active, a:active {
   content: '';
   position: absolute;
   inset: 0;
-  background-image: url('/church-logo.png');
+  background-image: url('/children-ministry-logo-splash.png');
   background-size: 70%;
   background-position: center 60%;
   background-repeat: no-repeat;

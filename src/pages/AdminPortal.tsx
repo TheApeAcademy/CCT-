@@ -19,11 +19,13 @@ import {
   setActiveBiblePlan,
   listPlanReadings,
   addBibleReading,
+  getLeaderboard,
   type TeacherApplication,
   type ClassRow,
   type SeasonRow,
   type BiblePlanRow,
   type BibleReadingRow,
+  type LeaderboardRow,
 } from '../lib/ministry'
 import { playClick } from '../lib/sound'
 import { haptics } from '../lib/haptics'
@@ -110,10 +112,38 @@ function AdminDashboard() {
 }
 
 function QuizTab() {
+  const [rows, setRows] = useState<LeaderboardRow[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    getLeaderboard(20)
+      .then(setRows)
+      .finally(() => setLoading(false))
+  }, [])
+
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      <QuizLink to="/questions" icon={BookOpen} title="Question Bank" description="Oversee every trivia question and set across the ministry." />
-      <QuizLink to="/history" icon={Trophy} title="History" description="Every completed match, team score, and full recap." />
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-2">
+        <QuizLink to="/questions" icon={BookOpen} title="Question Bank" description="Oversee every trivia question and set across the ministry." />
+        <QuizLink to="/history" icon={Trophy} title="History" description="Every completed match, team score, and full recap." />
+      </div>
+      <div className="panel p-5">
+        <p className="eyebrow mb-3">Ministry Leaderboard</p>
+        {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
+        {!loading && rows.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No quiz results recorded yet.</p>}
+        <div className="space-y-1.5">
+          {rows.map((r, i) => (
+            <div key={r.student_id} className="flex items-center justify-between rounded-md px-3 py-2 text-sm odd:bg-[var(--ink-panel)]">
+              <span className="flex min-w-0 items-center gap-2">
+                <span className="w-6 shrink-0 font-bold text-[var(--ink-muted)]">{i + 1}</span>
+                <span className="truncate font-semibold">{r.full_name}</span>
+                {r.class_name && <span className="shrink-0 text-xs text-[var(--ink-faint)]">· {r.class_name}</span>}
+              </span>
+              <span className="shrink-0 font-bold text-[var(--gold)]">{r.total_points.toLocaleString()} pts</span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }

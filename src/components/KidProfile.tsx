@@ -39,7 +39,7 @@ export function KidSignupCard({ onDone, subtitle }: { onDone: (profile: KidProfi
   }
 
   return (
-    <div className="mx-auto max-w-md space-y-4 text-center">
+    <div className="mx-auto max-w-md space-y-4 px-4 py-8 text-center">
       <p className="text-4xl">👋</p>
       <h1 className="font-display text-3xl font-extrabold">Sign Up</h1>
       {subtitle && <p className="text-white/60">{subtitle}</p>}

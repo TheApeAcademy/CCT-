@@ -49,6 +49,7 @@ export default function GameSetup() {
   const [setId, setSetId] = useState<number | null>(null)
   const [mode, setMode] = useState<'marathon' | 'rotational'>('marathon')
   const [timerSeconds, setTimerSeconds] = useState(30)
+  const [customTimer, setCustomTimer] = useState('')
   const [fiftyFifty, setFiftyFifty] = useState(true)
   const [askChurch, setAskChurch] = useState(true)
   const [phoneFriend, setPhoneFriend] = useState(true)
@@ -580,7 +581,33 @@ export default function GameSetup() {
               {t}s
             </button>
           ))}
+          <div className="flex items-center gap-1.5 rounded-full border border-[var(--hairline-strong)] pl-3 pr-1.5">
+            <input
+              type="number"
+              min={5}
+              max={600}
+              value={customTimer}
+              onChange={(e) => setCustomTimer(e.target.value)}
+              placeholder="Custom"
+              className="w-16 bg-transparent py-2 text-sm font-semibold outline-none placeholder:text-[var(--ink-faint)]"
+            />
+            <button
+              onClick={() => {
+                const n = Math.round(Number(customTimer))
+                if (Number.isFinite(n) && n >= 5 && n <= 600) {
+                  setTimerSeconds(n)
+                  playClick()
+                }
+              }}
+              className="rounded-full bg-[var(--gold)] px-3 py-1.5 text-xs font-bold text-[var(--gold-ink)] transition hover:scale-105"
+            >
+              Set
+            </button>
+          </div>
         </div>
+        {!TIMER_OPTIONS.includes(timerSeconds) && (
+          <p className="text-xs text-[var(--ink-faint)]">Custom: {timerSeconds}s per question</p>
+        )}
       </div>
 
       <div className="panel space-y-3 p-5 transition hover:bg-[var(--ink-raised)]">

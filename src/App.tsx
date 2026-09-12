@@ -62,6 +62,26 @@ function App() {
     return () => window.removeEventListener('online', maybeSync)
   }, [])
 
+  // Same lazy-import-only-if-needed pattern as above, for the full-history
+  // sync (every question, not just aggregate points - see sessionSync.ts).
+  // The schema migration backfills every pre-existing local session with
+  // synced: 0, so this also finally pushes older history up on next load,
+  // not just matches played from here on.
+  useEffect(() => {
+    const maybeSyncSessions = () => {
+      db.gameSessions
+        .where('synced')
+        .equals(0)
+        .count()
+        .then((count) => {
+          if (count > 0) import('./lib/sessionSync').then((m) => m.syncPendingSessions())
+        })
+    }
+    maybeSyncSessions()
+    window.addEventListener('online', maybeSyncSessions)
+    return () => window.removeEventListener('online', maybeSyncSessions)
+  }, [])
+
   // iOS Safari (including installed/standalone PWAs) only allows the Web
   // Audio API to start inside a real user gesture. Unlock it on the very
   // first tap/click/key of the session so every sound effect works

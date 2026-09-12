@@ -78,6 +78,17 @@ export interface GameSession {
   lifelinesUsed: LifelinesUsed
   answers: AnswerRecord[]
   timerSecondsPerQuestion: number
+  /** Registered Student Code this team was linked to at setup, if any - carried onto the session so a synced full-history row can be tied back to a real student. */
+  studentId?: string | null
+  /**
+   * Full-history sync state, separate from the ministry leaderboard's own
+   * PendingLeaderboardSync queue - this pushes the *entire* session (every
+   * question, not just the aggregate points) to Supabase so History is
+   * visible across devices/browsers, not just on the one that played it.
+   * 0 until synced, then 1 with remoteId set to the inserted row's id.
+   */
+  synced?: 0 | 1
+  remoteId?: string
 }
 
 export interface Match {

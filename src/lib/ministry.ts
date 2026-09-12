@@ -2,6 +2,7 @@
 // classes/roster, student profiles, leaderboard, messaging, and Ears for You.
 // Thin wrappers over Supabase so the pages stay focused on UI.
 import { supabase, JOIN_CLASS_FUNCTION_URL, STUDENT_REGISTER_FUNCTION_URL } from './supabase'
+import type { AnswerRecord } from '../db/types'
 
 // ---------- shared types ----------
 
@@ -369,6 +370,72 @@ export async function recordQuizAttemptForStudent(params: {
     total_questions: params.total_questions,
   })
   if (error) throw error
+}
+
+// Pushes a *complete* finished quiz session (every question, not just the
+// aggregate points quiz_attempts stores) so History is visible from any
+// device/browser, not only the one that played it - the quiz itself is
+// never login-gated, so this has no auth requirement either (see the
+// quiz_sessions RLS policies). Returns the inserted row's id so the caller
+// can mark its local copy as synced and avoid double-counting it later.
+export async function recordQuizSession(params: {
+  studentId?: string | null
+  playerName: string
+  setName: string
+  seasonName?: string
+  mode?: string
+  outcome: string
+  pointsWon: number
+  correctCount: number
+  totalLevels: number
+  startedAt: number
+  finishedAt: number
+  answers: AnswerRecord[]
+}): Promise<string> {
+  const { data, error } = await supabase
+    .from('quiz_sessions')
+    .insert({
+      student_id: params.studentId ?? null,
+      player_name: params.playerName,
+      set_name: params.setName,
+      season_name: params.seasonName ?? null,
+      mode: params.mode ?? null,
+      outcome: params.outcome,
+      points_won: params.pointsWon,
+      correct_count: params.correctCount,
+      total_levels: params.totalLevels,
+      started_at: new Date(params.startedAt).toISOString(),
+      finished_at: new Date(params.finishedAt).toISOString(),
+      answers: params.answers,
+    })
+    .select('id')
+    .single()
+  if (error) throw error
+  return data.id as string
+}
+
+export interface QuizHistoryRow {
+  id: string
+  player_name: string
+  set_name: string
+  season_name: string | null
+  outcome: string
+  points_won: number
+  correct_count: number
+  total_levels: number
+  finished_at: string
+  answers: AnswerRecord[]
+}
+
+/** Every synced quiz session ministry-wide, newest first - the cross-device counterpart to this device's local db.gameSessions. */
+export async function getQuizHistory(limit = 300): Promise<QuizHistoryRow[]> {
+  const { data, error } = await supabase
+    .from('quiz_sessions')
+    .select('id, player_name, set_name, season_name, outcome, points_won, correct_count, total_levels, finished_at, answers')
+    .order('finished_at', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  return data ?? []
 }
 
 // Looks a student up by Student Code for linking, without enrolling them

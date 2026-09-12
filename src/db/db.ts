@@ -57,6 +57,22 @@ export class TriviaDB extends Dexie {
     this.version(6).stores({
       questions: '++id, setId, category, difficulty, *groups',
     })
+    this.version(7)
+      .stores({
+        gameSessions: '++id, playerName, setId, finishedAt, matchId, synced',
+      })
+      .upgrade((tx) =>
+        // Every session ever played on this device, not just new ones from
+        // here on, gets queued for the full-history sync - so opening the
+        // app once online finally pushes existing local-only history up
+        // too, not just whatever gets played after this update.
+        tx
+          .table('gameSessions')
+          .toCollection()
+          .modify((s) => {
+            if (s.synced === undefined) s.synced = 0
+          })
+      )
   }
 }
 

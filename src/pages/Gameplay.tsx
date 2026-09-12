@@ -196,9 +196,12 @@ export default function Gameplay() {
         lifelinesUsed,
         answers: finalAnswers,
         timerSecondsPerQuestion: config.timerSecondsPerQuestion,
+        studentId: config.teamStudentIds?.[config.teamIndex] ?? null,
+        synced: 0,
       })
       if (isLastTeam) await completeMatch(config.matchId)
       await queueLeaderboardSync(config.teamIndex, teamName, pointsWon, correctCount)
+      import('../lib/sessionSync').then((m) => m.syncPendingSessions())
       navigate(`/results/${id}`, { replace: true })
     },
     [config, lifelinesUsed, navigate, teamName, isLastTeam, queueLeaderboardSync]
@@ -236,10 +239,13 @@ export default function Gameplay() {
           lifelinesUsed,
           answers: teamAnswers,
           timerSecondsPerQuestion: config.timerSecondsPerQuestion,
+          studentId: config.teamStudentIds?.[idx] ?? null,
+          synced: 0,
         })
         await queueLeaderboardSync(idx, name, pointsWon, correctCount)
       }
       await completeMatch(config.matchId)
+      import('../lib/sessionSync').then((m) => m.syncPendingSessions())
       navigate(`/match-results/${config.matchId}`, { replace: true })
     },
     [config, lifelinesUsed, navigate, queueLeaderboardSync]

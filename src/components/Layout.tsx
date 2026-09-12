@@ -268,7 +268,7 @@ export default function Layout() {
             : `mx-auto max-w-6xl px-4 pb-6 ${isHome ? 'pt-0' : 'pt-24 sm:pt-28'}`
         }`}
       >
-        <div key={location.pathname} className={isFullscreenQuiz ? 'animate-page-in flex-1' : 'animate-page-in'}>
+        <div key={location.pathname} className={isFullscreenQuiz ? 'animate-page-in flex flex-1 flex-col' : 'animate-page-in'}>
           <Outlet />
         </div>
       </main>

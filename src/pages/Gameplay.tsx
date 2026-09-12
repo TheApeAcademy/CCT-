@@ -47,6 +47,12 @@ export default function Gameplay() {
   const [showConfetti, setShowConfetti] = useState(false)
   const [pastSessions, setPastSessions] = useState<GameSession[]>([])
   const [showLadder, setShowLadder] = useState(false)
+  // All-time ministry leaderboard total per team index, for teams linked to
+  // a registered Student Code - best-effort only. The quiz itself must keep
+  // working fully offline, so this is a silent, non-blocking fetch: no
+  // network (or no linked teams at all) just means the secondary line never
+  // appears, never a loading state gameplay waits on.
+  const [xpTotals, setXpTotals] = useState<Record<number, number>>({})
 
   const questionStartRef = useRef<number>(Date.now())
   const turnStartRef = useRef<number>(Date.now())
@@ -68,6 +74,24 @@ export default function Gameplay() {
       setPhase('intro')
     })
     getMatchSessions(config.matchId).then(setPastSessions)
+
+    const linkedTeamIds = config.teamStudentIds
+    if (linkedTeamIds?.some(Boolean) && typeof navigator !== 'undefined' && navigator.onLine) {
+      import('../lib/ministry')
+        .then((m) => m.getLeaderboard(500))
+        .then((rows) => {
+          const totals: Record<number, number> = {}
+          linkedTeamIds.forEach((studentId, idx) => {
+            const row = studentId && rows.find((r) => r.student_id === studentId)
+            if (row) totals[idx] = row.total_points
+          })
+          setXpTotals(totals)
+        })
+        .catch(() => {
+          // Offline mid-fetch, or the module failed to load - the secondary
+          // XP line just stays hidden, nothing gameplay depends on.
+        })
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -392,23 +416,29 @@ export default function Gameplay() {
   const optionLabel = (i: number) => String.fromCharCode(65 + i)
   const showResult = revealed && (phase === 'locked' || phase === 'feedback')
   const suspense = phase === 'locked' && !revealed
-  const isHeadToHead = isRotational && config.teamNames.length === 2
+  const isHeadToHead = config.teamNames.length === 2
 
   return (
-    <div className={`relative mx-auto grid h-full max-w-6xl gap-2 px-3 py-3 lg:grid-cols-[1fr_220px] ${shake ? 'animate-screen-shake' : ''}`}>
+    <div className={`relative mx-auto flex w-full max-w-6xl flex-1 gap-2 px-3 py-3 ${shake ? 'animate-screen-shake' : ''}`}>
       <Confetti active={showConfetti} />
       {flash && (
         <div className={`pointer-events-none fixed inset-0 z-40 ${flash === 'green' ? 'animate-flash-green' : 'animate-flash-red'}`} />
       )}
 
-      <div className="flex flex-col justify-center gap-2">
+      <div className="flex flex-1 flex-col justify-center gap-2">
         {isHeadToHead ? (
           <div className="flex items-center gap-2">
             <div className="flex-1">
-              <HeadToHeadBar config={config} activeTeamIndex={activeTeamIndex} answersByTeam={answersByTeam} />
+              <HeadToHeadBar
+                config={config}
+                activeTeamIndex={activeTeamIndex}
+                answersByTeam={answersByTeam}
+                pastSessions={pastSessions}
+                xpTotals={xpTotals}
+              />
             </div>
             <button onClick={handleQuit} className="shrink-0 rounded-full bg-white/10 px-4 py-2 text-sm hover:bg-white/20">
-              End Match
+              {isRotational ? 'End Match' : 'End Turn'}
             </button>
           </div>
         ) : (
@@ -577,7 +607,7 @@ export default function Gameplay() {
         )}
       </div>
 
-      <div className="hidden lg:flex lg:flex-col lg:gap-2">
+      <div className="hidden shrink-0 lg:flex lg:w-[220px] lg:flex-col lg:justify-center lg:gap-2">
         <button
           onClick={() => setShowLadder((v) => !v)}
           className="flex items-center justify-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-sm font-semibold transition hover:bg-white/20"
@@ -586,7 +616,13 @@ export default function Gameplay() {
         </button>
         {showLadder && <Ladder currentLevel={currentLevel} />}
         {!isHeadToHead && (
-          <LiveScoreboard config={config} answersByTeam={answersByTeam} activeTeamIndex={activeTeamIndex} pastSessions={pastSessions} />
+          <LiveScoreboard
+            config={config}
+            answersByTeam={answersByTeam}
+            activeTeamIndex={activeTeamIndex}
+            pastSessions={pastSessions}
+            xpTotals={xpTotals}
+          />
         )}
       </div>
     </div>
@@ -608,11 +644,13 @@ function LiveScoreboard({
   answersByTeam,
   activeTeamIndex,
   pastSessions,
+  xpTotals,
 }: {
   config: GameConfig
   answersByTeam: Record<number, AnswerRecord[]>
   activeTeamIndex: number
   pastSessions: GameSession[]
+  xpTotals: Record<number, number>
 }) {
   return (
     <div className="space-y-2">
@@ -620,15 +658,19 @@ function LiveScoreboard({
         const isCurrent = idx === activeTeamIndex
         const finished = pastSessions.find((s) => s.teamIndex === idx)
         const teamAnswers = answersByTeam[idx] ?? finished?.answers ?? []
-        const points = answersByTeam[idx]
-          ? teamAnswers.reduce((sum, a) => sum + (a.correct ? a.points : 0), 0)
-          : (finished?.pointsWon ?? 0)
+        const correctCount = teamAnswers.filter((a) => a.correct).length
+        const isLinked = !!config.teamStudentIds?.[idx]
         return (
           <div key={idx} className={`rounded-xl p-3 ${isCurrent ? 'bg-amber-400/10 ring-1 ring-amber-400/40' : 'bg-white/5'}`}>
             <div className="flex items-center justify-between gap-2 text-sm">
               <span className={`truncate font-bold ${isCurrent ? 'text-amber-300' : 'text-white/80'}`}>{name}</span>
-              <span className="shrink-0 font-bold text-amber-300">{points.toLocaleString()} 👑</span>
+              <span className="shrink-0 font-bold text-amber-300">
+                {correctCount}/{LADDER.length} ✓
+              </span>
             </div>
+            {isLinked && xpTotals[idx] !== undefined && (
+              <p className="text-right text-xs text-white/40">🏆 {xpTotals[idx].toLocaleString()} all-time</p>
+            )}
             <div className="mt-2 flex flex-wrap gap-1">
               {LADDER.map((l) => {
                 const a = teamAnswers.find((rec) => rec.level === l.level)
@@ -700,34 +742,41 @@ function HeadToHeadBar({
   config,
   activeTeamIndex,
   answersByTeam,
+  pastSessions,
+  xpTotals,
 }: {
   config: GameConfig
   activeTeamIndex: number
   answersByTeam: Record<number, AnswerRecord[]>
+  pastSessions: GameSession[]
+  xpTotals: Record<number, number>
 }) {
   return (
     <div className="grid grid-cols-2 gap-2">
       {config.teamNames.map((name, idx) => {
         const isActive = idx === activeTeamIndex
-        const teamAnswers = answersByTeam[idx] ?? []
-        const points = teamAnswers.reduce((sum, a) => sum + (a.correct ? a.points : 0), 0)
+        const finished = pastSessions.find((s) => s.teamIndex === idx)
+        const teamAnswers = answersByTeam[idx] ?? finished?.answers ?? []
+        const correctCount = teamAnswers.filter((a) => a.correct).length
+        const isLinked = !!config.teamStudentIds?.[idx]
         return (
           <div
             key={idx}
-            className={`rounded-2xl p-2.5 transition ${isActive ? 'bg-amber-400/15 ring-2 ring-amber-400/50' : 'bg-white/5 ring-1 ring-white/10'}`}
+            className={`flex flex-col items-center gap-1 rounded-2xl p-3 text-center transition ${isActive ? 'bg-amber-400/15 ring-2 ring-amber-400/50' : 'bg-white/5 ring-1 ring-white/10'}`}
           >
-            <div className="flex items-center gap-2">
-              {config.teamPhotos?.[idx] && (
-                <img src={config.teamPhotos[idx]} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover ring-2 ring-amber-400/50" />
-              )}
-              <div className="min-w-0 flex-1">
-                <p className={`truncate text-sm font-bold ${isActive ? 'text-amber-300' : 'text-white/80'}`}>{name}</p>
-                <p className="font-display text-lg font-extrabold text-amber-300">
-                  <CountUp value={points} durationMs={400} /> 👑
-                </p>
-              </div>
-            </div>
-            <div className="mt-1.5 flex flex-wrap gap-1">
+            {config.teamPhotos?.[idx] && (
+              <img src={config.teamPhotos[idx]} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover ring-2 ring-amber-400/50" />
+            )}
+            <p className={`truncate text-sm font-bold ${isActive ? 'text-amber-300' : 'text-white/80'}`}>{name}</p>
+            <p className="font-display text-2xl font-extrabold leading-none text-amber-300">
+              <CountUp value={correctCount} durationMs={400} />
+              <span className="text-base font-bold text-amber-300/70">/{LADDER.length}</span>
+            </p>
+            <p className="text-xs text-amber-300/70">correct</p>
+            {isLinked && xpTotals[idx] !== undefined && (
+              <p className="text-[11px] text-white/40">🏆 {xpTotals[idx].toLocaleString()} all-time</p>
+            )}
+            <div className="mt-1 flex flex-col items-center gap-1">
               {LADDER.map((l) => {
                 const a = teamAnswers.find((rec) => rec.level === l.level)
                 const state = !a ? 'pending' : a.correct ? 'correct' : 'wrong'
@@ -760,19 +809,34 @@ function TimerBar({ timeLeft, total }: { timeLeft: number; total: number }) {
   const mm = Math.floor(timeLeft / 60)
   const ss = timeLeft % 60
   const display = timeLeft >= 60 ? `${mm}:${ss.toString().padStart(2, '0')}` : ss.toString().padStart(2, '0')
+
+  // Purely cosmetic fast-ticking milliseconds, decoupled from the real
+  // once-a-second countdown above (which is what actually times the
+  // question out) - just makes the clock read as live rather than static.
+  const [ms, setMs] = useState(999)
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setMs((m) => (m <= 0 ? 999 : m - 33))
+    }, 33)
+    return () => window.clearInterval(id)
+  }, [])
+
+  const colorClass = alarming ? 'text-red-500' : urgent ? 'text-red-400' : 'text-amber-300'
+
   return (
     <div key={alarming ? timeLeft : 'calm'} className={`flex justify-center ${alarming ? 'animate-screen-shake' : ''}`}>
       <div
-        className={`rounded-2xl border-2 bg-black/60 px-6 py-2 shadow-inner shadow-black/60 transition-colors ${
+        className={`rounded-2xl border-2 bg-black px-10 py-4 shadow-inner shadow-black/80 transition-colors ${
           urgent ? 'border-red-500/70' : 'border-amber-400/50'
         }`}
       >
         <p
-          className={`font-mono text-4xl font-extrabold tabular-nums tracking-widest [text-shadow:0_0_12px_currentColor] ${
-            alarming ? 'animate-bounce text-red-400' : urgent ? 'animate-pulse text-red-400' : 'text-amber-300'
-          }`}
+          className={`flex items-baseline justify-center gap-1.5 font-mono text-8xl font-extrabold tabular-nums tracking-widest [text-shadow:0_0_10px_currentColor,0_0_24px_currentColor] ${
+            alarming ? 'animate-bounce' : urgent ? 'animate-pulse' : ''
+          } ${colorClass}`}
         >
           {display}
+          <span className="text-2xl font-bold opacity-70">.{ms.toString().padStart(3, '0')}</span>
         </p>
       </div>
     </div>

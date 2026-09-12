@@ -19,8 +19,16 @@ import {
   Swords,
   Star,
   Award,
-  ChevronDown,
-  ChevronUp,
+  Grid3x3,
+  Layers,
+  Shuffle,
+  PencilLine,
+  Puzzle,
+  Palette,
+  Music2,
+  Mic2,
+  Dice5,
+  Brain,
   type LucideIcon,
 } from 'lucide-react'
 import { supabase, signOut } from '../lib/supabase'
@@ -46,12 +54,8 @@ import {
   completeBibleReading,
   haveICompletedReading,
   listMyAchievements,
-  listAllAchievements,
-  getMyQuizHistory,
   type TodaysReading,
   type EarnedAchievement,
-  type AchievementRow,
-  type QuizHistoryRow,
   type StudentRow,
   type LeaderboardRow,
   type MessageRow,
@@ -92,7 +96,7 @@ export default function StudentPortal() {
   return <Dashboard />
 }
 
-type Tab = 'home' | 'class' | 'bible' | 'leaderboard' | 'profile' | 'messages' | 'ears' | 'game' | 'achievements' | 'history'
+type Tab = 'home' | 'class' | 'bible' | 'leaderboard' | 'profile' | 'messages' | 'ears' | 'game'
 
 const TAB_TITLE: Record<Tab, string> = {
   home: 'My House',
@@ -103,8 +107,6 @@ const TAB_TITLE: Record<Tab, string> = {
   messages: 'My Teacher',
   ears: 'Ears for You',
   game: 'Games',
-  achievements: 'Achievements',
-  history: 'My History',
 }
 
 function Dashboard() {
@@ -206,7 +208,7 @@ function Dashboard() {
               <h1 className="font-display text-lg font-extrabold text-[var(--lp-heading)]">{TAB_TITLE[tab]}</h1>
             </div>
             <div className="mx-auto max-w-2xl p-4 pb-12">
-              {tab === 'home' && <HomeTab student={student} klass={klass} rank={rank} achievements={achievements} />}
+              {tab === 'home' && <HomeTab student={student} klass={klass} rank={rank} achievements={achievements} onNavigate={enterTab} />}
               {tab === 'class' && <ClassTab klass={klass} />}
               {tab === 'bible' && <SundaySchoolTab klass={klass} />}
               {tab === 'leaderboard' && <LeaderboardTab myId={student?.id ?? null} />}
@@ -224,8 +226,6 @@ function Dashboard() {
                 ))}
               {tab === 'ears' && <EarsTab klass={klass} />}
               {tab === 'game' && <GameTab />}
-              {tab === 'achievements' && <AchievementsWallTab earned={achievements} />}
-              {tab === 'history' && <MyHistoryTab />}
             </div>
           </motion.div>
         )}
@@ -248,14 +248,16 @@ function HomeTab({
   klass,
   rank,
   achievements,
+  onNavigate,
 }: {
   student: StudentRow | null
   klass: (ClassRow & { teacher_name: string }) | null
   rank: number | null
   achievements: EarnedAchievement[]
+  onNavigate: (tab: Tab) => void
 }) {
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="stat-strip grid-cols-2">
         <div className="stat-cell">
           <div className="stat-cell-value">{(student?.total_points ?? 0).toLocaleString()}</div>
@@ -291,6 +293,15 @@ function HomeTab({
         </div>
       )}
 
+      <div>
+        <p className="eyebrow">Explore</p>
+        <div className="mt-2 grid gap-3 sm:grid-cols-2">
+          <QuickLinkButton onClick={() => onNavigate('bible')} icon={BookOpen} accent="var(--lp-accent-bible)" title="Sunday School" description="Lessons and your Bible reading streak." />
+          <QuickLinkButton onClick={() => onNavigate('leaderboard')} icon={Trophy} accent="var(--lp-accent-leaderboard)" title="Leaderboard" description="See how you rank ministry-wide." />
+          <QuickLinkButton onClick={() => onNavigate('game')} icon={Gamepad2} accent="var(--lp-accent-compete)" title="Games" description="Join a live match or practice solo." />
+        </div>
+      </div>
+
       <div className="grid gap-3 sm:grid-cols-2">
         <HomeLink to="/anthem" icon={Music} accent="var(--lp-accent-anthem)" title="Our Anthem" description="Sing along with the children's ministry anthem." />
       </div>
@@ -298,148 +309,94 @@ function HomeTab({
   )
 }
 
+function QuickLinkButton({
+  onClick,
+  icon: Icon,
+  accent,
+  title,
+  description,
+}: {
+  onClick: () => void
+  icon: LucideIcon
+  accent: string
+  title: string
+  description: string
+}) {
+  return (
+    <button
+      onClick={() => {
+        playClick()
+        onClick()
+      }}
+      className="lp-panel lp-panel-accented lp-panel-interactive flex items-start gap-4 p-5 text-left"
+      style={{ ['--card-accent' as string]: accent }}
+    >
+      <span
+        className="lp-icon-chip flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+        style={{ background: 'color-mix(in srgb, ' + accent + ' 16%, transparent)', color: accent }}
+      >
+        <Icon className="h-5 w-5" strokeWidth={1.75} />
+      </span>
+      <div>
+        <p className="lp-heading font-display text-lg font-bold">{title}</p>
+        <p className="mt-1 text-sm text-[var(--lp-body)]">{description}</p>
+      </div>
+    </button>
+  )
+}
+
+const COMING_SOON_GAMES: { title: string; icon: LucideIcon }[] = [
+  { title: 'Bible Word Search', icon: Grid3x3 },
+  { title: 'Memory Match', icon: Layers },
+  { title: 'Verse Scramble', icon: Shuffle },
+  { title: 'Story Builder', icon: PencilLine },
+  { title: 'Bible Bingo', icon: Puzzle },
+  { title: 'Coloring Book', icon: Palette },
+  { title: 'Sing-Along', icon: Music2 },
+  { title: 'Guess the Sound', icon: Mic2 },
+  { title: 'Roll & Answer', icon: Dice5 },
+  { title: 'Brain Teasers', icon: Brain },
+]
+
 function GameTab() {
   return (
-    <div className="space-y-4">
-      <div className="lp-panel lp-panel-accented flex flex-col items-center gap-3 p-8 text-center" style={{ ['--card-accent' as string]: 'var(--lp-accent-compete)' }}>
-        <span
-          className="flex h-14 w-14 items-center justify-center rounded-2xl"
-          style={{ background: 'color-mix(in srgb, var(--lp-accent-compete) 16%, transparent)', color: 'var(--lp-accent-compete)' }}
-        >
-          <Gamepad2 className="h-7 w-7" strokeWidth={1.75} />
-        </span>
-        <p className="lp-heading font-display text-xl font-bold">Games</p>
-        <p className="max-w-xs text-sm text-[var(--lp-muted)]">
-          Ask your teacher to start a live match on the big screen for your class! When they do, you&apos;ll join
-          from here.
-        </p>
-      </div>
-      <HomeLink to="/training" icon={Dumbbell} accent="var(--lp-accent-training)" title="Practice Bible Quiz" description="Unlimited solo practice, no pressure, no timer." />
-    </div>
-  )
-}
-
-function AchievementsWallTab({ earned }: { earned: EarnedAchievement[] }) {
-  const [all, setAll] = useState<AchievementRow[] | null>(null)
-
-  useEffect(() => {
-    listAllAchievements()
-      .then(setAll)
-      .catch(() => setAll([]))
-  }, [])
-
-  const earnedIds = new Set(earned.map((a) => a.id))
-  const earnedAt = new Map(earned.map((a) => [a.id, a.earned_at]))
-
-  if (all === null) return <p className="text-center text-sm text-[var(--ink-muted)]">Loading…</p>
-
-  return (
-    <div className="space-y-4">
-      <p className="text-center text-sm text-[var(--ink-muted)]">
-        {earned.length} of {all.length} badges earned
-      </p>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {all.map((a) => {
-          const Icon = ACHIEVEMENT_ICONS[a.icon] ?? Award
-          const isEarned = earnedIds.has(a.id)
-          return (
-            <div
-              key={a.id}
-              title={a.description}
-              className={`flex flex-col items-center gap-2 rounded-2xl border p-4 text-center transition ${
-                isEarned ? 'border-[var(--gold)]/40 bg-[var(--gold)]/10' : 'border-[var(--hairline)] bg-[var(--ink-panel)] opacity-50'
-              }`}
+    <div className="space-y-6">
+      <div>
+        <p className="eyebrow">Available Now</p>
+        <div className="mt-2 space-y-3">
+          <div className="lp-panel lp-panel-accented flex flex-col items-center gap-3 p-8 text-center" style={{ ['--card-accent' as string]: 'var(--lp-accent-compete)' }}>
+            <span
+              className="flex h-14 w-14 items-center justify-center rounded-2xl"
+              style={{ background: 'color-mix(in srgb, var(--lp-accent-compete) 16%, transparent)', color: 'var(--lp-accent-compete)' }}
             >
-              <span
-                className={`flex h-11 w-11 items-center justify-center rounded-full ${isEarned ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'bg-[var(--ink-raised)] text-[var(--ink-faint)]'}`}
-              >
-                <Icon className="h-5 w-5" strokeWidth={2} />
-              </span>
-              <p className={`text-xs font-bold ${isEarned ? 'text-[var(--gold)]' : 'text-[var(--ink-muted)]'}`}>{a.name}</p>
-              <p className="text-[10px] text-[var(--ink-faint)]">{a.description}</p>
-              {isEarned && earnedAt.get(a.id) && (
-                <p className="text-[10px] text-[var(--ink-faint)]">{new Date(earnedAt.get(a.id)!).toLocaleDateString()}</p>
-              )}
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-function MyHistoryTab() {
-  const [rows, setRows] = useState<QuizHistoryRow[] | null>(null)
-  const [openId, setOpenId] = useState<string | null>(null)
-
-  useEffect(() => {
-    getMyQuizHistory()
-      .then(setRows)
-      .catch(() => setRows([]))
-  }, [])
-
-  if (rows === null) return <p className="text-center text-sm text-[var(--ink-muted)]">Loading…</p>
-  if (rows.length === 0) {
-    return (
-      <div className="lp-panel p-6 text-center">
-        <p className="font-display text-lg font-bold">No matches yet</p>
-        <p className="mt-1 text-sm text-[var(--lp-muted)]">Play a Bible Quiz match linked to your Student Code and it&apos;ll show up here.</p>
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-2">
-      {rows.map((r) => {
-        const isOpen = openId === r.id
-        return (
-          <div key={r.id} className="overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--ink-panel)]">
-            <button
-              onClick={() => {
-                playClick()
-                setOpenId(isOpen ? null : r.id)
-              }}
-              className="flex w-full items-center justify-between gap-3 p-4 text-left transition hover:bg-[var(--ink-raised)]"
-            >
-              <div>
-                <p className="font-bold">{r.set_name}</p>
-                <p className="text-xs text-[var(--ink-faint)]">
-                  {new Date(r.finished_at).toLocaleString()}
-                  {r.season_name ? ` · ${r.season_name}` : ''}
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <p className="font-bold text-[var(--gold)]">{r.points_won.toLocaleString()} 👑</p>
-                  <p className="text-[10px] text-[var(--ink-faint)]">
-                    {r.correct_count}/{r.total_levels} correct
-                  </p>
-                </div>
-                {isOpen ? <ChevronUp className="h-4 w-4 text-[var(--ink-faint)]" /> : <ChevronDown className="h-4 w-4 text-[var(--ink-faint)]" />}
-              </div>
-            </button>
-            {isOpen && (
-              <div className="space-y-2 border-t border-[var(--hairline)] p-4">
-                {r.answers.map((a, qi) => (
-                  <div key={qi} className="rounded-xl bg-[var(--ink-raised)] p-3 text-sm">
-                    <p className="text-xs text-[var(--ink-faint)]">Q{a.level}</p>
-                    <p className="font-medium">{a.questionText}</p>
-                    <p className={a.correct ? 'mt-1 text-green-600' : 'mt-1 text-red-600'}>
-                      {a.correct ? '✓ Correct' : a.timedOut ? '⏰ Timed out' : '✗ Wrong'}
-                      {a.selectedIndex !== null && ` — answered: ${a.options[a.selectedIndex]}`}
-                    </p>
-                    {!a.correct && (
-                      <p className="mt-1 text-green-600/90">
-                        Correct answer: <span className="font-semibold">{a.options[a.correctIndex]}</span>
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
+              <Gamepad2 className="h-7 w-7" strokeWidth={1.75} />
+            </span>
+            <p className="lp-heading font-display text-xl font-bold">Bible Quiz Live Match</p>
+            <p className="max-w-xs text-sm text-[var(--lp-muted)]">
+              Ask your teacher to start a live match on the big screen for your class! When they do, you&apos;ll join
+              from here.
+            </p>
           </div>
-        )
-      })}
+          <HomeLink to="/training" icon={Dumbbell} accent="var(--lp-accent-training)" title="Practice Bible Quiz" description="Unlimited solo practice, no pressure, no timer." />
+        </div>
+      </div>
+
+      <div>
+        <p className="eyebrow">More Games Coming Soon</p>
+        <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {COMING_SOON_GAMES.map(({ title, icon: Icon }) => (
+            <div key={title} className="flex flex-col items-center gap-2 rounded-2xl border border-[var(--hairline)] bg-[var(--ink-panel)] p-4 text-center opacity-60">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--ink-raised)] text-[var(--ink-faint)]">
+                <Icon className="h-5 w-5" strokeWidth={1.75} />
+              </span>
+              <p className="text-xs font-bold">{title}</p>
+              <span className="rounded-full bg-[var(--ink-raised)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[var(--ink-faint)]">
+                Coming Soon
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
@@ -505,19 +462,25 @@ function ClassTab({ klass }: { klass: (ClassRow & { teacher_name: string }) | nu
   }
 
   return (
-    <div className="space-y-4">
-      {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
+    <div className="space-y-6">
+      <div>
+        <p className="eyebrow">Class Info</p>
+        <div className="mt-2 panel p-4">
+          <p className="font-bold">{klass.name}</p>
+          <p className="text-sm text-[var(--ink-muted)]">Taught by {klass.teacher_name}</p>
+        </div>
+      </div>
 
-      {!loading && (
-        <div className="space-y-2">
-          {assignments.length === 0 && (
+      <div>
+        <p className="eyebrow">Assignments</p>
+        <div className="mt-2 space-y-2">
+          {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
+          {!loading && assignments.length === 0 && (
             <p className="text-sm text-[var(--ink-muted)]">No assignments right now. When your teacher posts one, you&apos;ll see it here.</p>
           )}
-          {assignments.map((a) => (
-            <AssignmentCard key={a.id} assignment={a} />
-          ))}
+          {!loading && assignments.map((a) => <AssignmentCard key={a.id} assignment={a} />)}
         </div>
-      )}
+      </div>
     </div>
   )
 }
@@ -936,27 +899,39 @@ function MessagesTab({ teacherId, teacherName }: { teacherId: string; teacherNam
   }
 
   return (
-    <div className="space-y-4">
-      <h3 className="font-display text-lg font-bold">Chat with {teacherName}</h3>
-      <div className="panel space-y-2 p-4">
-        {messages.map((m) => (
-          <div key={m.id} className={`max-w-[80%] rounded-md px-3 py-2 text-sm ${m.sender_id === myId ? 'ml-auto bg-[var(--gold)]/15 text-right' : 'bg-[var(--ink-panel)]'}`}>
-            {m.body}
-          </div>
-        ))}
-        {messages.length === 0 && <p className="text-center text-sm text-[var(--ink-faint)]">Say hi to your teacher!</p>}
+    <div className="space-y-6">
+      <div>
+        <p className="eyebrow">About Your Teacher</p>
+        <div className="mt-2 panel p-4">
+          <p className="font-bold">{teacherName}</p>
+          <p className="text-sm text-[var(--ink-muted)]">Your Sunday school teacher - message them any time.</p>
+        </div>
       </div>
-      <div className="flex gap-2">
-        <input
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          placeholder="Write a message…"
-          className={inputClass}
-          onKeyDown={(e) => e.key === 'Enter' && send()}
-        />
-        <button onClick={send} className="btn-solid flex shrink-0 items-center gap-1.5 text-sm">
-          <Send className="h-4 w-4" /> Send
-        </button>
+
+      <div>
+        <p className="eyebrow">Chat</p>
+        <div className="mt-2 space-y-3">
+          <div className="panel space-y-2 p-4">
+            {messages.map((m) => (
+              <div key={m.id} className={`max-w-[80%] rounded-md px-3 py-2 text-sm ${m.sender_id === myId ? 'ml-auto bg-[var(--gold)]/15 text-right' : 'bg-[var(--ink-panel)]'}`}>
+                {m.body}
+              </div>
+            ))}
+            {messages.length === 0 && <p className="text-center text-sm text-[var(--ink-faint)]">Say hi to your teacher!</p>}
+          </div>
+          <div className="flex gap-2">
+            <input
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              placeholder="Write a message…"
+              className={inputClass}
+              onKeyDown={(e) => e.key === 'Enter' && send()}
+            />
+            <button onClick={send} className="btn-solid flex shrink-0 items-center gap-1.5 text-sm">
+              <Send className="h-4 w-4" /> Send
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )

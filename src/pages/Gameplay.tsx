@@ -53,6 +53,13 @@ export default function Gameplay() {
   // network (or no linked teams at all) just means the secondary line never
   // appears, never a loading state gameplay waits on.
   const [xpTotals, setXpTotals] = useState<Record<number, number>>({})
+  const [showSettings, setShowSettings] = useState(false)
+  const [sfxMuted, setSfxMuted] = useState(() => sound.isMuted())
+  const [musicMuted, setMusicMuted] = useState(() => sound.isMusicMuted())
+  // Adjustable mid-match from the settings panel - takes effect from the
+  // next question onward, never mid-countdown, so a change can't skip or
+  // extend the question currently being timed.
+  const [timerSeconds, setTimerSeconds] = useState(() => config?.timerSecondsPerQuestion ?? 30)
 
   const questionStartRef = useRef<number>(Date.now())
   const turnStartRef = useRef<number>(Date.now())
@@ -70,7 +77,7 @@ export default function Gameplay() {
       }
       const qs = await db.questions.bulkGet(match.questionIds)
       setQuestions(qs.filter((q): q is NonNullable<typeof q> => !!q))
-      setTimeLeft(config.timerSecondsPerQuestion)
+      setTimeLeft(timerSeconds)
       setPhase('intro')
     })
     getMatchSessions(config.matchId).then(setPastSessions)
@@ -94,6 +101,19 @@ export default function Gameplay() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Soft ambient background music for the whole match, independent of the
+  // sound-effects mute toggle - stops on unmount regardless of how the
+  // screen is left (finished, quit, or just navigated away).
+  useEffect(() => {
+    sound.startMusic()
+    return () => sound.stopMusic()
+  }, [])
+
+  // Ramps the music's intensity up for the last stretch of the ladder.
+  useEffect(() => {
+    sound.setMusicIntensity(currentLevel >= LADDER.length - 2 ? 'intense' : 'calm')
+  }, [currentLevel])
 
   // 3-2-1-GO intro sequence before this team's first question
   useEffect(() => {
@@ -286,8 +306,14 @@ export default function Gameplay() {
       reveal(null, true)
       return
     }
-    sound.playTimerTick(timeLeft, config?.timerSecondsPerQuestion ?? 30)
-    if (timeLeft <= 3) haptics.tap()
+    sound.playTimerTick(timeLeft, timerSeconds)
+    if (timeLeft <= 3) {
+      haptics.tap()
+      // The last few seconds get a full-screen red flash on every tick, not
+      // just the timer box itself - meant to feel urgent, not just visible.
+      setFlash('red')
+      window.setTimeout(() => setFlash((f) => (f === 'red' ? null : f)), 400)
+    }
     const t = window.setTimeout(() => setTimeLeft((s) => s - 1), 1000)
     return () => window.clearTimeout(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -340,10 +366,10 @@ export default function Gameplay() {
         setPhase('question')
         questionStartRef.current = Date.now()
       }, 1400)
-      setTimeLeft(config.timerSecondsPerQuestion)
+      setTimeLeft(timerSeconds)
       return
     }
-    setTimeLeft(config.timerSecondsPerQuestion)
+    setTimeLeft(timerSeconds)
     questionStartRef.current = Date.now()
     setPhase('question')
   }
@@ -437,6 +463,13 @@ export default function Gameplay() {
                 xpTotals={xpTotals}
               />
             </div>
+            <button
+              onClick={() => setShowSettings(true)}
+              className="shrink-0 rounded-full bg-white/10 px-3 py-2 text-sm hover:bg-white/20"
+              aria-label="Quiz settings"
+            >
+              ⚙️
+            </button>
             <button onClick={handleQuit} className="shrink-0 rounded-full bg-white/10 px-4 py-2 text-sm hover:bg-white/20">
               {isRotational ? 'End Match' : 'End Turn'}
             </button>
@@ -465,6 +498,13 @@ export default function Gameplay() {
                   <CountUp value={runningScore} durationMs={500} /> 👑
                 </p>
               </div>
+              <button
+                onClick={() => setShowSettings(true)}
+                className="rounded-full bg-white/10 px-3 py-2 text-sm hover:bg-white/20"
+                aria-label="Quiz settings"
+              >
+                ⚙️
+              </button>
               <button onClick={handleQuit} className="rounded-full bg-white/10 px-4 py-2 text-sm hover:bg-white/20">
                 {isRotational ? 'End Match' : 'End Turn'}
               </button>
@@ -472,7 +512,27 @@ export default function Gameplay() {
           </div>
         )}
 
-        {phase === 'question' && <TimerBar timeLeft={timeLeft} total={config.timerSecondsPerQuestion} />}
+        {showSettings && (
+          <SettingsPanel
+            sfxMuted={sfxMuted}
+            musicMuted={musicMuted}
+            timerSeconds={timerSeconds}
+            onToggleSfx={() => {
+              const next = !sfxMuted
+              sound.setMuted(next)
+              setSfxMuted(next)
+            }}
+            onToggleMusic={() => {
+              const next = !musicMuted
+              sound.setMusicMuted(next)
+              setMusicMuted(next)
+            }}
+            onSetTimer={setTimerSeconds}
+            onClose={() => setShowSettings(false)}
+          />
+        )}
+
+        {phase === 'question' && <TimerBar timeLeft={timeLeft} total={timerSeconds} />}
 
         <div className="hex-frame mx-auto w-full max-w-3xl">
           <div className="hex-fill flex min-h-[80px] flex-col items-center justify-center gap-1.5 px-6 py-3 text-center sm:min-h-[100px]">
@@ -868,6 +928,90 @@ function LifelineButton({
       <span>{icon}</span>
       {label}
     </button>
+  )
+}
+
+const SETTINGS_TIMER_OPTIONS = [15, 20, 30, 45, 60]
+
+/**
+ * Reachable mid-match via the ⚙️ button - sound effects, music, and the
+ * per-question timer, all changeable without leaving or restarting the
+ * game. The timer change only affects the next question onward (see the
+ * timerSeconds comment where it's declared) so it can never shorten or
+ * extend the one currently being timed.
+ */
+function SettingsPanel({
+  sfxMuted,
+  musicMuted,
+  timerSeconds,
+  onToggleSfx,
+  onToggleMusic,
+  onSetTimer,
+  onClose,
+}: {
+  sfxMuted: boolean
+  musicMuted: boolean
+  timerSeconds: number
+  onToggleSfx: () => void
+  onToggleMusic: () => void
+  onSetTimer: (seconds: number) => void
+  onClose: () => void
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+      <div
+        className="w-full max-w-sm rounded-2xl bg-indigo-950 p-5 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="font-display text-lg font-bold">Quiz Settings</h3>
+          <button onClick={onClose} className="rounded-full bg-white/10 px-3 py-1 text-sm hover:bg-white/20">
+            ✕
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-white/80">Sound effects</span>
+            <button
+              onClick={onToggleSfx}
+              className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
+                sfxMuted ? 'bg-white/10 text-white/50' : 'bg-amber-400 text-purple-950'
+              }`}
+            >
+              {sfxMuted ? 'Muted' : 'On'}
+            </button>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-white/80">Background music</span>
+            <button
+              onClick={onToggleMusic}
+              className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
+                musicMuted ? 'bg-white/10 text-white/50' : 'bg-amber-400 text-purple-950'
+              }`}
+            >
+              {musicMuted ? 'Muted' : 'On'}
+            </button>
+          </div>
+          <div>
+            <p className="mb-2 text-sm font-semibold text-white/80">Timer per question (from next question)</p>
+            <div className="flex flex-wrap gap-2">
+              {SETTINGS_TIMER_OPTIONS.map((t) => (
+                <button
+                  key={t}
+                  onClick={() => onSetTimer(t)}
+                  className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
+                    timerSeconds === t ? 'bg-amber-400 text-purple-950' : 'bg-white/10 text-white/70 hover:bg-white/20'
+                  }`}
+                >
+                  {t}s
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 

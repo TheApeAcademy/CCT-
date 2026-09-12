@@ -114,7 +114,7 @@ export default function GroundRules() {
   }
 
   return (
-    <div className="relative mx-auto flex min-h-[70vh] max-w-3xl flex-col items-center justify-center overflow-hidden py-8 text-center">
+    <div className="relative mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center overflow-hidden px-4 py-8 text-center">
       {/* Stage revealed behind the curtain: a real photo backdrop instead of flat gradient + emoji. */}
       <div className="absolute inset-0 -z-10 overflow-hidden rounded-3xl">
         <img src="/hero-quiz.jpg" alt="" aria-hidden="true" className="h-full w-full object-cover" />

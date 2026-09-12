@@ -217,10 +217,17 @@ export function playWhoosh() {
  */
 export function playApplause(durationSec = 1.4) {
   if (muted) return
-  const clapCount = Math.round(durationSec * 18)
+  const clapCount = Math.round(durationSec * 22)
   for (let i = 0; i < clapCount; i++) {
     const t = Math.random() * durationSec
-    noiseBurst(t, 0.04 + Math.random() * 0.03, 2500 + Math.random() * 2500, 0.09 + Math.random() * 0.06, 'bandpass')
+    noiseBurst(t, 0.06 + Math.random() * 0.05, 2200 + Math.random() * 2800, 0.16 + Math.random() * 0.1, 'bandpass')
+  }
+  // A few louder, lower-pitched thumps on top of the wash so it reads as
+  // clapping hands rather than just static/fizz.
+  const thumpCount = Math.round(durationSec * 6)
+  for (let i = 0; i < thumpCount; i++) {
+    const t = Math.random() * durationSec
+    noiseBurst(t, 0.1 + Math.random() * 0.05, 900 + Math.random() * 500, 0.22, 'bandpass')
   }
 }
 
@@ -228,18 +235,20 @@ export function playApplause(durationSec = 1.4) {
 export function playCheer(durationSec = 2.2) {
   playApplause(durationSec)
   if (muted) return
-  const voices = 10
+  const voices = 14
   for (let i = 0; i < voices; i++) {
     const t = Math.random() * Math.max(0.1, durationSec - 0.4)
     const base = 500 + Math.random() * 500
-    tone(base, t, 0.3 + Math.random() * 0.3, 'sawtooth', 0.05, base * (1.3 + Math.random() * 0.4))
+    tone(base, t, 0.35 + Math.random() * 0.3, 'sawtooth', 0.1, base * (1.3 + Math.random() * 0.4))
   }
 }
 
-/** Comedic descending "oops" slide for a wrong answer - two quick downward glides, mini sad-trombone style. */
+/** Comedic "wrong answer" sting for a missed question - a short buzzer punch followed by a descending sad-trombone slide. */
 export function playOops() {
-  tone(500, 0, 0.22, 'sawtooth', 0.15, 260)
-  tone(420, 0.2, 0.3, 'sawtooth', 0.13, 180)
+  noiseBurst(0, 0.12, 350, 0.22, 'lowpass')
+  tone(180, 0, 0.15, 'square', 0.16)
+  tone(520, 0.1, 0.24, 'sawtooth', 0.18, 280)
+  tone(440, 0.32, 0.34, 'sawtooth', 0.16, 190)
 }
 
 export function playCountIn(step: 3 | 2 | 1 | 0) {
@@ -248,5 +257,70 @@ export function playCountIn(step: 3 | 2 | 1 | 0) {
     tone(1318.5, 0.08, 0.35, 'triangle', 0.16)
   } else {
     tone(440 + (3 - step) * 110, 0, 0.18, 'triangle', 0.16)
+  }
+}
+
+// ---------- background music (generative, still zero audio assets) ----------
+// A soft looping chord progression under gameplay, independent of the SFX
+// mute toggle above (its own on/off) since a host might want one without
+// the other. Self-schedules with setTimeout rather than setInterval so
+// there's no drift to correct for, and speeds up + adds a rhythmic tick
+// layer for the last couple of ladder questions instead of just looping
+// unchanged the whole match.
+let musicMuted = false
+let musicRunning = false
+let musicTimer: number | null = null
+let musicStep = 0
+let musicIntensity: 'calm' | 'intense' = 'calm'
+
+const MUSIC_PROGRESSION: number[][] = [
+  [261.63, 329.63, 392.0], // C major
+  [220.0, 261.63, 329.63], // A minor
+  [174.61, 220.0, 261.63], // F major
+  [196.0, 246.94, 293.66], // G major
+]
+
+export function isMusicMuted() {
+  return musicMuted
+}
+
+export function setMusicMuted(value: boolean) {
+  musicMuted = value
+}
+
+export function setMusicIntensity(level: 'calm' | 'intense') {
+  musicIntensity = level
+}
+
+function scheduleMusicBar() {
+  if (!musicRunning) return
+  const barMs = musicIntensity === 'intense' ? 850 : 1500
+  if (!musicMuted) {
+    const chord = MUSIC_PROGRESSION[musicStep % MUSIC_PROGRESSION.length]
+    const noteGap = barMs / 3200
+    chord.forEach((freq, i) => {
+      tone(freq, i * noteGap, noteGap * 1.8, 'triangle', musicIntensity === 'intense' ? 0.05 : 0.032)
+    })
+    tone(chord[0] / 2, 0, (barMs / 1000) * 0.9, 'sine', musicIntensity === 'intense' ? 0.055 : 0.035)
+    if (musicIntensity === 'intense') {
+      noiseBurst(barMs / 2000, 0.03, 4200, 0.035, 'highpass')
+    }
+  }
+  musicStep++
+  musicTimer = window.setTimeout(scheduleMusicBar, barMs)
+}
+
+export function startMusic() {
+  if (musicRunning) return
+  musicRunning = true
+  musicStep = 0
+  scheduleMusicBar()
+}
+
+export function stopMusic() {
+  musicRunning = false
+  if (musicTimer !== null) {
+    window.clearTimeout(musicTimer)
+    musicTimer = null
   }
 }

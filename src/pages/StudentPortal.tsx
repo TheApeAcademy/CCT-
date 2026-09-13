@@ -32,6 +32,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { supabase, signOut } from '../lib/supabase'
+import { bibleComUrl } from '../lib/bibleLink'
 import { useMinistryAuth } from '../lib/useMinistryAuth'
 import VillageMap from '../components/VillageMap'
 import {
@@ -672,7 +673,18 @@ function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string 
           <div className="panel space-y-3 p-6">
             <p className="eyebrow">{reading.plan_title} &middot; Day {reading.day_number}</p>
             <h2 className="font-display text-2xl font-extrabold">{reading.title}</h2>
-            <p className="font-semibold text-[var(--gold)]">{reading.reference}</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="font-semibold text-[var(--gold)]">{reading.reference}</p>
+              <a
+                href={bibleComUrl(reading.reference)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => playClick()}
+                className="rounded-full bg-[var(--ink-panel)] px-3 py-1 text-xs font-semibold text-[var(--ink-muted)] transition hover:bg-[var(--ink-raised)]"
+              >
+                Read on Bible.com ↗
+              </a>
+            </div>
             {reading.passage_text && <p className="whitespace-pre-wrap text-sm leading-relaxed text-[var(--ink-muted)]">{reading.passage_text}</p>}
             {completed ? (
               <p className="flex items-center gap-1.5 text-sm font-bold text-emerald-400">

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ShieldCheck, FileText, School, CalendarRange, Users, Check, X, BookOpen, ArrowLeft, Gamepad2, Trophy, type LucideIcon } from 'lucide-react'
 import { signOut } from '../lib/supabase'
+import { bibleComUrl } from '../lib/bibleLink'
 import { useMinistryAuth } from '../lib/useMinistryAuth'
 import AuthCard from '../components/ui/AuthCard'
 import TabBar from '../components/ui/TabBar'
@@ -455,6 +456,14 @@ function BiblePlanReadings({ plan, onBack }: { plan: BiblePlanRow; onBack: () =>
               <p className="text-sm font-bold">Day {r.day_number}: {r.title}</p>
               <p className="text-xs text-[var(--ink-faint)]">{r.reference}</p>
             </div>
+            <a
+              href={bibleComUrl(r.reference)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-outline shrink-0 px-3 py-1.5 text-xs"
+            >
+              Bible.com ↗
+            </a>
           </div>
         ))}
         {!loading && readings.length === 0 && <p className="text-sm text-[var(--ink-faint)]">No readings added yet.</p>}

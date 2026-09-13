@@ -32,7 +32,7 @@ const slides: HeroSlide[] = [
   {
     title: "The Children's Ministry",
     body: 'Raising children in the Word through classes, a Bible Quiz built for the ministry, and a place every child in this church can call theirs.',
-    primaryCta: { label: 'Apply as a Kid', to: '/join' },
+    primaryCta: { label: 'Apply as a Child', to: '/join' },
     secondaryCta: { label: 'Apply to Teach', to: '/teacher' },
     quote: { text: 'But upon mount Zion shall be deliverance, and there shall be holiness', source: 'Obadiah 1:17' },
     image: '/hero-kids.jpg',
@@ -47,7 +47,7 @@ const slides: HeroSlide[] = [
   {
     title: 'Nourish Your Soul. Read Daily.',
     body: 'A short Bible reading and a streak that keeps count — come back tomorrow and it grows, right there on your own dashboard.',
-    primaryCta: { label: 'Apply as a Kid', to: '/join' },
+    primaryCta: { label: 'Apply as a Child', to: '/join' },
     quote: { text: 'Thy word have I hid in mine heart, that I might not sin against thee', source: 'Psalm 119:11' },
     image: '/hero-bible.jpg',
   },
@@ -55,7 +55,7 @@ const slides: HeroSlide[] = [
     title: 'Our Sunday School Teachers',
     body: 'Real classrooms, real teachers — approved by the ministry and ready to walk with your child through the Word, every single week.',
     primaryCta: { label: 'Apply to Teach', to: '/teacher' },
-    secondaryCta: { label: 'Apply as a Kid', to: '/join' },
+    secondaryCta: { label: 'Apply as a Child', to: '/join' },
     image: '/hero-teachers.jpg',
   },
 ]
@@ -135,7 +135,7 @@ export default function Home() {
 
           <Reveal delay={0.05}>
             <p className="lp-eyebrow mt-10" style={{ ['--card-accent' as string]: 'var(--lp-accent-questions)' }}>
-              For Teachers &amp; Kids
+              For Teachers &amp; Children
             </p>
             <h2 className="lp-heading mt-1 font-display text-2xl font-extrabold sm:text-3xl">Resources</h2>
           </Reveal>
@@ -176,7 +176,7 @@ export default function Home() {
               A dashboard that&apos;s actually theirs
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed sm:text-lg" style={{ color: 'var(--lp-band-deep-body)' }}>
-              Every kid gets their own home base the moment they sign up &mdash; no class code needed. Here&apos;s a
+              Every child gets their own home base the moment they sign up &mdash; no class code needed. Here&apos;s a
               look at what&apos;s waiting inside.
             </p>
           </Reveal>
@@ -293,7 +293,7 @@ export default function Home() {
           <p className="eyebrow mt-2 justify-center">You&apos;ve Seen the World</p>
           <h2 className="mt-2 font-display text-3xl font-extrabold text-white sm:text-4xl">Now step inside.</h2>
           <p className="mx-auto mt-3 max-w-md text-sm text-[var(--ink-muted)] sm:text-base">
-            The Quiz, the Bible streak, the leaderboard, achievements, a teacher who listens &mdash; kids join a
+            The Quiz, the Bible streak, the leaderboard, achievements, a teacher who listens &mdash; children join a
             class in under a minute, and teachers apply straight to the Control Centre.
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">

@@ -67,7 +67,7 @@ export async function renderIdCardPng(data: IdCardData): Promise<string> {
   ctx.fillText(data.churchName.toUpperCase(), W / 2, 72)
   ctx.font = '18px Georgia, serif'
   ctx.fillStyle = 'rgba(253,230,138,0.75)'
-  ctx.fillText('Little Christian Identity Card', W / 2, 102)
+  ctx.fillText('Little Disciples Identity Card', W / 2, 102)
 
   // avatar
   const avatarCenterY = 240

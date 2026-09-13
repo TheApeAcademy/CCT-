@@ -45,7 +45,7 @@ export default function ClassFeatureIntro() {
               Your class. Your people. Your journey.
             </h2>
             <p className="mt-5 max-w-lg text-base leading-relaxed text-[var(--lp-body)] sm:text-lg">
-              A real teacher, a real classroom, a real group of kids to grow with — not a solo app. Sign up and
+              A real teacher, a real classroom, a real group of children to grow with — not a solo app. Sign up and
               there&apos;s already a seat waiting.
             </p>
             <div className="mt-7">

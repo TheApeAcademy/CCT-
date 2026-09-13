@@ -12,6 +12,7 @@ import type {
   MockExamAttempt,
   Season,
   PendingLeaderboardSync,
+  QuizBuilderItem,
 } from './types'
 import { starterQuestions } from './seedQuestions'
 import { expansionQuestions } from './seedQuestionsExpansion'
@@ -29,6 +30,7 @@ export class TriviaDB extends Dexie {
   mockExamAttempts!: Table<MockExamAttempt, number>
   seasons!: Table<Season, number>
   pendingLeaderboardSync!: Table<PendingLeaderboardSync, number>
+  quizBuilder!: Table<QuizBuilderItem, number>
 
   constructor() {
     super('cct-trivia')
@@ -73,6 +75,14 @@ export class TriviaDB extends Dexie {
             if (s.synced === undefined) s.synced = 0
           })
       )
+    this.version(8).stores({
+      // A scratch "cart" of question IDs picked from anywhere in the
+      // Question Bank (any set, any group) - the + button on each question
+      // adds to it, and it's turned into a brand-new question set on demand.
+      // Persisted (not just component state) so it survives switching
+      // between sets while building one up.
+      quizBuilder: '++id, &questionId',
+    })
   }
 }
 

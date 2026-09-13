@@ -36,6 +36,15 @@ export default function QuestionBank() {
   const [groupFilter, setGroupFilter] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // A scratch "cart" of picked questions - persisted (not just this
+  // component's state) so it survives switching between sets while you
+  // build one up, since the + button works the same regardless of which
+  // set you're currently browsing.
+  const builderItems = useLiveQuery(() => db.quizBuilder.toArray(), []) ?? []
+  const builderIds = useMemo(() => new Set(builderItems.map((b) => b.questionId)), [builderItems])
+  const [buildingQuizName, setBuildingQuizName] = useState('')
+  const [buildingQuiz, setBuildingQuiz] = useState(false)
+
   // Groups are freeform labels (e.g. "10-11 years", "Transition Class") that cut
   // across categories and sets, so the known list is derived from every question
   // in the bank rather than tracked in its own table.
@@ -162,6 +171,41 @@ export default function QuestionBank() {
     playClick()
   }
 
+  const toggleBuilderItem = async (questionId: number) => {
+    playClick()
+    haptics.tap()
+    if (builderIds.has(questionId)) {
+      const row = await db.quizBuilder.where('questionId').equals(questionId).first()
+      if (row) await db.quizBuilder.delete(row.id!)
+    } else {
+      await db.quizBuilder.add({ questionId, addedAt: Date.now() })
+    }
+  }
+
+  const clearBuilder = async () => {
+    if (!confirm('Clear all picked questions?')) return
+    await db.quizBuilder.clear()
+  }
+
+  const handleCreateQuizFromBuilder = async () => {
+    const name = buildingQuizName.trim()
+    if (!name || builderItems.length === 0) return
+    setBuildingQuiz(true)
+    try {
+      const season = await ensureActiveSeason()
+      const newSetId = (await db.questionSets.add({ name, createdAt: Date.now(), isStarter: false, seasonId: season.id })) as number
+      const picked = await db.questions.bulkGet(builderItems.map((b) => b.questionId))
+      const copies = picked.filter((q): q is Question => !!q).map(({ id: _id, ...rest }) => ({ ...rest, setId: newSetId }))
+      await db.questions.bulkAdd(copies)
+      await db.quizBuilder.clear()
+      setBuildingQuizName('')
+      setSelectedSetId(newSetId)
+      haptics.success()
+    } finally {
+      setBuildingQuiz(false)
+    }
+  }
+
   const handleImportClick = () => fileInputRef.current?.click()
 
   const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -182,7 +226,7 @@ export default function QuestionBank() {
   }
 
   return (
-    <div data-landing-theme="light" className="site-light-theme lp-page full-bleed px-4 py-6">
+    <div data-landing-theme="light" className={`site-light-theme lp-page full-bleed px-4 py-6 ${builderItems.length > 0 ? 'pb-24' : ''}`}>
       <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[280px_1fr]">
       <aside className="space-y-3">
         <h2 className="font-display text-lg font-bold">Question Sets</h2>
@@ -430,7 +474,16 @@ export default function QuestionBank() {
                   className="panel animate-page-in flex items-start justify-between gap-3 p-4 transition hover:bg-[var(--ink-raised)]"
                   style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}
                 >
-                  <div>
+                  <button
+                    onClick={() => toggleBuilderItem(q.id!)}
+                    title={builderIds.has(q.id!) ? 'Remove from quiz' : 'Add to quiz'}
+                    className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold transition hover:scale-110 ${
+                      builderIds.has(q.id!) ? 'bg-emerald-500 text-white' : 'bg-[var(--ink-panel)] text-[var(--ink-muted)] hover:bg-[var(--gold)]/20'
+                    }`}
+                  >
+                    {builderIds.has(q.id!) ? '✓' : '+'}
+                  </button>
+                  <div className="flex-1">
                     <div className="mb-1 flex flex-wrap gap-2 text-xs">
                       <span className="rounded-full bg-[var(--hero-accent)]/15 px-2 py-0.5 text-[var(--hero-accent)]">{q.category}</span>
                       <span className="rounded-full bg-[var(--gold)]/15 px-2 py-0.5 text-[var(--gold)]">Difficulty {q.difficulty}</span>
@@ -469,6 +522,33 @@ export default function QuestionBank() {
         )}
       </section>
       </div>
+
+      {builderItems.length > 0 && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--hairline-strong)] bg-[var(--ink)] p-3 shadow-2xl">
+          <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-3">
+            <span className="shrink-0 rounded-full bg-[var(--gold)] px-3 py-1.5 text-sm font-bold text-[var(--gold-ink)]">
+              {builderItems.length} picked
+            </span>
+            <input
+              value={buildingQuizName}
+              onChange={(e) => setBuildingQuizName(e.target.value)}
+              placeholder="New quiz name, e.g. Christmas Special"
+              className={`${inputClass} min-w-0 flex-1`}
+              onKeyDown={(e) => e.key === 'Enter' && handleCreateQuizFromBuilder()}
+            />
+            <button
+              onClick={handleCreateQuizFromBuilder}
+              disabled={!buildingQuizName.trim() || buildingQuiz}
+              className="btn-solid shrink-0 px-4 py-2 text-sm disabled:opacity-40"
+            >
+              {buildingQuiz ? 'Creating…' : 'Create Quiz'}
+            </button>
+            <button onClick={clearBuilder} className="btn-outline shrink-0 px-3 py-2 text-sm">
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

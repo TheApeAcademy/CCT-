@@ -434,7 +434,7 @@ function ClassDetail({ klass, onBack }: { klass: ClassRow; onBack: () => void })
               Add a student by their Student Code
             </label>
             <p className="text-xs text-[var(--ink-muted)]">
-              Every kid gets a Student Code when they sign up (like MFM4827). Ask them for theirs and add them here.
+              Every child gets a Student Code when they sign up (like MFM4827). Ask them for theirs and add them here.
             </p>
             <div className="flex gap-2">
               <input

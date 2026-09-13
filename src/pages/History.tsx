@@ -134,7 +134,7 @@ export default function History() {
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by kid's name or question set…"
+          placeholder="Search by child's name or question set…"
           className="flex-1 rounded-md border border-[var(--hairline-strong)] bg-transparent px-4 py-2 outline-none focus:border-[var(--gold)]"
         />
         {sessions.length > 0 && (

@@ -82,7 +82,7 @@ export default function StudentPortal() {
         <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-md border border-[var(--hairline-strong)] text-[var(--gold)]">
           <User className="h-6 w-6" strokeWidth={1.75} />
         </span>
-        <h1 className="font-display text-2xl font-extrabold sm:text-3xl">Kids&apos; Dashboard</h1>
+        <h1 className="font-display text-2xl font-extrabold sm:text-3xl">Children&apos;s Dashboard</h1>
         <p className="text-sm text-[var(--ink-muted)]">
           Sign up with just your name and a passcode to get your own dashboard &mdash; no class code needed. Your
           teacher will add you to your class once you&apos;re in.

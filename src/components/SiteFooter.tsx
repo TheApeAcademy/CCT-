@@ -41,7 +41,7 @@ export default function SiteFooter() {
           <div>
             <img src="/children-ministry-logo-splash.png" alt="MFM Children's Ministry" className="h-16 w-auto object-contain" />
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-[var(--ink-muted)]">
-              MFM Wuye&apos;s digital home for kids &mdash; classes, the Bible Quiz, and a place every child in this
+              MFM Wuye&apos;s digital home for children &mdash; classes, the Bible Quiz, and a place every child in this
               church can call theirs.
             </p>
             <a

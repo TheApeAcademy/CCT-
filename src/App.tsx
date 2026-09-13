@@ -148,7 +148,7 @@ function App() {
               }
             />
           </Route>
-          <Route path="student" element={<KidsShell eyebrow="Kids Dashboard" />}>
+          <Route path="student" element={<KidsShell eyebrow="Children's Dashboard" />}>
             <Route
               index
               element={

@@ -13,6 +13,13 @@ export interface Question {
   groups?: string[]
 }
 
+/** One question picked into the Question Bank's scratch "quiz builder" cart - see db.ts's quizBuilder table. */
+export interface QuizBuilderItem {
+  id?: number
+  questionId: number
+  addedAt: number
+}
+
 export interface QuestionSet {
   id?: number
   name: string

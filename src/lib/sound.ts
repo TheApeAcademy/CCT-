@@ -54,6 +54,44 @@ export function isMuted() {
   return muted
 }
 
+// ---------- optional real recorded audio, drop-in over the synth ----------
+// applause/cheer/oops (and click) can be swapped for a real recorded MP3 by
+// simply dropping a file at the path below - no code changes needed. Each
+// path is confirmed to actually exist (a HEAD request, checked once and
+// cached) before ever being used, so an unset/missing file always falls
+// back to the synthesized version below rather than playing silence.
+const AUDIO_FILES: Record<string, string> = {
+  applause: '/sounds/applause.mp3',
+  cheer: '/sounds/cheer.mp3',
+  oops: '/sounds/oops.mp3',
+}
+const audioElements: Record<string, HTMLAudioElement> = {}
+const audioAvailability: Record<string, Promise<boolean>> = {}
+
+function checkAudioFile(key: string): Promise<boolean> {
+  if (!audioAvailability[key]) {
+    audioAvailability[key] = fetch(AUDIO_FILES[key], { method: 'HEAD' })
+      .then((res) => res.ok)
+      .catch(() => false)
+  }
+  return audioAvailability[key]
+}
+
+/** Plays the real recorded file for `key` if one has been dropped into /public/sounds, otherwise runs `fallback` (the synthesized version). Never plays both. */
+function playRecordedOr(key: keyof typeof AUDIO_FILES, fallback: () => void) {
+  if (muted) return
+  checkAudioFile(key).then((available) => {
+    if (!available) return fallback()
+    let audio = audioElements[key]
+    if (!audio) {
+      audio = new Audio(AUDIO_FILES[key])
+      audioElements[key] = audio
+    }
+    audio.currentTime = 0
+    audio.play().catch(() => fallback())
+  })
+}
+
 /**
  * Creates and resumes the AudioContext. Browsers (especially iOS Safari in
  * installed/standalone mode) only allow audio to start inside a real user
@@ -242,7 +280,7 @@ export function playWhoosh() {
 // startAt lets a caller stagger this behind another sound fired in the same
 // instant (e.g. the correct-answer chime) so the two read as two distinct
 // events instead of blending into a wash - see reveal() in Gameplay.tsx.
-export function playApplause(durationSec = 1.4, startAt = 0) {
+function playApplauseSynth(durationSec = 1.4, startAt = 0) {
   if (muted) return
   // A single upfront burst before the randomized wash - one unmissable
   // "crack" of hands so the effect reads as applause starting immediately,
@@ -263,9 +301,17 @@ export function playApplause(durationSec = 1.4, startAt = 0) {
   }
 }
 
-/** Applause plus a rising scatter of short pitched tones standing in for a crowd of kids cheering. */
-export function playCheer(durationSec = 2.2, startAt = 0) {
-  playApplause(durationSec, startAt)
+// startAt lets a caller stagger this behind another sound fired in the same
+// instant (e.g. the correct-answer chime) so the two read as two distinct
+// events instead of blending into a wash - see reveal() in Gameplay.tsx.
+// Uses a real recorded /sounds/applause.mp3 if one has been added, else the
+// synthesized clap wash above.
+export function playApplause(durationSec = 1.4, startAt = 0) {
+  playRecordedOr('applause', () => playApplauseSynth(durationSec, startAt))
+}
+
+function playCheerSynth(durationSec = 2.2, startAt = 0) {
+  playApplauseSynth(durationSec, startAt)
   if (muted) return
   const voices = 22
   for (let i = 0; i < voices; i++) {
@@ -275,12 +321,21 @@ export function playCheer(durationSec = 2.2, startAt = 0) {
   }
 }
 
-/** Comedic "wrong answer" sting for a missed question - a short buzzer punch followed by a descending sad-trombone slide. */
-export function playOops() {
+/** Applause plus a rising scatter of short pitched tones standing in for a crowd of kids cheering - or a real /sounds/cheer.mp3, if one's been added. */
+export function playCheer(durationSec = 2.2, startAt = 0) {
+  playRecordedOr('cheer', () => playCheerSynth(durationSec, startAt))
+}
+
+function playOopsSynth() {
   noiseBurst(0, 0.15, 350, 0.35, 'lowpass')
   tone(180, 0, 0.2, 'square', 0.26)
   tone(520, 0.1, 0.26, 'sawtooth', 0.26, 280)
   tone(440, 0.32, 0.36, 'sawtooth', 0.24, 190)
+}
+
+/** Comedic "wrong answer" sting for a missed question - a short buzzer punch followed by a descending sad-trombone slide, or a real /sounds/oops.mp3 if one's been added. */
+export function playOops() {
+  playRecordedOr('oops', playOopsSynth)
 }
 
 export function playCountIn(step: 3 | 2 | 1 | 0) {

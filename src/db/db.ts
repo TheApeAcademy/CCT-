@@ -13,6 +13,7 @@ import type {
   Season,
   PendingLeaderboardSync,
   QuizBuilderItem,
+  DigitalBankFile,
 } from './types'
 import { starterQuestions } from './seedQuestions'
 import { expansionQuestions } from './seedQuestionsExpansion'
@@ -31,6 +32,7 @@ export class TriviaDB extends Dexie {
   seasons!: Table<Season, number>
   pendingLeaderboardSync!: Table<PendingLeaderboardSync, number>
   quizBuilder!: Table<QuizBuilderItem, number>
+  digitalBankFiles!: Table<DigitalBankFile, number>
 
   constructor() {
     super('cct-trivia')
@@ -82,6 +84,9 @@ export class TriviaDB extends Dexie {
       // Persisted (not just component state) so it survives switching
       // between sets while building one up.
       quizBuilder: '++id, &questionId',
+    })
+    this.version(9).stores({
+      digitalBankFiles: '++id, category, uploadedAt',
     })
   }
 }

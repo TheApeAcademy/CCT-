@@ -30,7 +30,7 @@ import '@fontsource/fredoka/700.css'
 
 const slides: HeroSlide[] = [
   {
-    title: "The Children's Ministry",
+    title: "MFM Children's Ministry",
     body: 'Raising children in the Word through classes, a Bible Quiz built for the ministry, and a place every child in this church can call theirs.',
     primaryCta: { label: 'Apply as a Child', to: '/join' },
     secondaryCta: { label: 'Apply to Teach', to: '/teacher' },

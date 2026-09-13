@@ -110,6 +110,21 @@ const TAB_TITLE: Record<Tab, string> = {
   game: 'Games',
 }
 
+// Each "room" gets its own colored glow (from the same accent tokens the
+// Village Map building already uses) instead of the same flat dark panel
+// everywhere - a placeholder for real isometric interior art per building,
+// which needs actual image assets to do properly.
+const TAB_ACCENT: Record<Tab, string> = {
+  home: 'var(--hero-accent)',
+  class: 'var(--lp-accent-class)',
+  bible: 'var(--lp-accent-bible)',
+  leaderboard: 'var(--lp-accent-leaderboard)',
+  profile: 'var(--lp-accent-achievements)',
+  messages: 'var(--lp-accent-training)',
+  ears: 'var(--lp-accent-ears)',
+  game: 'var(--lp-accent-compete)',
+}
+
 function Dashboard() {
   const [tab, setTab] = useState<Tab>('home')
   const [view, setView] = useState<'map' | 'tab'>('map')
@@ -196,12 +211,16 @@ function Dashboard() {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.96 }}
             transition={{ duration: 0.3, ease: 'easeOut' }}
-            className="absolute inset-0 overflow-y-auto bg-[var(--ink)]"
+            className="absolute inset-0 overflow-y-auto"
+            style={{
+              background: `radial-gradient(ellipse 100% 55% at 50% -8%, color-mix(in srgb, ${TAB_ACCENT[tab]} 30%, transparent), transparent 60%), var(--ink)`,
+            }}
           >
-            <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-[var(--lp-hairline)] bg-[var(--ink)]/95 px-4 py-3 backdrop-blur">
+            <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-[var(--lp-hairline)] bg-[var(--ink)]/80 px-4 py-3 backdrop-blur">
               <button
                 onClick={backToMap}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--lp-hairline-strong)] text-[var(--lp-heading)] transition hover:bg-[var(--lp-hairline)]"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 transition hover:scale-105"
+                style={{ borderColor: TAB_ACCENT[tab], color: TAB_ACCENT[tab] }}
                 aria-label="Back to the village map"
               >
                 <ArrowLeft className="h-4 w-4" strokeWidth={2.25} />
@@ -379,6 +398,13 @@ function GameTab() {
             </p>
           </div>
           <HomeLink to="/training" icon={Dumbbell} accent="var(--lp-accent-training)" title="Practice Bible Quiz" description="Unlimited solo practice, no pressure, no timer." />
+          <ExternalLinkCard
+            href="https://id.superbook.cbn.com/games"
+            icon={Gamepad2}
+            accent="var(--lp-accent-compete)"
+            title="SuperBook Games"
+            description="More Bible games and adventures on SuperBook."
+          />
         </div>
       </div>
 
@@ -433,6 +459,56 @@ function HomeLink({
         <p className="mt-1 text-sm text-[var(--lp-body)]">{description}</p>
       </div>
     </Link>
+  )
+}
+
+/**
+ * Same card treatment as HomeLink, but for a link off the site (SuperBook,
+ * Bible.com) - a plain <a target="_blank">, not a router Link. `logoSrc` is
+ * an actual brand logo image (e.g. once one is dropped into /public) shown
+ * instead of the lucide icon; omit it to fall back to the icon.
+ */
+function ExternalLinkCard({
+  href,
+  icon: Icon,
+  logoSrc,
+  accent,
+  title,
+  description,
+}: {
+  href: string
+  icon: typeof Dumbbell
+  logoSrc?: string
+  accent: string
+  title: string
+  description: string
+}) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      onClick={() => playClick()}
+      className="lp-panel lp-panel-accented lp-panel-interactive flex items-start gap-4 p-5"
+      style={{ ['--card-accent' as string]: accent }}
+    >
+      {logoSrc ? (
+        <img src={logoSrc} alt="" className="h-10 w-10 shrink-0 rounded-xl object-contain" />
+      ) : (
+        <span
+          className="lp-icon-chip flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+          style={{ background: 'color-mix(in srgb, ' + accent + ' 16%, transparent)', color: accent }}
+        >
+          <Icon className="h-5 w-5" strokeWidth={1.75} />
+        </span>
+      )}
+      <div>
+        <p className="lp-heading font-display text-lg font-bold">
+          {title} <span className="text-sm font-normal">↗</span>
+        </p>
+        <p className="mt-1 text-sm text-[var(--lp-body)]">{description}</p>
+      </div>
+    </a>
   )
 }
 
@@ -659,6 +735,14 @@ function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string 
             <div className="stat-cell-label">Today</div>
           </div>
         </div>
+
+        <ExternalLinkCard
+          href="https://www.bible.com/reading-plans"
+          icon={BookOpen}
+          accent="var(--lp-accent-bible)"
+          title="More Reading Plans"
+          description="Browse hundreds more reading plans on Bible.com."
+        />
 
         {reading === 'loading' && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
 

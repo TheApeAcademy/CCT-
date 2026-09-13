@@ -1,3 +1,20 @@
+/**
+ * The Digital Bank: any file related to the ministry (songs, videos, docs)
+ * that doesn't belong in a question set or a Bible reading plan. Stored
+ * locally in this browser's IndexedDB for now, not Supabase Storage - so
+ * it works fully offline like the rest of the quiz, at the cost of not
+ * being shared across devices yet.
+ */
+export interface DigitalBankFile {
+  id?: number
+  name: string
+  category: 'song' | 'video' | 'doc' | 'other'
+  mimeType: string
+  size: number
+  blob: Blob
+  uploadedAt: number
+}
+
 export interface Question {
   id?: number
   setId: number

@@ -1,9 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft, Check, Copy, KeyRound, PartyPopper, Phone, Sparkles, User } from 'lucide-react'
 import { registerStudent, studentSignInByName } from '../lib/ministry'
 import { playClick, playNav } from '../lib/sound'
 import { haptics } from '../lib/haptics'
+import { setRememberMe } from '../lib/supabase'
+import { getRememberedStudent, saveRememberedStudent, clearRememberedStudent } from '../lib/rememberedStudent'
 import FloatingArt from '../components/FloatingArt'
 import ColorSprinkles from '../components/ColorSprinkles'
 // Landing page's playful display face for the big student code / step
@@ -332,14 +334,29 @@ function ReturningStudentFlow() {
   const [passcode, setPasscode] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [rememberMe, setRememberMeChecked] = useState(true)
+
+  // Prefills from whatever was saved here last time "Remember me" was
+  // checked - a kid shouldn't have to retype their passcode on a device
+  // they already signed into before.
+  useEffect(() => {
+    const remembered = getRememberedStudent()
+    if (remembered) {
+      setFullName(remembered.fullName)
+      setPasscode(remembered.passcode)
+    }
+  }, [])
 
   const submit = async () => {
     if (!fullName.trim()) return setError('Enter your name.')
     if (!passcode.trim()) return setError('Enter your passcode.')
     setSubmitting(true)
     setError('')
+    setRememberMe(rememberMe)
     try {
       await studentSignInByName({ full_name: fullName, passcode })
+      if (rememberMe) saveRememberedStudent({ fullName, passcode })
+      else clearRememberedStudent()
       playNav()
       haptics.success()
       navigate('/student')
@@ -373,6 +390,10 @@ function ReturningStudentFlow() {
         className={`${inputClass} text-center text-xl tracking-wide`}
         onKeyDown={(e) => e.key === 'Enter' && submit()}
       />
+      <label className="flex items-center gap-2 text-sm text-[var(--lp-muted)]">
+        <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMeChecked(e.target.checked)} className="h-4 w-4" />
+        Remember me on this device
+      </label>
       {error && <p className="text-sm text-red-500">{error}</p>}
       <button onClick={submit} disabled={submitting} className="lp-btn-solid w-full py-3 text-base">
         {submitting ? 'Signing in…' : 'Sign In'}

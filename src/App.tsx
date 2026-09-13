@@ -6,6 +6,7 @@ import KidsShell from './components/KidsShell'
 import SplashScreen from './components/SplashScreen'
 import { db, ensureSeedData } from './db/db'
 import { unlockAudio } from './lib/sound'
+import { getRememberMe, setRememberMe } from './lib/rememberMe'
 import QuestionBank from './pages/QuestionBank'
 import GameSetup from './pages/GameSetup'
 import GroundRules from './pages/GroundRules'
@@ -41,6 +42,18 @@ function App() {
 
   useEffect(() => {
     ensureSeedData().then(() => setSeeded(true))
+  }, [])
+
+  // "Remember me" unchecked at the last sign-in (admin, teacher, or a
+  // child's name+passcode - they all share this one flag) means the
+  // session shouldn't outlive that visit. The session itself already
+  // persisted to localStorage same as always; this just signs it back out
+  // the next time the app is opened, then resets to the default (stay
+  // signed in) so it doesn't keep force-logging-out every future sign-in.
+  useEffect(() => {
+    if (!getRememberMe()) {
+      import('./lib/supabase').then(({ supabase }) => supabase.auth.signOut()).finally(() => setRememberMe(true))
+    }
   }, [])
 
   // Only pull in the Supabase-dependent sync module (and its network

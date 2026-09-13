@@ -48,3 +48,8 @@ export async function getMyProfile(): Promise<Profile | null> {
 export async function signOut() {
   await supabase.auth.signOut()
 }
+
+// Re-exported so existing call sites (AuthCard, JoinClass) can keep
+// importing it alongside `supabase` - see rememberMe.ts for why the
+// implementation itself lives in its own Supabase-free module.
+export { setRememberMe, getRememberMe } from './rememberMe'

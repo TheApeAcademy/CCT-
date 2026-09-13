@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
-import { supabase } from '../../lib/supabase'
+import { supabase, setRememberMe } from '../../lib/supabase'
 import { playClick } from '../../lib/sound'
 import { haptics } from '../../lib/haptics'
 
@@ -25,11 +25,13 @@ export default function AuthCard({
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [signedUp, setSignedUp] = useState(false)
+  const [rememberMe, setRememberMeChecked] = useState(true)
 
   const handleSignIn = async () => {
     if (!email.trim() || !password) return setError('Enter your email and password.')
     setLoading(true)
     setError('')
+    setRememberMe(rememberMe)
     const { error: err } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
     setLoading(false)
     if (err) return setError(err.message)
@@ -42,6 +44,7 @@ export default function AuthCard({
     if (password.length < 6) return setError('Password must be at least 6 characters.')
     setLoading(true)
     setError('')
+    setRememberMe(rememberMe)
     const { error: err } = await supabase.auth.signUp({ email: email.trim(), password })
     setLoading(false)
     if (err) return setError(err.message)
@@ -89,6 +92,10 @@ export default function AuthCard({
           className={inputClass}
           onKeyDown={(e) => e.key === 'Enter' && (tab === 'signin' ? handleSignIn() : handleSignUp())}
         />
+        <label className="flex items-center gap-2 text-sm text-[var(--fg)]/80">
+          <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMeChecked(e.target.checked)} className="h-4 w-4" />
+          Remember me on this device
+        </label>
         {error && <p className="text-sm text-red-400">{error}</p>}
         <button onClick={tab === 'signin' ? handleSignIn : handleSignUp} disabled={loading} className="btn-solid w-full py-3 text-base">
           {loading ? 'Please wait…' : tab === 'signin' ? 'Sign In' : signUpLabel}

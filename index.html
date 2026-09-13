@@ -8,6 +8,22 @@
     <meta name="theme-color" content="#1b1030" />
     <meta name="description" content="MFM Children's Ministry Bible Quiz: a Who Wants to Be a Millionaire style trivia game for Sunday school, fully offline." />
     <title>MFM Children's Ministry Bible Quiz</title>
+    <script>
+      // This app routes entirely off the URL hash (HashRouter) - once React
+      // mounts it only ever looks at whatever comes after "#". A bare path
+      // typed, bookmarked, or shared without the "#" (e.g. /admin instead
+      // of /#/admin) still reaches this same index.html (vercel.json
+      // rewrites every path here), but with no hash at all - so the router
+      // sees an empty route and falls back to "/", the landing page. Catch
+      // that here, before the app boots, and rewrite the bare path into the
+      // hash it should have been all along.
+      (function () {
+        var path = window.location.pathname
+        if (path !== '/' && path !== '' && !window.location.hash) {
+          window.location.replace('/#' + path + window.location.search)
+        }
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>

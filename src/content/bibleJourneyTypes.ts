@@ -23,6 +23,8 @@ export interface JourneyLesson {
   title: string
   /** Primary reference for this micro-lesson, linked out to Bible.com. */
   reference: string
+  /** Path under /journey/ for a real illustration; falls back to each card's emoji when absent. */
+  image?: string
   cards: JourneyContentCard[]
   /** A quick one-question check dropped in partway through the lesson. */
   midCheck: JourneyCheckCard

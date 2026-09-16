@@ -80,6 +80,7 @@ const adamAndEve: JourneyUnit = {
       key: 'genesis-adam-eve-1',
       title: 'The Garden Home',
       reference: 'Genesis 2:8-25',
+      image: '/journey/adam-eve-garden-home.jpg',
       cards: [
         { emoji: '🏡', text: 'God planted a beautiful garden called Eden and put Adam right in the middle of it, with every tree and fruit he could want - free to enjoy all of it.', ref: 'Genesis 2:8-9' },
         { emoji: '🚫', text: 'There was one rule: don\'t eat from the tree of the knowledge of good and evil. Just one. Out of an entire garden full of good things, God only said no to that one tree.', ref: 'Genesis 2:16-17' },
@@ -99,6 +100,7 @@ const adamAndEve: JourneyUnit = {
       key: 'genesis-adam-eve-2',
       title: 'The First Sin',
       reference: 'Genesis 3:1-24',
+      image: '/journey/adam-eve-first-sin.jpg',
       cards: [
         { emoji: '🐍', text: 'A crafty serpent asked Eve, "Did God really say you can\'t eat from any tree?" - twisting the one small rule into something bigger, and planting doubt.', ref: 'Genesis 3:1-5' },
         { emoji: '🍎', text: 'Eve ate the fruit and gave some to Adam, and he ate too. Right away, everything changed - they felt ashamed and hid from God for the first time ever.', ref: 'Genesis 3:6-8' },
@@ -127,6 +129,7 @@ const cainAndAbel: JourneyUnit = {
       key: 'genesis-cain-abel-1',
       title: 'Two Brothers, Two Offerings',
       reference: 'Genesis 4:1-16',
+      image: '/journey/cain-abel-offerings.jpg',
       cards: [
         { emoji: '👨‍👦', text: 'Adam and Eve\'s sons Cain and Abel each brought an offering to God. Abel brought his best; Cain didn\'t bring his best - and God noticed the difference.', ref: 'Genesis 4:1-5' },
         { emoji: '😠', text: 'Cain got angry that Abel\'s offering pleased God and his didn\'t. God warned Cain to deal with that anger before it controlled him - but Cain didn\'t listen.', ref: 'Genesis 4:6-7' },
@@ -174,6 +177,7 @@ const noah: JourneyUnit = {
       key: 'genesis-noah-2',
       title: 'Building the Ark',
       reference: 'Genesis 6:14-22',
+      image: '/journey/noah-building-ark.jpg',
       cards: [
         { emoji: '🔨', text: 'God gave Noah exact instructions for a massive boat called an ark, built from cypress wood, coated in tar, with rooms inside for his family and every kind of animal.', ref: 'Genesis 6:14-16' },
         { emoji: '🐘', text: 'Noah was told to bring two of every kind of animal on board - male and female - so life could continue after the flood. That\'s a lot of animals to gather.', ref: 'Genesis 6:19-20' },
@@ -212,6 +216,7 @@ const noah: JourneyUnit = {
       key: 'genesis-noah-4',
       title: 'The Rainbow Promise',
       reference: 'Genesis 9:8-17',
+      image: '/journey/noah-dove-olive-branch.jpg',
       cards: [
         { emoji: '🐾', text: 'When the water finally dried up, Noah, his family, and every animal walked out onto dry land again. The first thing Noah did was build an altar and thank God.', ref: 'Genesis 8:15-20' },
         { emoji: '🌈', text: 'God made a promise - a covenant - that He would never flood the whole earth again. As a sign of that promise, He set a rainbow in the sky.', ref: 'Genesis 9:11-13' },
@@ -240,6 +245,7 @@ const towerOfBabel: JourneyUnit = {
       key: 'genesis-babel-1',
       title: 'One Language, One Tower',
       reference: 'Genesis 11:1-9',
+      image: '/journey/tower-of-babel.jpg',
       cards: [
         { emoji: '🗣️', text: 'After the flood, everyone on earth spoke the same language. A group of people decided to build a massive tower "to reach the heavens" and make a name for themselves.', ref: 'Genesis 11:1-4' },
         { emoji: '🏙️', text: 'The problem wasn\'t the building itself - it was the reason behind it: pride, and trying to prove they didn\'t need God at all.', ref: 'Genesis 11:4' },
@@ -325,6 +331,7 @@ const abraham: JourneyUnit = {
       key: 'genesis-abraham-4',
       title: 'The Test on the Mountain',
       reference: 'Genesis 22:1-18',
+      image: '/journey/abraham-isaac-ram-provided.jpg',
       cards: [
         { emoji: '⛰️', text: 'Years later, God tested Abraham in the hardest way possible: asking him to offer his beloved son Isaac as a sacrifice on a mountain. Abraham obeyed and set out, trusting God completely.', ref: 'Genesis 22:1-3' },
         { emoji: '🐏', text: 'Just as Abraham raised his hand, an angel stopped him. God had provided a ram to sacrifice instead - He never intended for Isaac to actually be harmed. It was a test of trust.', ref: 'Genesis 22:10-13' },
@@ -400,6 +407,7 @@ const jacob: JourneyUnit = {
       key: 'genesis-jacob-2',
       title: "Jacob's Ladder",
       reference: 'Genesis 28:10-22',
+      image: '/journey/jacob-ladder-dream.jpg',
       cards: [
         { emoji: '🌙', text: 'While running from Esau, Jacob stopped for the night, alone and afraid, using a rock as a pillow. That night God gave him an unforgettable dream.', ref: 'Genesis 28:10-11' },
         { emoji: '🪜', text: 'Jacob dreamed of a stairway reaching from earth to heaven, with angels going up and down it, and God standing at the top, speaking directly to him.', ref: 'Genesis 28:12-13' },

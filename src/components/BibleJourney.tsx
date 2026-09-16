@@ -180,10 +180,11 @@ function UnitPath({
                   >
                     {isDone ? <Check className="h-4 w-4" /> : isLocked ? <Lock className="h-3.5 w-3.5" /> : globalIdx + 1}
                   </span>
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold">{lesson.title}</p>
                     <p className="text-[11px] text-[var(--ink-muted)]">{lesson.reference}</p>
                   </div>
+                  {lesson.image && <img src={lesson.image} alt="" className="h-10 w-10 shrink-0 rounded-md object-cover" />}
                 </button>
               )
             })}
@@ -285,7 +286,11 @@ function LessonRunner({ bookKey, lessonKey, onDone }: { bookKey: string; lessonK
         >
           {step.kind === 'card' ? (
             <div className="panel space-y-4 p-6 text-center">
-              <div className="text-5xl">{step.emoji}</div>
+              {lesson.image ? (
+                <img src={lesson.image} alt="" className="mx-auto h-40 w-full rounded-lg object-cover" />
+              ) : (
+                <div className="text-5xl">{step.emoji}</div>
+              )}
               <p className="text-base leading-relaxed">{step.text}</p>
               <a
                 href={bibleComUrl(step.ref)}

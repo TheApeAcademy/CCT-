@@ -29,12 +29,16 @@ import {
   Mic2,
   Dice5,
   Brain,
+  Map,
+  Compass,
+  GraduationCap,
   type LucideIcon,
 } from 'lucide-react'
 import { supabase, signOut } from '../lib/supabase'
 import { bibleComUrl } from '../lib/bibleLink'
 import { useMinistryAuth } from '../lib/useMinistryAuth'
 import VillageMap from '../components/VillageMap'
+import BibleJourneyPanel from '../components/BibleJourney'
 import {
   getMyStudentProfile,
   updateMyStudentProfile,
@@ -261,6 +265,9 @@ const ACHIEVEMENT_ICONS: Record<string, LucideIcon> = {
   'book-open': BookOpen,
   flame: Flame,
   award: Award,
+  map: Map,
+  compass: Compass,
+  'graduation-cap': GraduationCap,
 }
 
 function HomeTab({
@@ -652,6 +659,7 @@ function AssignmentCard({ assignment }: { assignment: AssignmentRow }) {
 }
 
 function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string }) | null }) {
+  const [journeyOpen, setJourneyOpen] = useState(false)
   const [reading, setReading] = useState<TodaysReading | null | 'loading'>('loading')
   const [streak, setStreak] = useState(0)
   const [completed, setCompleted] = useState(false)
@@ -695,8 +703,27 @@ function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string 
     }
   }
 
+  if (journeyOpen) {
+    return <BibleJourneyPanel onExit={() => setJourneyOpen(false)} />
+  }
+
   return (
     <div className="space-y-8">
+      <button
+        onClick={() => {
+          playClick()
+          setJourneyOpen(true)
+        }}
+        className="panel flex w-full items-center gap-4 p-5 text-left transition hover:scale-[1.01]"
+        style={{ background: 'color-mix(in srgb, var(--lp-accent-bible) 14%, var(--lp-bg-panel))' }}
+      >
+        <span className="text-4xl">🗺️</span>
+        <div>
+          <p className="font-display text-lg font-extrabold">Bible Journey</p>
+          <p className="text-xs text-[var(--ink-muted)]">Learn the Bible book by book, story by story - at your own pace.</p>
+        </div>
+      </button>
+
       <div className="space-y-3">
         <p className="eyebrow">Sunday School Lessons</p>
         {!klass && (

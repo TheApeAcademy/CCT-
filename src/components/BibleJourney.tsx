@@ -195,7 +195,7 @@ function UnitPath({
   )
 }
 
-type LearnStep = { kind: 'card'; text: string; emoji: string; ref: string } | { kind: 'groupcheck'; check: JourneyCheckCard }
+type LearnStep = { kind: 'card'; text: string; emoji: string; ref: string; image?: string } | { kind: 'groupcheck'; check: JourneyCheckCard }
 
 /**
  * cards -> groupCheck (the "3-4 pages, then a question" pass), then a
@@ -216,10 +216,10 @@ function LessonRunner({ bookKey, lessonKey, onDone }: { bookKey: string; lessonK
 
   const learnSteps: LearnStep[] = useMemo(() => {
     if (!lesson) return []
-    return [
-      ...lesson.cards.map((c) => ({ kind: 'card' as const, text: c.text, emoji: c.emoji, ref: c.ref })),
-      { kind: 'groupcheck' as const, check: lesson.groupCheck },
-    ]
+    return lesson.sections.flatMap((section) => [
+      ...section.cards.map((c) => ({ kind: 'card' as const, text: c.text, emoji: c.emoji, ref: c.ref, image: section.image })),
+      ...section.checkQuestions.map((q) => ({ kind: 'groupcheck' as const, check: q })),
+    ])
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lesson?.key])
 
@@ -314,7 +314,6 @@ function LessonRunner({ bookKey, lessonKey, onDone }: { bookKey: string; lessonK
           <LearnStepView
             key={`learn-${stepIndex}`}
             step={learnSteps[stepIndex]}
-            lessonImage={lesson.image}
             selected={selected}
             showResult={showResult}
             onChoose={chooseLearn}
@@ -337,14 +336,12 @@ function LessonRunner({ bookKey, lessonKey, onDone }: { bookKey: string; lessonK
 
 function LearnStepView({
   step,
-  lessonImage,
   selected,
   showResult,
   onChoose,
   onAdvance,
 }: {
   step: LearnStep
-  lessonImage?: string
   selected: number | null
   showResult: boolean
   onChoose: (idx: number) => void
@@ -354,8 +351,8 @@ function LearnStepView({
     <motion.div initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.2 }}>
       {step.kind === 'card' ? (
         <div className="panel space-y-4 p-6 text-center">
-          {lessonImage ? (
-            <img src={lessonImage} alt="" className="mx-auto h-40 w-full rounded-lg object-cover" />
+          {step.image ? (
+            <img src={step.image} alt="" className="mx-auto h-40 w-full rounded-lg object-cover" />
           ) : (
             <div className="text-5xl">{step.emoji}</div>
           )}

@@ -19,23 +19,32 @@ export interface JourneyCheckCard {
   explanation?: string
 }
 
+export interface JourneySection {
+  /** A run of pages read straight through - however many the material actually needs, not a fixed count. */
+  cards: JourneyContentCard[]
+  /** Asked right after this section's cards, testing just what was read here. A single pass, not a retry loop. */
+  checkQuestions: JourneyCheckCard[]
+  /** Path under /journey/ for this section's illustration; falls back to each card's emoji when absent. */
+  image?: string
+}
+
 export interface JourneyLesson {
-  /** Globally unique, e.g. "genesis-noah-2". Used as the DB progress key. */
+  /** Globally unique, e.g. "genesis-noah". Used as the DB progress key. */
   key: string
   title: string
-  /** Primary reference for this micro-lesson, linked out to Bible.com. */
+  /** Primary reference for this lesson, linked out to Bible.com. */
   reference: string
   /** Path under /journey/ for a real illustration; falls back to each card's emoji when absent. */
   image?: string
-  /** The "pages" of learning - read straight through, then groupCheck tests them as a set. */
-  cards: JourneyContentCard[]
-  /** Asked once all of this lesson's pages have been read. */
-  groupCheck: JourneyCheckCard
+  /** As many read-then-check sections as the lesson's material actually calls for - no fixed shape. */
+  sections: JourneySection[]
   /**
-   * The end-of-lesson mastery round (10 questions covering everything in the
-   * lesson). Every one must eventually be answered correctly - a wrong
-   * answer shows its explanation and the question is requeued rather than
-   * skipped, so the lesson can't complete until all of them are right.
+   * The end-of-lesson mastery round covering everything in the lesson - its
+   * length varies with how much the lesson actually covers (never more than
+   * 10, never forced up to 10 either). Every question must eventually be
+   * answered correctly: a wrong answer shows its explanation and the
+   * question is requeued rather than skipped, so the lesson can't complete
+   * until all of them are right.
    */
   masteryQuestions: JourneyCheckCard[]
 }

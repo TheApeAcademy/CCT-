@@ -1,5 +1,6 @@
 import { Link, Outlet } from 'react-router-dom'
 import BackButton from './BackButton'
+import InstallAppButton from './InstallAppButton'
 
 /**
  * Chrome for the two public-facing kid screens (sign up / sign in at
@@ -26,7 +27,10 @@ export default function KidsShell({ eyebrow }: { eyebrow: string }) {
               <img src="/children-ministry-logo-splash.png" alt="MFM Children's Ministry" className="h-14 w-auto object-contain sm:h-16" />
             </Link>
           </div>
-          <span className="lp-eyebrow">{eyebrow}</span>
+          <div className="flex shrink-0 items-center gap-3">
+            <InstallAppButton />
+            <span className="lp-eyebrow">{eyebrow}</span>
+          </div>
         </div>
       </header>
       <main className="relative z-10 mx-auto max-w-3xl px-4 py-10 sm:py-14">

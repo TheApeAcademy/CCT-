@@ -45,9 +45,17 @@ import {
 } from '../lib/ministry'
 import { playClick } from '../lib/sound'
 import { haptics } from '../lib/haptics'
+import { setLastPortal } from '../lib/lastPortal'
 
 export default function AdminPortal() {
   const { session, profile, loading } = useMinistryAuth()
+
+  // Remembered so an installed home-screen icon can launch straight into
+  // /admin next time (see the redirect script in index.html), instead of
+  // always opening the marketing landing page first.
+  useEffect(() => {
+    if (session && profile?.role === 'admin') setLastPortal('admin')
+  }, [session, profile])
 
   if (loading) return <div className="py-20 text-center text-xl">Loading…</div>
   if (!session) {

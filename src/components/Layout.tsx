@@ -7,6 +7,7 @@ import StageBackground from './StageBackground'
 import BackButton from './BackButton'
 import SiteFooter from './SiteFooter'
 import ThemeToggle from './ThemeToggle'
+import InstallAppButton from './InstallAppButton'
 import { useLandingTheme } from '../lib/landingTheme'
 
 const MFM_LIVE_URL = 'https://www.mountainoffire.org/live'
@@ -204,6 +205,8 @@ export default function Layout() {
 
             {isHome && <ThemeToggle theme={theme} onToggle={toggleTheme} />}
 
+            <InstallAppButton className="hidden sm:block" />
+
             <button
               onClick={toggleMute}
               className="btn-outline !border-0 !bg-transparent p-2 text-base"
@@ -267,6 +270,7 @@ export default function Layout() {
               <Radio className="h-3.5 w-3.5" strokeWidth={2.25} />
               Live
             </a>
+            <InstallAppButton className="[&>button]:w-full [&>button]:justify-center" />
           </div>
         </nav>
       </header>

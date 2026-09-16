@@ -72,11 +72,19 @@ import { fileToResizedDataUrl } from '../lib/image'
 import { renderIdCardPng } from '../lib/idCard'
 import { playClick, playNav } from '../lib/sound'
 import { haptics } from '../lib/haptics'
+import { setLastPortal } from '../lib/lastPortal'
 
 const inputClass = 'w-full rounded-md border border-[var(--hairline-strong)] bg-transparent px-4 py-3 outline-none focus:border-[var(--gold)]'
 
 export default function StudentPortal() {
   const { session, profile, loading } = useMinistryAuth()
+
+  // Remembered so an installed home-screen icon can launch straight into
+  // /student next time (see the redirect script in index.html), instead of
+  // always opening the marketing landing page first.
+  useEffect(() => {
+    if (session && profile?.role === 'student') setLastPortal('student')
+  }, [session, profile])
 
   if (loading) return <div className="py-20 text-center text-xl">Loading…</div>
   if (!session || profile?.role !== 'student') {

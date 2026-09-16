@@ -195,70 +195,98 @@ function UnitPath({
   )
 }
 
-type Step = { kind: 'card'; text: string; emoji: string; ref: string } | { kind: 'check'; check: JourneyCheckCard; isEnd: boolean }
+type LearnStep = { kind: 'card'; text: string; emoji: string; ref: string } | { kind: 'groupcheck'; check: JourneyCheckCard }
 
+/**
+ * cards -> groupCheck (the "3-4 pages, then a question" pass), then a
+ * mastery round over every masteryQuestions entry: answering one wrong
+ * doesn't skip it - it shows the explanation and requeues that question to
+ * the back of the line, so the lesson can't complete until every single
+ * one has been answered right at least once.
+ */
 function LessonRunner({ bookKey, lessonKey, onDone }: { bookKey: string; lessonKey: string; onDone: () => void }) {
   const found = findLesson(lessonKey)
   const lesson = found?.lesson
+  const [phase, setPhase] = useState<'learn' | 'mastery' | 'celebrate'>('learn')
   const [stepIndex, setStepIndex] = useState(0)
+  const [queue, setQueue] = useState<number[]>([])
+  const [wrongOnce, setWrongOnce] = useState<Set<number>>(new Set())
   const [selected, setSelected] = useState<number | null>(null)
   const [showResult, setShowResult] = useState(false)
-  const [correctCount, setCorrectCount] = useState(0)
-  const [celebrating, setCelebrating] = useState(false)
-  const [endTotal, setEndTotal] = useState(0)
 
-  const steps: Step[] = useMemo(() => {
+  const learnSteps: LearnStep[] = useMemo(() => {
     if (!lesson) return []
-    const mid = Math.ceil(lesson.cards.length / 2)
     return [
-      ...lesson.cards.slice(0, mid).map((c) => ({ kind: 'card' as const, text: c.text, emoji: c.emoji, ref: c.ref })),
-      { kind: 'check' as const, check: lesson.midCheck, isEnd: false },
-      ...lesson.cards.slice(mid).map((c) => ({ kind: 'card' as const, text: c.text, emoji: c.emoji, ref: c.ref })),
-      ...lesson.endCheckpoint.map((c) => ({ kind: 'check' as const, check: c, isEnd: true })),
+      ...lesson.cards.map((c) => ({ kind: 'card' as const, text: c.text, emoji: c.emoji, ref: c.ref })),
+      { kind: 'groupcheck' as const, check: lesson.groupCheck },
     ]
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lesson?.key])
 
   if (!lesson) return <p className="text-sm text-[var(--ink-muted)]">This lesson couldn&apos;t be found.</p>
 
-  const step = steps[stepIndex]
+  const totalMastery = lesson.masteryQuestions.length
+  const masteredCount = totalMastery - queue.length
 
-  const advance = async () => {
-    playClick()
-    setSelected(null)
-    setShowResult(false)
-    if (stepIndex + 1 < steps.length) {
-      setStepIndex(stepIndex + 1)
-      return
-    }
-    const endQuestions = steps.filter((s) => s.kind === 'check' && s.isEnd).length
-    setEndTotal(endQuestions)
-    haptics.success()
-    await completeJourneyLesson(bookKey, lesson.key, correctCount)
-    setCelebrating(true)
-  }
-
-  const choose = (idx: number) => {
+  const chooseLearn = (idx: number) => {
     if (showResult) return
     playClick()
     setSelected(idx)
     setShowResult(true)
-    if (step.kind === 'check' && idx === step.check.correctIndex) {
-      haptics.success()
-      if (step.isEnd) setCorrectCount((c) => c + 1)
-    } else {
+    if (idx === (learnSteps[stepIndex] as { kind: 'groupcheck'; check: JourneyCheckCard }).check.correctIndex) haptics.success()
+    else haptics.error()
+  }
+
+  const advanceLearn = () => {
+    playClick()
+    setSelected(null)
+    setShowResult(false)
+    if (stepIndex + 1 < learnSteps.length) {
+      setStepIndex(stepIndex + 1)
+      return
+    }
+    setQueue(lesson.masteryQuestions.map((_, i) => i))
+    setPhase('mastery')
+  }
+
+  const chooseMastery = (idx: number) => {
+    if (showResult) return
+    playClick()
+    setSelected(idx)
+    setShowResult(true)
+    const currentQ = lesson.masteryQuestions[queue[0]]
+    if (idx === currentQ.correctIndex) haptics.success()
+    else {
       haptics.error()
+      setWrongOnce((prev) => new Set(prev).add(queue[0]))
     }
   }
 
-  if (celebrating) {
+  const advanceMastery = async () => {
+    playClick()
+    const currentIdx = queue[0]
+    const wasCorrect = selected === lesson.masteryQuestions[currentIdx].correctIndex
+    setSelected(null)
+    setShowResult(false)
+    const rest = queue.slice(1)
+    const nextQueue = wasCorrect ? rest : [...rest, currentIdx]
+    if (nextQueue.length === 0) {
+      haptics.success()
+      await completeJourneyLesson(bookKey, lesson.key, totalMastery - wrongOnce.size)
+      setPhase('celebrate')
+      return
+    }
+    setQueue(nextQueue)
+  }
+
+  if (phase === 'celebrate') {
     return (
       <div className="relative space-y-4 py-6 text-center">
         <Confetti active />
         <div className="text-6xl">🎉</div>
         <p className="font-display text-2xl font-extrabold">Lesson Complete!</p>
         <p className="text-sm text-[var(--ink-muted)]">
-          {correctCount}/{endTotal} correct on the checkpoint · +15 points
+          {totalMastery}/{totalMastery} mastered · {totalMastery - wrongOnce.size} right on the first try · +15 points
         </p>
         <button onClick={onDone} className="btn-solid w-full py-3">
           Continue
@@ -267,78 +295,170 @@ function LessonRunner({ bookKey, lessonKey, onDone }: { bookKey: string; lessonK
     )
   }
 
+  const progressPct =
+    phase === 'learn' ? ((stepIndex + 1) / learnSteps.length) * 60 : 60 + (masteredCount / totalMastery) * 40
+
   return (
     <div className="space-y-4">
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--lp-hairline)]">
-        <div
-          className="h-full rounded-full transition-all"
-          style={{ width: `${((stepIndex + 1) / steps.length) * 100}%`, background: ACCENT }}
-        />
+        <div className="h-full rounded-full transition-all" style={{ width: `${progressPct}%`, background: ACCENT }} />
       </div>
+      {phase === 'mastery' && (
+        <p className="text-center text-xs font-bold text-[var(--ink-muted)]">
+          Mastery round · {masteredCount}/{totalMastery} answered right
+        </p>
+      )}
 
       <AnimatePresence mode="wait" initial={false}>
-        <motion.div
-          key={stepIndex}
-          initial={{ opacity: 0, x: 16 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -16 }}
-          transition={{ duration: 0.2 }}
-        >
-          {step.kind === 'card' ? (
-            <div className="panel space-y-4 p-6 text-center">
-              {lesson.image ? (
-                <img src={lesson.image} alt="" className="mx-auto h-40 w-full rounded-lg object-cover" />
-              ) : (
-                <div className="text-5xl">{step.emoji}</div>
-              )}
-              <p className="text-base leading-relaxed">{step.text}</p>
-              <a
-                href={bibleComUrl(step.ref)}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 rounded-full border border-[var(--lp-hairline)] px-3 py-1 text-xs font-bold text-[var(--ink-muted)] transition hover:text-[var(--lp-heading)]"
-              >
-                <BookOpen className="h-3 w-3" /> {step.ref}
-              </a>
-              <button onClick={advance} className="btn-solid w-full py-3">
-                Got it, next
-              </button>
-            </div>
-          ) : (
-            <div className="panel space-y-3 p-6">
-              <p className="flex items-center gap-1.5 text-xs font-bold uppercase text-[var(--ink-muted)]">
-                <Sparkles className="h-3.5 w-3.5" /> Quick check
-              </p>
-              <p className="font-display text-lg font-bold">{step.check.question}</p>
-              <div className="space-y-2">
-                {step.check.options.map((opt, idx) => {
-                  const isCorrect = idx === step.check.correctIndex
-                  const isPicked = idx === selected
-                  return (
-                    <button
-                      key={idx}
-                      onClick={() => choose(idx)}
-                      disabled={showResult}
-                      className="w-full rounded-md border-2 p-3 text-left text-sm font-bold transition"
-                      style={{
-                        borderColor: showResult && isCorrect ? '#4caf6d' : showResult && isPicked ? '#e05f5f' : 'var(--lp-hairline-strong)',
-                        background: showResult && isCorrect ? 'color-mix(in srgb, #4caf6d 14%, transparent)' : showResult && isPicked ? 'color-mix(in srgb, #e05f5f 14%, transparent)' : 'transparent',
-                      }}
-                    >
-                      {opt}
-                    </button>
-                  )
-                })}
-              </div>
-              {showResult && (
-                <button onClick={advance} className="btn-solid w-full py-3">
-                  Continue
-                </button>
-              )}
-            </div>
-          )}
-        </motion.div>
+        {phase === 'learn' ? (
+          <LearnStepView
+            key={`learn-${stepIndex}`}
+            step={learnSteps[stepIndex]}
+            lessonImage={lesson.image}
+            selected={selected}
+            showResult={showResult}
+            onChoose={chooseLearn}
+            onAdvance={advanceLearn}
+          />
+        ) : (
+          <MasteryStepView
+            key={`mastery-${queue[0]}-${masteredCount}`}
+            check={lesson.masteryQuestions[queue[0]]}
+            selected={selected}
+            showResult={showResult}
+            onChoose={chooseMastery}
+            onAdvance={advanceMastery}
+          />
+        )}
       </AnimatePresence>
+    </div>
+  )
+}
+
+function LearnStepView({
+  step,
+  lessonImage,
+  selected,
+  showResult,
+  onChoose,
+  onAdvance,
+}: {
+  step: LearnStep
+  lessonImage?: string
+  selected: number | null
+  showResult: boolean
+  onChoose: (idx: number) => void
+  onAdvance: () => void
+}) {
+  return (
+    <motion.div initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.2 }}>
+      {step.kind === 'card' ? (
+        <div className="panel space-y-4 p-6 text-center">
+          {lessonImage ? (
+            <img src={lessonImage} alt="" className="mx-auto h-40 w-full rounded-lg object-cover" />
+          ) : (
+            <div className="text-5xl">{step.emoji}</div>
+          )}
+          <p className="text-base leading-relaxed">{step.text}</p>
+          <a
+            href={bibleComUrl(step.ref)}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 rounded-full border border-[var(--lp-hairline)] px-3 py-1 text-xs font-bold text-[var(--ink-muted)] transition hover:text-[var(--lp-heading)]"
+          >
+            <BookOpen className="h-3 w-3" /> {step.ref}
+          </a>
+          <button onClick={onAdvance} className="btn-solid w-full py-3">
+            Got it, next
+          </button>
+        </div>
+      ) : (
+        <CheckCard
+          check={step.check}
+          selected={selected}
+          showResult={showResult}
+          onChoose={onChoose}
+          onAdvance={onAdvance}
+          heading="Quick check"
+        />
+      )}
+    </motion.div>
+  )
+}
+
+function MasteryStepView({
+  check,
+  selected,
+  showResult,
+  onChoose,
+  onAdvance,
+}: {
+  check: JourneyCheckCard
+  selected: number | null
+  showResult: boolean
+  onChoose: (idx: number) => void
+  onAdvance: () => void
+}) {
+  return (
+    <motion.div initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.2 }}>
+      <CheckCard check={check} selected={selected} showResult={showResult} onChoose={onChoose} onAdvance={onAdvance} heading="Mastery round" />
+    </motion.div>
+  )
+}
+
+function CheckCard({
+  check,
+  selected,
+  showResult,
+  onChoose,
+  onAdvance,
+  heading,
+}: {
+  check: JourneyCheckCard
+  selected: number | null
+  showResult: boolean
+  onChoose: (idx: number) => void
+  onAdvance: () => void
+  heading: string
+}) {
+  const isWrong = showResult && selected !== check.correctIndex
+  return (
+    <div className="panel space-y-3 p-6">
+      <p className="flex items-center gap-1.5 text-xs font-bold uppercase text-[var(--ink-muted)]">
+        <Sparkles className="h-3.5 w-3.5" /> {heading}
+      </p>
+      <p className="font-display text-lg font-bold">{check.question}</p>
+      <div className="space-y-2">
+        {check.options.map((opt, idx) => {
+          const isCorrect = idx === check.correctIndex
+          const isPicked = idx === selected
+          return (
+            <button
+              key={idx}
+              onClick={() => onChoose(idx)}
+              disabled={showResult}
+              className="w-full rounded-md border-2 p-3 text-left text-sm font-bold transition"
+              style={{
+                borderColor: showResult && isCorrect ? '#4caf6d' : showResult && isPicked ? '#e05f5f' : 'var(--lp-hairline-strong)',
+                background: showResult && isCorrect ? 'color-mix(in srgb, #4caf6d 14%, transparent)' : showResult && isPicked ? 'color-mix(in srgb, #e05f5f 14%, transparent)' : 'transparent',
+              }}
+            >
+              {opt}
+            </button>
+          )
+        })}
+      </div>
+      {isWrong && check.explanation && (
+        <p className="rounded-md bg-[var(--lp-hairline)] p-3 text-sm text-[var(--ink-muted)]">{check.explanation}</p>
+      )}
+      {isWrong && (
+        <p className="text-center text-xs font-bold text-[var(--ink-muted)]">Not quite - this one will come back around.</p>
+      )}
+      {showResult && (
+        <button onClick={onAdvance} className="btn-solid w-full py-3">
+          Continue
+        </button>
+      )}
     </div>
   )
 }

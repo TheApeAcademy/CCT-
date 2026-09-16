@@ -3,6 +3,12 @@ import type { JourneyBook, JourneyUnit } from './bibleJourneyTypes'
 // Genesis: the first book of the Bible Journey. More books get added the
 // same way, one at a time (Exodus next, then onward) - see BibleJourney.tsx
 // for how a book with no units yet shows up as "coming soon" on the map.
+//
+// Each lesson: read its cards straight through, answer the groupCheck about
+// what was just read, then a 10-question mastery round covering everything
+// in the lesson - every question must eventually be answered right (a wrong
+// answer shows its explanation and gets asked again later) before the
+// lesson can complete.
 
 const creation: JourneyUnit = {
   key: 'creation',
@@ -19,14 +25,22 @@ const creation: JourneyUnit = {
         { emoji: '💡', text: 'The earth was dark and empty, like a room with the lights off. On Day 1, God said "Let there be light" - and light appeared, just like that. No tools, no waiting. Just His word.', ref: 'Genesis 1:2-5' },
         { emoji: '🌊', text: 'On Day 2, God separated the sky from the waters. On Day 3, He gathered the water into oceans and made dry land appear, then filled it with trees, plants, and flowers.', ref: 'Genesis 1:6-13' },
       ],
-      midCheck: {
+      groupCheck: {
         question: 'How did God make light appear?',
         options: ['He flipped a switch', 'He spoke, and it happened', 'He used fire', 'It was already there'],
         correctIndex: 1,
       },
-      endCheckpoint: [
-        { question: 'What existed before God made the heavens and the earth?', options: ['The sun', 'The ocean', 'Just God', 'The stars'], correctIndex: 2 },
-        { question: 'On which day did God make dry land and plants?', options: ['Day 1', 'Day 2', 'Day 3', 'Day 7'], correctIndex: 2 },
+      masteryQuestions: [
+        { question: 'What are the very first words of the Bible?', options: ['"Once upon a time"', '"Let there be light"', '"In the beginning God created the heavens and the earth"', '"God rested"'], correctIndex: 2, explanation: 'Genesis 1:1 opens the whole Bible with exactly that line.' },
+        { question: 'What was the earth like before Day 1?', options: ['Dark and empty', 'Full of animals', 'Covered in flowers', 'On fire'], correctIndex: 0, explanation: 'Genesis 1:2 describes the earth as formless, empty, and dark before God began.' },
+        { question: 'How did God make light appear on Day 1?', options: ['He built a lamp', 'He spoke, and it happened', 'He waited for the sun', 'He asked an angel to do it'], correctIndex: 1, explanation: 'God simply said "Let there be light" - His word alone made it happen.' },
+        { question: 'What did God separate on Day 2?', options: ['Land and sea', 'The sky and the waters', 'Day and night only', 'Nothing at all'], correctIndex: 1, explanation: 'Genesis 1:6-8 describes God separating the sky from the waters below.' },
+        { question: 'What appeared on Day 3?', options: ['Fish', 'Dry land and plants', 'The sun and moon', 'People'], correctIndex: 1, explanation: 'God gathered the waters and dry land appeared, then He filled it with plants.' },
+        { question: 'Which of these happened first?', options: ['Dry land appearing', 'Light appearing', 'People being made', 'The flood'], correctIndex: 1, explanation: 'Light came on Day 1; dry land came later, on Day 3.' },
+        { question: "Why didn't God need any tools to create light?", options: ["He wasn't strong enough anyway", 'His word alone has the power to create', 'He borrowed tools from angels', "He didn't actually create light"], correctIndex: 1, explanation: 'God simply spoke and it happened - showing His word carries real power.' },
+        { question: 'What is Genesis 1:1-13 mainly about?', options: ["Noah's ark", 'The first three days of creation', "Jesus' birth", 'The Ten Commandments'], correctIndex: 1, explanation: 'These verses cover Day 1 (light) through Day 3 (land and plants).' },
+        { question: 'Which book of the Bible is this story found in?', options: ['Exodus', 'Psalms', 'Genesis', 'Matthew'], correctIndex: 2, explanation: 'Genesis is the very first book of the Bible, and this is its opening story.' },
+        { question: "What does this story teach about God's power?", options: ['He needs help to create anything', 'He creates just by speaking', 'He created nothing Himself', 'He is weak'], correctIndex: 1, explanation: 'Every day of creation in this passage happens because God speaks.' },
       ],
     },
     {
@@ -38,14 +52,22 @@ const creation: JourneyUnit = {
         { emoji: '🐟', text: 'On Day 5, God filled the oceans with fish of every shape and size, and filled the sky with birds. Whales, tiny fish, eagles, sparrows - all made that day.', ref: 'Genesis 1:20-23' },
         { emoji: '🦁', text: 'On Day 6, God made every land animal: lions, elephants, ants, giraffes. Every single one was His idea first. He looked at all of it and called it good.', ref: 'Genesis 1:24-25' },
       ],
-      midCheck: {
+      groupCheck: {
         question: 'What did God make on Day 5?',
         options: ['Land animals', 'The sun and moon', 'Fish and birds', 'People'],
         correctIndex: 2,
       },
-      endCheckpoint: [
-        { question: 'What did God put in the sky on Day 4?', options: ['Birds', 'The sun, moon, and stars', 'Clouds only', 'Nothing yet'], correctIndex: 1 },
-        { question: 'What did God call His creation after each day?', options: ['Boring', 'Good', 'Unfinished', 'A mistake'], correctIndex: 1 },
+      masteryQuestions: [
+        { question: 'What did God put in the sky on Day 4?', options: ['Birds', 'The sun, moon, and stars', 'Clouds only', 'Nothing yet'], correctIndex: 1, explanation: 'Genesis 1:16 says God made the sun, moon, and stars on Day 4.' },
+        { question: 'What did God fill the oceans and sky with on Day 5?', options: ['Rocks', 'Fish and birds', 'Sand', 'Nothing'], correctIndex: 1, explanation: 'Day 5 was for sea creatures and birds, from whales to sparrows.' },
+        { question: 'What did God make on Day 6?', options: ['Land animals', 'Stars', 'Oceans', 'Light'], correctIndex: 0, explanation: 'Lions, elephants, ants, and giraffes were all made on Day 6.' },
+        { question: 'Which of these is a land animal made on Day 6?', options: ['Lion', 'Sparrow', 'Whale', 'Star'], correctIndex: 0, explanation: 'Birds and sea creatures came on Day 5; land animals like the lion came on Day 6.' },
+        { question: 'What did the sun, moon, and stars help mark?', options: ['Days, seasons, and years', 'Only nighttime', 'Nothing important', 'Nap time'], correctIndex: 0, explanation: 'Genesis 1:14 says they were made to mark seasons, days, and years.' },
+        { question: 'Which came first: birds or land animals?', options: ['Birds, on Day 5', 'Land animals, on Day 5', 'They came on the same day', 'Neither is mentioned'], correctIndex: 0, explanation: 'Birds and fish were Day 5; land animals came a day later, on Day 6.' },
+        { question: 'What did God say about everything He made?', options: ['It was a mistake', 'It was good', 'It was boring', 'It was unfinished'], correctIndex: 1, explanation: 'Genesis 1:25 says God saw that it was good.' },
+        { question: 'Why does it matter that God called His creation "good"?', options: ['It shows He was pleased with His work', 'It means nothing at all', 'It means He would destroy it', 'It means He was unsure'], correctIndex: 0, explanation: "Calling it good shows God's satisfaction with what He made." },
+        { question: 'Which reference covers Days 4 through 6?', options: ['Genesis 1:14-25', 'Genesis 2:1-3', 'Genesis 3:1', 'Exodus 1'], correctIndex: 0, explanation: 'This lesson is drawn from Genesis 1:14-25.' },
+        { question: 'What is this lesson mainly about?', options: ['The flood', 'Living things God made on Days 4-6', "Adam and Eve's sin", 'The Tower of Babel'], correctIndex: 1, explanation: "It covers the sun, moon, stars, sea creatures, birds, and land animals - all life God filled the world with." },
       ],
     },
     {
@@ -57,14 +79,22 @@ const creation: JourneyUnit = {
         { emoji: '🌳', text: 'God gave Adam and Eve a job: take care of the whole earth, the animals, and each other. He trusted them with something huge, right from the start.', ref: 'Genesis 1:28' },
         { emoji: '🛌', text: 'On Day 7, God rested. Not because He was tired - God never gets tired - but to show that rest matters. He made the whole world in six days and then paused.', ref: 'Genesis 2:1-3' },
       ],
-      midCheck: {
+      groupCheck: {
         question: 'What makes people different from the animals God made?',
-        options: ['People are bigger', 'People are made in God\'s own image', 'People came first', 'People can fly'],
+        options: ['People are bigger', "People are made in God's own image", 'People came first', 'People can fly'],
         correctIndex: 1,
       },
-      endCheckpoint: [
-        { question: 'What job did God give Adam and Eve?', options: ['Build a tower', 'Take care of the earth', 'Sail the ocean', 'Count the stars'], correctIndex: 1 },
-        { question: 'Why did God rest on Day 7?', options: ['He was tired', 'He forgot what to do next', 'To show rest matters', 'He was bored'], correctIndex: 2 },
+      masteryQuestions: [
+        { question: 'What did God make that was different from every animal?', options: ['A bigger animal', 'People, made in His own image', 'A robot', 'Nothing new at all'], correctIndex: 1, explanation: 'Genesis 1:27 says people alone were made in God\'s own image.' },
+        { question: 'What job did God give Adam and Eve?', options: ['Build a city', 'Take care of the earth and animals', 'Fight enemies', 'Sail the seas'], correctIndex: 1, explanation: 'God trusted them to care for the whole earth right from the start.' },
+        { question: 'On which day did God make people?', options: ['Day 3', 'Day 5', 'Day 6', 'Day 7'], correctIndex: 2, explanation: 'People were the last thing God made, on Day 6.' },
+        { question: 'What did God do on Day 7?', options: ['Made more animals', 'Rested', 'Flooded the earth', 'Created the sun'], correctIndex: 1, explanation: 'After six days of creating, God rested on the seventh.' },
+        { question: "Why did God rest on Day 7 if He never gets tired?", options: ['To show that rest matters', 'Because He was exhausted', 'By accident', 'To hide from Adam'], correctIndex: 0, explanation: "God's rest wasn't about being tired - it showed that rest itself is important." },
+        { question: '"Made in God\'s image" means what?', options: ['People are exactly the same as God', 'People are made to be like Him in a special way', 'It means nothing', 'People are robots'], correctIndex: 1, explanation: 'It means people reflect God in a unique way no animal does.' },
+        { question: 'How many days did it take God to make the whole world?', options: ['3', '6', '7', '10'], correctIndex: 1, explanation: 'God created everything in six days, then rested on the seventh.' },
+        { question: 'What did God trust Adam and Eve with right from the start?', options: ['Nothing', 'Caring for the whole earth', 'A kingdom of gold', 'A secret'], correctIndex: 1, explanation: 'Genesis 1:28 shows God gave them real responsibility immediately.' },
+        { question: 'What is Genesis 2:1-3 about?', options: ['The flood', 'God resting on Day 7', 'The Tower of Babel', "Noah's ark"], correctIndex: 1, explanation: 'These verses describe God resting after finishing His work.' },
+        { question: "What's the big takeaway from Creation Week?", options: ['God made everything on purpose, including people', 'The world made itself', 'God is still creating new planets today', 'None of it matters'], correctIndex: 0, explanation: 'Every day of creation, including people, happened on purpose by God\'s design.' },
       ],
     },
   ],
@@ -86,14 +116,22 @@ const adamAndEve: JourneyUnit = {
         { emoji: '🚫', text: 'There was one rule: don\'t eat from the tree of the knowledge of good and evil. Just one. Out of an entire garden full of good things, God only said no to that one tree.', ref: 'Genesis 2:16-17' },
         { emoji: '👩', text: 'God saw that Adam needed a companion, so He made Eve. The two of them lived together in the garden, walking and talking with God like friends.', ref: 'Genesis 2:18-25' },
       ],
-      midCheck: {
+      groupCheck: {
         question: 'How many trees in the garden were off-limits to Adam and Eve?',
         options: ['All of them', 'Ten', 'Just one', 'None'],
         correctIndex: 2,
       },
-      endCheckpoint: [
-        { question: 'What was the name of the garden God made?', options: ['Canaan', 'Eden', 'Egypt', 'Nazareth'], correctIndex: 1 },
-        { question: 'Why did God make Eve?', options: ['Adam asked for a servant', 'Adam needed a companion', 'The animals wanted a friend', 'No reason given'], correctIndex: 1 },
+      masteryQuestions: [
+        { question: 'What was the name of the garden God made?', options: ['Canaan', 'Eden', 'Egypt', 'Nazareth'], correctIndex: 1, explanation: 'God planted the Garden of Eden and placed Adam in it.' },
+        { question: 'How much of the garden could Adam freely enjoy?', options: ['None of it', 'Just one tree', 'Almost all of it, except one tree', 'Only the flowers'], correctIndex: 2, explanation: 'Every tree except one was completely open to Adam.' },
+        { question: 'What was the one rule God gave?', options: ["Don't eat from the tree of the knowledge of good and evil", 'Never sleep in the garden', "Don't talk to animals", 'Never leave Eden'], correctIndex: 0, explanation: 'That single tree was the only thing off-limits.' },
+        { question: 'Why did God make Eve?', options: ['Adam asked for a servant', 'Adam needed a companion', 'The animals wanted a friend', 'No reason is given'], correctIndex: 1, explanation: 'God saw Adam needed someone to share life with.' },
+        { question: 'How did Adam and Eve relate to God in the garden?', options: ['They hid from Him', 'They walked and talked with Him like friends', 'They never saw Him', 'They were afraid of Him'], correctIndex: 1, explanation: 'Before sin entered, their friendship with God was open and close.' },
+        { question: 'What did God give Adam access to besides the one forbidden tree?', options: ['Nothing at all', 'Every other tree and fruit he could want', 'Only water', 'Only vegetables'], correctIndex: 1, explanation: 'God was generous - only one tree, out of the whole garden, was restricted.' },
+        { question: 'Where was Adam placed by God?', options: ['In the middle of the garden', 'Outside the garden', 'In a city', 'On a mountain'], correctIndex: 0, explanation: 'God put Adam right in the middle of Eden.' },
+        { question: 'What kind of rule was the "one tree" rule?', options: ['Confusing and unclear', 'Simple and specific', 'Impossible to remember', 'Not really a rule'], correctIndex: 1, explanation: 'It was one clear, specific instruction out of an entire garden of freedom.' },
+        { question: 'What does this story show about how God treats people?', options: ['He is generous and gives real freedom', 'He gives no freedom at all', 'He hides everything from people', 'He never explains anything'], correctIndex: 0, explanation: 'God gave Adam an entire garden of freedom, with just one boundary.' },
+        { question: 'What is Genesis 2:8-25 mainly about?', options: ["Noah's ark", 'The garden home and Eve\'s creation', 'The Tower of Babel', "Joseph's dreams"], correctIndex: 1, explanation: 'This passage covers the garden, the one rule, and Eve being made.' },
       ],
     },
     {
@@ -106,14 +144,22 @@ const adamAndEve: JourneyUnit = {
         { emoji: '🍎', text: 'Eve ate the fruit and gave some to Adam, and he ate too. Right away, everything changed - they felt ashamed and hid from God for the first time ever.', ref: 'Genesis 3:6-8' },
         { emoji: '💔', text: 'Their choice had real consequences: they had to leave the garden. But even then, God still cared for them and promised that one day, things would be made right again.', ref: 'Genesis 3:15-24' },
       ],
-      midCheck: {
+      groupCheck: {
         question: 'What did the serpent do to Eve?',
-        options: ['Gave her a gift', 'Twisted God\'s words and planted doubt', 'Told her the truth kindly', 'Ran away'],
+        options: ['Gave her a gift', "Twisted God's words and planted doubt", 'Told her the truth kindly', 'Ran away'],
         correctIndex: 1,
       },
-      endCheckpoint: [
-        { question: 'What happened right after Adam and Eve ate the fruit?', options: ['Nothing changed', 'They felt ashamed and hid', 'They became invisible', 'God ignored them'], correctIndex: 1 },
-        { question: 'Even after they sinned, what did God still do?', options: ['Forgot about them', 'Stopped caring completely', 'Still cared and made a promise', 'Left the earth'], correctIndex: 2 },
+      masteryQuestions: [
+        { question: 'How did the serpent twist God\'s rule?', options: ['He made it sound like a bigger restriction than it was', 'He said it kindly', 'He gave a gift instead', 'He obeyed it himself'], correctIndex: 0, explanation: 'The serpent exaggerated the one rule into "any tree" to plant doubt.' },
+        { question: 'What happened right after Adam and Eve ate the fruit?', options: ['Nothing changed', 'They felt ashamed and hid', 'They became invisible', 'God ignored them'], correctIndex: 1, explanation: 'Shame and hiding from God happened immediately.' },
+        { question: 'Who ate the fruit first?', options: ['Adam', 'Eve', 'They ate it at the same time', 'Neither of them'], correctIndex: 1, explanation: 'Eve ate first, then gave some to Adam.' },
+        { question: 'What real consequence did Adam and Eve face?', options: ['Nothing happened to them', 'They had to leave the garden', 'They became animals', 'They were given more trees'], correctIndex: 1, explanation: 'Their sin had a real, lasting consequence: leaving Eden.' },
+        { question: "Even after they sinned, what did God still do?", options: ['Forgot about them', 'Stopped caring completely', 'Still cared and made a promise', 'Left the earth'], correctIndex: 2, explanation: "Even in judgment, God promised things would one day be made right." },
+        { question: 'What feeling did Adam and Eve experience for the first time?', options: ['Joy', 'Shame', 'Excitement', 'Boredom'], correctIndex: 1, explanation: 'Shame led them to hide from God, something new for them.' },
+        { question: 'What was the serpent\'s opening question to Eve?', options: ['"Do you love God?"', '"Did God really say you can\'t eat from any tree?"', '"Where is Adam?"', '"Are you hungry?"'], correctIndex: 1, explanation: 'That question planted the first seed of doubt.' },
+        { question: 'What does this story show about small compromises?', options: ['They never matter', 'They can lead somewhere serious', 'They always feel good forever', 'They are impossible to make'], correctIndex: 1, explanation: 'One bite led to real, lasting consequences.' },
+        { question: 'Which reference is this story from?', options: ['Genesis 3:1-24', 'Genesis 1:1-13', 'Genesis 6:1-8', 'Genesis 11:1-9'], correctIndex: 0, explanation: 'The Fall is told in Genesis 3.' },
+        { question: 'What is the overall lesson of Genesis 3?', options: ['Sin has real consequences, but God still cares', 'Nothing bad ever happens from sin', 'God abandoned Adam and Eve forever', 'Snakes are dangerous animals'], correctIndex: 0, explanation: 'The Fall shows both the seriousness of sin and God\'s continued care.' },
       ],
     },
   ],
@@ -131,18 +177,26 @@ const cainAndAbel: JourneyUnit = {
       reference: 'Genesis 4:1-16',
       image: '/journey/cain-abel-offerings.jpg',
       cards: [
-        { emoji: '👨‍👦', text: 'Adam and Eve\'s sons Cain and Abel each brought an offering to God. Abel brought his best; Cain didn\'t bring his best - and God noticed the difference.', ref: 'Genesis 4:1-5' },
-        { emoji: '😠', text: 'Cain got angry that Abel\'s offering pleased God and his didn\'t. God warned Cain to deal with that anger before it controlled him - but Cain didn\'t listen.', ref: 'Genesis 4:6-7' },
-        { emoji: '⚰️', text: 'Cain let his anger take over and hurt his brother. It was the first time jealousy led to something that couldn\'t be undone - a hard lesson about where anger can lead.', ref: 'Genesis 4:8-16' },
+        { emoji: '👨‍👦', text: "Adam and Eve's sons Cain and Abel each brought an offering to God. Abel brought his best; Cain didn't bring his best - and God noticed the difference.", ref: 'Genesis 4:1-5' },
+        { emoji: '😠', text: "Cain got angry that Abel's offering pleased God and his didn't. God warned Cain to deal with that anger before it controlled him - but Cain didn't listen.", ref: 'Genesis 4:6-7' },
+        { emoji: '⚰️', text: "Cain let his anger take over and hurt his brother. It was the first time jealousy led to something that couldn't be undone - a hard lesson about where anger can lead.", ref: 'Genesis 4:8-16' },
       ],
-      midCheck: {
+      groupCheck: {
         question: 'Why did God warn Cain?',
         options: ['Because Cain was hungry', 'Because his anger was about to control him', 'Because Abel was in danger from an animal', 'Because Cain was leaving home'],
         correctIndex: 1,
       },
-      endCheckpoint: [
-        { question: 'What made God notice a difference between the two offerings?', options: ['Abel brought his best', 'Cain brought more', 'They looked the same', 'Neither brought anything'], correctIndex: 0 },
-        { question: 'What is this story a hard lesson about?', options: ['Farming', 'Where jealousy and anger can lead', 'Cooking food', 'Building houses'], correctIndex: 1 },
+      masteryQuestions: [
+        { question: 'Who were Cain and Abel?', options: ["Adam and Eve's sons", 'Strangers', "Noah's sons", "Abraham's servants"], correctIndex: 0, explanation: 'They were the sons of Adam and Eve.' },
+        { question: 'What made God notice a difference between the two offerings?', options: ['Abel brought his best', 'Cain brought more', 'They looked the same', 'Neither brought anything'], correctIndex: 0, explanation: "Abel's offering was his best; Cain's wasn't." },
+        { question: "How did Cain feel about Abel's offering being accepted?", options: ['Happy for him', 'Angry and jealous', 'Indifferent', 'Proud of him'], correctIndex: 1, explanation: "Cain's anger grew because his own offering wasn't accepted the same way." },
+        { question: 'What did God warn Cain to do?', options: ['Bring a bigger offering', 'Deal with his anger before it controlled him', 'Leave home', 'Ignore Abel'], correctIndex: 1, explanation: 'God gave Cain a chance to master his anger before it went further.' },
+        { question: 'Did Cain listen to God\'s warning?', options: ['Yes, right away', 'No, he let his anger take over', 'He asked Abel for help', 'The story doesn\'t say'], correctIndex: 1, explanation: "Cain ignored the warning and let his anger control him." },
+        { question: 'What did Cain\'s anger lead him to do?', options: ['Apologize to Abel', 'Hurt his brother', 'Bring a better offering', 'Leave peacefully'], correctIndex: 1, explanation: 'His unchecked anger led to something that could not be undone.' },
+        { question: 'What is this story a hard lesson about?', options: ['Farming', 'Where jealousy and anger can lead', 'Cooking food', 'Building houses'], correctIndex: 1, explanation: 'It shows how unchecked jealousy and anger can lead somewhere serious.' },
+        { question: 'What could Cain have done differently?', options: ['Listened to God\'s warning and dealt with his anger', 'Brought an even worse offering', 'Told his parents', 'Nothing could have changed'], correctIndex: 0, explanation: 'God gave him a real chance to choose differently.' },
+        { question: 'Which reference tells this story?', options: ['Genesis 4:1-16', 'Genesis 6:1-8', 'Genesis 9:8-17', 'Genesis 12:1-9'], correctIndex: 0, explanation: 'Cain and Abel\'s story is told in Genesis 4.' },
+        { question: 'What does this story warn us about?', options: ['Letting anger and jealousy control our choices', 'Never bringing gifts to God', 'Farming being dangerous', 'Brothers never getting along'], correctIndex: 0, explanation: "The whole story is a warning about where unchecked anger can lead." },
       ],
     },
   ],
@@ -163,14 +217,22 @@ const noah: JourneyUnit = {
         { emoji: '⭐', text: 'But one man stood out: Noah. The Bible says Noah "found favor in the eyes of the Lord" - he tried to live rightly even when almost no one around him did.', ref: 'Genesis 6:8-9' },
         { emoji: '🗣️', text: 'God told Noah His plan: a flood would come to wash the earth clean, but Noah and his family would be kept safe. Noah just had to trust and obey.', ref: 'Genesis 6:13-18' },
       ],
-      midCheck: {
+      groupCheck: {
         question: 'What made Noah stand out from everyone else?',
         options: ['He was the tallest', 'He found favor with God by living rightly', 'He was the richest', 'He was the oldest'],
         correctIndex: 1,
       },
-      endCheckpoint: [
-        { question: 'How did God feel about the wrongdoing filling the earth?', options: ['He didn\'t notice', 'Deeply grieved', 'Excited', 'Curious'], correctIndex: 1 },
-        { question: 'What did God promise to do for Noah\'s family?', options: ['Nothing', 'Keep them safe', 'Send them away first', 'Make them rich'], correctIndex: 1 },
+      masteryQuestions: [
+        { question: 'What had the world grown full of by Noah\'s time?', options: ['Wrongdoing', 'Peace', 'Wealth', 'Music'], correctIndex: 0, explanation: 'Genesis 6:5 describes how full of wrongdoing the earth had become.' },
+        { question: 'How did God feel about the wrongdoing filling the earth?', options: ["He didn't notice", 'Deeply grieved', 'Excited', 'Curious'], correctIndex: 1, explanation: "God's heart was grieved by what He saw." },
+        { question: 'Who stood out as different from everyone else?', options: ['Noah', "Noah's neighbors", 'Everyone equally', 'No one'], correctIndex: 0, explanation: 'Noah tried to live rightly even surrounded by wrongdoing.' },
+        { question: 'What does "found favor in the eyes of the Lord" mean?', options: ['God liked Noah for no reason', 'God was pleased with how Noah lived', 'Noah was rich', 'Noah was famous'], correctIndex: 1, explanation: "It describes God's pleasure with Noah's righteous life." },
+        { question: 'What did God tell Noah His plan was?', options: ['To make him king', 'A flood to wash the earth clean', 'To move him to Egypt', 'Nothing at all'], correctIndex: 1, explanation: 'God explained the coming flood directly to Noah.' },
+        { question: 'What did God promise to do for Noah\'s family?', options: ['Nothing', 'Keep them safe', 'Send them away first', 'Make them rich'], correctIndex: 1, explanation: 'God promised safety for Noah and his family through the flood.' },
+        { question: 'What did Noah need to do with God\'s plan?', options: ['Trust and obey', 'Argue with God', 'Ignore it', 'Warn the whole world himself first'], correctIndex: 0, explanation: 'Noah simply needed to trust God and do what he was told.' },
+        { question: 'Why is Noah remembered today?', options: ['For living rightly even when others didn\'t', 'For being the richest man alive', 'For building the first city', 'For being a king'], correctIndex: 0, explanation: "Noah is remembered for his righteousness in a corrupt world." },
+        { question: 'Which reference introduces Noah and the coming flood?', options: ['Genesis 6:1-8', 'Genesis 9:8-17', 'Genesis 11:1-9', 'Genesis 22:1-18'], correctIndex: 0, explanation: 'This lesson comes from Genesis 6:1-8.' },
+        { question: 'What is this lesson mainly setting up?', options: ['The story of the flood that follows', "Abraham's journey", "Joseph's dreams", 'The Tower of Babel'], correctIndex: 0, explanation: 'This is the beginning of the Noah and the flood story.' },
       ],
     },
     {
@@ -180,17 +242,25 @@ const noah: JourneyUnit = {
       image: '/journey/noah-building-ark.jpg',
       cards: [
         { emoji: '🔨', text: 'God gave Noah exact instructions for a massive boat called an ark, built from cypress wood, coated in tar, with rooms inside for his family and every kind of animal.', ref: 'Genesis 6:14-16' },
-        { emoji: '🐘', text: 'Noah was told to bring two of every kind of animal on board - male and female - so life could continue after the flood. That\'s a lot of animals to gather.', ref: 'Genesis 6:19-20' },
+        { emoji: '🐘', text: "Noah was told to bring two of every kind of animal on board - male and female - so life could continue after the flood. That's a lot of animals to gather.", ref: 'Genesis 6:19-20' },
         { emoji: '⏳', text: 'It likely took Noah decades to build the ark, with no rain in sight and neighbors probably laughing at him the whole time. Noah kept building anyway, exactly as God said.', ref: 'Genesis 6:22' },
       ],
-      midCheck: {
+      groupCheck: {
         question: 'How many of each kind of animal did Noah bring on the ark?',
         options: ['One', 'Two', 'Ten', 'A hundred'],
         correctIndex: 1,
       },
-      endCheckpoint: [
-        { question: 'What was the ark made of?', options: ['Stone', 'Cypress wood', 'Metal', 'Ice'], correctIndex: 1 },
-        { question: 'Did Noah follow God\'s instructions exactly?', options: ['No, he changed the plan', 'Yes, exactly as God said', 'He gave up halfway', 'He asked someone else to do it'], correctIndex: 1 },
+      masteryQuestions: [
+        { question: 'What was the ark made of?', options: ['Stone', 'Cypress wood', 'Metal', 'Ice'], correctIndex: 1, explanation: 'God instructed Noah to build the ark from cypress wood.' },
+        { question: 'What was the wood coated with?', options: ['Paint', 'Tar', 'Sand', 'Nothing'], correctIndex: 1, explanation: 'The ark was coated in tar to keep it waterproof.' },
+        { question: 'What was inside the ark besides Noah\'s family?', options: ['Rooms for every kind of animal', 'Nothing else', 'Just food', 'Other people'], correctIndex: 0, explanation: 'The ark had rooms built for every kind of animal.' },
+        { question: 'How many of each animal did Noah bring aboard?', options: ['One', 'Two, male and female', 'Ten', 'A hundred'], correctIndex: 1, explanation: 'Two of each kind ensured life could continue after the flood.' },
+        { question: 'About how long did it likely take to build the ark?', options: ['A few days', 'One week', 'Decades', 'An hour'], correctIndex: 2, explanation: 'A boat that massive, built by hand, likely took many years.' },
+        { question: 'How did Noah\'s neighbors likely react while he built?', options: ['They helped eagerly', 'They probably laughed at him', 'They built one too', 'They ignored the ark completely'], correctIndex: 1, explanation: 'With no rain in sight, Noah\'s work probably looked strange to onlookers.' },
+        { question: 'Did Noah follow God\'s instructions exactly?', options: ['No, he changed the plan', 'Yes, exactly as God said', 'He gave up halfway', 'He asked someone else to do it'], correctIndex: 1, explanation: 'Noah built the ark exactly as God instructed, despite the difficulty.' },
+        { question: 'Why did the animals need to come in pairs?', options: ['So life could continue after the flood', 'For no reason', 'To make the ark heavier', 'Because Noah liked animals'], correctIndex: 0, explanation: 'Male and female pairs meant animal life could continue afterward.' },
+        { question: 'What does Noah\'s decades of building show about him?', options: ['Persistence and obedience even when it was hard', 'He gave up quickly', 'He didn\'t trust God', 'He built it for fun'], correctIndex: 0, explanation: 'Building for years without visible proof took real trust and persistence.' },
+        { question: 'Which reference covers the ark\'s construction?', options: ['Genesis 6:14-22', 'Genesis 8:6-12', 'Genesis 9:11-13', 'Genesis 11:7-9'], correctIndex: 0, explanation: 'This lesson comes from Genesis 6:14-22.' },
       ],
     },
     {
@@ -198,18 +268,26 @@ const noah: JourneyUnit = {
       title: 'The Flood Comes',
       reference: 'Genesis 7:1-24',
       cards: [
-        { emoji: '🌧️', text: 'Once the animals and Noah\'s family were safely inside, God shut the door Himself. Rain fell for 40 days and 40 nights, and water covered the whole earth.', ref: 'Genesis 7:11-12' },
-        { emoji: '🌊', text: 'The water rose so high it covered even the tallest mountains. Everyone and everything outside the ark was gone - but Noah\'s family and the animals stayed safe inside.', ref: 'Genesis 7:17-23' },
+        { emoji: '🌧️', text: "Once the animals and Noah's family were safely inside, God shut the door Himself. Rain fell for 40 days and 40 nights, and water covered the whole earth.", ref: 'Genesis 7:11-12' },
+        { emoji: '🌊', text: "The water rose so high it covered even the tallest mountains. Everyone and everything outside the ark was gone - but Noah's family and the animals stayed safe inside.", ref: 'Genesis 7:17-23' },
         { emoji: '🕊️', text: 'The ark floated for months. Noah eventually sent out a dove to check for dry land, and when it came back with an olive leaf, he knew the water was going down.', ref: 'Genesis 8:6-12' },
       ],
-      midCheck: {
+      groupCheck: {
         question: 'How long did the rain fall?',
         options: ['One day', '7 days', '40 days and 40 nights', 'A whole year'],
         correctIndex: 2,
       },
-      endCheckpoint: [
-        { question: 'Who shut the door of the ark?', options: ['Noah', 'God Himself', 'One of the animals', 'Nobody, it locked on its own'], correctIndex: 1 },
-        { question: 'What did the dove bring back to show land was near?', options: ['A fish', 'A rock', 'An olive leaf', 'Nothing'], correctIndex: 2 },
+      masteryQuestions: [
+        { question: 'Who shut the door of the ark?', options: ['Noah', 'God Himself', 'One of the animals', 'Nobody, it locked on its own'], correctIndex: 1, explanation: 'God Himself shut the door once everyone was safely inside.' },
+        { question: 'How long did the rain fall?', options: ['One day', '7 days', '40 days and 40 nights', 'A whole year'], correctIndex: 2, explanation: 'The rain fell continuously for 40 days and 40 nights.' },
+        { question: 'How high did the water rise?', options: ['Just above the ground', 'Over the tallest mountains', 'Only in the valleys', 'It never rose'], correctIndex: 1, explanation: 'The flood covered even the tallest mountains.' },
+        { question: 'Who stayed safe during the flood?', options: ['Everyone on earth', "Noah's family and the animals in the ark", 'No one', 'Only Noah'], correctIndex: 1, explanation: "Only those inside the ark - Noah's family and the animals - were kept safe." },
+        { question: 'About how long did the ark float?', options: ['A few hours', 'One day', 'Months', 'A single week'], correctIndex: 2, explanation: 'The ark floated for months before the water fully receded.' },
+        { question: 'What bird did Noah send out to check for land?', options: ['An eagle', 'A dove', 'A raven only', 'A parrot'], correctIndex: 1, explanation: 'Noah sent out a dove to check whether the waters had receded.' },
+        { question: 'What did the dove bring back to show land was near?', options: ['A fish', 'A rock', 'An olive leaf', 'Nothing'], correctIndex: 2, explanation: 'The olive leaf showed that dry land and plants were reappearing.' },
+        { question: 'What happened to everything outside the ark?', options: ['It was fine', 'It was gone', 'It moved to safety', 'It grew stronger'], correctIndex: 1, explanation: 'The flood was total - nothing outside the ark survived.' },
+        { question: 'What does the shut door show about God\'s care?', options: ['He personally made sure Noah\'s family was secure', 'He forgot about them', 'He left the door open', 'It means nothing'], correctIndex: 0, explanation: "God Himself securing the door shows His personal care for Noah's safety." },
+        { question: 'Which reference tells the story of the flood itself?', options: ['Genesis 7:1-24', 'Genesis 6:14-22', 'Genesis 9:8-17', 'Genesis 11:1-9'], correctIndex: 0, explanation: 'The flood itself is described in Genesis 7.' },
       ],
     },
     {
@@ -220,16 +298,24 @@ const noah: JourneyUnit = {
       cards: [
         { emoji: '🐾', text: 'When the water finally dried up, Noah, his family, and every animal walked out onto dry land again. The first thing Noah did was build an altar and thank God.', ref: 'Genesis 8:15-20' },
         { emoji: '🌈', text: 'God made a promise - a covenant - that He would never flood the whole earth again. As a sign of that promise, He set a rainbow in the sky.', ref: 'Genesis 9:11-13' },
-        { emoji: '🤝', text: 'That rainbow wasn\'t just pretty - it was God\'s reminder to every generation after Noah, including us, that He keeps His promises no matter how much time passes.', ref: 'Genesis 9:16-17' },
+        { emoji: '🤝', text: "That rainbow wasn't just pretty - it was God's reminder to every generation after Noah, including us, that He keeps His promises no matter how much time passes.", ref: 'Genesis 9:16-17' },
       ],
-      midCheck: {
+      groupCheck: {
         question: 'What sign did God put in the sky as a promise?',
         options: ['A star', 'A rainbow', 'A cloud shaped like a boat', 'Lightning'],
         correctIndex: 1,
       },
-      endCheckpoint: [
-        { question: 'What did Noah do first after leaving the ark?', options: ['Went fishing', 'Built an altar and thanked God', 'Went to sleep', 'Built a new house'], correctIndex: 1 },
-        { question: 'What did God promise never to do again?', options: ['Flood the whole earth', 'Send rain at all', 'Make more animals', 'Talk to people'], correctIndex: 0 },
+      masteryQuestions: [
+        { question: 'What did Noah do first after leaving the ark?', options: ['Went fishing', 'Built an altar and thanked God', 'Went to sleep', 'Built a new house'], correctIndex: 1, explanation: "Noah's first act on dry land was worship and thanks." },
+        { question: 'What is a "covenant"?', options: ['A type of animal', 'A promise', 'A kind of boat', 'A city'], correctIndex: 1, explanation: 'A covenant is a solemn promise or agreement.' },
+        { question: 'What did God promise never to do again?', options: ['Flood the whole earth', 'Send rain at all', 'Make more animals', 'Talk to people'], correctIndex: 0, explanation: 'God promised never again to flood the entire earth.' },
+        { question: 'What sign did God give as a reminder of that promise?', options: ['A star', 'A rainbow', 'A mountain', 'A tree'], correctIndex: 1, explanation: 'The rainbow was set in the sky as the sign of the covenant.' },
+        { question: 'Who is the rainbow promise a reminder to?', options: ['Only Noah', 'Every generation after Noah, including us', 'No one anymore', 'Only animals'], correctIndex: 1, explanation: "The promise was meant for every generation, not just Noah's own." },
+        { question: 'What does the rainbow show about God?', options: ['He keeps His promises over time', 'He forgets His promises', 'He changes His mind often', 'He never makes promises'], correctIndex: 0, explanation: 'The lasting sign shows God keeps promises no matter how much time passes.' },
+        { question: 'Where did Noah and the animals walk out to?', options: ['Back onto the ark', 'Dry land', 'The ocean', 'A city'], correctIndex: 1, explanation: 'Once the water dried up, everyone walked out onto dry land.' },
+        { question: 'Why did Noah build an altar?', options: ['To thank God', 'To cook food', 'To trade with neighbors', 'For no reason'], correctIndex: 0, explanation: 'The altar was Noah\'s way of thanking God for their safety.' },
+        { question: 'Which reference contains the rainbow promise?', options: ['Genesis 9:8-17', 'Genesis 6:1-8', 'Genesis 11:1-9', 'Genesis 22:1-18'], correctIndex: 0, explanation: 'This covenant is recorded in Genesis 9:8-17.' },
+        { question: 'What is the biggest lesson of this whole Noah story?', options: ['God keeps His promises', 'Rain is dangerous', 'Boats are useful', 'Animals can\'t swim'], correctIndex: 0, explanation: "From the flood to the rainbow, the story shows God's faithfulness to His word." },
       ],
     },
   ],
@@ -248,17 +334,25 @@ const towerOfBabel: JourneyUnit = {
       image: '/journey/tower-of-babel.jpg',
       cards: [
         { emoji: '🗣️', text: 'After the flood, everyone on earth spoke the same language. A group of people decided to build a massive tower "to reach the heavens" and make a name for themselves.', ref: 'Genesis 11:1-4' },
-        { emoji: '🏙️', text: 'The problem wasn\'t the building itself - it was the reason behind it: pride, and trying to prove they didn\'t need God at all.', ref: 'Genesis 11:4' },
-        { emoji: '🌍', text: 'God confused their language so they could no longer understand each other, and they scattered across the earth. That\'s part of how so many different languages began.', ref: 'Genesis 11:7-9' },
+        { emoji: '🏙️', text: "The problem wasn't the building itself - it was the reason behind it: pride, and trying to prove they didn't need God at all.", ref: 'Genesis 11:4' },
+        { emoji: '🌍', text: "God confused their language so they could no longer understand each other, and they scattered across the earth. That's part of how so many different languages began.", ref: 'Genesis 11:7-9' },
       ],
-      midCheck: {
+      groupCheck: {
         question: 'What was the real problem with the tower?',
         options: ['It was too short', 'Pride, and trying to not need God', 'It was made of the wrong material', 'It was in the wrong city'],
         correctIndex: 1,
       },
-      endCheckpoint: [
-        { question: 'What did all people on earth share before Babel?', options: ['The same food', 'The same language', 'The same clothes', 'The same house'], correctIndex: 1 },
-        { question: 'What happened after God confused their language?', options: ['They built a bigger tower', 'They scattered across the earth', 'They stopped talking forever', 'Nothing changed'], correctIndex: 1 },
+      masteryQuestions: [
+        { question: 'What did all people on earth share before Babel?', options: ['The same food', 'The same language', 'The same clothes', 'The same house'], correctIndex: 1, explanation: 'Everyone spoke one common language before this story.' },
+        { question: 'Why did the people want to build the tower?', options: ['To reach the heavens and make a name for themselves', 'To hide from a flood', 'To trade with other cities', 'To store grain'], correctIndex: 0, explanation: 'Their goal was pride-driven - reaching the heavens and gaining fame.' },
+        { question: 'What was the real problem behind the tower?', options: ['It was too short', 'Pride and trying not to need God', 'The wrong building material', 'It was in the wrong location'], correctIndex: 1, explanation: 'The issue was the prideful motive, not the construction itself.' },
+        { question: 'What did God do about the tower?', options: ['Helped them finish it', 'Confused their language', 'Destroyed the whole earth', 'Nothing at all'], correctIndex: 1, explanation: 'God confused their language so they could no longer understand each other.' },
+        { question: 'What happened after God confused their language?', options: ['They built a bigger tower', 'They scattered across the earth', 'They stopped talking forever', 'Nothing changed'], correctIndex: 1, explanation: 'Unable to understand each other, the people scattered across the earth.' },
+        { question: 'What is one result of the Babel story still seen today?', options: ['Many different languages exist', 'Everyone still speaks one language', 'Towers are illegal', 'Cities disappeared'], correctIndex: 0, explanation: 'This story is part of how many different human languages began.' },
+        { question: 'Where was the tower being built?', options: ['On a mountain', 'In a city on a plain', 'Underwater', 'In a forest'], correctIndex: 1, explanation: 'The people gathered in one place and began building there.' },
+        { question: 'What attitude drove the builders?', options: ['Humility toward God', 'Pride and self-reliance', 'Fear of animals', 'Curiosity about the ocean'], correctIndex: 1, explanation: 'Their motive was pride - proving they didn\'t need God.' },
+        { question: 'Which reference tells this story?', options: ['Genesis 11:1-9', 'Genesis 9:8-17', 'Genesis 6:1-8', 'Genesis 12:1-9'], correctIndex: 0, explanation: 'The Tower of Babel is told in Genesis 11:1-9.' },
+        { question: 'What is the main lesson of the Tower of Babel?', options: ['Pride that pushes God aside leads somewhere different than planned', 'Tall buildings are always wrong', 'Languages never change', 'Cities should never be built'], correctIndex: 0, explanation: "The story warns about pride and self-sufficiency apart from God." },
       ],
     },
   ],
@@ -277,16 +371,24 @@ const abraham: JourneyUnit = {
       cards: [
         { emoji: '🎒', text: 'God told a man named Abram to leave his home, his city, and everything familiar, and go to a land God would show him later. Not now - later.', ref: 'Genesis 12:1' },
         { emoji: '🤔', text: 'God didn\'t give Abram a map or an address. Just a promise: "I will bless you and make you a great nation." Abram had to trust without knowing the details.', ref: 'Genesis 12:2-3' },
-        { emoji: '🐫', text: 'Abram packed up his family and everything he owned and left - at 75 years old - simply because God said so. That kind of trust is what he\'s remembered for.', ref: 'Genesis 12:4-9' },
+        { emoji: '🐫', text: "Abram packed up his family and everything he owned and left - at 75 years old - simply because God said so. That kind of trust is what he's remembered for.", ref: 'Genesis 12:4-9' },
       ],
-      midCheck: {
+      groupCheck: {
         question: 'What did God give Abram to guide his journey?',
         options: ['A detailed map', 'A promise, without knowing all the details', 'A guide to walk with him', 'Nothing at all'],
         correctIndex: 1,
       },
-      endCheckpoint: [
-        { question: 'How old was Abram when he left his home?', options: ['25', '50', '75', '100'], correctIndex: 2 },
-        { question: 'What did God promise to do for Abram?', options: ['Make him a great nation', 'Make him a king right away', 'Give him a new house nearby', 'Nothing specific'], correctIndex: 0 },
+      masteryQuestions: [
+        { question: 'What did God tell Abram to leave?', options: ['His home, city, and everything familiar', 'Just his animals', 'Nothing at all', 'Only his money'], correctIndex: 0, explanation: 'God called Abram to leave everything familiar behind.' },
+        { question: 'Did God tell Abram exactly where he was going right away?', options: ['Yes, with an exact map', 'No, God would show him later', 'No one knew, including God', 'Abram never left'], correctIndex: 1, explanation: 'God only promised to show Abram the land later.' },
+        { question: 'What promise did God give Abram?', options: ['To make him a great nation', 'To make him a king right away', 'To give him a house nearby', 'Nothing specific'], correctIndex: 0, explanation: 'God promised to bless Abram and make him a great nation.' },
+        { question: 'How old was Abram when he left his home?', options: ['25', '50', '75', '100'], correctIndex: 2, explanation: 'Abram was 75 years old when he obeyed and left.' },
+        { question: 'What did Abram have to do without knowing all the details?', options: ['Trust God', 'Build a tower', 'Fight a war', 'Stay home'], correctIndex: 0, explanation: 'Abram trusted God\'s promise even without a full plan.' },
+        { question: 'What did Abram take with him when he left?', options: ['Nothing at all', 'His family and everything he owned', 'Only a walking stick', 'Just his servants'], correctIndex: 1, explanation: 'Abram packed up his whole household to obey God.' },
+        { question: 'Why is Abram remembered today?', options: ['His trust in God without knowing all the details', 'His farming skills', 'His wealth alone', 'His building projects'], correctIndex: 0, explanation: 'Abram is remembered especially for trusting God\'s promise.' },
+        { question: 'What kind of guidance did God give instead of a map?', options: ['A promise', 'A GPS-like sign', 'Nothing', 'A letter from a king'], correctIndex: 0, explanation: 'God gave Abram a promise to hold onto instead of details.' },
+        { question: 'Which reference tells the call of Abram?', options: ['Genesis 12:1-9', 'Genesis 17:1-19', 'Genesis 22:1-18', 'Genesis 28:10-22'], correctIndex: 0, explanation: 'God\'s call to Abram is recorded in Genesis 12:1-9.' },
+        { question: 'What is the main lesson of this story?', options: ['Trusting God even without knowing every detail', 'Never leaving home', 'Maps are unnecessary in life', 'Age prevents new beginnings'], correctIndex: 0, explanation: "Abram's obedience despite uncertainty is the heart of this lesson." },
       ],
     },
     {
@@ -295,17 +397,25 @@ const abraham: JourneyUnit = {
       reference: 'Genesis 17:1-19',
       cards: [
         { emoji: '⭐', text: 'God changed Abram\'s name to Abraham, meaning "father of many," and promised he\'d have a son with his wife Sarah - even though they were both very old.', ref: 'Genesis 17:5,15-16' },
-        { emoji: '😂', text: 'When Sarah overheard this promise, she laughed - she was around 90! It sounded impossible. But nothing is too hard for God to do.', ref: 'Genesis 18:11-14' },
+        { emoji: '😂', text: "When Sarah overheard this promise, she laughed - she was around 90! It sounded impossible. But nothing is too hard for God to do.", ref: 'Genesis 18:11-14' },
         { emoji: '👶', text: 'A year later, Sarah gave birth to a son named Isaac, whose name means "he laughs" - turning her doubt into joy, exactly as God had promised.', ref: 'Genesis 21:1-7' },
       ],
-      midCheck: {
+      groupCheck: {
         question: 'Why did Sarah laugh when she heard the promise?',
-        options: ['She was excited', 'It sounded impossible at her age', 'She didn\'t understand the words', 'She was joking around'],
+        options: ['She was excited', 'It sounded impossible at her age', "She didn't understand the words", 'She was joking around'],
         correctIndex: 1,
       },
-      endCheckpoint: [
-        { question: 'What does the name "Abraham" mean?', options: ['Strong warrior', 'Father of many', 'Wise teacher', 'Traveler'], correctIndex: 1 },
-        { question: 'What was Isaac\'s name a reminder of?', options: ['Sarah\'s laughter turning to joy', 'A hard journey', 'A big mountain', 'A city'], correctIndex: 0 },
+      masteryQuestions: [
+        { question: "What was Abram's name changed to?", options: ['Isaac', 'Abraham', 'Israel', 'Jacob'], correctIndex: 1, explanation: 'God renamed Abram to Abraham, meaning "father of many."' },
+        { question: 'What does the name "Abraham" mean?', options: ['Strong warrior', 'Father of many', 'Wise teacher', 'Traveler'], correctIndex: 1, explanation: 'It reflects the promise that he would father a great nation.' },
+        { question: 'What did God promise Abraham and Sarah, despite their age?', options: ['Riches', 'A son', 'A new house', 'A long journey'], correctIndex: 1, explanation: 'God promised them a son even though they were both very old.' },
+        { question: 'Why did Sarah laugh at the promise?', options: ['She was excited', 'It sounded impossible at her age', "She didn't understand", 'She was joking'], correctIndex: 1, explanation: 'At around 90 years old, having a baby seemed impossible to her.' },
+        { question: 'What does Sarah\'s reaction teach about God?', options: ['Nothing is too hard for God', 'God can only do easy things', 'God gives up on hard promises', 'God needs help from people'], correctIndex: 0, explanation: 'God fulfilled a promise that seemed truly impossible.' },
+        { question: "What was Isaac's name a reminder of?", options: ["Sarah's laughter turning to joy", 'A hard journey', 'A big mountain', 'A city'], correctIndex: 0, explanation: '"Isaac" means "he laughs," turning her earlier doubt into joy.' },
+        { question: 'How long after the promise was Isaac born?', options: ['A year later', 'Ten years later', 'The next day', 'Never - he wasn\'t born'], correctIndex: 0, explanation: 'Isaac was born about a year after the promise was given.' },
+        { question: 'What does this story show about God\'s promises?', options: ['They come true, even when they seem impossible', 'They never come true', 'They only apply to young people', 'They are always about money'], correctIndex: 0, explanation: 'Despite the impossible odds, God\'s promise came true exactly as said.' },
+        { question: 'Which reference tells about this promise?', options: ['Genesis 17:1-19', 'Genesis 12:1-9', 'Genesis 22:1-18', 'Genesis 13:1-12'], correctIndex: 0, explanation: 'This promise is recorded in Genesis 17.' },
+        { question: 'What is the main point of this lesson?', options: ['God keeps promises even when they seem impossible', 'Old age prevents God\'s plans', 'Laughing at God is fine', 'Names don\'t matter'], correctIndex: 0, explanation: "Sarah's impossible-seeming doubt was turned into real joy by God's faithfulness." },
       ],
     },
     {
@@ -313,18 +423,26 @@ const abraham: JourneyUnit = {
       title: 'Abraham and Lot',
       reference: 'Genesis 13:1-12; 19:1-29',
       cards: [
-        { emoji: '🤝', text: 'Abraham\'s nephew Lot traveled with him. When their herdsmen started arguing over land, Abraham let Lot choose first - even though Abraham could have taken the best for himself.', ref: 'Genesis 13:8-11' },
-        { emoji: '🏙️', text: 'Lot chose to live near the cities of Sodom and Gomorrah, places full of wickedness. God decided to destroy those cities, but because Abraham asked, God agreed to rescue Lot\'s family first.', ref: 'Genesis 18:23-33; 19:1-16' },
-        { emoji: '🏃', text: 'Angels helped Lot\'s family escape just before the cities were destroyed, warning them not to look back. It\'s a story about how far God\'s mercy reaches for the people we care about.', ref: 'Genesis 19:17-29' },
+        { emoji: '🤝', text: "Abraham's nephew Lot traveled with him. When their herdsmen started arguing over land, Abraham let Lot choose first - even though Abraham could have taken the best for himself.", ref: 'Genesis 13:8-11' },
+        { emoji: '🏙️', text: "Lot chose to live near the cities of Sodom and Gomorrah, places full of wickedness. God decided to destroy those cities, but because Abraham asked, God agreed to rescue Lot's family first.", ref: 'Genesis 18:23-33; 19:1-16' },
+        { emoji: '🏃', text: "Angels helped Lot's family escape just before the cities were destroyed, warning them not to look back. It's a story about how far God's mercy reaches for the people we care about.", ref: 'Genesis 19:17-29' },
       ],
-      midCheck: {
+      groupCheck: {
         question: 'What did Abraham do when there was a dispute over land?',
         options: ['Took the best land for himself', 'Let Lot choose first', 'Kicked Lot out', 'Ignored the problem'],
         correctIndex: 1,
       },
-      endCheckpoint: [
-        { question: 'Why did God rescue Lot\'s family before destroying the cities?', options: ['Because Abraham asked', 'By random chance', 'Lot demanded it', 'It wasn\'t on purpose'], correctIndex: 0 },
-        { question: 'What were Lot\'s family told not to do while escaping?', options: ['Run too fast', 'Bring anything with them', 'Look back', 'Speak to anyone'], correctIndex: 2 },
+      masteryQuestions: [
+        { question: 'Who was Lot to Abraham?', options: ['His nephew', 'His son', 'His servant', 'A stranger'], correctIndex: 0, explanation: 'Lot was Abraham\'s nephew who traveled with him.' },
+        { question: 'What caused the dispute between Abraham and Lot\'s herdsmen?', options: ['Land', 'Money', 'Food shortage', 'A quarrel over animals only'], correctIndex: 0, explanation: 'Their herdsmen argued over land for their flocks.' },
+        { question: 'What did Abraham do about the dispute?', options: ['Took the best land for himself', 'Let Lot choose first', 'Kicked Lot out', 'Ignored the problem'], correctIndex: 1, explanation: 'Abraham generously let Lot choose first, even though he could have taken the best.' },
+        { question: 'Where did Lot choose to live?', options: ['Near Sodom and Gomorrah', 'In the desert', 'By the sea', 'In Egypt'], correctIndex: 0, explanation: 'Lot chose land near the wicked cities of Sodom and Gomorrah.' },
+        { question: 'Why did God decide to destroy those cities?', options: ['They were full of wickedness', 'They were too small', 'They had no water', 'For no reason'], correctIndex: 0, explanation: 'The cities were filled with serious wickedness.' },
+        { question: 'Why did God rescue Lot\'s family before destroying the cities?', options: ['Because Abraham asked', 'By random chance', 'Lot demanded it', "It wasn't on purpose"], correctIndex: 0, explanation: 'God agreed to rescue Lot\'s family specifically because Abraham interceded for them.' },
+        { question: 'Who helped Lot\'s family escape?', options: ['Angels', 'Soldiers', 'Abraham himself', 'No one, they escaped alone'], correctIndex: 0, explanation: 'Angels guided and helped Lot\'s family flee before the destruction.' },
+        { question: "What were Lot's family told not to do while escaping?", options: ['Run too fast', 'Bring anything with them', 'Look back', 'Speak to anyone'], correctIndex: 2, explanation: 'They were specifically warned not to look back as they fled.' },
+        { question: 'What does this story reveal about Abraham?', options: ['He cared enough to intercede for Lot', 'He never thought about Lot again', 'He wanted revenge on Lot', 'He ignored the whole situation'], correctIndex: 0, explanation: "Abraham's plea for Lot shows his care even after their land dispute." },
+        { question: 'What is this story mainly about?', options: ["How far God's mercy reaches for people we care about", 'How to build cities', 'Farming disputes', 'Angels building towers'], correctIndex: 0, explanation: "It highlights God's mercy reaching Lot's family because of Abraham's care." },
       ],
     },
     {
@@ -335,16 +453,24 @@ const abraham: JourneyUnit = {
       cards: [
         { emoji: '⛰️', text: 'Years later, God tested Abraham in the hardest way possible: asking him to offer his beloved son Isaac as a sacrifice on a mountain. Abraham obeyed and set out, trusting God completely.', ref: 'Genesis 22:1-3' },
         { emoji: '🐏', text: 'Just as Abraham raised his hand, an angel stopped him. God had provided a ram to sacrifice instead - He never intended for Isaac to actually be harmed. It was a test of trust.', ref: 'Genesis 22:10-13' },
-        { emoji: '🙏', text: 'Because Abraham trusted God even when it made no sense, God renewed His promise: Abraham\'s family would become a blessing to every nation on earth.', ref: 'Genesis 22:15-18' },
+        { emoji: '🙏', text: "Because Abraham trusted God even when it made no sense, God renewed His promise: Abraham's family would become a blessing to every nation on earth.", ref: 'Genesis 22:15-18' },
       ],
-      midCheck: {
+      groupCheck: {
         question: 'What stopped Abraham at the last moment?',
         options: ['Isaac ran away', 'An angel stopped him', 'He changed his mind', 'Sarah arrived'],
         correctIndex: 1,
       },
-      endCheckpoint: [
-        { question: 'What did God provide instead of Isaac?', options: ['A ram', 'A dove', 'Gold', 'Nothing'], correctIndex: 0 },
-        { question: 'What was this whole story really testing?', options: ['Abraham\'s strength', 'Abraham\'s trust in God', 'Isaac\'s obedience', 'How fast Abraham could climb'], correctIndex: 1 },
+      masteryQuestions: [
+        { question: 'What did God ask Abraham to do?', options: ['Build a temple', 'Offer his son Isaac as a sacrifice', 'Move to Egypt', 'Fight a battle'], correctIndex: 1, explanation: 'This was the hardest test God gave Abraham.' },
+        { question: 'How did Abraham respond to this hard request?', options: ['He refused', 'He obeyed and set out, trusting God', 'He ran away', 'He argued with God for years'], correctIndex: 1, explanation: 'Abraham trusted God completely and obeyed.' },
+        { question: 'What stopped Abraham at the last moment?', options: ['Isaac ran away', 'An angel stopped him', 'He changed his mind', 'Sarah arrived'], correctIndex: 1, explanation: 'An angel stopped Abraham just as he raised his hand.' },
+        { question: 'What did God provide instead of Isaac?', options: ['A ram', 'A dove', 'Gold', 'Nothing'], correctIndex: 0, explanation: 'God provided a ram to be sacrificed in Isaac\'s place.' },
+        { question: 'Did God ever actually intend for Isaac to be harmed?', options: ['Yes', 'No, it was a test of trust', 'Only if Abraham refused', 'The story doesn\'t say'], correctIndex: 1, explanation: 'This was a test of Abraham\'s trust, not a real intention to harm Isaac.' },
+        { question: 'What was this whole story really testing?', options: ["Abraham's strength", "Abraham's trust in God", "Isaac's obedience", 'How fast Abraham could climb'], correctIndex: 1, explanation: 'The test was about whether Abraham would trust God fully.' },
+        { question: 'What did God do because Abraham trusted Him so completely?', options: ['Took away His promise', 'Renewed His promise to bless every nation through his family', 'Ignored Abraham afterward', 'Nothing happened'], correctIndex: 1, explanation: "God renewed and expanded His promise because of Abraham's trust." },
+        { question: 'Where did this test take place?', options: ['In a valley', 'On a mountain', 'By a river', 'In a city'], correctIndex: 1, explanation: 'God directed Abraham to a specific mountain for this test.' },
+        { question: 'Which reference tells this story?', options: ['Genesis 22:1-18', 'Genesis 12:1-9', 'Genesis 17:1-19', 'Genesis 13:1-12'], correctIndex: 0, explanation: 'This test is recorded in Genesis 22.' },
+        { question: 'What is the main lesson of this story?', options: ['Trusting God even when His request makes no sense', 'Sacrifices are always required', 'Mountains are dangerous', 'God changes His mind often'], correctIndex: 0, explanation: "Abraham's trust even in confusion is the heart of this lesson." },
       ],
     },
   ],
@@ -362,17 +488,25 @@ const isaac: JourneyUnit = {
       reference: 'Genesis 24:1-67',
       cards: [
         { emoji: '🐪', text: 'Abraham sent his servant on a long journey to find the right wife for Isaac, praying for a clear sign to know who she was when he found her.', ref: 'Genesis 24:1-14' },
-        { emoji: '💧', text: 'At a well, a kind young woman named Rebekah offered water not just to the servant but to all his camels too - exactly matching the sign he\'d prayed for.', ref: 'Genesis 24:15-20' },
+        { emoji: '💧', text: "At a well, a kind young woman named Rebekah offered water not just to the servant but to all his camels too - exactly matching the sign he'd prayed for.", ref: 'Genesis 24:15-20' },
         { emoji: '💑', text: 'Rebekah agreed to travel back and marry Isaac, even though it meant leaving her whole family behind. Isaac loved her, and their story shows how God guides even small, everyday choices.', ref: 'Genesis 24:58-67' },
       ],
-      midCheck: {
-        question: 'What did Rebekah do that matched the servant\'s prayer for a sign?',
+      groupCheck: {
+        question: "What did Rebekah do that matched the servant's prayer for a sign?",
         options: ['She sang a song', 'She gave water to him and his camels', 'She ran away', 'She asked him questions'],
         correctIndex: 1,
       },
-      endCheckpoint: [
-        { question: 'Who did Abraham send to find a wife for Isaac?', options: ['Isaac himself', 'His servant', 'Sarah', 'A stranger'], correctIndex: 1 },
-        { question: 'What did Rebekah give up to marry Isaac?', options: ['Nothing', 'Her whole family and home', 'Her animals', 'Her name'], correctIndex: 1 },
+      masteryQuestions: [
+        { question: 'Who did Abraham send to find a wife for Isaac?', options: ['Isaac himself', 'His servant', 'Sarah', 'A stranger'], correctIndex: 1, explanation: 'Abraham sent his trusted servant on this journey.' },
+        { question: 'What did the servant pray for before meeting anyone?', options: ['Riches', 'A clear sign to know the right woman', 'A shorter journey', 'Nothing at all'], correctIndex: 1, explanation: 'He asked God for a specific, clear sign.' },
+        { question: 'Where did the servant meet Rebekah?', options: ['At a well', 'In a marketplace', 'At a wedding', 'In a tent'], correctIndex: 0, explanation: 'Rebekah came to draw water at a well, where the servant waited.' },
+        { question: "What did Rebekah do that matched the servant's prayer?", options: ['She sang a song', 'She gave water to him and his camels', 'She ran away', 'She asked him questions'], correctIndex: 1, explanation: 'Her kindness to the camels exactly matched the sign he had prayed for.' },
+        { question: 'What did Rebekah give up to marry Isaac?', options: ['Nothing', 'Her whole family and home', 'Her animals', 'Her name'], correctIndex: 1, explanation: 'She left her entire family behind to travel and marry Isaac.' },
+        { question: 'How did Isaac feel about Rebekah?', options: ['He loved her', 'He was indifferent', 'He refused to meet her', 'He was angry'], correctIndex: 0, explanation: 'Isaac loved Rebekah once she arrived.' },
+        { question: 'What does this story show about how God guides people?', options: ['Even small, everyday choices can be guided by God', 'God never guides small decisions', 'Only big miracles count as guidance', 'God is uninvolved in daily life'], correctIndex: 0, explanation: 'A simple act of kindness at a well became a clear sign from God.' },
+        { question: 'Did Rebekah know about the sign before offering water?', options: ['Yes, she planned it', 'No, she acted out of natural kindness', 'She refused at first', 'She asked for payment'], correctIndex: 1, explanation: 'Her simple kindness, not any plan, fulfilled the sign.' },
+        { question: 'Which reference tells this whole story?', options: ['Genesis 24:1-67', 'Genesis 25:19-34', 'Genesis 28:10-22', 'Genesis 22:1-18'], correctIndex: 0, explanation: 'This story spans Genesis 24.' },
+        { question: 'What is the main lesson from this story?', options: ['God can guide even ordinary, everyday moments', 'Marriages never need guidance', 'Wells are always important', 'Servants should never travel alone'], correctIndex: 0, explanation: 'This story highlights how God works through everyday details.' },
       ],
     },
   ],
@@ -390,17 +524,25 @@ const jacob: JourneyUnit = {
       reference: 'Genesis 25:19-34; 27:1-40',
       cards: [
         { emoji: '👬', text: 'Isaac and Rebekah had twin sons, Esau and Jacob. Esau traded away his birthright - his special place as the older son - for a bowl of stew because he was hungry.', ref: 'Genesis 25:29-34' },
-        { emoji: '🎭', text: 'Later, Jacob and his mother tricked Isaac, who couldn\'t see well, into giving Jacob the blessing meant for Esau. It wasn\'t an honest way to get it.', ref: 'Genesis 27:18-29' },
+        { emoji: '🎭', text: "Later, Jacob and his mother tricked Isaac, who couldn't see well, into giving Jacob the blessing meant for Esau. It wasn't an honest way to get it.", ref: 'Genesis 27:18-29' },
         { emoji: '🏃', text: 'Esau was furious when he found out, and Jacob had to run away from home for years. Trickery got Jacob the blessing, but it cost him his family peace for a long time.', ref: 'Genesis 27:41-45' },
       ],
-      midCheck: {
+      groupCheck: {
         question: 'What did Esau trade his birthright for?',
         options: ['Gold', 'A bowl of stew', 'A new tent', 'Nothing, he kept it'],
         correctIndex: 1,
       },
-      endCheckpoint: [
-        { question: 'How did Jacob get Isaac\'s blessing?', options: ['Isaac gave it freely', 'By tricking his father', 'Esau gave it to him', 'He never got it'], correctIndex: 1 },
-        { question: 'What did Jacob\'s trickery cost him?', options: ['Nothing', 'His family\'s peace for years', 'His health', 'His name'], correctIndex: 1 },
+      masteryQuestions: [
+        { question: 'Who were Isaac and Rebekah\'s twin sons?', options: ['Esau and Jacob', 'Cain and Abel', 'Isaac and Ishmael', 'Joseph and Benjamin'], correctIndex: 0, explanation: 'Esau and Jacob were the twin sons of Isaac and Rebekah.' },
+        { question: 'What did Esau trade his birthright for?', options: ['Gold', 'A bowl of stew', 'A new tent', 'Nothing, he kept it'], correctIndex: 1, explanation: 'Esau gave up his birthright out of hunger for a simple bowl of stew.' },
+        { question: 'What is a "birthright"?', options: ['A type of food', 'A special place as the older son', 'A kind of blessing prayer', 'A piece of land only'], correctIndex: 1, explanation: 'It was the older son\'s special standing and inheritance rights.' },
+        { question: 'How did Jacob get Isaac\'s blessing?', options: ['Isaac gave it freely', 'By tricking his father', 'Esau gave it to him', 'He never got it'], correctIndex: 1, explanation: 'Jacob and his mother deceived Isaac to get the blessing meant for Esau.' },
+        { question: 'Why was Isaac easy to trick in this way?', options: ['He couldn\'t see well', 'He was asleep', 'He was away from home', 'He agreed to the trick'], correctIndex: 0, explanation: "Isaac's poor eyesight made the deception possible." },
+        { question: 'How did Esau react when he found out?', options: ['He was happy for Jacob', 'He was furious', 'He didn\'t care', 'He forgave him instantly'], correctIndex: 1, explanation: 'Esau was furious about being tricked out of the blessing.' },
+        { question: "What did Jacob's trickery cost him?", options: ['Nothing', "His family's peace for years", 'His health', 'His name'], correctIndex: 1, explanation: 'Jacob had to flee and lost years of peace with his family.' },
+        { question: 'What did Jacob have to do because of what he did?', options: ['Run away from home', 'Stay and celebrate', 'Marry immediately', 'Nothing changed for him'], correctIndex: 0, explanation: 'Jacob fled his home to escape Esau\'s anger.' },
+        { question: 'What does this story show about dishonest shortcuts?', options: ['They often come with a real cost', 'They always work out perfectly', 'They have no consequences', 'They are always the best way'], correctIndex: 0, explanation: "Jacob's trickery cost him years of separation from his family." },
+        { question: 'Which reference tells this story?', options: ['Genesis 25:19-34; 27:1-40', 'Genesis 28:10-22', 'Genesis 32:22-32', 'Genesis 24:1-67'], correctIndex: 0, explanation: 'This story spans Genesis 25 and 27.' },
       ],
     },
     {
@@ -413,14 +555,22 @@ const jacob: JourneyUnit = {
         { emoji: '🪜', text: 'Jacob dreamed of a stairway reaching from earth to heaven, with angels going up and down it, and God standing at the top, speaking directly to him.', ref: 'Genesis 28:12-13' },
         { emoji: '✨', text: 'God repeated to Jacob the same promise He\'d made to Abraham, and added something personal: "I am with you and will watch over you wherever you go."', ref: 'Genesis 28:13-15' },
       ],
-      midCheck: {
+      groupCheck: {
         question: 'What did Jacob see going up and down the stairway in his dream?',
         options: ['Birds', 'Angels', 'Clouds', 'Stars'],
         correctIndex: 1,
       },
-      endCheckpoint: [
-        { question: 'What was Jacob\'s situation when he had this dream?', options: ['Celebrating at a feast', 'Alone and running from Esau', 'At home with his family', 'On a boat'], correctIndex: 1 },
-        { question: 'What personal promise did God add for Jacob?', options: ['"I will make you rich"', '"I am with you wherever you go"', '"You will never struggle again"', 'Nothing new'], correctIndex: 1 },
+      masteryQuestions: [
+        { question: "What was Jacob's situation when he had this dream?", options: ['Celebrating at a feast', 'Alone and running from Esau', 'At home with his family', 'On a boat'], correctIndex: 1, explanation: 'Jacob was alone, afraid, and fleeing from his brother.' },
+        { question: 'What did Jacob use as a pillow that night?', options: ['A blanket', 'A rock', 'His arm', 'Nothing'], correctIndex: 1, explanation: 'Jacob used a simple rock as a pillow, showing how humble his situation was.' },
+        { question: 'What did Jacob see in his dream?', options: ['A stairway to heaven with angels', 'A flood', 'A tower', 'A garden'], correctIndex: 0, explanation: 'He dreamed of a stairway reaching from earth to heaven, with angels on it.' },
+        { question: 'What did Jacob see going up and down the stairway?', options: ['Birds', 'Angels', 'Clouds', 'Stars'], correctIndex: 1, explanation: 'Angels were seen moving up and down the stairway.' },
+        { question: 'Who stood at the top of the stairway speaking to Jacob?', options: ['An angel', 'God', 'Isaac', 'A stranger'], correctIndex: 1, explanation: 'God Himself stood at the top and spoke directly to Jacob.' },
+        { question: 'Whose earlier promise did God repeat to Jacob?', options: ["Noah's", "Abraham's", 'Adam\'s', 'No one\'s, it was new'], correctIndex: 1, explanation: 'God repeated the same promise He had made earlier to Abraham.' },
+        { question: 'What personal promise did God add for Jacob?', options: ['"I will make you rich"', '"I am with you wherever you go"', '"You will never struggle again"', 'Nothing new'], correctIndex: 1, explanation: 'God personally promised His presence and protection to Jacob.' },
+        { question: 'Why is this dream meaningful given where Jacob was?', options: ['It showed God met him even while alone and afraid', 'It happened at home in comfort', 'It proved dreams are unimportant', 'It was just a coincidence'], correctIndex: 0, explanation: 'God met Jacob in his loneliest, most vulnerable moment.' },
+        { question: 'Which reference tells this story?', options: ['Genesis 28:10-22', 'Genesis 32:22-32', 'Genesis 27:1-40', 'Genesis 25:19-34'], correctIndex: 0, explanation: 'Jacob\'s ladder dream is recorded in Genesis 28.' },
+        { question: 'What is the main lesson of this dream?', options: ['God can meet us even in our loneliest moments', 'Dreams are never meaningful', 'Rocks make good pillows', 'Angels only appear in heaven'], correctIndex: 0, explanation: "God's presence reached Jacob exactly when he needed it most." },
       ],
     },
     {
@@ -428,18 +578,26 @@ const jacob: JourneyUnit = {
       title: 'Jacob Becomes Israel',
       reference: 'Genesis 32:22-32',
       cards: [
-        { emoji: '🌃', text: 'Years later, on his way home, Jacob spent a night wrestling with a mysterious figure - which turned out to be an encounter with God Himself.', ref: 'Genesis 32:24-25' },
+        { emoji: '🌃', text: "Years later, on his way home, Jacob spent a night wrestling with a mysterious figure - which turned out to be an encounter with God Himself.", ref: 'Genesis 32:24-25' },
         { emoji: '💪', text: 'Jacob refused to let go, even after being hurt, saying "I will not let you go unless you bless me." His whole life had been about grabbing for blessings - this time, honestly.', ref: 'Genesis 32:26' },
         { emoji: '👑', text: 'God gave Jacob a new name: Israel, meaning "he struggles with God." The nation of Israel is named after this one moment of a man who refused to give up on God.', ref: 'Genesis 32:28' },
       ],
-      midCheck: {
+      groupCheck: {
         question: 'What did Jacob refuse to do during the struggle?',
         options: ['Speak', 'Let go without receiving a blessing', 'Run away', 'Sleep'],
         correctIndex: 1,
       },
-      endCheckpoint: [
-        { question: 'What new name did God give Jacob?', options: ['Israel', 'Isaac', 'Abram', 'Esau'], correctIndex: 0 },
-        { question: 'What does the name "Israel" mean?', options: ['He struggles with God', 'Father of many', 'He laughs', 'Chosen one'], correctIndex: 0 },
+      masteryQuestions: [
+        { question: 'What happened to Jacob on his way home?', options: ['He wrestled with a mysterious figure all night', 'He fell asleep instantly', 'He met Esau right away', 'Nothing unusual happened'], correctIndex: 0, explanation: 'Jacob spent the whole night wrestling with this mysterious figure.' },
+        { question: 'Who did Jacob discover he had been wrestling?', options: ['A stranger', 'God Himself', 'Esau', 'An animal'], correctIndex: 1, explanation: 'The struggle turned out to be an encounter with God.' },
+        { question: 'What did Jacob refuse to do during the struggle?', options: ['Speak', 'Let go without receiving a blessing', 'Run away', 'Sleep'], correctIndex: 1, explanation: 'Jacob held on, insisting on a blessing before letting go.' },
+        { question: 'What was different about this blessing compared to earlier in Jacob\'s life?', options: ['He got it honestly this time, not through trickery', 'It was also through trickery', 'He refused it', 'It never came'], correctIndex: 0, explanation: 'Unlike the earlier stolen blessing, this one came through honest persistence.' },
+        { question: 'What new name did God give Jacob?', options: ['Israel', 'Isaac', 'Abram', 'Esau'], correctIndex: 0, explanation: 'God renamed Jacob "Israel" after this encounter.' },
+        { question: 'What does the name "Israel" mean?', options: ['He struggles with God', 'Father of many', 'He laughs', 'Chosen one'], correctIndex: 0, explanation: '"Israel" means "he struggles with God."' },
+        { question: 'What nation is named after this moment?', options: ['Israel', 'Egypt', 'Babylon', 'Canaan'], correctIndex: 0, explanation: 'The nation of Israel takes its name from this event.' },
+        { question: 'What happened to Jacob physically during the struggle?', options: ['He was unhurt', 'He was hurt but kept holding on', 'He gave up quickly', 'He fell asleep'], correctIndex: 1, explanation: 'Even after being hurt, Jacob refused to let go.' },
+        { question: 'What does this story show about persistence with God?', options: ['Holding on to God, even through struggle, brings blessing', 'Struggling with God always ends badly', 'It\'s better to avoid God entirely', 'Names never change'], correctIndex: 0, explanation: "Jacob's refusal to let go led to a real, honest blessing." },
+        { question: 'Which reference tells this story?', options: ['Genesis 32:22-32', 'Genesis 28:10-22', 'Genesis 27:1-40', 'Genesis 25:19-34'], correctIndex: 0, explanation: 'This wrestling encounter is told in Genesis 32.' },
       ],
     },
   ],
@@ -457,17 +615,25 @@ const joseph: JourneyUnit = {
       reference: 'Genesis 37:1-11',
       cards: [
         { emoji: '🧥', text: 'Jacob had twelve sons, but Joseph was his favorite - so much so that he gave Joseph a special colorful robe. His older brothers noticed, and it made them jealous.', ref: 'Genesis 37:3-4' },
-        { emoji: '💤', text: 'Joseph had dreams that hinted he\'d one day lead his whole family. He told his brothers about them - which, understandably, made them even angrier.', ref: 'Genesis 37:5-9' },
-        { emoji: '😡', text: 'The jealousy in Joseph\'s family grew so strong that his own brothers could barely speak to him kindly anymore. A dangerous situation was building.', ref: 'Genesis 37:4,11' },
+        { emoji: '💤', text: "Joseph had dreams that hinted he'd one day lead his whole family. He told his brothers about them - which, understandably, made them even angrier.", ref: 'Genesis 37:5-9' },
+        { emoji: '😡', text: "The jealousy in Joseph's family grew so strong that his own brothers could barely speak to him kindly anymore. A dangerous situation was building.", ref: 'Genesis 37:4,11' },
       ],
-      midCheck: {
-        question: 'Why were Joseph\'s brothers jealous of him?',
-        options: ['He was the tallest', 'He was their father\'s favorite', 'He was the oldest', 'He had more sheep'],
+      groupCheck: {
+        question: "Why were Joseph's brothers jealous of him?",
+        options: ['He was the tallest', "He was their father's favorite", 'He was the oldest', 'He had more sheep'],
         correctIndex: 1,
       },
-      endCheckpoint: [
-        { question: 'What special gift did Jacob give Joseph?', options: ['A sword', 'A colorful robe', 'A horse', 'Land'], correctIndex: 1 },
-        { question: 'What did Joseph\'s dreams hint at?', options: ['A famine coming', 'He\'d one day lead his family', 'He\'d become a farmer', 'Nothing important'], correctIndex: 1 },
+      masteryQuestions: [
+        { question: 'How many sons did Jacob have?', options: ['Ten', 'Twelve', 'Seven', 'Twenty'], correctIndex: 1, explanation: 'Jacob had twelve sons in total.' },
+        { question: 'What special gift did Jacob give Joseph?', options: ['A sword', 'A colorful robe', 'A horse', 'Land'], correctIndex: 1, explanation: 'Jacob gave Joseph a special colorful robe as a sign of favor.' },
+        { question: "Why were Joseph's brothers jealous of him?", options: ['He was the tallest', "He was their father's favorite", 'He was the oldest', 'He had more sheep'], correctIndex: 1, explanation: "Joseph being their father's clear favorite fueled the jealousy." },
+        { question: "What did Joseph's dreams hint at?", options: ['A famine coming', "He'd one day lead his family", "He'd become a farmer", 'Nothing important'], correctIndex: 1, explanation: "Joseph's dreams suggested he would one day lead his family." },
+        { question: 'What did Joseph do with his dreams that made things worse?', options: ['Kept them secret', 'Told his brothers about them', 'Wrote them down privately', 'Ignored them completely'], correctIndex: 1, explanation: 'Telling his brothers about the dreams only deepened their anger.' },
+        { question: "How did Joseph's brothers feel toward him by this point?", options: ['Loving and warm', 'So jealous they could barely speak kindly to him', 'Completely indifferent', 'Proud of him'], correctIndex: 1, explanation: 'Their jealousy had grown to a dangerous level.' },
+        { question: 'What kind of situation was building in Joseph\'s family?', options: ['A peaceful one', 'A dangerous one', 'A joyful celebration', 'Nothing significant'], correctIndex: 1, explanation: 'The mounting jealousy created a genuinely dangerous family situation.' },
+        { question: 'What made Joseph different from his brothers in his father\'s eyes?', options: ['He was the favorite', 'He was the oldest', 'He was the poorest', 'He had no dreams'], correctIndex: 0, explanation: 'Jacob openly favored Joseph over his other sons.' },
+        { question: 'Which reference introduces Joseph and his dreams?', options: ['Genesis 37:1-11', 'Genesis 39:1-23', 'Genesis 41:1-57', 'Genesis 45:1-15'], correctIndex: 0, explanation: 'This lesson comes from Genesis 37:1-11.' },
+        { question: 'What is this lesson setting up for the rest of the Joseph story?', options: ['The jealousy that leads to what happens next', "Joseph's later marriage", 'A war with Egypt', 'A new covenant'], correctIndex: 0, explanation: "This jealousy is the seed of everything that follows in Joseph's story." },
       ],
     },
     {
@@ -475,18 +641,26 @@ const joseph: JourneyUnit = {
       title: 'Sold into Egypt',
       reference: 'Genesis 37:12-36',
       cards: [
-        { emoji: '🕳️', text: 'Joseph\'s brothers got so angry they threw him into a pit and considered killing him. Instead, they decided to sell him as a slave to traders passing by.', ref: 'Genesis 37:23-28' },
+        { emoji: '🕳️', text: "Joseph's brothers got so angry they threw him into a pit and considered killing him. Instead, they decided to sell him as a slave to traders passing by.", ref: 'Genesis 37:23-28' },
         { emoji: '🐫', text: 'Joseph was sold for twenty pieces of silver and carried far away to Egypt - a slave, torn from his family, with no idea what would happen next.', ref: 'Genesis 37:28' },
         { emoji: '💔', text: 'The brothers lied to their father Jacob, telling him Joseph had been killed by a wild animal. Jacob grieved deeply, not knowing the truth.', ref: 'Genesis 37:31-35' },
       ],
-      midCheck: {
-        question: 'What did Joseph\'s brothers do to him?',
+      groupCheck: {
+        question: "What did Joseph's brothers do to him?",
         options: ['Gave him a promotion', 'Sold him as a slave', 'Sent him on vacation', 'Made him king'],
         correctIndex: 1,
       },
-      endCheckpoint: [
-        { question: 'Where was Joseph taken?', options: ['Egypt', 'Babylon', 'Rome', 'Greece'], correctIndex: 0 },
-        { question: 'What lie did the brothers tell Jacob?', options: ['Joseph ran away', 'A wild animal killed Joseph', 'Joseph got married', 'Joseph became rich'], correctIndex: 1 },
+      masteryQuestions: [
+        { question: 'What did Joseph\'s brothers do to him first?', options: ['Threw him into a pit', 'Gave him a gift', 'Sent him home', 'Made him a leader'], correctIndex: 0, explanation: 'Their anger led them to throw Joseph into a pit.' },
+        { question: 'What did the brothers consider doing before selling him?', options: ['Killing him', 'Promoting him', 'Forgiving him', 'Marrying him off'], correctIndex: 0, explanation: 'They initially considered killing Joseph before choosing another path.' },
+        { question: 'What did the brothers do instead of killing Joseph?', options: ['Sold him as a slave', 'Let him go home', 'Made him a servant at home', 'Nothing'], correctIndex: 0, explanation: 'They sold Joseph as a slave to passing traders.' },
+        { question: 'How much silver was Joseph sold for?', options: ['Ten pieces', 'Twenty pieces', 'A hundred pieces', 'None, he was given away'], correctIndex: 1, explanation: 'Joseph was sold for twenty pieces of silver.' },
+        { question: 'Where was Joseph taken?', options: ['Egypt', 'Babylon', 'Rome', 'Greece'], correctIndex: 0, explanation: 'Joseph was carried far away to Egypt.' },
+        { question: 'What lie did the brothers tell Jacob?', options: ['Joseph ran away', 'A wild animal killed Joseph', 'Joseph got married', 'Joseph became rich'], correctIndex: 1, explanation: 'They lied that a wild animal had killed Joseph.' },
+        { question: 'How did Jacob react to the news?', options: ['He grieved deeply', 'He was relieved', 'He didn\'t care', 'He went to find Joseph immediately'], correctIndex: 0, explanation: 'Jacob grieved deeply, believing his son was dead.' },
+        { question: 'Did Jacob know the truth about what happened?', options: ['Yes, right away', 'No, he believed the lie', 'He suspected it', 'The brothers told him eventually'], correctIndex: 1, explanation: 'Jacob believed the brothers\' lie for a long time.' },
+        { question: 'What was Joseph\'s situation as he arrived in Egypt?', options: ['A free traveler', 'A slave with no idea what would happen next', 'A guest of honor', 'A tourist'], correctIndex: 1, explanation: 'Joseph arrived as a slave, torn from everything familiar.' },
+        { question: 'Which reference tells this part of the story?', options: ['Genesis 37:12-36', 'Genesis 39:1-23', 'Genesis 41:1-57', 'Genesis 45:1-15'], correctIndex: 0, explanation: 'Joseph being sold into Egypt is told in Genesis 37:12-36.' },
       ],
     },
     {
@@ -495,17 +669,25 @@ const joseph: JourneyUnit = {
       reference: 'Genesis 39:1-23',
       cards: [
         { emoji: '🏠', text: 'In Egypt, Joseph became a slave in the house of a man named Potiphar. Even in a hard situation, Joseph worked so well that he was put in charge of the whole household.', ref: 'Genesis 39:1-6' },
-        { emoji: '🙅', text: 'Potiphar\'s wife tried to get Joseph to do something wrong. Joseph refused, even though it would have been easy to give in. He chose to do right, even unseen.', ref: 'Genesis 39:7-12' },
+        { emoji: '🙅', text: "Potiphar's wife tried to get Joseph to do something wrong. Joseph refused, even though it would have been easy to give in. He chose to do right, even unseen.", ref: 'Genesis 39:7-12' },
         { emoji: '⛓️', text: 'She lied about him afterward, and Joseph ended up unfairly thrown in prison - punished for doing the right thing. But even there, God stayed with him.', ref: 'Genesis 39:19-23' },
       ],
-      midCheck: {
+      groupCheck: {
         question: 'What did Joseph do when he was tempted to do wrong?',
         options: ['He gave in', 'He refused and chose to do right', 'He ran to tell everyone', 'He ignored the situation completely'],
         correctIndex: 1,
       },
-      endCheckpoint: [
-        { question: 'What happened to Joseph even though he did the right thing?', options: ['He got a reward', 'He was unfairly thrown in prison', 'Nothing happened', 'He was set free immediately'], correctIndex: 1 },
-        { question: 'Who stayed with Joseph even in prison?', options: ['No one', 'God', 'Potiphar', 'His brothers'], correctIndex: 1 },
+      masteryQuestions: [
+        { question: "Whose household did Joseph become a slave in?", options: ["Potiphar's", 'Pharaoh\'s', 'A traders\'', 'His own family\'s'], correctIndex: 0, explanation: 'Joseph became a slave in the house of Potiphar.' },
+        { question: 'What happened to Joseph in Potiphar\'s household despite being a slave?', options: ['He was ignored', 'He was put in charge of the whole household', 'He was immediately imprisoned', 'He ran away'], correctIndex: 1, explanation: "Joseph's excellent work earned him charge of the whole household." },
+        { question: 'Who tried to get Joseph to do something wrong?', options: ["Potiphar's wife", 'Pharaoh', 'His brothers', 'A stranger'], correctIndex: 0, explanation: "Potiphar's wife tempted Joseph to sin." },
+        { question: 'What did Joseph do when tempted?', options: ['He gave in', 'He refused and chose to do right', 'He told everyone right away', 'He ignored it'], correctIndex: 1, explanation: 'Joseph chose to do right even when it would have been easy to give in.' },
+        { question: 'What made Joseph\'s choice especially admirable?', options: ['He chose right even when unseen', 'He was forced to choose right', 'Everyone was watching him', 'He had no other option'], correctIndex: 0, explanation: 'He did the right thing even though no one would have known otherwise.' },
+        { question: "What did Potiphar's wife do after Joseph refused her?", options: ['She apologized', 'She lied about him', 'She forgot about it', 'She helped him escape'], correctIndex: 1, explanation: 'She lied about Joseph after he refused her.' },
+        { question: 'What happened to Joseph as a result of the lie?', options: ['He got a reward', 'He was unfairly thrown in prison', 'Nothing happened', 'He was set free immediately'], correctIndex: 1, explanation: 'Joseph was punished unfairly, ending up in prison.' },
+        { question: 'Who stayed with Joseph even in prison?', options: ['No one', 'God', 'Potiphar', 'His brothers'], correctIndex: 1, explanation: "The Bible says God stayed with Joseph even in that hard place." },
+        { question: 'What does this story show about doing right when it\'s hard?', options: ['It sometimes leads to unfair suffering, but God remains present', 'It always leads to instant reward', 'It never matters what you choose', 'Doing wrong is always safer'], correctIndex: 0, explanation: "Joseph's integrity led to unfair suffering, yet God never left him." },
+        { question: 'Which reference tells this story?', options: ['Genesis 39:1-23', 'Genesis 37:12-36', 'Genesis 41:1-57', 'Genesis 45:1-15'], correctIndex: 0, explanation: "Joseph's character being tested is told in Genesis 39." },
       ],
     },
     {
@@ -513,18 +695,26 @@ const joseph: JourneyUnit = {
       title: "Pharaoh's Dreams",
       reference: 'Genesis 41:1-57',
       cards: [
-        { emoji: '👑', text: 'Years later, Egypt\'s Pharaoh had strange dreams no one could explain. Someone remembered that Joseph, still in prison, had a gift for understanding dreams.', ref: 'Genesis 41:1-13' },
+        { emoji: '👑', text: "Years later, Egypt's Pharaoh had strange dreams no one could explain. Someone remembered that Joseph, still in prison, had a gift for understanding dreams.", ref: 'Genesis 41:1-13' },
         { emoji: '🌾', text: 'Joseph explained that the dreams meant seven years of plenty were coming, followed by seven years of famine - and gave Pharaoh a wise plan to prepare.', ref: 'Genesis 41:25-36' },
         { emoji: '🏛️', text: 'Pharaoh was so impressed that he made Joseph second-in-command over all of Egypt - the former slave and prisoner now ran the whole country\'s food supply.', ref: 'Genesis 41:39-41' },
       ],
-      midCheck: {
+      groupCheck: {
         question: "What did Joseph's interpretation of the dreams predict?",
         options: ['A war coming', 'Seven years of plenty, then seven years of famine', 'A flood', 'Nothing important'],
         correctIndex: 1,
       },
-      endCheckpoint: [
-        { question: 'What position did Pharaoh give Joseph?', options: ['A prisoner again', 'Second-in-command over Egypt', 'A shepherd', 'Nothing, he sent him home'], correctIndex: 1 },
-        { question: 'How did Joseph go from prisoner to leader?', options: ['He bribed someone', 'God gave him wisdom to understand the dreams', 'He fought for the position', 'Pure luck'], correctIndex: 1 },
+      masteryQuestions: [
+        { question: 'What problem did Pharaoh have?', options: ['Strange dreams no one could explain', 'A famine already happening', 'A rebellion', 'A missing crown'], correctIndex: 0, explanation: "Pharaoh's dreams troubled him and no one could interpret them." },
+        { question: 'Who was remembered as having a gift for understanding dreams?', options: ['Joseph, still in prison', 'A magician', 'Pharaoh himself', 'Potiphar'], correctIndex: 0, explanation: 'Someone remembered Joseph\'s gift while he was still imprisoned.' },
+        { question: "What did Joseph's interpretation predict?", options: ['A war coming', 'Seven years of plenty, then seven years of famine', 'A flood', 'Nothing important'], correctIndex: 1, explanation: 'Joseph explained the dreams meant seven good years followed by seven hard ones.' },
+        { question: 'What did Joseph give Pharaoh besides the interpretation?', options: ['A wise plan to prepare', 'Nothing extra', 'A demand for freedom', 'A new dream'], correctIndex: 0, explanation: 'Joseph also offered a practical plan to prepare for the famine.' },
+        { question: 'What position did Pharaoh give Joseph?', options: ['A prisoner again', 'Second-in-command over Egypt', 'A shepherd', 'Nothing, he sent him home'], correctIndex: 1, explanation: 'Pharaoh made Joseph second-in-command over the whole country.' },
+        { question: 'How did Joseph go from prisoner to leader?', options: ['He bribed someone', 'God gave him wisdom to understand the dreams', 'He fought for the position', 'Pure luck'], correctIndex: 1, explanation: "Joseph's God-given wisdom about the dreams led to his rise." },
+        { question: 'What did Joseph\'s new role put him in charge of?', options: [" Egypt's whole food supply", 'Only the prison', 'Just Pharaoh\'s house', 'Nothing significant'], correctIndex: 0, explanation: "Joseph managed Egypt's entire food supply as second-in-command." },
+        { question: "What was Joseph's situation right before this turning point?", options: ['Living as a free man', 'Still in prison', 'Back with his family', 'Working for Potiphar'], correctIndex: 1, explanation: 'Joseph was still in prison when he was called to interpret the dreams.' },
+        { question: 'What does this story show about hard seasons?', options: ['God can use even prison time for a bigger purpose', 'Prison always ends someone\'s story', 'Dreams never matter', 'Pharaoh was foolish'], correctIndex: 0, explanation: "Joseph's darkest season became the setup for an incredible turnaround." },
+        { question: 'Which reference tells this story?', options: ['Genesis 41:1-57', 'Genesis 39:1-23', 'Genesis 37:12-36', 'Genesis 45:1-15'], correctIndex: 0, explanation: "Pharaoh's dreams and Joseph's rise are told in Genesis 41." },
       ],
     },
     {
@@ -532,18 +722,26 @@ const joseph: JourneyUnit = {
       title: 'Forgiving His Brothers',
       reference: 'Genesis 45:1-15',
       cards: [
-        { emoji: '🌾', text: 'The famine hit Joseph\'s home country too. His brothers traveled to Egypt for food, not realizing the powerful official in charge was the brother they\'d sold years earlier.', ref: 'Genesis 42:1-8' },
+        { emoji: '🌾', text: "The famine hit Joseph's home country too. His brothers traveled to Egypt for food, not realizing the powerful official in charge was the brother they'd sold years earlier.", ref: 'Genesis 42:1-8' },
         { emoji: '😭', text: 'Joseph eventually revealed who he was. His brothers were terrified, expecting revenge for what they\'d done. Instead, Joseph wept and embraced them.', ref: 'Genesis 45:1-4' },
         { emoji: '❤️', text: '"Don\'t be afraid," Joseph told them. "God turned what you meant for harm into a way to save many lives." He chose forgiveness over revenge, and it changed everything.', ref: 'Genesis 45:5-8' },
       ],
-      midCheck: {
-        question: 'How did Joseph\'s brothers expect him to react when they found out who he was?',
+      groupCheck: {
+        question: "How did Joseph's brothers expect him to react when they found out who he was?",
         options: ['With revenge', 'With indifference', 'With laughter', 'They expected nothing'],
         correctIndex: 0,
       },
-      endCheckpoint: [
-        { question: 'What did Joseph choose instead of revenge?', options: ['Silence', 'Forgiveness', 'Punishment', 'Ignoring them'], correctIndex: 1 },
-        { question: 'What did Joseph say God turned their harm into?', options: ['Nothing good', 'A way to save many lives', 'A punishment for them', 'A funny story'], correctIndex: 1 },
+      masteryQuestions: [
+        { question: 'Why did Joseph\'s brothers travel to Egypt?', options: ['For food during a famine', 'To trade animals', 'To find Joseph on purpose', 'For a festival'], correctIndex: 0, explanation: 'A famine forced them to travel to Egypt seeking food.' },
+        { question: 'Did the brothers recognize Joseph at first?', options: ['Yes, right away', 'No, they had no idea it was him', 'They suspected but weren\'t sure', 'Joseph told them immediately'], correctIndex: 1, explanation: 'They had no idea the powerful official was the brother they had sold.' },
+        { question: 'How did the brothers feel when Joseph revealed who he was?', options: ['Happy and relieved', 'Terrified, expecting revenge', 'Indifferent', 'Confused about who he was'], correctIndex: 1, explanation: 'They were terrified, expecting Joseph to take revenge.' },
+        { question: 'How did Joseph actually respond to them?', options: ['He punished them', 'He wept and embraced them', 'He sent them away', 'He ignored them'], correctIndex: 1, explanation: 'Joseph responded with tears and a loving embrace, not revenge.' },
+        { question: 'What did Joseph choose instead of revenge?', options: ['Silence', 'Forgiveness', 'Punishment', 'Ignoring them'], correctIndex: 1, explanation: 'Joseph chose to forgive his brothers completely.' },
+        { question: 'What did Joseph say God turned their harm into?', options: ['Nothing good', 'A way to save many lives', 'A punishment for them', 'A funny story'], correctIndex: 1, explanation: 'Joseph saw God using their betrayal to save many lives.' },
+        { question: "What did Joseph tell his brothers not to feel?", options: ['Joyful', 'Afraid', 'Grateful', 'Surprised'], correctIndex: 1, explanation: 'Joseph told them, "Don\'t be afraid."' },
+        { question: 'What does Joseph\'s response show about forgiveness?', options: ['It can transform even a painful past', 'It means forgetting everything happened', 'It always takes revenge first', 'It is impossible after real harm'], correctIndex: 0, explanation: "Joseph's forgiveness changed the entire outcome for his family." },
+        { question: 'What is the biggest lesson from this final Joseph story?', options: ['God can turn even harm into good, and forgiveness matters', 'Revenge is always justified', 'Family reunions are simple', 'Famines never end'], correctIndex: 0, explanation: "Joseph's story shows both God's redemption and the power of forgiveness." },
+        { question: 'Which reference tells this reunion?', options: ['Genesis 45:1-15', 'Genesis 41:1-57', 'Genesis 39:1-23', 'Genesis 37:12-36'], correctIndex: 0, explanation: "Joseph revealing himself to his brothers is told in Genesis 45." },
       ],
     },
   ],
@@ -560,17 +758,25 @@ const topical: JourneyUnit = {
       title: "God's Amazing Design",
       reference: 'Genesis 1:1-31',
       cards: [
-        { emoji: '🎨', text: 'Everything in creation - every star, every animal, every color - was on purpose. God didn\'t make the world by accident; He designed it, piece by piece.', ref: 'Genesis 1:1' },
+        { emoji: '🎨', text: "Everything in creation - every star, every animal, every color - was on purpose. God didn't make the world by accident; He designed it, piece by piece.", ref: 'Genesis 1:1' },
         { emoji: '🪞', text: 'And of everything He made, only people were made "in God\'s image." That means you were made on purpose too, and you matter to God more than you might realize.', ref: 'Genesis 1:27' },
       ],
-      midCheck: {
+      groupCheck: {
         question: 'Which of these was made "in God\'s image"?',
         options: ['The sun', 'Animals', 'People', 'The ocean'],
         correctIndex: 2,
       },
-      endCheckpoint: [
-        { question: 'Was creation an accident or on purpose?', options: ['An accident', 'On purpose', 'Nobody knows', 'It just appeared'], correctIndex: 1 },
-        { question: 'What does being made in God\'s image tell you?', options: ['You don\'t matter', 'You were made on purpose and matter to God', 'You are exactly like an animal', 'Nothing special'], correctIndex: 1 },
+      masteryQuestions: [
+        { question: 'Was creation an accident or on purpose?', options: ['An accident', 'On purpose', 'Nobody knows', 'It just appeared'], correctIndex: 1, explanation: 'God designed creation piece by piece, on purpose.' },
+        { question: 'Which of these was made "in God\'s image"?', options: ['The sun', 'Animals', 'People', 'The ocean'], correctIndex: 2, explanation: 'Only people were made in God\'s image, unlike anything else He created.' },
+        { question: "What does being made in God's image tell you?", options: ["You don't matter", 'You were made on purpose and matter to God', 'You are exactly like an animal', 'Nothing special'], correctIndex: 1, explanation: 'It means you were made deliberately and you matter to God.' },
+        { question: 'How many things in creation were made "on purpose"?', options: ['Just a few', 'Everything, every star and color', 'Only people', 'Nothing was on purpose'], correctIndex: 1, explanation: 'Every star, animal, and color was designed intentionally.' },
+        { question: "What is this topic drawn from in Genesis?", options: ['The creation account', "Noah's flood", "Joseph's dreams", 'The Tower of Babel'], correctIndex: 0, explanation: 'This truth comes directly from the creation story.' },
+        { question: 'Why does this truth matter for how you see yourself?', options: ['It shows you were made on purpose and matter to God', 'It has nothing to do with you', 'It means you are just like an animal', 'It only applies to adults'], correctIndex: 0, explanation: "Knowing you were made on purpose changes how you see your own worth." },
+        { question: 'What is the opposite idea this truth pushes back against?', options: ['That creation and people are accidents with no purpose', 'That God is powerful', 'That the world has color', 'That animals exist'], correctIndex: 0, explanation: "This truth directly counters the idea that we're here by accident." },
+        { question: 'Which reference is this lesson based on?', options: ['Genesis 1:1-31', 'Genesis 6:1-8', 'Genesis 11:1-9', 'Genesis 22:1-18'], correctIndex: 0, explanation: 'This lesson draws from the creation account in Genesis 1.' },
+        { question: 'What sets people apart from stars, animals, and oceans?', options: ['Nothing at all', 'Being made in God\'s image', 'Being the loudest', 'Being the biggest'], correctIndex: 1, explanation: 'Of everything God made, only people carry His image.' },
+        { question: 'What is the main takeaway of this lesson?', options: ['You were designed on purpose and matter to God', 'The world made itself', 'Only stars matter to God', 'Nothing in creation has meaning'], correctIndex: 0, explanation: "This lesson's whole point is that you matter because you were made on purpose." },
       ],
     },
     {
@@ -578,35 +784,51 @@ const topical: JourneyUnit = {
       title: 'Sin Has Consequences',
       reference: 'Genesis 3:1-24; 4:1-16',
       cards: [
-        { emoji: '⚖️', text: 'Adam and Eve\'s choice in the garden and Cain\'s jealousy toward Abel both show the same pattern: sin might feel small at first, but it always leads somewhere real.', ref: 'Genesis 3:6; 4:8' },
-        { emoji: '🌱', text: 'The good news is that even after both of those failures, God didn\'t walk away. He kept caring for Adam\'s family, and kept working His plan forward.', ref: 'Genesis 3:21; 4:15' },
+        { emoji: '⚖️', text: "Adam and Eve's choice in the garden and Cain's jealousy toward Abel both show the same pattern: sin might feel small at first, but it always leads somewhere real.", ref: 'Genesis 3:6; 4:8' },
+        { emoji: '🌱', text: "The good news is that even after both of those failures, God didn't walk away. He kept caring for Adam's family, and kept working His plan forward.", ref: 'Genesis 3:21; 4:15' },
       ],
-      midCheck: {
-        question: 'What pattern do Adam and Eve\'s choice and Cain\'s choice both show?',
+      groupCheck: {
+        question: "What pattern do Adam and Eve's choice and Cain's choice both show?",
         options: ['Sin has no effect', 'Sin always leads somewhere real', 'Only adults sin', 'Sin makes you happy forever'],
         correctIndex: 1,
       },
-      endCheckpoint: [
-        { question: 'Did God walk away after Adam, Eve, and Cain sinned?', options: ['Yes, completely', 'No, He kept caring for them', 'He disappeared forever', 'He punished them and left'], correctIndex: 1 },
-        { question: 'What is this topic really about?', options: ['Farming', 'Sin having real consequences', 'Building boats', 'Counting animals'], correctIndex: 1 },
+      masteryQuestions: [
+        { question: 'Which two stories does this lesson draw from?', options: ["Adam and Eve, and Cain and Abel", "Noah's flood and Babel", "Abraham and Joseph", "Jacob and Isaac"], correctIndex: 0, explanation: "This lesson pulls the pattern from both the Fall and Cain's story." },
+        { question: 'What pattern do both stories show about sin?', options: ['Sin has no effect', 'Sin always leads somewhere real', 'Only adults sin', 'Sin makes you happy forever'], correctIndex: 1, explanation: 'Both stories show sin, even small at first, leads to real consequences.' },
+        { question: 'Did God walk away after Adam, Eve, and Cain sinned?', options: ['Yes, completely', 'No, He kept caring for them', 'He disappeared forever', 'He punished them and left'], correctIndex: 1, explanation: 'God stayed engaged with them despite their failures.' },
+        { question: 'What is this topic really about?', options: ['Farming', 'Sin having real consequences', 'Building boats', 'Counting animals'], correctIndex: 1, explanation: 'This lesson focuses on how sin leads to real, lasting effects.' },
+        { question: 'How did sin start in both stories?', options: ['It felt small at first', 'It was huge from the very first moment', 'It was forced on them', 'It never actually started'], correctIndex: 0, explanation: 'Both began with something that seemed small before growing serious.' },
+        { question: 'What did God keep doing even after these failures?', options: ['Working His plan forward', 'Giving up on people', 'Ignoring the world', 'Nothing at all'], correctIndex: 0, explanation: "Even through failure, God kept working His plan forward." },
+        { question: 'Which reference is this lesson drawn from?', options: ['Genesis 3:1-24; 4:1-16', 'Genesis 9:8-17', 'Genesis 17:1-19', 'Genesis 28:10-22'], correctIndex: 0, explanation: 'This lesson combines the Fall and Cain and Abel\'s stories.' },
+        { question: 'What is the encouraging part of this topic?', options: ['God didn\'t walk away, even after real failure', 'Sin has no real consequences', 'God gave up on everyone', 'Nothing hopeful is in this story'], correctIndex: 0, explanation: "Even amid consequences, God's continued care is the hopeful part." },
+        { question: 'What should this lesson make you think about?', options: ['Taking small compromises seriously', 'Ignoring consequences completely', 'That sin never matters', 'That God abandons people after mistakes'], correctIndex: 0, explanation: 'Recognizing that sin leads somewhere real is the whole point of this topic.' },
+        { question: 'What is the overall message combining both truths here?', options: ['Sin is serious, but God still cares', 'Sin is never serious', 'God cares only about perfect people', 'Nothing about this matters today'], correctIndex: 0, explanation: 'This topic balances the seriousness of sin with the constancy of God\'s care.' },
       ],
     },
     {
       key: 'genesis-topic-promise',
-      title: "God Always Keeps His Promises",
+      title: 'God Always Keeps His Promises',
       reference: 'Genesis 9:8-17; 15:1-6',
       cards: [
         { emoji: '🌈', text: 'God promised Noah no flood would ever destroy the whole earth again, and put a rainbow in the sky as a sign. That promise has held for thousands of years.', ref: 'Genesis 9:13' },
         { emoji: '⭐', text: 'God also promised Abraham a family as countless as the stars, even though Abraham was old and it seemed impossible. Both promises came true, exactly as God said.', ref: 'Genesis 15:5-6' },
       ],
-      midCheck: {
-        question: 'What sign did God give as a reminder of His promise to Noah?',
+      groupCheck: {
+        question: "What sign did God give as a reminder of His promise to Noah?",
         options: ['A star', 'A rainbow', 'A mountain', 'A tree'],
         correctIndex: 1,
       },
-      endCheckpoint: [
-        { question: 'What did God promise Abraham?', options: ['Riches only', 'A family as countless as the stars', 'A new house', 'Nothing specific'], correctIndex: 1 },
-        { question: 'Did God\'s promises to Noah and Abraham come true?', options: ['No', 'Yes, exactly as He said', 'Only partly', 'It\'s unclear'], correctIndex: 1 },
+      masteryQuestions: [
+        { question: 'Which two people\'s promises does this lesson cover?', options: ["Noah and Abraham", "Jacob and Joseph", "Cain and Abel", "Isaac and Rebekah"], correctIndex: 0, explanation: "This lesson pairs God's promises to Noah and to Abraham." },
+        { question: 'What did God promise Noah?', options: ['A son', 'No flood would ever destroy the whole earth again', 'A new home', 'Riches'], correctIndex: 1, explanation: 'God promised Noah the earth would never again be destroyed by a flood.' },
+        { question: "What sign did God give as a reminder of His promise to Noah?", options: ['A star', 'A rainbow', 'A mountain', 'A tree'], correctIndex: 1, explanation: 'The rainbow became the lasting sign of that promise.' },
+        { question: 'What did God promise Abraham?', options: ['Riches only', 'A family as countless as the stars', 'A new house', 'Nothing specific'], correctIndex: 1, explanation: "God promised Abraham a family too large to count, like the stars." },
+        { question: 'Why did Abraham\'s promise seem impossible at first?', options: ['He was very old', 'He had too many children already', 'He didn\'t want a family', 'It wasn\'t actually a promise'], correctIndex: 0, explanation: "Abraham's old age made the promise seem impossible." },
+        { question: "Did God's promises to Noah and Abraham come true?", options: ['No', 'Yes, exactly as He said', 'Only partly', "It's unclear"], correctIndex: 1, explanation: 'Both promises were fulfilled exactly as God had said.' },
+        { question: 'How long has the rainbow promise held, according to this lesson?', options: ['A few years', 'Thousands of years', 'It already ended', 'One generation only'], correctIndex: 1, explanation: 'The promise has held for thousands of years since Noah.' },
+        { question: 'Which reference covers both of these promises?', options: ['Genesis 9:8-17; 15:1-6', 'Genesis 22:1-18', 'Genesis 37:1-11', 'Genesis 45:1-15'], correctIndex: 0, explanation: 'This lesson draws from Genesis 9 and Genesis 15.' },
+        { question: "What do both of these promises have in common?", options: ["They both seemed hard to believe, yet both came true", "They were both about food", "Neither one came true", "They were both broken"], correctIndex: 0, explanation: 'Each promise seemed unlikely, yet God fulfilled both exactly.' },
+        { question: 'What is the overall lesson here about God?', options: ['He keeps His promises, no matter how long it takes', 'He forgets His promises over time', 'His promises are only for some people', 'Promises from God are rare'], correctIndex: 0, explanation: "This topic's whole point is God's faithfulness to His word." },
       ],
     },
     {
@@ -615,16 +837,24 @@ const topical: JourneyUnit = {
       reference: 'Genesis 12:1-4; 22:1-14',
       cards: [
         { emoji: '🧭', text: 'Abraham left his home without knowing exactly where he was going, and later was willing to trust God even on the mountain with Isaac. Both times, he obeyed before he understood.', ref: 'Genesis 12:1; 22:2-3' },
-        { emoji: '💫', text: 'That\'s what faith really is: trusting God\'s character even when His plan doesn\'t fully make sense yet. Abraham is remembered for that kind of trust to this day.', ref: 'Genesis 22:12' },
+        { emoji: '💫', text: "That's what faith really is: trusting God's character even when His plan doesn't fully make sense yet. Abraham is remembered for that kind of trust to this day.", ref: 'Genesis 22:12' },
       ],
-      midCheck: {
+      groupCheck: {
         question: 'What did Abraham do both times, before he fully understood the plan?',
         options: ['He refused', 'He obeyed anyway', 'He asked someone else to go instead', 'He waited years to decide'],
         correctIndex: 1,
       },
-      endCheckpoint: [
-        { question: 'What is faith, based on Abraham\'s story?', options: ['Trusting God even when it doesn\'t fully make sense yet', 'Only trusting when you understand everything', 'Doing whatever feels easiest', 'Avoiding hard choices'], correctIndex: 0 },
-        { question: 'What is Abraham remembered for?', options: ['His farming', 'His trust in God', 'His wealth', 'His singing'], correctIndex: 1 },
+      masteryQuestions: [
+        { question: 'Which two moments in Abraham\'s life does this lesson use as examples?', options: ["Leaving home, and the mountain with Isaac", "Meeting Sarah, and meeting Lot", "Building an altar, and digging a well", "Naming Isaac, and naming Jacob"], correctIndex: 0, explanation: 'These two moments both show Abraham obeying before fully understanding.' },
+        { question: 'What did Abraham do both times, before he fully understood the plan?', options: ['He refused', 'He obeyed anyway', 'He asked someone else to go instead', 'He waited years to decide'], correctIndex: 1, explanation: 'In both moments, Abraham obeyed before he fully understood.' },
+        { question: 'What is faith, based on Abraham\'s story?', options: ["Trusting God even when it doesn't fully make sense yet", 'Only trusting when you understand everything', 'Doing whatever feels easiest', 'Avoiding hard choices'], correctIndex: 0, explanation: 'Faith is trusting God\'s character even without full understanding.' },
+        { question: 'What is Abraham remembered for?', options: ['His farming', 'His trust in God', 'His wealth', 'His singing'], correctIndex: 1, explanation: 'Abraham is remembered specifically for his trust in God.' },
+        { question: 'What did Abraham trust, if not a fully clear plan?', options: ["God's character", 'His own strength', 'A map', 'Public opinion'], correctIndex: 0, explanation: "Abraham trusted who God is, even when the plan wasn't clear." },
+        { question: 'Which reference is this lesson drawn from?', options: ['Genesis 12:1-4; 22:1-14', 'Genesis 9:8-17', 'Genesis 37:1-11', 'Genesis 28:10-22'], correctIndex: 0, explanation: "This lesson pairs Abraham's call and the test on the mountain." },
+        { question: 'What is the opposite of the kind of faith this lesson describes?', options: ['Only trusting once everything makes complete sense', 'Trusting God fully', 'Following instructions exactly', 'Leaving home'], correctIndex: 0, explanation: 'True faith trusts before everything is understood, not after.' },
+        { question: 'Why does this lesson use two different stories about Abraham?', options: ['To show this kind of trust was a consistent pattern in his life', 'Because one story wasn\'t enough content', 'To confuse the reader', 'Because they are unrelated'], correctIndex: 0, explanation: 'Two examples show that trusting God was a repeated pattern for Abraham, not a one-time act.' },
+        { question: 'What should this lesson make you think about your own trust in God?', options: ['Whether you trust Him even without full understanding', 'Nothing, it\'s only about history', 'That understanding everything first is required', 'That trust is unnecessary'], correctIndex: 0, explanation: "This lesson challenges you to trust God's character the way Abraham did." },
+        { question: 'What is the main point of this whole lesson?', options: ['Faith means trusting God even before understanding His plan', 'Faith means having all the answers first', 'Faith is only for older people', 'Faith is unnecessary if you\'re smart'], correctIndex: 0, explanation: "That's the exact definition of faith this lesson is teaching." },
       ],
     },
     {
@@ -632,17 +862,25 @@ const topical: JourneyUnit = {
       title: 'Choosing Forgiveness',
       reference: 'Genesis 45:1-15; 50:15-21',
       cards: [
-        { emoji: '🤗', text: 'Joseph had every reason to be angry with his brothers - they sold him into slavery. But when he had the power to punish them, he chose to forgive instead.', ref: 'Genesis 45:4-5' },
-        { emoji: '🌟', text: 'Joseph saw that God had used even his brothers\' worst choice for something good. Forgiveness didn\'t mean pretending it didn\'t hurt - it meant letting go of revenge.', ref: 'Genesis 50:19-21' },
+        { emoji: '🤗', text: "Joseph had every reason to be angry with his brothers - they sold him into slavery. But when he had the power to punish them, he chose to forgive instead.", ref: 'Genesis 45:4-5' },
+        { emoji: '🌟', text: "Joseph saw that God had used even his brothers' worst choice for something good. Forgiveness didn't mean pretending it didn't hurt - it meant letting go of revenge.", ref: 'Genesis 50:19-21' },
       ],
-      midCheck: {
+      groupCheck: {
         question: 'What did Joseph choose to do when he had the power to punish his brothers?',
         options: ['Punish them severely', 'Forgive them', 'Ignore them forever', 'Send them away'],
         correctIndex: 1,
       },
-      endCheckpoint: [
-        { question: 'Did forgiving mean Joseph pretended it never hurt?', options: ['Yes', 'No, it meant letting go of revenge', 'He forgot everything happened', 'He never thought about it again'], correctIndex: 1 },
-        { question: 'What did Joseph see God had done with his brothers\' worst choice?', options: ['Nothing', 'Used it for something good', 'Made it worse', 'Erased it'], correctIndex: 1 },
+      masteryQuestions: [
+        { question: 'Why did Joseph have every reason to be angry with his brothers?', options: ['They sold him into slavery', 'They ignored him', 'They stole his food', 'They lost his robe'], correctIndex: 0, explanation: 'His brothers had sold him into slavery years earlier.' },
+        { question: 'What power did Joseph have over his brothers by this point?', options: ['The power to punish them', 'No power at all', 'Only the power to speak to them', 'The power to imprison Pharaoh'], correctIndex: 0, explanation: 'As a powerful Egyptian official, Joseph could easily have punished them.' },
+        { question: 'What did Joseph choose to do instead of punishing them?', options: ['Punish them severely', 'Forgive them', 'Ignore them forever', 'Send them away'], correctIndex: 1, explanation: 'Joseph chose forgiveness over revenge.' },
+        { question: 'Did forgiving mean Joseph pretended it never hurt?', options: ['Yes', 'No, it meant letting go of revenge', 'He forgot everything happened', 'He never thought about it again'], correctIndex: 1, explanation: "Forgiveness wasn't pretending - it was letting go of revenge despite the real hurt." },
+        { question: "What did Joseph see God had done with his brothers' worst choice?", options: ['Nothing', 'Used it for something good', 'Made it worse', 'Erased it'], correctIndex: 1, explanation: 'Joseph recognized God had used their betrayal for good.' },
+        { question: 'Which reference is this lesson based on?', options: ['Genesis 45:1-15; 50:15-21', 'Genesis 37:1-11', 'Genesis 39:1-23', 'Genesis 41:1-57'], correctIndex: 0, explanation: "This lesson draws from Joseph's reunion and his later words to his brothers." },
+        { question: 'What is one thing forgiveness is NOT, according to this lesson?', options: ['Pretending the hurt never happened', 'A real choice', 'Something Joseph modeled', 'Related to letting go of revenge'], correctIndex: 0, explanation: "Forgiveness acknowledges the hurt - it doesn't pretend it away." },
+        { question: 'What made Joseph\'s forgiveness especially powerful?', options: ['He had real power to take revenge and chose not to', 'He had no other choice', 'He forgot what happened', 'He was forced to forgive'], correctIndex: 0, explanation: "Having real power to punish makes his choice to forgive stand out." },
+        { question: 'What can this lesson teach about hard situations in our own lives?', options: ['Good can come even from painful situations, and forgiveness is possible', 'Nothing good ever comes from pain', 'Revenge is always the right response', 'Forgiveness is impossible after real harm'], correctIndex: 0, explanation: "Joseph's story shows both redemption and the real possibility of forgiveness." },
+        { question: 'What is the central truth of this whole lesson?', options: ['Choosing forgiveness over revenge, even when justified in anger', 'Revenge is always deserved', 'Forgetting is required to forgive', 'Power should always be used to punish'], correctIndex: 0, explanation: "This lesson's whole point is the choice to forgive rather than take revenge." },
       ],
     },
     {
@@ -653,14 +891,22 @@ const topical: JourneyUnit = {
         { emoji: '🌍', text: 'God told Jacob, running scared from home, "I am with you wherever you go." Not just at home, not just in comfortable places - everywhere.', ref: 'Genesis 28:15' },
         { emoji: '⛓️', text: 'Joseph experienced the same truth in the hardest places: a pit, a prison, a foreign country. The Bible says "the Lord was with Joseph" through every single one of them.', ref: 'Genesis 39:2-3,21' },
       ],
-      midCheck: {
+      groupCheck: {
         question: 'Where was God with Jacob and Joseph?',
         options: ['Only in good times', 'Only at home', 'Everywhere, including the hardest places', 'Nowhere in particular'],
         correctIndex: 2,
       },
-      endCheckpoint: [
-        { question: 'What did God tell Jacob while he was running scared?', options: ['"You are on your own"', '"I am with you wherever you go"', '"Go back home now"', 'Nothing'], correctIndex: 1 },
-        { question: 'Where did Joseph experience God\'s presence?', options: ['Only when he was Pharaoh\'s second-in-command', 'Even in a pit and in prison', 'Never', 'Only in dreams'], correctIndex: 1 },
+      masteryQuestions: [
+        { question: 'Which two people\'s stories does this lesson combine?', options: ["Jacob and Joseph", "Noah and Abraham", "Cain and Abel", "Isaac and Rebekah"], correctIndex: 0, explanation: "This lesson pairs Jacob's promise and Joseph's experience of it." },
+        { question: "What did God tell Jacob while he was running scared?", options: ['"You are on your own"', '"I am with you wherever you go"', '"Go back home now"', 'Nothing'], correctIndex: 1, explanation: 'God promised Jacob His presence no matter where he went.' },
+        { question: 'Where was God with Jacob and Joseph?', options: ['Only in good times', 'Only at home', 'Everywhere, including the hardest places', 'Nowhere in particular'], correctIndex: 2, explanation: "God's presence reached them in every place, even the hardest ones." },
+        { question: "Where did Joseph experience God's presence?", options: ["Only when he was Pharaoh's second-in-command", 'Even in a pit and in prison', 'Never', 'Only in dreams'], correctIndex: 1, explanation: "The Bible specifically says God was with Joseph even in prison." },
+        { question: 'What three hard places did Joseph experience God\'s presence in?', options: ["A pit, a prison, a foreign country", "A palace, a garden, a mountain", "A boat, a desert, a city", "A well, a tent, a field"], correctIndex: 0, explanation: 'Joseph experienced God with him in a pit, a prison, and a foreign land.' },
+        { question: 'Which reference is this lesson based on?', options: ['Genesis 28:15; 39:2-3', 'Genesis 9:8-17', 'Genesis 22:1-18', 'Genesis 45:1-15'], correctIndex: 0, explanation: "This lesson pulls from Jacob's promise and Joseph's story." },
+        { question: 'What kind of places does this lesson say God\'s presence reaches?', options: ['Only comfortable, familiar places', 'Every place, including the hardest ones', 'Only places of worship', 'Nowhere specific'], correctIndex: 1, explanation: "The whole point is that God's presence isn't limited to comfort or home." },
+        { question: 'What situation was Jacob in when God made this promise?', options: ['Celebrating at home', 'Running scared, alone', 'Leading an army', 'On a ship'], correctIndex: 1, explanation: 'Jacob was alone and afraid, fleeing from Esau, when God made this promise.' },
+        { question: 'What does this lesson encourage you to believe about hard places in your own life?', options: ['God can be present there too', 'God avoids hard places', 'Only good places have God\'s presence', 'This promise doesn\'t apply today'], correctIndex: 0, explanation: 'This lesson encourages trusting that God\'s presence reaches every hard place too.' },
+        { question: 'What is the main truth of this whole lesson?', options: ["God's presence reaches every place, not just comfortable ones", 'God only helps important people', 'Presence with God is rare', 'Hard places are always hopeless'], correctIndex: 0, explanation: "That's exactly what Jacob's promise and Joseph's experience both demonstrate." },
       ],
     },
   ],

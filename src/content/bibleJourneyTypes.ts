@@ -15,6 +15,8 @@ export interface JourneyCheckCard {
   question: string
   options: [string, string, string, string]
   correctIndex: 0 | 1 | 2 | 3
+  /** Shown as the correction when a mastery-round question is answered wrong, before it's asked again. */
+  explanation?: string
 }
 
 export interface JourneyLesson {
@@ -25,11 +27,17 @@ export interface JourneyLesson {
   reference: string
   /** Path under /journey/ for a real illustration; falls back to each card's emoji when absent. */
   image?: string
+  /** The "pages" of learning - read straight through, then groupCheck tests them as a set. */
   cards: JourneyContentCard[]
-  /** A quick one-question check dropped in partway through the lesson. */
-  midCheck: JourneyCheckCard
-  /** A short checkpoint before the lesson can be marked complete. */
-  endCheckpoint: JourneyCheckCard[]
+  /** Asked once all of this lesson's pages have been read. */
+  groupCheck: JourneyCheckCard
+  /**
+   * The end-of-lesson mastery round (10 questions covering everything in the
+   * lesson). Every one must eventually be answered correctly - a wrong
+   * answer shows its explanation and the question is requeued rather than
+   * skipped, so the lesson can't complete until all of them are right.
+   */
+  masteryQuestions: JourneyCheckCard[]
 }
 
 export interface JourneyUnit {

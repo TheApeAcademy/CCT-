@@ -28,7 +28,43 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,webp,woff2}'],
+        // index.html deliberately NOT precached here (js/css/images still
+        // are, for offline play) - this is exactly what bit the /admin
+        // routing fix: a precached copy of index.html is served straight
+        // from the service worker's cache on every load, so shipping a new
+        // index.html (like the redirect script that fixes bare-path URLs)
+        // silently didn't reach anyone whose browser already had the app
+        // installed/cached, even with skipWaiting+clientsClaim, until an
+        // extra reload happened to fall on the right side of the update
+        // race. The runtimeCaching rule below replaces it with NetworkFirst
+        // for the actual page load: online, it always fetches the latest
+        // index.html from the server (matching its own cache-control:
+        // max-age=0 already); offline, it falls back to whatever the last
+        // successful online load cached, so the offline quiz still works.
+        globPatterns: ['**/*.{js,css,svg,png,webp,woff2}'],
+        // vite-plugin-pwa registers its own SPA-fallback NavigationRoute
+        // (pointed at the now-unprecached index.html) by default, and
+        // ahead of runtimeCaching in the generated route order - it would
+        // silently swallow every navigation before the NetworkFirst rule
+        // below ever got a turn. Denying every path from that default
+        // route is what actually hands navigations to my rule instead.
+        navigateFallbackDenylist: [/.*/],
+        runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.mode === 'navigate',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'html-cache',
+              networkTimeoutSeconds: 3,
+              // Explicit rather than relying on NetworkFirst's own default
+              // cacheability check - this cache is the only thing standing
+              // between a fully offline cold-start (opening the installed
+              // app/icon with zero network) and a browser error page, so it
+              // needs to actually populate on every successful online load.
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
+        ],
         skipWaiting: true,
         clientsClaim: true,
         cleanupOutdatedCaches: true,

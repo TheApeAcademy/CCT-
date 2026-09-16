@@ -9,7 +9,18 @@ import Ladder from '../components/Ladder'
 import CountUp from '../components/CountUp'
 import type { AnswerRecord, GameConfig, GameOutcome, GameSession, LifelinesUsed, Question } from '../db/types'
 
-type Phase = 'loading' | 'intro' | 'switching' | 'question' | 'locked' | 'feedback' | 'lifeline-audience' | 'lifeline-friend' | 'finishing'
+type Phase =
+  | 'loading'
+  | 'intro'
+  | 'switching'
+  | 'picking'
+  | 'question'
+  | 'locked'
+  | 'feedback'
+  | 'lifeline-audience'
+  | 'lifeline-friend'
+  | 'paused'
+  | 'finishing'
 
 const FRIEND_LINES = [
   "Hmm, I'm pretty sure it's...",
@@ -53,6 +64,13 @@ export default function Gameplay() {
   // network (or no linked teams at all) just means the secondary line never
   // appears, never a loading state gameplay waits on.
   const [xpTotals, setXpTotals] = useState<Record<number, number>>({})
+  // Counts questions actually completed so far, independent of which numbered
+  // level was just played - see the "pick a number" flow below, where a
+  // contestant can jump straight to Q11 first. Team-rotation and the
+  // match-complete check both need a running total, not the arbitrary level
+  // number that happened to be picked.
+  const [turnsCompleted, setTurnsCompleted] = useState(0)
+  const [pausedFrom, setPausedFrom] = useState<Phase | null>(null)
   const [showSettings, setShowSettings] = useState(false)
   const [sfxMuted, setSfxMuted] = useState(() => sound.isMuted())
   const [musicMuted, setMusicMuted] = useState(() => sound.isMusicMuted())
@@ -126,10 +144,7 @@ export default function Gameplay() {
       i++
       if (i >= COUNT_IN_STEPS.length) {
         window.clearInterval(interval)
-        window.setTimeout(() => {
-          setPhase('question')
-          questionStartRef.current = Date.now()
-        }, 550)
+        window.setTimeout(() => setPhase('picking'), 550)
         return
       }
       setIntroStep(COUNT_IN_STEPS[i])
@@ -140,7 +155,7 @@ export default function Gameplay() {
   }, [phase])
 
   const isRotational = config?.mode === 'rotational'
-  const activeTeamIndex = config ? (isRotational ? (currentLevel - 1) % config.teamNames.length : config.teamIndex) : 0
+  const activeTeamIndex = config ? (isRotational ? turnsCompleted % config.teamNames.length : config.teamIndex) : 0
   const currentQuestion = questions?.[currentLevel - 1]
   const teamName = config?.teamNames[activeTeamIndex] ?? ''
   const isLastTeam = config ? config.teamIndex >= config.teamNames.length - 1 : false
@@ -323,6 +338,25 @@ export default function Gameplay() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, timeLeft])
 
+  // Pausable from the two phases that would otherwise leave a timer running
+  // or a decision hanging: an in-progress question (the countdown ticks in
+  // the background) and the number-picker (nothing ticking there, but a
+  // host may still want to freeze the screen). Remembers which one so
+  // Resume lands back exactly where it paused, not always at 'question'.
+  const handlePause = () => {
+    if (phase !== 'question' && phase !== 'picking') return
+    sound.playClick()
+    haptics.tap()
+    setPausedFrom(phase)
+    setPhase('paused')
+  }
+  const handleResume = () => {
+    sound.playClick()
+    haptics.tap()
+    setPhase(pausedFrom ?? 'question')
+    setPausedFrom(null)
+  }
+
   if (!config) return null
   if (!questions || phase === 'loading' || !currentQuestion) {
     return <div className="py-20 text-center text-xl">Loading game…</div>
@@ -340,13 +374,46 @@ export default function Gameplay() {
     )
   }
 
+  if (phase === 'paused') {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-6 py-24 text-center">
+        <p className="text-6xl">⏸️</p>
+        <h1 className="font-display text-3xl font-extrabold">Paused</h1>
+        <p className="text-white/60">Nothing's ticking while you're here. Resume whenever you're ready.</p>
+        <button
+          onClick={handleResume}
+          className="rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-500 px-10 py-4 text-xl font-bold text-purple-950 shadow-lg shadow-amber-400/20 transition hover:scale-105"
+        >
+          ▶ Resume
+        </button>
+      </div>
+    )
+  }
+
   const handleSelect = (index: number) => {
     if (phase !== 'question' || disabledOptions.has(index)) return
     reveal(index, false)
   }
 
+  const handlePickLevel = (level: number) => {
+    sound.playWhoosh()
+    haptics.tap()
+    setCurrentLevel(level)
+    setSelectedIndex(null)
+    setDisabledOptions(new Set())
+    setAudiencePoll(null)
+    setFriendHint(null)
+    setTimedOut(false)
+    setRevealed(false)
+    setTimeLeft(timerSeconds)
+    questionStartRef.current = Date.now()
+    setPhase('question')
+  }
+
   const handleNext = () => {
-    if (currentLevel >= LADDER.length) {
+    const justCompleted = turnsCompleted + 1
+    if (justCompleted >= LADDER.length) {
+      setTurnsCompleted(justCompleted)
       if (isRotational) finishRotationalMatch('completed', answersByTeam)
       else finishTurn('completed', answers)
       return
@@ -354,7 +421,7 @@ export default function Gameplay() {
     sound.playWhoosh()
     haptics.tap()
     const wasTeamIndex = activeTeamIndex
-    setCurrentLevel((l) => l + 1)
+    setTurnsCompleted(justCompleted)
     setSelectedIndex(null)
     setDisabledOptions(new Set())
     setAudiencePoll(null)
@@ -363,19 +430,13 @@ export default function Gameplay() {
     setRevealed(false)
     // In rotational mode, the next question may belong to a different
     // team - a quick "get ready" beat instead of jumping straight into it.
-    const nextTeamIndex = isRotational ? (currentLevel % config.teamNames.length) : wasTeamIndex
+    const nextTeamIndex = isRotational ? (justCompleted % config.teamNames.length) : wasTeamIndex
     if (isRotational && nextTeamIndex !== wasTeamIndex) {
       setPhase('switching')
-      window.setTimeout(() => {
-        setPhase('question')
-        questionStartRef.current = Date.now()
-      }, 1400)
-      setTimeLeft(timerSeconds)
+      window.setTimeout(() => setPhase('picking'), 1400)
       return
     }
-    setTimeLeft(timerSeconds)
-    questionStartRef.current = Date.now()
-    setPhase('question')
+    setPhase('picking')
   }
 
   const handleQuit = () => {
@@ -495,6 +556,15 @@ export default function Gameplay() {
 
         {isHeadToHead ? (
           <div className="flex justify-end gap-2">
+            {(phase === 'question' || phase === 'picking') && (
+              <button
+                onClick={handlePause}
+                className="shrink-0 rounded-full bg-white/10 px-3 py-2 text-sm hover:bg-white/20"
+                aria-label="Pause"
+              >
+                ⏸️
+              </button>
+            )}
             <button
               onClick={() => setShowSettings(true)}
               className="shrink-0 rounded-full bg-white/10 px-3 py-2 text-sm hover:bg-white/20"
@@ -530,6 +600,11 @@ export default function Gameplay() {
                   <CountUp value={runningScore} durationMs={500} /> 👑
                 </p>
               </div>
+              {(phase === 'question' || phase === 'picking') && (
+                <button onClick={handlePause} className="rounded-full bg-white/10 px-3 py-2 text-sm hover:bg-white/20" aria-label="Pause">
+                  ⏸️
+                </button>
+              )}
               <button
                 onClick={() => setShowSettings(true)}
                 className="rounded-full bg-white/10 px-3 py-2 text-sm hover:bg-white/20"
@@ -564,6 +639,19 @@ export default function Gameplay() {
           />
         )}
 
+        {phase === 'picking' && (
+          <QuestionPicker
+            levels={LADDER.map((l) => l.level)}
+            usedLevels={
+              new Set(isRotational ? Object.values(answersByTeam).flat().map((a) => a.level) : answers.map((a) => a.level))
+            }
+            onPick={handlePickLevel}
+            pointsForLevel={pointsForLevel}
+          />
+        )}
+
+        {phase !== 'picking' && (
+          <>
         <div className="hex-frame mx-auto w-full max-w-3xl">
           <div className="hex-fill flex min-h-[80px] flex-col items-center justify-center gap-1.5 px-6 py-3 text-center sm:min-h-[100px]">
             <div className="flex items-center gap-2 text-xs">
@@ -641,6 +729,8 @@ export default function Gameplay() {
             onClick={usePhoneFriend}
           />
         </div>
+          </>
+        )}
 
         {phase === 'feedback' && (
           <div
@@ -660,7 +750,7 @@ export default function Gameplay() {
               onClick={handleNext}
               className="animate-pulse-glow rounded-xl bg-amber-400 px-6 py-3 font-bold text-purple-950 transition hover:scale-105"
             >
-              {currentLevel >= LADDER.length ? (isRotational ? 'Finish Match →' : `Finish ${teamName}'s Turn →`) : `Next Question →`}
+              {turnsCompleted + 1 >= LADDER.length ? (isRotational ? 'Finish Match →' : `Finish ${teamName}'s Turn →`) : `Next Question →`}
             </button>
           </div>
         )}
@@ -717,6 +807,50 @@ export default function Gameplay() {
           />
         </div>
       )}
+    </div>
+  )
+}
+
+/**
+ * "Pick your next question" - a numbered grid standing in for a physical
+ * board of numbered question cards. A contestant taps any number still in
+ * play; whichever one they answered already shows crossed out and disabled,
+ * so the room can see at a glance what's left in the pool.
+ */
+function QuestionPicker({
+  levels,
+  usedLevels,
+  onPick,
+  pointsForLevel,
+}: {
+  levels: number[]
+  usedLevels: Set<number>
+  onPick: (level: number) => void
+  pointsForLevel: (level: number) => number
+}) {
+  return (
+    <div className="animate-page-in mx-auto w-full max-w-3xl rounded-2xl border border-white/10 bg-white/5 p-4 text-center">
+      <p className="mb-3 font-display text-lg font-bold">Pick your next question</p>
+      <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
+        {levels.map((level) => {
+          const used = usedLevels.has(level)
+          return (
+            <button
+              key={level}
+              disabled={used}
+              onClick={() => onPick(level)}
+              className={`flex flex-col items-center justify-center gap-0.5 rounded-xl border-2 px-2 py-3 font-bold transition ${
+                used
+                  ? 'border-white/10 bg-white/5 text-white/30 line-through'
+                  : 'border-amber-400/40 bg-gradient-to-br from-indigo-800/80 to-indigo-950/80 text-white hover:scale-105 hover:border-amber-300 hover:brightness-110'
+              }`}
+            >
+              <span className="text-xl">{level}</span>
+              {!used && <span className="text-[10px] font-normal text-amber-300">{pointsForLevel(level).toLocaleString()}</span>}
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }

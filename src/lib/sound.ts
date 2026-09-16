@@ -64,6 +64,9 @@ const AUDIO_FILES: Record<string, string> = {
   applause: '/sounds/applause.mp3',
   cheer: '/sounds/cheer.mp3',
   oops: '/sounds/oops.mp3',
+  curtain: '/sounds/curtain-open.mp3',
+  musicCalm: '/sounds/background-music-calm.mp3',
+  musicIntense: '/sounds/background-music-intense.mp3',
 }
 const audioElements: Record<string, HTMLAudioElement> = {}
 const audioAvailability: Record<string, Promise<boolean>> = {}
@@ -359,6 +362,11 @@ let musicRunning = false
 let musicTimer: number | null = null
 let musicStep = 0
 let musicIntensity: 'calm' | 'intense' = 'calm'
+// null = nothing playing yet, 'synth' = the generative chords below, or an
+// AUDIO_FILES key ('musicCalm'/'musicIntense') when a real recorded loop is
+// standing in for it - tracked so stopMusic()/setMusicIntensity() know
+// whether there's a <audio> element to pause or just the synth timer.
+let musicMode: string | null = null
 
 const MUSIC_PROGRESSION: number[][] = [
   [261.63, 329.63, 392.0], // C major
@@ -373,10 +381,55 @@ export function isMusicMuted() {
 
 export function setMusicMuted(value: boolean) {
   musicMuted = value
+  if (musicMode && musicMode !== 'synth') {
+    const audio = audioElements[musicMode]
+    if (audio) audio.muted = value
+  }
+}
+
+/** Which AUDIO_FILES key a given intensity should play as a real recorded loop, if one's been dropped in. */
+function musicKeyFor(level: 'calm' | 'intense') {
+  return level === 'intense' ? 'musicIntense' : 'musicCalm'
+}
+
+function stopRecordedMusicTrack(key: string) {
+  const audio = audioElements[key]
+  if (audio) {
+    audio.pause()
+    audio.currentTime = 0
+  }
+}
+
+function playRecordedMusicTrack(key: string): Promise<void> {
+  let audio = audioElements[key]
+  if (!audio) {
+    audio = new Audio(AUDIO_FILES[key])
+    audio.loop = true
+    audioElements[key] = audio
+  }
+  audio.muted = musicMuted
+  audio.currentTime = 0
+  return audio.play()
 }
 
 export function setMusicIntensity(level: 'calm' | 'intense') {
+  if (musicIntensity === level) return
   musicIntensity = level
+  // The synth path already reads musicIntensity fresh on every bar it
+  // schedules, so it needs no extra handling here - only a recorded loop
+  // already in flight needs to be swapped out for the other intensity's file.
+  if (!musicRunning || musicMode === null || musicMode === 'synth') return
+  const nextKey = musicKeyFor(level)
+  if (musicMode === nextKey) return
+  checkAudioFile(nextKey).then((available) => {
+    if (!musicRunning || musicIntensity !== level || !available) return
+    stopRecordedMusicTrack(musicMode as string)
+    musicMode = nextKey
+    playRecordedMusicTrack(nextKey).catch(() => {
+      musicMode = 'synth'
+      scheduleMusicBar()
+    })
+  })
 }
 
 function scheduleMusicBar() {
@@ -397,11 +450,25 @@ function scheduleMusicBar() {
   musicTimer = window.setTimeout(scheduleMusicBar, barMs)
 }
 
+/** Starts the calm/intense recorded loop for the current intensity if one's been dropped into /public/sounds, otherwise the generative chord progression below. */
 export function startMusic() {
   if (musicRunning) return
   musicRunning = true
   musicStep = 0
-  scheduleMusicBar()
+  const key = musicKeyFor(musicIntensity)
+  checkAudioFile(key).then((available) => {
+    if (!musicRunning) return // stopped again before the check resolved
+    if (available) {
+      musicMode = key
+      playRecordedMusicTrack(key).catch(() => {
+        musicMode = 'synth'
+        scheduleMusicBar()
+      })
+    } else {
+      musicMode = 'synth'
+      scheduleMusicBar()
+    }
+  })
 }
 
 export function stopMusic() {
@@ -410,6 +477,8 @@ export function stopMusic() {
     window.clearTimeout(musicTimer)
     musicTimer = null
   }
+  if (musicMode && musicMode !== 'synth') stopRecordedMusicTrack(musicMode)
+  musicMode = null
 }
 
 /**
@@ -444,7 +513,12 @@ export function playDramaticSting() {
  * from layered sawtooth+square+triangle oscillators (a single sine tone
  * reads as a UI beep, not brass) so it lands as an actual musical flourish.
  */
+/** Real /sounds/curtain-open.mp3 if one's been added, else the synthesized trumpet fanfare below. */
 export function playFanfare() {
+  playRecordedOr('curtain', playFanfareSynth)
+}
+
+function playFanfareSynth() {
   if (muted) return
   const notes: [number, number, number][] = [
     [392.0, 0, 0.28], // G4

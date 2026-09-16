@@ -94,14 +94,15 @@ export default function Results() {
       <Fireworks active={showFireworks} />
 
       <div>
-        {session.playerPhoto && (
+        {session.playerPhoto ? (
           <img
             src={session.playerPhoto}
             alt=""
-            className="mx-auto mb-2 h-20 w-20 rounded-full object-cover shadow-xl shadow-black/40 ring-4 ring-amber-400/60"
+            className="animate-crown-bounce mx-auto mb-2 h-24 w-24 rounded-full object-cover shadow-xl shadow-black/40 ring-4 ring-amber-400/60"
           />
+        ) : (
+          <p className="animate-crown-bounce text-6xl drop-shadow-[0_0_25px_rgba(250,204,21,0.5)]">{emoji}</p>
         )}
-        <p className="animate-crown-bounce text-6xl drop-shadow-[0_0_25px_rgba(250,204,21,0.5)]">{emoji}</p>
         <h1 className="mt-2 font-display text-4xl font-extrabold sm:text-5xl">
           {isPerfect ? (
             <span className="bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-200 bg-clip-text text-transparent animate-shimmer">

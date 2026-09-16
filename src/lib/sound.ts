@@ -359,18 +359,30 @@ export function playCountIn(step: 3 | 2 | 1 | 0) {
 
 // ---------- background music ----------
 // One continuous track for the whole match, start to finish - never
-// stopped or swapped mid-match. "Intensity" for the last couple of ladder
-// questions is just a volume swell on this same track (ramped, not an
-// abrupt jump), not a different track cutting in. Independent of the SFX
-// mute toggle above (its own on/off) since a host might want one without
-// the other.
+// stopped mid-match. A real recorded track loops with a 3-second
+// crossfade instead of native <audio loop> (which just jumps back to 0
+// with an audible click at the seam) - see crossfadeLoop below, which
+// runs two <audio> elements a beat apart and hands off between them.
+// "Intensity" for the last couple of ladder questions is a volume swell
+// on top of that (ramped, not an abrupt jump), not a different track
+// cutting in. Independent of the SFX mute toggle above (its own on/off)
+// since a host might want one without the other.
+const CROSSFADE_SEC = 3
+
 let musicMuted = false
 let musicRunning = false
 let musicTimer: number | null = null
 let musicStep = 0
 let musicIntensity: 'calm' | 'intense' = 'calm'
-let musicAudio: HTMLAudioElement | null = null
 let volumeRampId: number | null = null
+
+// The two alternating players for the crossfade loop, and which one is
+// currently the audible one - null/unused while running on the synth path.
+let playerA: HTMLAudioElement | null = null
+let playerB: HTMLAudioElement | null = null
+let activeIsA = true
+let crossfadeTimer: number | null = null
+let crossfadeIntervalId: number | null = null
 
 const MUSIC_PROGRESSION: number[][] = [
   [261.63, 329.63, 392.0], // C major
@@ -387,7 +399,8 @@ export function isMusicMuted() {
 
 export function setMusicMuted(value: boolean) {
   musicMuted = value
-  if (musicAudio) musicAudio.muted = value
+  if (playerA) playerA.muted = value
+  if (playerB) playerB.muted = value
 }
 
 /** Prefers a calm-loop file as the one continuous track if one's been dropped in, else the intense one, else the synth progression below - either way there's exactly one track for the whole match. */
@@ -397,11 +410,15 @@ async function resolveMusicKey(): Promise<'musicCalm' | 'musicIntense' | 'synth'
   return 'synth'
 }
 
-/** Smoothly moves the recorded track's volume to `target` over ~1.2s, so intensity reads as the music swelling rather than clipping to full blast instantly. */
+function activePlayer(): HTMLAudioElement | null {
+  return activeIsA ? playerA : playerB
+}
+
+/** Smoothly moves the currently-audible player's volume to `target` over ~1.2s, so intensity reads as the music swelling rather than clipping to full blast instantly. Leaves the idle (pre-loaded, silent) player alone - the next crossfade reads musicIntensity fresh anyway. */
 function rampVolume(target: number) {
-  if (!musicAudio) return
+  const audio = activePlayer()
+  if (!audio) return
   if (volumeRampId !== null) window.clearInterval(volumeRampId)
-  const audio = musicAudio
   const steps = 12
   const start = audio.volume
   let i = 0
@@ -420,7 +437,7 @@ export function setMusicIntensity(level: 'calm' | 'intense') {
   musicIntensity = level
   // The synth path already reads musicIntensity fresh on every bar it
   // schedules - only a recorded track already playing needs its volume moved.
-  if (musicAudio) rampVolume(MUSIC_VOLUME[level])
+  rampVolume(MUSIC_VOLUME[level])
 }
 
 function scheduleMusicBar() {
@@ -441,7 +458,54 @@ function scheduleMusicBar() {
   musicTimer = window.setTimeout(scheduleMusicBar, barMs)
 }
 
-/** Starts the one recorded loop (calm variant preferred) for the whole match if one's been dropped into /public/sounds, otherwise the generative chord progression below. */
+/**
+ * Crossfades from `outgoing` (audible, about to loop) into `incoming`
+ * (silent, already primed at time 0) over CROSSFADE_SEC, then swaps which
+ * one counts as "active" and schedules the next handoff off the newly
+ * active player - so this alternates forever without ever stopping.
+ */
+function runCrossfade(outgoing: HTMLAudioElement, incoming: HTMLAudioElement) {
+  if (!musicRunning) return
+  const target = MUSIC_VOLUME[musicIntensity]
+  incoming.currentTime = 0
+  incoming.volume = 0
+  incoming.muted = musicMuted
+  incoming.play().catch(() => {})
+  if (crossfadeIntervalId !== null) window.clearInterval(crossfadeIntervalId)
+  const steps = 30
+  const stepMs = (CROSSFADE_SEC * 1000) / steps
+  let i = 0
+  crossfadeIntervalId = window.setInterval(() => {
+    i++
+    const t = i / steps
+    outgoing.volume = target * (1 - t)
+    incoming.volume = target * t
+    if (i >= steps) {
+      window.clearInterval(crossfadeIntervalId!)
+      crossfadeIntervalId = null
+      outgoing.pause()
+      outgoing.currentTime = 0
+      activeIsA = !activeIsA
+      scheduleCrossfade(incoming, outgoing)
+    }
+  }, stepMs)
+}
+
+/** Waits for `current`'s real duration (unknown until its metadata loads) then times the next crossfade to land exactly CROSSFADE_SEC before it would otherwise loop. */
+function scheduleCrossfade(current: HTMLAudioElement, next: HTMLAudioElement) {
+  if (crossfadeTimer !== null) window.clearTimeout(crossfadeTimer)
+  const duration = current.duration
+  if (!isFinite(duration) || duration <= CROSSFADE_SEC) {
+    crossfadeTimer = window.setTimeout(() => {
+      if (musicRunning) scheduleCrossfade(current, next)
+    }, 200)
+    return
+  }
+  const msUntilCrossfade = Math.max(0, (duration - CROSSFADE_SEC - current.currentTime) * 1000)
+  crossfadeTimer = window.setTimeout(() => runCrossfade(current, next), msUntilCrossfade)
+}
+
+/** Starts the one recorded loop (calm variant preferred) for the whole match if one's been dropped into /public/sounds, otherwise the generative chord progression below. Loops with a 3-second crossfade rather than a hard cut back to 0. */
 export function startMusic() {
   if (musicRunning) return
   musicRunning = true
@@ -452,15 +516,19 @@ export function startMusic() {
       scheduleMusicBar()
       return
     }
-    const audio = new Audio(AUDIO_FILES[key])
-    audio.loop = true
-    audio.muted = musicMuted
-    audio.volume = MUSIC_VOLUME[musicIntensity]
-    musicAudio = audio
-    audio.play().catch(() => {
-      musicAudio = null
+    activeIsA = true
+    playerA = new Audio(AUDIO_FILES[key])
+    playerB = new Audio(AUDIO_FILES[key])
+    playerA.muted = musicMuted
+    playerB.muted = musicMuted
+    playerA.volume = MUSIC_VOLUME[musicIntensity]
+    playerB.volume = 0
+    playerA.play().catch(() => {
+      playerA = null
+      playerB = null
       scheduleMusicBar()
     })
+    scheduleCrossfade(playerA, playerB)
   })
 }
 
@@ -474,11 +542,22 @@ export function stopMusic() {
     window.clearInterval(volumeRampId)
     volumeRampId = null
   }
-  if (musicAudio) {
-    musicAudio.pause()
-    musicAudio.currentTime = 0
-    musicAudio = null
+  if (crossfadeTimer !== null) {
+    window.clearTimeout(crossfadeTimer)
+    crossfadeTimer = null
   }
+  if (crossfadeIntervalId !== null) {
+    window.clearInterval(crossfadeIntervalId)
+    crossfadeIntervalId = null
+  }
+  for (const player of [playerA, playerB]) {
+    if (player) {
+      player.pause()
+      player.currentTime = 0
+    }
+  }
+  playerA = null
+  playerB = null
 }
 
 /**

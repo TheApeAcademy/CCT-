@@ -21,17 +21,26 @@ export default function Results() {
     db.gameSessions.get(Number(sessionId)).then(async (s) => {
       if (!s) return
       setSession(s)
+      // Every finished run gets an audio verdict, not just a perfect score:
+      // half the ladder or better earns the extended cheer, anything
+      // rougher gets oops instead - a perfect run still gets the extra
+      // fireworks/win flourish on top.
       const isPerfect = s.correctCount === s.totalLevels
+      const ratio = s.totalLevels > 0 ? s.correctCount / s.totalLevels : 0
       if (isPerfect) {
         setShowFireworks(true)
         sound.playWin()
-        sound.playCheer(2.2, 0.4)
+        sound.playCheer(2.6, 0.4)
         haptics.win()
         window.setTimeout(() => setShowFireworks(false), 4200)
-      } else if (s.correctCount > 0) {
+      } else if (ratio >= 0.5) {
         setShowConfetti(true)
+        sound.playCheer(2.2, 0.2)
         haptics.success()
         window.setTimeout(() => setShowConfetti(false), 3000)
+      } else {
+        sound.playOops()
+        haptics.error()
       }
       if (s.matchId) {
         const m = await db.matches.get(s.matchId)

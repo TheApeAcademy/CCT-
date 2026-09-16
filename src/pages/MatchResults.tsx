@@ -4,7 +4,7 @@ import { db, getMatchSessions } from '../db/db'
 import type { GameSession, Match } from '../db/types'
 import Fireworks from '../components/Fireworks'
 import CountUp from '../components/CountUp'
-import { playClick, playWin, playCheer } from '../lib/sound'
+import { playClick, playWin, playCheer, playOops } from '../lib/sound'
 import { haptics } from '../lib/haptics'
 
 export default function MatchResults() {
@@ -19,15 +19,23 @@ export default function MatchResults() {
     Promise.all([db.matches.get(id), getMatchSessions(id)]).then(([m, s]) => {
       if (m) setMatch(m)
       setSessions(s)
-      // Celebrate the match's winner every time there's a real 2+ team
-      // competition to have one - not gated behind a perfect score, which
-      // made this fire on only a small fraction of matches.
-      if (s.length > 1) {
-        setShowFireworks(true)
-        playWin()
-        playCheer(2.2, 0.4)
-        haptics.win()
-        window.setTimeout(() => setShowFireworks(false), 4200)
+      // Every match gets an audio verdict at the end, not just a winner
+      // celebration on multi-team matches - judged by the top scorer's
+      // accuracy across the whole ladder: a real match (half or better)
+      // earns the extended cheer, a rough one gets oops instead.
+      if (s.length > 0) {
+        const top = [...s].sort((a, b) => b.correctCount - a.correctCount)[0]
+        const ratio = top.totalLevels > 0 ? top.correctCount / top.totalLevels : 0
+        if (ratio >= 0.5) {
+          setShowFireworks(true)
+          if (s.length > 1) playWin()
+          playCheer(2.6, 0.4)
+          haptics.win()
+          window.setTimeout(() => setShowFireworks(false), 4200)
+        } else {
+          playOops()
+          haptics.error()
+        }
       }
     })
   }, [matchId])

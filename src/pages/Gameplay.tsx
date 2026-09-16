@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { db, getOrCreatePlayer, completeMatch, getMatchSessions } from '../db/db'
 import { LADDER, pointsForLevel, difficultyForLevel } from '../lib/ladder'
+import { shuffleQuestionOptions } from '../lib/selectQuestions'
 import * as sound from '../lib/sound'
 import { haptics } from '../lib/haptics'
 import Confetti from '../components/Confetti'
@@ -95,7 +96,7 @@ export default function Gameplay() {
         return
       }
       const qs = await db.questions.bulkGet(match.questionIds)
-      setQuestions(qs.filter((q): q is NonNullable<typeof q> => !!q))
+      setQuestions(qs.filter((q): q is NonNullable<typeof q> => !!q).map(shuffleQuestionOptions))
       setTimeLeft(timerSeconds)
       setPhase('intro')
     })

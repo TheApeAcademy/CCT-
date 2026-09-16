@@ -10,6 +10,22 @@ function shuffle<T>(arr: T[]): T[] {
   return copy
 }
 
+/**
+ * Shuffles a single question's own options (and moves correctIndex to
+ * match) - whoever wrote the question chose where the right answer sits
+ * in the list, and that tends to cluster on option A far more than chance
+ * would, letting kids learn to just guess the first option. Called once
+ * per question as it's loaded into an actual playthrough, never touching
+ * the stored data itself, so the same question gets an independently
+ * random position every time it's played.
+ */
+export function shuffleQuestionOptions(q: Question): Question {
+  const order = shuffle([0, 1, 2, 3])
+  const options = order.map((i) => q.options[i]) as Question['options']
+  const correctIndex = order.indexOf(q.correctIndex) as Question['correctIndex']
+  return { ...q, options, correctIndex }
+}
+
 /** Picks one question per ladder level, preferring the level's target difficulty. */
 export function selectQuestionsForGame(allQuestions: Question[]): Question[] {
   const remaining = shuffle(allQuestions)

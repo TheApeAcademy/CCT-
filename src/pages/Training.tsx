@@ -6,6 +6,7 @@ import { haptics } from '../lib/haptics'
 import Confetti from '../components/Confetti'
 import CountUp from '../components/CountUp'
 import { useKidProfile, KidSignupCard, KidProfileBar } from '../components/KidProfile'
+import { shuffleQuestionOptions } from '../lib/selectQuestions'
 import type { Question } from '../db/types'
 
 type Phase = 'setup' | 'question' | 'feedback' | 'summary'
@@ -65,11 +66,12 @@ export default function Training() {
 
   const handleStart = async () => {
     if (!setId || !profile) return
-    const qs = await db.questions.where('setId').equals(setId).toArray()
-    if (qs.length < 4) return
+    const rawQs = await db.questions.where('setId').equals(setId).toArray()
+    if (rawQs.length < 4) return
     await getOrCreatePlayer(profile.name, profile.className)
     sound.playNav()
     haptics.success()
+    const qs = rawQs.map(shuffleQuestionOptions)
     const shuffled = shuffle(qs)
     setPool(qs)
     setAnswered(0)

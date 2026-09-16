@@ -96,7 +96,7 @@ export default function Training() {
           setBestStreak((b) => Math.max(b, next))
           return next
         })
-        sound.playApplause(1.4)
+        sound.playCorrect()
         haptics.success()
         setFlash('green')
         setShowConfetti(true)

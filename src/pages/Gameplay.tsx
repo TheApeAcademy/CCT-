@@ -74,6 +74,7 @@ export default function Gameplay() {
   const [showSettings, setShowSettings] = useState(false)
   const [sfxMuted, setSfxMuted] = useState(() => sound.isMuted())
   const [musicMuted, setMusicMuted] = useState(() => sound.isMusicMuted())
+  const [musicVolume, setMusicVolumeState] = useState(() => sound.getMusicVolume())
   // Adjustable mid-match from the settings panel - takes effect from the
   // next question onward, never mid-countdown, so a change can't skip or
   // extend the question currently being timed.
@@ -306,7 +307,7 @@ export default function Gameplay() {
         setRevealed(true)
         const isMilestone = LADDER.find((l) => l.level === currentLevel)?.isMilestone
         if (correct) {
-          sound.playApplause(1.4)
+          sound.playCorrect()
           haptics.success()
           setFlash('green')
           setShowConfetti(true)
@@ -650,6 +651,7 @@ export default function Gameplay() {
           <SettingsPanel
             sfxMuted={sfxMuted}
             musicMuted={musicMuted}
+            musicVolume={musicVolume}
             timerSeconds={timerSeconds}
             onToggleSfx={() => {
               const next = !sfxMuted
@@ -660,6 +662,10 @@ export default function Gameplay() {
               const next = !musicMuted
               sound.setMusicMuted(next)
               setMusicMuted(next)
+            }}
+            onSetMusicVolume={(v) => {
+              sound.setMusicVolume(v)
+              setMusicVolumeState(v)
             }}
             onSetTimer={setTimerSeconds}
             onClose={() => setShowSettings(false)}
@@ -1253,17 +1259,21 @@ const SETTINGS_TIMER_OPTIONS = [15, 20, 30, 45, 60]
 function SettingsPanel({
   sfxMuted,
   musicMuted,
+  musicVolume,
   timerSeconds,
   onToggleSfx,
   onToggleMusic,
+  onSetMusicVolume,
   onSetTimer,
   onClose,
 }: {
   sfxMuted: boolean
   musicMuted: boolean
+  musicVolume: number
   timerSeconds: number
   onToggleSfx: () => void
   onToggleMusic: () => void
+  onSetMusicVolume: (value: number) => void
   onSetTimer: (seconds: number) => void
   onClose: () => void
 }) {
@@ -1303,6 +1313,21 @@ function SettingsPanel({
             >
               {musicMuted ? 'Muted' : 'On'}
             </button>
+          </div>
+          <div>
+            <div className="mb-1.5 flex items-center justify-between">
+              <span className="text-sm font-semibold text-white/80">Music volume</span>
+              <span className="text-xs text-white/50">{Math.round(musicVolume * 100)}%</span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={Math.round(musicVolume * 100)}
+              disabled={musicMuted}
+              onChange={(e) => onSetMusicVolume(Number(e.target.value) / 100)}
+              className="w-full accent-amber-400 disabled:opacity-40"
+            />
           </div>
           <div>
             <p className="mb-2 text-sm font-semibold text-white/80">Timer per question (from next question)</p>

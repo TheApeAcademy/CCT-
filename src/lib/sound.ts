@@ -384,6 +384,16 @@ let activeIsA = true
 let crossfadeTimer: number | null = null
 let crossfadeIntervalId: number | null = null
 
+// Every real recorded track drops in here (in upload order) and the match
+// rotates through all of them, crossfading from one straight into the
+// next rather than just looping a single file - variety over a long
+// match, same "never actually stops" feel. A single track left in here
+// alone still works fine: it just crossfades into itself each lap, same
+// as the original single-track version of this feature.
+const MUSIC_PLAYLIST_KEYS = ['musicIntense', 'musicCalm'] as const
+let musicPlaylist: string[] = []
+let playlistIndex = 0
+
 const MUSIC_PROGRESSION: number[][] = [
   [261.63, 329.63, 392.0], // C major
   [220.0, 261.63, 329.63], // A minor
@@ -392,6 +402,15 @@ const MUSIC_PROGRESSION: number[][] = [
 ]
 
 const MUSIC_VOLUME = { calm: 0.55, intense: 1 }
+// User-controlled multiplier (0-1) on top of the calm/intense preset above,
+// driven by the volume slider in the in-game settings panel - separate
+// from the calm->intense swell so dragging it doesn't fight that ramp.
+let musicVolumeMultiplier = 1
+
+/** What the currently-audible player's volume should be right now, given both the calm/intense preset and the user's own slider. */
+function musicTargetVolume(): number {
+  return MUSIC_VOLUME[musicIntensity] * musicVolumeMultiplier
+}
 
 export function isMusicMuted() {
   return musicMuted
@@ -403,11 +422,21 @@ export function setMusicMuted(value: boolean) {
   if (playerB) playerB.muted = value
 }
 
-/** Prefers a calm-loop file as the one continuous track if one's been dropped in, else the intense one, else the synth progression below - either way there's exactly one track for the whole match. */
-async function resolveMusicKey(): Promise<'musicCalm' | 'musicIntense' | 'synth'> {
-  if (await checkAudioFile('musicCalm')) return 'musicCalm'
-  if (await checkAudioFile('musicIntense')) return 'musicIntense'
-  return 'synth'
+export function getMusicVolume() {
+  return musicVolumeMultiplier
+}
+
+/** Applied immediately (not ramped) - this is a direct drag on a slider, not an automatic swell. */
+export function setMusicVolume(value: number) {
+  musicVolumeMultiplier = Math.max(0, Math.min(1, value))
+  const audio = activePlayer()
+  if (audio) audio.volume = musicTargetVolume()
+}
+
+/** Every MUSIC_PLAYLIST_KEYS entry that's actually had a file dropped in, in order - empty if none, meaning fall back to the generative synth progression below. */
+async function resolveMusicPlaylist(): Promise<string[]> {
+  const available = await Promise.all(MUSIC_PLAYLIST_KEYS.map((key) => checkAudioFile(key)))
+  return MUSIC_PLAYLIST_KEYS.filter((_, i) => available[i]).map((key) => AUDIO_FILES[key])
 }
 
 function activePlayer(): HTMLAudioElement | null {
@@ -437,7 +466,7 @@ export function setMusicIntensity(level: 'calm' | 'intense') {
   musicIntensity = level
   // The synth path already reads musicIntensity fresh on every bar it
   // schedules - only a recorded track already playing needs its volume moved.
-  rampVolume(MUSIC_VOLUME[level])
+  rampVolume(MUSIC_VOLUME[level] * musicVolumeMultiplier)
 }
 
 function scheduleMusicBar() {
@@ -459,14 +488,17 @@ function scheduleMusicBar() {
 }
 
 /**
- * Crossfades from `outgoing` (audible, about to loop) into `incoming`
- * (silent, already primed at time 0) over CROSSFADE_SEC, then swaps which
- * one counts as "active" and schedules the next handoff off the newly
- * active player - so this alternates forever without ever stopping.
+ * Crossfades from `outgoing` (audible, about to end) into `incoming`
+ * (silent, loaded with the next playlist track and primed at time 0) over
+ * CROSSFADE_SEC, then swaps which one counts as "active", advances the
+ * playlist, and schedules the next handoff off the newly active player -
+ * so this rotates through every track forever without ever stopping.
  */
 function runCrossfade(outgoing: HTMLAudioElement, incoming: HTMLAudioElement) {
-  if (!musicRunning) return
-  const target = MUSIC_VOLUME[musicIntensity]
+  if (!musicRunning || musicPlaylist.length === 0) return
+  const nextIndex = (playlistIndex + 1) % musicPlaylist.length
+  const target = musicTargetVolume()
+  incoming.src = musicPlaylist[nextIndex]
   incoming.currentTime = 0
   incoming.volume = 0
   incoming.muted = musicMuted
@@ -486,6 +518,7 @@ function runCrossfade(outgoing: HTMLAudioElement, incoming: HTMLAudioElement) {
       outgoing.pause()
       outgoing.currentTime = 0
       activeIsA = !activeIsA
+      playlistIndex = nextIndex
       scheduleCrossfade(incoming, outgoing)
     }
   }, stepMs)
@@ -505,23 +538,25 @@ function scheduleCrossfade(current: HTMLAudioElement, next: HTMLAudioElement) {
   crossfadeTimer = window.setTimeout(() => runCrossfade(current, next), msUntilCrossfade)
 }
 
-/** Starts the one recorded loop (calm variant preferred) for the whole match if one's been dropped into /public/sounds, otherwise the generative chord progression below. Loops with a 3-second crossfade rather than a hard cut back to 0. */
+/** Starts rotating through every recorded track that's been dropped into /public/sounds for the whole match, otherwise the generative chord progression below. Each one crossfades straight into the next rather than a hard cut back to 0. */
 export function startMusic() {
   if (musicRunning) return
   musicRunning = true
   musicStep = 0
-  resolveMusicKey().then((key) => {
+  resolveMusicPlaylist().then((list) => {
     if (!musicRunning) return // stopped again before the check resolved
-    if (key === 'synth') {
+    if (list.length === 0) {
       scheduleMusicBar()
       return
     }
+    musicPlaylist = list
+    playlistIndex = 0
     activeIsA = true
-    playerA = new Audio(AUDIO_FILES[key])
-    playerB = new Audio(AUDIO_FILES[key])
+    playerA = new Audio(list[0])
+    playerB = new Audio()
     playerA.muted = musicMuted
     playerB.muted = musicMuted
-    playerA.volume = MUSIC_VOLUME[musicIntensity]
+    playerA.volume = musicTargetVolume()
     playerB.volume = 0
     playerA.play().catch(() => {
       playerA = null
@@ -558,6 +593,8 @@ export function stopMusic() {
   }
   playerA = null
   playerB = null
+  musicPlaylist = []
+  playlistIndex = 0
 }
 
 /**

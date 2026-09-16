@@ -74,7 +74,14 @@ const audioAvailability: Record<string, Promise<boolean>> = {}
 function checkAudioFile(key: string): Promise<boolean> {
   if (!audioAvailability[key]) {
     audioAvailability[key] = fetch(AUDIO_FILES[key], { method: 'HEAD' })
-      .then((res) => res.ok)
+      // A missing file isn't a real 404 here - both Vercel's catch-all
+      // rewrite (vercel.json) and this app's own local preview server
+      // answer any unmatched path with a 200 + the index.html shell
+      // instead of erroring, so res.ok alone can't tell "the mp3 exists"
+      // from "nothing here, have the app instead". The content-type can:
+      // a real audio file serves as audio/mpeg (or similar); the SPA
+      // fallback always serves text/html.
+      .then((res) => res.ok && (res.headers.get('content-type') ?? '').startsWith('audio/'))
       .catch(() => false)
   }
   return audioAvailability[key]
@@ -350,23 +357,20 @@ export function playCountIn(step: 3 | 2 | 1 | 0) {
   }
 }
 
-// ---------- background music (generative, still zero audio assets) ----------
-// A soft looping chord progression under gameplay, independent of the SFX
+// ---------- background music ----------
+// One continuous track for the whole match, start to finish - never
+// stopped or swapped mid-match. "Intensity" for the last couple of ladder
+// questions is just a volume swell on this same track (ramped, not an
+// abrupt jump), not a different track cutting in. Independent of the SFX
 // mute toggle above (its own on/off) since a host might want one without
-// the other. Self-schedules with setTimeout rather than setInterval so
-// there's no drift to correct for, and speeds up + adds a rhythmic tick
-// layer for the last couple of ladder questions instead of just looping
-// unchanged the whole match.
+// the other.
 let musicMuted = false
 let musicRunning = false
 let musicTimer: number | null = null
 let musicStep = 0
 let musicIntensity: 'calm' | 'intense' = 'calm'
-// null = nothing playing yet, 'synth' = the generative chords below, or an
-// AUDIO_FILES key ('musicCalm'/'musicIntense') when a real recorded loop is
-// standing in for it - tracked so stopMusic()/setMusicIntensity() know
-// whether there's a <audio> element to pause or just the synth timer.
-let musicMode: string | null = null
+let musicAudio: HTMLAudioElement | null = null
+let volumeRampId: number | null = null
 
 const MUSIC_PROGRESSION: number[][] = [
   [261.63, 329.63, 392.0], // C major
@@ -375,61 +379,48 @@ const MUSIC_PROGRESSION: number[][] = [
   [196.0, 246.94, 293.66], // G major
 ]
 
+const MUSIC_VOLUME = { calm: 0.55, intense: 1 }
+
 export function isMusicMuted() {
   return musicMuted
 }
 
 export function setMusicMuted(value: boolean) {
   musicMuted = value
-  if (musicMode && musicMode !== 'synth') {
-    const audio = audioElements[musicMode]
-    if (audio) audio.muted = value
-  }
+  if (musicAudio) musicAudio.muted = value
 }
 
-/** Which AUDIO_FILES key a given intensity should play as a real recorded loop, if one's been dropped in. */
-function musicKeyFor(level: 'calm' | 'intense') {
-  return level === 'intense' ? 'musicIntense' : 'musicCalm'
+/** Prefers a calm-loop file as the one continuous track if one's been dropped in, else the intense one, else the synth progression below - either way there's exactly one track for the whole match. */
+async function resolveMusicKey(): Promise<'musicCalm' | 'musicIntense' | 'synth'> {
+  if (await checkAudioFile('musicCalm')) return 'musicCalm'
+  if (await checkAudioFile('musicIntense')) return 'musicIntense'
+  return 'synth'
 }
 
-function stopRecordedMusicTrack(key: string) {
-  const audio = audioElements[key]
-  if (audio) {
-    audio.pause()
-    audio.currentTime = 0
-  }
-}
-
-function playRecordedMusicTrack(key: string): Promise<void> {
-  let audio = audioElements[key]
-  if (!audio) {
-    audio = new Audio(AUDIO_FILES[key])
-    audio.loop = true
-    audioElements[key] = audio
-  }
-  audio.muted = musicMuted
-  audio.currentTime = 0
-  return audio.play()
+/** Smoothly moves the recorded track's volume to `target` over ~1.2s, so intensity reads as the music swelling rather than clipping to full blast instantly. */
+function rampVolume(target: number) {
+  if (!musicAudio) return
+  if (volumeRampId !== null) window.clearInterval(volumeRampId)
+  const audio = musicAudio
+  const steps = 12
+  const start = audio.volume
+  let i = 0
+  volumeRampId = window.setInterval(() => {
+    i++
+    audio.volume = start + (target - start) * (i / steps)
+    if (i >= steps) {
+      window.clearInterval(volumeRampId!)
+      volumeRampId = null
+    }
+  }, 100)
 }
 
 export function setMusicIntensity(level: 'calm' | 'intense') {
   if (musicIntensity === level) return
   musicIntensity = level
   // The synth path already reads musicIntensity fresh on every bar it
-  // schedules, so it needs no extra handling here - only a recorded loop
-  // already in flight needs to be swapped out for the other intensity's file.
-  if (!musicRunning || musicMode === null || musicMode === 'synth') return
-  const nextKey = musicKeyFor(level)
-  if (musicMode === nextKey) return
-  checkAudioFile(nextKey).then((available) => {
-    if (!musicRunning || musicIntensity !== level || !available) return
-    stopRecordedMusicTrack(musicMode as string)
-    musicMode = nextKey
-    playRecordedMusicTrack(nextKey).catch(() => {
-      musicMode = 'synth'
-      scheduleMusicBar()
-    })
-  })
+  // schedules - only a recorded track already playing needs its volume moved.
+  if (musicAudio) rampVolume(MUSIC_VOLUME[level])
 }
 
 function scheduleMusicBar() {
@@ -450,24 +441,26 @@ function scheduleMusicBar() {
   musicTimer = window.setTimeout(scheduleMusicBar, barMs)
 }
 
-/** Starts the calm/intense recorded loop for the current intensity if one's been dropped into /public/sounds, otherwise the generative chord progression below. */
+/** Starts the one recorded loop (calm variant preferred) for the whole match if one's been dropped into /public/sounds, otherwise the generative chord progression below. */
 export function startMusic() {
   if (musicRunning) return
   musicRunning = true
   musicStep = 0
-  const key = musicKeyFor(musicIntensity)
-  checkAudioFile(key).then((available) => {
+  resolveMusicKey().then((key) => {
     if (!musicRunning) return // stopped again before the check resolved
-    if (available) {
-      musicMode = key
-      playRecordedMusicTrack(key).catch(() => {
-        musicMode = 'synth'
-        scheduleMusicBar()
-      })
-    } else {
-      musicMode = 'synth'
+    if (key === 'synth') {
       scheduleMusicBar()
+      return
     }
+    const audio = new Audio(AUDIO_FILES[key])
+    audio.loop = true
+    audio.muted = musicMuted
+    audio.volume = MUSIC_VOLUME[musicIntensity]
+    musicAudio = audio
+    audio.play().catch(() => {
+      musicAudio = null
+      scheduleMusicBar()
+    })
   })
 }
 
@@ -477,8 +470,15 @@ export function stopMusic() {
     window.clearTimeout(musicTimer)
     musicTimer = null
   }
-  if (musicMode && musicMode !== 'synth') stopRecordedMusicTrack(musicMode)
-  musicMode = null
+  if (volumeRampId !== null) {
+    window.clearInterval(volumeRampId)
+    volumeRampId = null
+  }
+  if (musicAudio) {
+    musicAudio.pause()
+    musicAudio.currentTime = 0
+    musicAudio = null
+  }
 }
 
 /**

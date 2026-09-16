@@ -307,7 +307,7 @@ export default function Gameplay() {
         setRevealed(true)
         const isMilestone = LADDER.find((l) => l.level === currentLevel)?.isMilestone
         if (correct) {
-          sound.playApplause(1.4)
+          sound.playCheer(1.4)
           haptics.success()
           setFlash('green')
           setShowConfetti(true)

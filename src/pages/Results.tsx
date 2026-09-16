@@ -25,7 +25,6 @@ export default function Results() {
       if (isPerfect) {
         setShowFireworks(true)
         sound.playWin()
-        sound.playApplause(1.4, 0.4)
         sound.playCheer(2.2, 0.4)
         haptics.win()
         window.setTimeout(() => setShowFireworks(false), 4200)

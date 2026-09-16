@@ -4,7 +4,7 @@ import { db, getMatchSessions } from '../db/db'
 import type { GameSession, Match } from '../db/types'
 import Fireworks from '../components/Fireworks'
 import CountUp from '../components/CountUp'
-import { playClick, playWin, playCheer, playApplause } from '../lib/sound'
+import { playClick, playWin, playCheer } from '../lib/sound'
 import { haptics } from '../lib/haptics'
 
 export default function MatchResults() {
@@ -25,7 +25,6 @@ export default function MatchResults() {
       if (s.length > 1) {
         setShowFireworks(true)
         playWin()
-        playApplause(1.4, 0.4)
         playCheer(2.2, 0.4)
         haptics.win()
         window.setTimeout(() => setShowFireworks(false), 4200)

@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, ensureSeedData, ensureActiveSeason, createMatch } from '../db/db'
 import { playClick, playToggle, playNav } from '../lib/sound'
 import { haptics } from '../lib/haptics'
 import { selectQuestionsForGame } from '../lib/selectQuestions'
+import { LADDER } from '../lib/ladder'
 import { fileToResizedDataUrl } from '../lib/image'
 import type { GameConfig } from '../db/types'
 
@@ -48,6 +49,7 @@ export default function GameSetup() {
   const [seasonFilter, setSeasonFilter] = useState<number | 'all'>('all')
   const [setId, setSetId] = useState<number | null>(null)
   const [mode, setMode] = useState<'marathon' | 'rotational'>('marathon')
+  const [questionMode, setQuestionMode] = useState<'random' | 'selected' | 'pickNumber'>('random')
   const [timerSeconds, setTimerSeconds] = useState(30)
   const [customTimer, setCustomTimer] = useState('')
   const [fiftyFifty, setFiftyFifty] = useState(true)
@@ -213,8 +215,8 @@ export default function GameSetup() {
       setError('Please choose a question set.')
       return shakeError()
     }
-    if (questionCount < 10) {
-      setError('This set needs at least 10 questions to fill all 10 levels. Add more in the Question Bank.')
+    if (questionCount < LADDER.length) {
+      setError(`This set needs at least ${LADDER.length} questions to fill all ${LADDER.length} levels. Add more in the Question Bank.`)
       return shakeError()
     }
 
@@ -225,7 +227,18 @@ export default function GameSetup() {
     setStarting(true)
 
     const pool = await db.questions.where('setId').equals(setId).toArray()
-    const questionIds = selectQuestionsForGame(pool).map((q) => q.id!)
+    // "random" draws one question per level at random, matched to that
+    // level's target difficulty (the original behavior). "selected" and
+    // "pickNumber" instead use the exact questions curated in this set, in
+    // difficulty order, with no shuffling at all - what's in the set is
+    // exactly what plays, deliberately, level by level.
+    const questionIds =
+      questionMode === 'random'
+        ? selectQuestionsForGame(pool).map((q) => q.id!)
+        : [...pool]
+            .sort((a, b) => a.difficulty - b.difficulty || (a.id! - b.id!))
+            .slice(0, LADDER.length)
+            .map((q) => q.id!)
 
     // Photos and student links are aligned to the original team slots; keep only the ones for teams that ended up with a name.
     const keptIndexes = teamNames.map((n, i) => (n.trim() ? i : -1)).filter((i) => i >= 0)
@@ -247,6 +260,7 @@ export default function GameSetup() {
       teamStudentIds: cleanStudentIds,
       teamStudentClassIds: cleanStudentClassIds,
       mode,
+      questionMode,
     })
 
     const config: GameConfig = {
@@ -262,6 +276,7 @@ export default function GameSetup() {
       timerSecondsPerQuestion: timerSeconds,
       lifelines,
       mode,
+      questionMode,
     }
     navigate('/ground-rules', { state: config })
   }
@@ -452,7 +467,9 @@ export default function GameSetup() {
             ))}
           </select>
         )}
-        <p className="text-xs text-[var(--ink-faint)]">{questionCount} question{questionCount === 1 ? '' : 's'} available in this set (10 needed).</p>
+        <p className="text-xs text-[var(--ink-faint)]">
+          {questionCount} question{questionCount === 1 ? '' : 's'} available in this set ({LADDER.length} needed).
+        </p>
 
         {setId && (
           <div className="pt-1">
@@ -527,6 +544,50 @@ export default function GameSetup() {
               </div>
             )}
           </div>
+        )}
+      </div>
+
+      <div className="panel space-y-2 p-5 transition hover:bg-[var(--ink-raised)]">
+        <label className="block text-sm font-semibold text-[var(--fg)]/80">Question Selection</label>
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              { value: 'random' as const, label: '🎲 Random', hint: 'A random question per level, matched to that level\'s difficulty' },
+              { value: 'selected' as const, label: '📋 Selected Quiz Questions', hint: 'Exactly the questions curated in this set, in order - no shuffling' },
+              { value: 'pickNumber' as const, label: '🔢 Pick a Number', hint: 'Contestants choose which numbered question to play next' },
+            ] as const
+          ).map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => {
+                setQuestionMode(opt.value)
+                playClick()
+              }}
+              title={opt.hint}
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition hover:scale-105 ${
+                questionMode === opt.value ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'bg-[var(--ink-panel)] hover:bg-[var(--ink-raised)]'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-[var(--ink-faint)]">
+          {questionMode === 'random' &&
+            'Avoids repeats within a match, but which exact questions show up isn\'t guaranteed - good for casual play.'}
+          {questionMode === 'selected' &&
+            'Uses the exact questions in the chosen set, sorted by difficulty, no randomizing - build the exact quiz you want in the Question Bank.'}
+          {questionMode === 'pickNumber' &&
+            'Same fixed question-per-level assignment as Selected, but during the match contestants pick a number off a board instead of always going in order.'}
+        </p>
+        {questionMode !== 'random' && (
+          <Link
+            to="/questions"
+            onClick={() => playClick()}
+            className="mt-1 block w-full rounded-lg border border-dashed border-[var(--hairline-strong)] py-2 text-center text-sm text-[var(--ink-muted)] transition hover:scale-[1.01] hover:bg-[var(--ink-panel)]"
+          >
+            📚 Open Question Bank to build or edit this set's exact questions →
+          </Link>
         )}
       </div>
 

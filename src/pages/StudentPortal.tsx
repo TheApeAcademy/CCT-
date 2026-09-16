@@ -29,12 +29,14 @@ import {
   Mic2,
   Dice5,
   Brain,
+  Database,
   type LucideIcon,
 } from 'lucide-react'
 import { supabase, signOut } from '../lib/supabase'
 import { bibleComUrl } from '../lib/bibleLink'
 import { useMinistryAuth } from '../lib/useMinistryAuth'
 import VillageMap from '../components/VillageMap'
+import DigitalBank from '../components/DigitalBank'
 import {
   getMyStudentProfile,
   updateMyStudentProfile,
@@ -127,7 +129,7 @@ const TAB_ACCENT: Record<Tab, string> = {
 
 function Dashboard() {
   const [tab, setTab] = useState<Tab>('home')
-  const [view, setView] = useState<'map' | 'tab'>('map')
+  const [view, setView] = useState<'map' | 'tab' | 'digitalbank'>('map')
   const [student, setStudent] = useState<StudentRow | null>(null)
   const [klass, setKlass] = useState<(ClassRow & { teacher_name: string }) | null>(null)
   const [rank, setRank] = useState<number | null>(null)
@@ -154,6 +156,10 @@ function Dashboard() {
   const backToMap = () => {
     playClick()
     setView('map')
+  }
+  const openDigitalBank = () => {
+    playNav()
+    setView('digitalbank')
   }
 
   // My House sits near the bottom of the map art, so kids should land there
@@ -204,6 +210,33 @@ function Dashboard() {
             </div>
             <VillageMap active={tab} onNavigate={enterTab} avatarUrl={student?.avatar_url} />
           </motion.div>
+        ) : view === 'digitalbank' ? (
+          <motion.div
+            key="digitalbank"
+            initial={{ opacity: 0, scale: 0.92 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.96 }}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+            className="absolute inset-0 overflow-y-auto"
+            style={{
+              background: `radial-gradient(ellipse 100% 55% at 50% -8%, color-mix(in srgb, var(--hero-accent) 30%, transparent), transparent 60%), var(--ink)`,
+            }}
+          >
+            <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-[var(--lp-hairline)] bg-[var(--ink)]/80 px-4 py-3 backdrop-blur">
+              <button
+                onClick={backToMap}
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 transition hover:scale-105"
+                style={{ borderColor: 'var(--hero-accent)', color: 'var(--hero-accent)' }}
+                aria-label="Back to the village map"
+              >
+                <ArrowLeft className="h-4 w-4" strokeWidth={2.25} />
+              </button>
+              <h1 className="font-display text-lg font-extrabold text-[var(--lp-heading)]">Digital Bank</h1>
+            </div>
+            <div className="mx-auto max-w-2xl p-4 pb-12">
+              <DigitalBank canManage={false} />
+            </div>
+          </motion.div>
         ) : (
           <motion.div
             key={tab}
@@ -228,7 +261,16 @@ function Dashboard() {
               <h1 className="font-display text-lg font-extrabold text-[var(--lp-heading)]">{TAB_TITLE[tab]}</h1>
             </div>
             <div className="mx-auto max-w-2xl p-4 pb-12">
-              {tab === 'home' && <HomeTab student={student} klass={klass} rank={rank} achievements={achievements} onNavigate={enterTab} />}
+              {tab === 'home' && (
+                <HomeTab
+                  student={student}
+                  klass={klass}
+                  rank={rank}
+                  achievements={achievements}
+                  onNavigate={enterTab}
+                  onOpenDigitalBank={openDigitalBank}
+                />
+              )}
               {tab === 'class' && <ClassTab klass={klass} />}
               {tab === 'bible' && <SundaySchoolTab klass={klass} />}
               {tab === 'leaderboard' && <LeaderboardTab myId={student?.id ?? null} />}
@@ -269,12 +311,14 @@ function HomeTab({
   rank,
   achievements,
   onNavigate,
+  onOpenDigitalBank,
 }: {
   student: StudentRow | null
   klass: (ClassRow & { teacher_name: string }) | null
   rank: number | null
   achievements: EarnedAchievement[]
   onNavigate: (tab: Tab) => void
+  onOpenDigitalBank: () => void
 }) {
   return (
     <div className="space-y-6">
@@ -319,6 +363,7 @@ function HomeTab({
           <QuickLinkButton onClick={() => onNavigate('bible')} icon={BookOpen} accent="var(--lp-accent-bible)" title="Sunday School" description="Lessons and your Bible reading streak." />
           <QuickLinkButton onClick={() => onNavigate('leaderboard')} icon={Trophy} accent="var(--lp-accent-leaderboard)" title="Leaderboard" description="See how you rank ministry-wide." />
           <QuickLinkButton onClick={() => onNavigate('game')} icon={Gamepad2} accent="var(--lp-accent-compete)" title="Games" description="Join a live match or practice solo." />
+          <QuickLinkButton onClick={onOpenDigitalBank} icon={Database} accent="var(--hero-accent)" title="Digital Bank" description="Browse songs, videos, and docs from the ministry." />
         </div>
       </div>
 
@@ -398,13 +443,6 @@ function GameTab() {
             </p>
           </div>
           <HomeLink to="/training" icon={Dumbbell} accent="var(--lp-accent-training)" title="Practice Bible Quiz" description="Unlimited solo practice, no pressure, no timer." />
-          <ExternalLinkCard
-            href="https://id.superbook.cbn.com/games"
-            icon={Gamepad2}
-            accent="var(--lp-accent-compete)"
-            title="SuperBook Games"
-            description="More Bible games and adventures on SuperBook."
-          />
         </div>
       </div>
 
@@ -422,6 +460,19 @@ function GameTab() {
               </span>
             </div>
           ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="eyebrow">Play More on SuperBook</p>
+        <div className="mt-2">
+          <ExternalLinkCard
+            href="https://id.superbook.cbn.com/games"
+            icon={Gamepad2}
+            accent="var(--lp-accent-compete)"
+            title="SuperBook Games"
+            description="Tap through to more Bible games and adventures on SuperBook."
+          />
         </div>
       </div>
     </div>

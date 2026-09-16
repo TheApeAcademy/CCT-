@@ -34,6 +34,7 @@ export default function QuestionBank() {
   const [error, setError] = useState('')
   const [newGroupName, setNewGroupName] = useState('')
   const [groupFilter, setGroupFilter] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // A scratch "cart" of picked questions - persisted (not just this
@@ -68,10 +69,20 @@ export default function QuestionBank() {
 
   const selectedSet = useMemo(() => sets.find((s) => s.id === selectedSetId), [sets, selectedSetId])
 
-  const visibleQuestions = useMemo(
-    () => (groupFilter ? questions.filter((q) => q.groups?.includes(groupFilter)) : questions),
-    [questions, groupFilter]
-  )
+  const visibleQuestions = useMemo(() => {
+    let list = groupFilter ? questions.filter((q) => q.groups?.includes(groupFilter)) : questions
+    const q = search.trim().toLowerCase()
+    if (q) {
+      list = list.filter(
+        (item) =>
+          item.text.toLowerCase().includes(q) ||
+          item.category.toLowerCase().includes(q) ||
+          item.reference?.toLowerCase().includes(q) ||
+          item.options.some((opt) => opt.toLowerCase().includes(q))
+      )
+    }
+    return list
+  }, [questions, groupFilter, search])
 
   const resetForm = () => {
     setForm(emptyForm)
@@ -442,6 +453,13 @@ export default function QuestionBank() {
               </div>
             </div>
 
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="🔍 Search this set's questions, categories, references, or answers…"
+              className={inputClass}
+            />
+
             {allGroups.length > 0 && (
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="text-sm font-semibold text-[var(--ink-muted)]">Filter by group:</span>
@@ -514,7 +532,11 @@ export default function QuestionBank() {
               ))}
               {visibleQuestions.length === 0 && (
                 <p className="text-sm text-[var(--ink-faint)]">
-                  {groupFilter ? `No questions in "${groupFilter}" yet.` : 'No questions yet. Add one above.'}
+                  {search.trim()
+                    ? `No questions match "${search.trim()}".`
+                    : groupFilter
+                      ? `No questions in "${groupFilter}" yet.`
+                      : 'No questions yet. Add one above.'}
                 </p>
               )}
             </div>

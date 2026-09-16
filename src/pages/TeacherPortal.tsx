@@ -17,12 +17,14 @@ import {
   FileText,
   Gamepad2,
   Trophy,
+  Database,
   type LucideIcon,
 } from 'lucide-react'
 import { supabase, signOut } from '../lib/supabase'
 import { useMinistryAuth } from '../lib/useMinistryAuth'
 import AuthCard from '../components/ui/AuthCard'
 import TabBar from '../components/ui/TabBar'
+import DigitalBank from '../components/DigitalBank'
 import {
   getMyTeacherApplication,
   submitTeacherApplication,
@@ -192,7 +194,7 @@ function ApplyForm({ onSubmitted }: { onSubmitted: () => void }) {
 
 // ---------- main dashboard ----------
 
-type Tab = 'classes' | 'quiz' | 'messages' | 'ears' | 'profile'
+type Tab = 'classes' | 'quiz' | 'digitalbank' | 'messages' | 'ears' | 'profile'
 
 function TeacherDashboard() {
   const [tab, setTab] = useState<Tab>('classes')
@@ -219,6 +221,7 @@ function TeacherDashboard() {
         items={[
           { value: 'classes', label: 'Classes', icon: GraduationCap },
           { value: 'quiz', label: 'Quiz', icon: Gamepad2 },
+          { value: 'digitalbank', label: 'Digital Bank', icon: Database },
           { value: 'messages', label: 'Messages', icon: MessageCircle },
           { value: 'ears', label: 'Ears for You', icon: HeartHandshake },
           { value: 'profile', label: 'Profile', icon: Settings },
@@ -227,6 +230,7 @@ function TeacherDashboard() {
 
       {tab === 'classes' && (openClass ? <ClassDetail klass={openClass} onBack={() => setOpenClass(null)} /> : <ClassesTab onOpen={setOpenClass} />)}
       {tab === 'quiz' && <QuizTab />}
+      {tab === 'digitalbank' && <DigitalBank />}
       {tab === 'messages' && <MessagesTab />}
       {tab === 'ears' && <EarsInboxTab />}
       {tab === 'profile' && <ProfileTab />}

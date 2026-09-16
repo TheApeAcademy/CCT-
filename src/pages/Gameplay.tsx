@@ -144,7 +144,14 @@ export default function Gameplay() {
       i++
       if (i >= COUNT_IN_STEPS.length) {
         window.clearInterval(interval)
-        window.setTimeout(() => setPhase('picking'), 550)
+        window.setTimeout(() => {
+          if (config?.questionMode === 'pickNumber') {
+            setPhase('picking')
+          } else {
+            questionStartRef.current = Date.now()
+            setPhase('question')
+          }
+        }, 550)
         return
       }
       setIntroStep(COUNT_IN_STEPS[i])
@@ -152,8 +159,10 @@ export default function Gameplay() {
       haptics.tap()
     }, 700)
     return () => window.clearInterval(interval)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase])
 
+  const usesQuestionPicker = config?.questionMode === 'pickNumber'
   const isRotational = config?.mode === 'rotational'
   const activeTeamIndex = config ? (isRotational ? turnsCompleted % config.teamNames.length : config.teamIndex) : 0
   const currentQuestion = questions?.[currentLevel - 1]
@@ -428,15 +437,33 @@ export default function Gameplay() {
     setFriendHint(null)
     setTimedOut(false)
     setRevealed(false)
+    // Random/Selected modes keep advancing straight through the ladder in
+    // order, same as always - only Pick-a-Number hands the next question
+    // choice to the contestant.
+    if (!usesQuestionPicker) setCurrentLevel((l) => l + 1)
     // In rotational mode, the next question may belong to a different
     // team - a quick "get ready" beat instead of jumping straight into it.
     const nextTeamIndex = isRotational ? (justCompleted % config.teamNames.length) : wasTeamIndex
     if (isRotational && nextTeamIndex !== wasTeamIndex) {
       setPhase('switching')
-      window.setTimeout(() => setPhase('picking'), 1400)
+      window.setTimeout(() => {
+        if (usesQuestionPicker) {
+          setPhase('picking')
+        } else {
+          setTimeLeft(timerSeconds)
+          questionStartRef.current = Date.now()
+          setPhase('question')
+        }
+      }, 1400)
       return
     }
-    setPhase('picking')
+    if (usesQuestionPicker) {
+      setPhase('picking')
+    } else {
+      setTimeLeft(timerSeconds)
+      questionStartRef.current = Date.now()
+      setPhase('question')
+    }
   }
 
   const handleQuit = () => {

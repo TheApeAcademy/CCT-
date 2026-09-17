@@ -29,6 +29,7 @@ import AuthCard from '../components/ui/AuthCard'
 import TabBar from '../components/ui/TabBar'
 import IsometricPhone from '../components/IsometricPhone'
 import { NotesSection, DigitalBankSection } from '../components/PersonalVault'
+import MinistryCalendarReadOnly from '../components/MinistryCalendarView'
 import { SUNDAY_LESSON_THEMES, SUNDAYS_2026, sundayDateKey } from '../content/sundaySchoolCalendar'
 import {
   getMyTeacherApplication,
@@ -202,7 +203,7 @@ function ApplyForm({ onSubmitted }: { onSubmitted: () => void }) {
 
 // ---------- main dashboard ----------
 
-type Tab = 'home' | 'chat' | 'classes' | 'quiz' | 'ears' | 'profile'
+type Tab = 'home' | 'chat' | 'classes' | 'quiz' | 'ears' | 'calendar' | 'profile'
 
 function TeacherDashboard({ profile }: { profile: Profile | null }) {
   const [tab, setTab] = useState<Tab>('home')
@@ -232,6 +233,7 @@ function TeacherDashboard({ profile }: { profile: Profile | null }) {
           { value: 'classes', label: 'Classes', icon: GraduationCap },
           { value: 'quiz', label: 'Quiz', icon: Gamepad2 },
           { value: 'ears', label: 'Ears for You', icon: HeartHandshake },
+          { value: 'calendar', label: 'Ministry Calendar', icon: Calendar },
           { value: 'profile', label: 'Profile', icon: Settings },
         ]}
       />
@@ -241,6 +243,7 @@ function TeacherDashboard({ profile }: { profile: Profile | null }) {
       {tab === 'classes' && (openClass ? <ClassDetail klass={openClass} onBack={() => setOpenClass(null)} /> : <ClassesTab onOpen={setOpenClass} />)}
       {tab === 'quiz' && <QuizTab />}
       {tab === 'ears' && <EarsInboxTab />}
+      {tab === 'calendar' && <MinistryCalendarReadOnly />}
       {tab === 'profile' && <ProfileTab />}
     </div>
   )

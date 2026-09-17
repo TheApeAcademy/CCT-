@@ -5,6 +5,7 @@ import {
   FileText,
   School,
   CalendarRange,
+  CalendarDays,
   Users,
   Check,
   X,
@@ -43,9 +44,14 @@ import {
   listPlanReadings,
   addBibleReading,
   getLeaderboard,
+  listMinistryEvents,
+  createMinistryEvent,
+  updateMinistryEvent,
+  deleteMinistryEvent,
   type TeacherApplication,
   type ClassRow,
   type SeasonRow,
+  type MinistryEventRow,
   type BiblePlanRow,
   type BibleReadingRow,
   type LeaderboardRow,
@@ -94,7 +100,7 @@ function NotAuthorized() {
   )
 }
 
-type Tab = 'applications' | 'classes' | 'seasons' | 'quiz' | 'bible' | 'admins' | 'digitalbank'
+type Tab = 'applications' | 'classes' | 'seasons' | 'quiz' | 'bible' | 'calendar' | 'admins' | 'digitalbank'
 
 function AdminDashboard() {
   const [tab, setTab] = useState<Tab>('applications')
@@ -120,6 +126,7 @@ function AdminDashboard() {
           { value: 'seasons', label: 'Seasons', icon: CalendarRange },
           { value: 'quiz', label: 'Quiz', icon: Gamepad2 },
           { value: 'bible', label: 'Bible Plans', icon: BookOpen },
+          { value: 'calendar', label: 'Ministry Calendar', icon: CalendarDays },
           { value: 'digitalbank', label: 'Digital Bank', icon: Database },
           { value: 'admins', label: 'Admins', icon: Users },
         ]}
@@ -130,6 +137,7 @@ function AdminDashboard() {
       {tab === 'seasons' && <SeasonsTab />}
       {tab === 'quiz' && <QuizTab />}
       {tab === 'bible' && <BiblePlansTab />}
+      {tab === 'calendar' && <MinistryCalendarTab />}
       {tab === 'digitalbank' && <DigitalBankTab />}
       {tab === 'admins' && <AdminsTab />}
     </div>
@@ -481,6 +489,124 @@ function SeasonsTab() {
                 Make active
               </button>
             )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * The one shared ministry-wide events calendar (Children's Day, camps,
+ * Christmas party, memory verse challenges, ...) - admin edits it here;
+ * teachers and kids only ever see a read-only view of the same table.
+ */
+function MinistryCalendarTab() {
+  const [events, setEvents] = useState<MinistryEventRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [title, setTitle] = useState('')
+  const [eventDate, setEventDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [description, setDescription] = useState('')
+  const [editing, setEditing] = useState<MinistryEventRow | null>(null)
+  const [saving, setSaving] = useState(false)
+
+  const load = () => listMinistryEvents().then((e) => { setEvents(e); setLoading(false) })
+  useEffect(() => { load() }, [])
+
+  const resetForm = () => {
+    setEditing(null)
+    setTitle('')
+    setEventDate(new Date().toISOString().slice(0, 10))
+    setDescription('')
+  }
+
+  const startEdit = (event: MinistryEventRow) => {
+    setEditing(event)
+    setTitle(event.title)
+    setEventDate(event.event_date)
+    setDescription(event.description ?? '')
+  }
+
+  const save = async () => {
+    if (!title.trim()) return
+    setSaving(true)
+    try {
+      if (editing) {
+        await updateMinistryEvent(editing.id, { title, event_date: eventDate, description })
+      } else {
+        await createMinistryEvent({ title, event_date: eventDate, description })
+      }
+      playClick()
+      haptics.success()
+      resetForm()
+      load()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const remove = async (id: string) => {
+    if (!confirm('Delete this event?')) return
+    await deleteMinistryEvent(id)
+    haptics.tap()
+    load()
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="panel space-y-3 p-5">
+        <p className="eyebrow">{editing ? 'Edit Event' : 'New Event'}</p>
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="e.g. Children's Day"
+          className="w-full rounded-md border border-[var(--hairline-strong)] bg-transparent px-4 py-2 outline-none focus:border-[var(--gold)]"
+        />
+        <input
+          type="date"
+          value={eventDate}
+          onChange={(e) => setEventDate(e.target.value)}
+          className="w-full rounded-md border border-[var(--hairline-strong)] bg-transparent px-4 py-2 outline-none focus:border-[var(--gold)]"
+        />
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Details (optional)"
+          rows={2}
+          className="w-full rounded-md border border-[var(--hairline-strong)] bg-transparent px-4 py-2 outline-none focus:border-[var(--gold)]"
+        />
+        <div className="flex gap-2">
+          <button onClick={save} disabled={saving} className="btn-solid text-sm">
+            {saving ? 'Saving…' : editing ? 'Save Changes' : 'Add Event'}
+          </button>
+          {editing && (
+            <button onClick={resetForm} className="btn-outline text-sm">
+              Cancel
+            </button>
+          )}
+        </div>
+      </div>
+
+      {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
+      {!loading && events.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No events on the calendar yet.</p>}
+      <div className="space-y-2">
+        {events.map((event) => (
+          <div key={event.id} className="panel flex items-start justify-between gap-3 px-4 py-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-[var(--gold)]">
+                {new Date(event.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              </p>
+              <p className="font-semibold">{event.title}</p>
+              {event.description && <p className="mt-1 text-sm text-[var(--ink-muted)]">{event.description}</p>}
+            </div>
+            <div className="flex shrink-0 gap-1.5">
+              <button onClick={() => startEdit(event)} className="btn-outline px-3 py-1.5 text-xs">
+                Edit
+              </button>
+              <button onClick={() => remove(event.id)} className="rounded-md bg-red-500/15 px-3 py-1.5 text-xs font-bold text-red-400 hover:bg-red-500/25">
+                Delete
+              </button>
+            </div>
           </div>
         ))}
       </div>

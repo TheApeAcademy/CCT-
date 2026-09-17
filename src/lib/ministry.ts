@@ -1050,3 +1050,54 @@ export async function deleteVaultItem(item: VaultItemRow) {
   const { error } = await supabase.from('vault_items').delete().eq('id', item.id)
   if (error) throw error
 }
+
+// ---------- ministry calendar ----------
+// One shared events calendar for the whole ministry (Children's Day, camps,
+// Christmas party, etc.) - admin-only to create/edit, everyone signed in
+// can read it. Separate from the per-class Sunday School lesson-unlock
+// calendar in class_sunday_unlocks, which is about individual lessons, not
+// ministry-wide events.
+
+export interface MinistryEventRow {
+  id: string
+  title: string
+  description: string | null
+  event_date: string
+  created_by: string | null
+  created_at: string
+}
+
+export async function listMinistryEvents(): Promise<MinistryEventRow[]> {
+  const { data, error } = await supabase.from('ministry_events').select('*').order('event_date', { ascending: true })
+  if (error) throw error
+  return (data ?? []) as MinistryEventRow[]
+}
+
+export async function createMinistryEvent(params: { title: string; event_date: string; description?: string }): Promise<MinistryEventRow> {
+  const { data: auth } = await supabase.auth.getUser()
+  const { data, error } = await supabase
+    .from('ministry_events')
+    .insert({
+      title: params.title.trim(),
+      event_date: params.event_date,
+      description: params.description?.trim() || null,
+      created_by: auth.user?.id ?? null,
+    })
+    .select('*')
+    .single()
+  if (error) throw error
+  return data as MinistryEventRow
+}
+
+export async function updateMinistryEvent(id: string, params: { title: string; event_date: string; description?: string }) {
+  const { error } = await supabase
+    .from('ministry_events')
+    .update({ title: params.title.trim(), event_date: params.event_date, description: params.description?.trim() || null })
+    .eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteMinistryEvent(id: string) {
+  const { error } = await supabase.from('ministry_events').delete().eq('id', id)
+  if (error) throw error
+}

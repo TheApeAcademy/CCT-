@@ -42,6 +42,7 @@ import {
   Users,
   ClipboardList,
   ChevronDown,
+  CalendarDays,
   type LucideIcon,
 } from 'lucide-react'
 import { supabase, signOut } from '../lib/supabase'
@@ -50,6 +51,7 @@ import VillageMap from '../components/VillageMap'
 import BibleJourneyPanel from '../components/BibleJourney'
 import IsometricPhone from '../components/IsometricPhone'
 import { NotesSection, DigitalBankSection } from '../components/PersonalVault'
+import MinistryCalendarReadOnly from '../components/MinistryCalendarView'
 import { SUNDAY_LESSON_THEMES, SUNDAYS_2026, sundayDateKey } from '../content/sundaySchoolCalendar'
 import { bibleComUrl } from '../lib/bibleLink'
 import { useAutoHideNav } from '../lib/useAutoHideNav'
@@ -360,6 +362,7 @@ const DOCK_APPS = [
   { key: 'bank' as const, label: 'Bank', icon: Wallet, from: '#c4b5fd', to: '#6d28d9' },
   { key: 'prayer' as const, label: 'Prayer', icon: Heart, from: '#f9a8d4', to: '#be185d' },
   { key: 'diary' as const, label: 'Diary', icon: PenLine, from: '#5eead4', to: '#0f766e' },
+  { key: 'calendar' as const, label: 'Calendar', icon: CalendarDays, from: '#fca5a5', to: '#b91c1c' },
 ]
 type DockApp = (typeof DOCK_APPS)[number]['key']
 
@@ -539,6 +542,15 @@ function StandingPhone({
                   <div className="pb-2.5">{backButton}</div>
                   <div className="min-h-0 flex-1 overflow-y-auto">
                     <NotesSection kind="diary" title="Diary" icon={PenLine} accent="var(--lp-accent-anthem)" placeholder="Dear diary…" />
+                  </div>
+                </>
+              )}
+
+              {screen === 'calendar' && (
+                <>
+                  {header('Ministry Calendar')}
+                  <div className="min-h-0 flex-1 overflow-y-auto">
+                    <MinistryCalendarReadOnly dark />
                   </div>
                 </>
               )}

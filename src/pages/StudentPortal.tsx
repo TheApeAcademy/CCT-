@@ -232,11 +232,7 @@ function Dashboard() {
               </button>
               <h1 className="font-display text-lg font-extrabold text-[var(--lp-heading)]">{TAB_TITLE[tab]}</h1>
             </div>
-            <div
-              className={
-                tab === 'bible' || tab === 'game' ? 'mx-auto max-w-4xl pb-12' : 'mx-auto max-w-2xl p-4 pb-12'
-              }
-            >
+            <div className={tab === 'bible' || tab === 'game' ? 'pb-12' : 'mx-auto max-w-2xl p-4 pb-12'}>
               {tab === 'home' && <HomeTab student={student} klass={klass} rank={rank} achievements={achievements} onNavigate={enterTab} />}
               {tab === 'class' && <ClassTab klass={klass} />}
               {tab === 'bible' && <SundaySchoolTab klass={klass} />}
@@ -449,7 +445,8 @@ function BentoTile({
       )}
     </>
   )
-  const className = 'relative flex flex-col items-start overflow-hidden p-4 transition hover:scale-[1.015] active:scale-[0.98]'
+  const className =
+    'relative flex flex-col items-start overflow-hidden rounded-2xl p-4 transition hover:scale-[1.015] active:scale-[0.98]'
   const style: React.CSSProperties = { gridColumn: col, gridRow: row }
 
   if (to) {
@@ -983,7 +980,7 @@ function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string 
         />
       </div>
 
-      <div ref={lessonsSectionRef} className="space-y-3 px-4">
+      <div ref={lessonsSectionRef} className="mx-auto max-w-2xl space-y-3 px-4">
         <p className="eyebrow">Sunday School Lessons</p>
         {!klass && (
           <p className="text-sm text-[var(--ink-muted)]">
@@ -1007,7 +1004,7 @@ function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string 
         )}
       </div>
 
-      <div ref={readingSectionRef} className="space-y-3 px-4">
+      <div ref={readingSectionRef} className="mx-auto max-w-2xl space-y-3 px-4">
         <p className="eyebrow">Bible Reading Plan</p>
         <div className="flex items-center justify-between gap-4 rounded-[28px] border border-[var(--hairline)] bg-[var(--ink-panel)] px-5 py-3">
           <div className="flex items-center gap-2">

@@ -311,15 +311,15 @@ function CharacterBrowse({
                 playClick()
                 onOpenLesson(book.key, lesson.key)
               }}
-              className="relative flex aspect-square w-40 shrink-0 flex-col items-center justify-end overflow-hidden p-3 text-center transition hover:scale-[1.06] sm:w-48"
+              className="relative flex aspect-square w-40 shrink-0 flex-col items-center justify-center overflow-hidden px-5 text-center transition hover:scale-[1.06] sm:w-48"
               style={scatterStyle(i)}
             >
               <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
-              <p className="font-display relative z-10 text-xl font-extrabold uppercase leading-tight tracking-wide text-white drop-shadow-lg sm:text-2xl">
+              <div className="absolute inset-0 bg-black/45" />
+              <p className="font-display relative z-10 line-clamp-2 text-xs font-extrabold uppercase leading-tight tracking-wide text-white drop-shadow-lg sm:text-sm">
                 {unit.title}
               </p>
-              <p className="relative z-10 text-xs font-semibold text-white/80">{book.title}</p>
+              <p className="relative z-10 mt-1 text-[10px] font-semibold text-white/80">{book.title}</p>
               {isDone && (
                 <span className="absolute right-2.5 top-2.5 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white/90">
                   <Check className="h-4 w-4" style={{ color: ACCENT }} />

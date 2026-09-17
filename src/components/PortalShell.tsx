@@ -1,5 +1,6 @@
 import { Link, Outlet } from 'react-router-dom'
 import BackButton from './BackButton'
+import { useAutoHideNav } from '../lib/useAutoHideNav'
 
 /**
  * Chrome for Admin and Teacher - built from the same light, colourful design
@@ -10,6 +11,7 @@ import BackButton from './BackButton'
  * instead of Admin/Teacher being stuck on the app's plain dark default.
  */
 export default function PortalShell({ eyebrow }: { eyebrow: string }) {
+  const autoHidden = useAutoHideNav()
   return (
     <div data-landing-theme="light" className="site-light-theme lp-page relative isolate min-h-screen">
       <div
@@ -20,7 +22,11 @@ export default function PortalShell({ eyebrow }: { eyebrow: string }) {
           backgroundSize: '22px 22px',
         }}
       />
-      <header className="relative z-10 border-b border-[var(--lp-hairline)]">
+      <header
+        className={`sticky top-0 z-30 border-b border-[var(--lp-hairline)] bg-[var(--lp-bg)] transition-transform duration-300 ${
+          autoHidden ? '-translate-y-full' : 'translate-y-0'
+        }`}
+      >
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
           <div className="flex min-w-0 shrink-0 items-center gap-2">
             <BackButton />

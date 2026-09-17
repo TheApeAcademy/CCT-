@@ -1,5 +1,6 @@
 import { Link, Outlet } from 'react-router-dom'
 import BackButton from './BackButton'
+import { useAutoHideNav } from '../lib/useAutoHideNav'
 
 /**
  * Chrome for the two public-facing kid screens (sign up / sign in at
@@ -16,9 +17,14 @@ import BackButton from './BackButton'
  * has to download too.
  */
 export default function KidsShell({ eyebrow }: { eyebrow: string }) {
+  const autoHidden = useAutoHideNav()
   return (
     <div data-landing-theme="light" className="site-light-theme lp-page relative isolate min-h-screen">
-      <header className="relative z-10 border-b border-[var(--lp-hairline)]">
+      <header
+        className={`sticky top-0 z-30 border-b border-[var(--lp-hairline)] bg-[var(--lp-bg)] transition-transform duration-300 ${
+          autoHidden ? '-translate-y-full' : 'translate-y-0'
+        }`}
+      >
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3">
           <div className="flex min-w-0 shrink-0 items-center gap-2">
             <BackButton />

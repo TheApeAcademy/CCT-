@@ -8,6 +8,7 @@ import BackButton from './BackButton'
 import SiteFooter from './SiteFooter'
 import ThemeToggle from './ThemeToggle'
 import { useLandingTheme } from '../lib/landingTheme'
+import { useAutoHideNav } from '../lib/useAutoHideNav'
 
 const MFM_LIVE_URL = 'https://www.mountainoffire.org/live'
 
@@ -74,6 +75,7 @@ export default function Layout() {
   // and reachable without scrolling back to top. Every other route keeps the
   // header solid immediately since there's no hero photo to float over.
   const solidHeader = scrolled || !isHome
+  const autoHidden = useAutoHideNav()
 
   useEffect(() => {
     setMenuOpen(false)
@@ -117,7 +119,7 @@ export default function Layout() {
       <header
         className={`fixed inset-x-0 top-0 z-40 transition-all duration-300 ${
           solidHeader ? 'site-header' : 'border-b border-transparent bg-transparent'
-        } ${isFullscreenQuiz && !scrolled ? '-translate-y-full' : 'translate-y-0'}`}
+        } ${(isFullscreenQuiz && !scrolled) || autoHidden ? '-translate-y-full' : 'translate-y-0'}`}
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <div className="flex min-w-0 shrink-0 items-center gap-2">

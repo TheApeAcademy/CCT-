@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Lock, Check, ArrowLeft, Sparkles, BookOpen, Flame, Trophy, Coins } from 'lucide-react'
+import { Lock, Check, ArrowLeft, ChevronLeft, ChevronRight, Sparkles, BookOpen, Flame, Coins } from 'lucide-react'
 import {
   BIBLE_BOOK_ORDER,
   JOURNEY_BOOKS,
@@ -9,6 +9,7 @@ import {
   slugifyBookTitle,
   findLesson,
   type JourneyBook,
+  type JourneyLesson,
   type JourneyCheckCard,
 } from '../content/bibleJourney'
 import { bibleComUrl } from '../lib/bibleLink'
@@ -291,7 +292,7 @@ function CharacterBrowse({
   return (
     <div className="space-y-3">
       <p className="text-sm text-[var(--ink-muted)]">Pick any Bible character to learn about them right away - no order required.</p>
-      <div className="flex flex-wrap justify-center gap-x-3 gap-y-8 py-4">
+      <div className="flex flex-wrap justify-center gap-x-5 gap-y-10 py-6">
         {characters.map(({ book, unit, lesson }, i) => {
           const isDone = completedKeys.has(lesson.key)
           const image = lesson.image ?? CHARACTER_FALLBACK_IMAGES[fallbackCursor++ % CHARACTER_FALLBACK_IMAGES.length]
@@ -302,18 +303,18 @@ function CharacterBrowse({
                 playClick()
                 onOpenLesson(book.key, lesson.key)
               }}
-              className="relative flex aspect-square w-28 shrink-0 flex-col items-center justify-end overflow-hidden p-2.5 text-center transition hover:scale-[1.06] sm:w-32"
+              className="relative flex aspect-square w-40 shrink-0 flex-col items-center justify-end overflow-hidden p-3 text-center transition hover:scale-[1.06] sm:w-48"
               style={scatterStyle(i)}
             >
               <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
-              <p className="font-display relative z-10 text-sm font-extrabold uppercase leading-tight tracking-wide text-white drop-shadow-lg">
+              <p className="font-display relative z-10 text-xl font-extrabold uppercase leading-tight tracking-wide text-white drop-shadow-lg sm:text-2xl">
                 {unit.title}
               </p>
-              <p className="relative z-10 text-[9px] font-semibold text-white/80">{book.title}</p>
+              <p className="relative z-10 text-xs font-semibold text-white/80">{book.title}</p>
               {isDone && (
-                <span className="absolute right-2 top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-white/90">
-                  <Check className="h-3 w-3" style={{ color: ACCENT }} />
+                <span className="absolute right-2.5 top-2.5 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white/90">
+                  <Check className="h-4 w-4" style={{ color: ACCENT }} />
                 </span>
               )}
             </button>
@@ -355,6 +356,7 @@ function UnitPath({
   onOpenLesson: (lessonKey: string) => void
 }) {
   const [stats, setStats] = useState<JourneyStats | null>(null)
+  const [previewIdx, setPreviewIdx] = useState<number | null>(null)
   useEffect(() => {
     Promise.all([getMyStudentProfile(), getLeaderboard(500), getMyBibleStreak()]).then(([student, board, streak]) => {
       if (!student) return
@@ -367,194 +369,230 @@ function UnitPath({
   if (!book) return null
   const stops = book.units.flatMap((unit) => unit.lessons.map((lesson) => ({ unit, lesson })))
   let firstIncompleteIdx = stops.findIndex(({ lesson }) => !completedKeys.has(lesson.key))
-  if (firstIncompleteIdx === -1) firstIncompleteIdx = stops.length
+  if (firstIncompleteIdx === -1) firstIncompleteIdx = stops.length - 1
   const trackHeight = stops.length * ROW_HEIGHT
-  const current = stops[firstIncompleteIdx]
+  const activeIdx = Math.min(previewIdx ?? firstIncompleteIdx, stops.length - 1)
+  const activeStop = stops[activeIdx]
 
   const pathD = stops.map((_, i) => `${i === 0 ? 'M' : 'L'} ${waveX(i)} ${i * ROW_HEIGHT + NODE_SIZE / 2}`).join(' ')
 
-  const currentCardTop = Math.max(0, firstIncompleteIdx * ROW_HEIGHT + NODE_SIZE / 2 - 90)
+  const preview = activeStop && (
+    <LessonPreviewCard
+      stop={activeStop}
+      idx={activeIdx}
+      total={stops.length}
+      firstIncompleteIdx={firstIncompleteIdx}
+      onPrev={() => setPreviewIdx(Math.max(0, activeIdx - 1))}
+      onNext={() => setPreviewIdx(Math.min(stops.length - 1, activeIdx + 1))}
+      onOpenLesson={onOpenLesson}
+      big
+    />
+  )
+  const stats_ = <StatsPanel stats={stats} lesson={stops[firstIncompleteIdx]?.lesson} big />
 
   return (
     <div className="space-y-3">
       <p className="eyebrow">{book.title}</p>
 
-      {/* Phones: the same info stacked above the path, since there's no room to flank it there. */}
-      {current && (
-        <div className="sm:hidden">
-          <CurrentLessonCard current={current} stats={stats} onOpenLesson={onOpenLesson} layout="stacked" />
-        </div>
-      )}
+      {/* Phones: the same two cards stacked above the path, since there's no room to flank it there. */}
+      <div className="space-y-3 sm:hidden">
+        {preview}
+        {stats_}
+      </div>
 
-      <div className="relative mx-auto" style={{ width: '100%', maxWidth: 640, height: trackHeight }}>
-        {current && (
-          <div className="absolute hidden sm:block" style={{ left: 0, top: currentCardTop, width: 190 }}>
-            <CurrentLessonCard current={current} stats={stats} onOpenLesson={onOpenLesson} layout="left" />
+      <div className="hidden w-full items-start justify-between gap-4 sm:flex">
+        <div className="shrink-0" style={{ width: 360 }}>
+          {preview}
+        </div>
+
+        <div className="min-w-0 flex-1 overflow-y-auto" style={{ maxHeight: '75vh' }}>
+          <div className="relative mx-auto" style={{ width: TRACK_WIDTH, height: trackHeight }}>
+            <svg className="absolute inset-0" width={TRACK_WIDTH} height={trackHeight} viewBox={`0 0 ${TRACK_WIDTH} ${trackHeight}`}>
+              <path d={pathD} fill="none" stroke="var(--lp-hairline-strong)" strokeWidth={6} strokeLinecap="round" strokeDasharray="2 14" />
+            </svg>
+            {stops.map(({ unit, lesson }, i) => {
+              const isDone = completedKeys.has(lesson.key)
+              const isNext = i === firstIncompleteIdx
+              const isLocked = !isDone && !isNext
+              const fill = isLocked ? 'var(--lp-hairline-strong)' : ACCENT
+              const badgeImage = lesson.image ?? CHARACTER_FALLBACK_IMAGES[i % CHARACTER_FALLBACK_IMAGES.length]
+              return (
+                <div
+                  key={lesson.key}
+                  className="absolute flex flex-col items-center"
+                  style={{ left: waveX(i), top: i * ROW_HEIGHT + NODE_SIZE / 2, transform: 'translate(-50%, -50%)', width: 150 }}
+                >
+                  <button
+                    onClick={() => {
+                      playClick()
+                      setPreviewIdx(i)
+                    }}
+                    className="relative flex shrink-0 items-center justify-center rounded-full text-2xl transition"
+                    style={{
+                      width: NODE_SIZE,
+                      height: NODE_SIZE,
+                      background: fill,
+                      boxShadow: isLocked
+                        ? 'inset 0 -4px 0 rgba(0,0,0,0.18)'
+                        : `0 4px 0 color-mix(in srgb, ${ACCENT} 55%, black), inset 0 3px 0 rgba(255,255,255,0.35)`,
+                    }}
+                  >
+                    {isDone ? (
+                      <Check className="h-7 w-7 text-white" strokeWidth={3} />
+                    ) : isLocked ? (
+                      <Lock className="h-6 w-6 text-white/70" />
+                    ) : (
+                      <span>{unit.emoji}</span>
+                    )}
+                    <img src={badgeImage} alt="" className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full border-2 border-[var(--ink)] object-cover" />
+                  </button>
+                  <p className={`mt-2 text-center text-[11px] font-bold leading-tight ${isLocked ? 'text-[var(--ink-muted)]' : ''}`}>
+                    {unit.title}
+                    {unit.kind === 'topical' && <span className="ml-1 text-[9px] uppercase text-[var(--ink-muted)]">Big Truths</span>}
+                  </p>
+                </div>
+              )
+            })}
           </div>
-        )}
-        {current && (
-          <div className="absolute hidden sm:block" style={{ right: 0, top: currentCardTop, width: 190 }}>
-            <CurrentLessonCard current={current} stats={stats} onOpenLesson={onOpenLesson} layout="right" />
-          </div>
-        )}
-        <div className="absolute" style={{ left: '50%', top: 0, transform: 'translateX(-50%)', width: TRACK_WIDTH, height: trackHeight }}>
-          <svg className="absolute inset-0" width={TRACK_WIDTH} height={trackHeight} viewBox={`0 0 ${TRACK_WIDTH} ${trackHeight}`}>
-            <path d={pathD} fill="none" stroke="var(--lp-hairline-strong)" strokeWidth={6} strokeLinecap="round" strokeDasharray="2 14" />
-          </svg>
-          {stops.map(({ unit, lesson }, i) => {
-          const isDone = completedKeys.has(lesson.key)
-          const isNext = i === firstIncompleteIdx
-          const isLocked = !isDone && !isNext
-          const fill = isLocked ? 'var(--lp-hairline-strong)' : ACCENT
-          return (
-            <div
-              key={lesson.key}
-              className="absolute flex flex-col items-center"
-              style={{ left: waveX(i), top: i * ROW_HEIGHT + NODE_SIZE / 2, transform: 'translate(-50%, -50%)', width: 150 }}
-            >
-              <button
-                disabled={isLocked}
-                onClick={() => {
-                  playClick()
-                  onOpenLesson(lesson.key)
-                }}
-                className="relative flex shrink-0 items-center justify-center rounded-full text-2xl transition disabled:cursor-not-allowed"
-                style={{
-                  width: NODE_SIZE,
-                  height: NODE_SIZE,
-                  background: fill,
-                  boxShadow: isLocked
-                    ? 'inset 0 -4px 0 rgba(0,0,0,0.18)'
-                    : `0 4px 0 color-mix(in srgb, ${ACCENT} 55%, black), inset 0 3px 0 rgba(255,255,255,0.35)`,
-                }}
-              >
-                {isDone ? (
-                  <Check className="h-7 w-7 text-white" strokeWidth={3} />
-                ) : isLocked ? (
-                  <Lock className="h-6 w-6 text-white/70" />
-                ) : (
-                  <span>{unit.emoji}</span>
-                )}
-                {lesson.image && (
-                  <img
-                    src={lesson.image}
-                    alt=""
-                    className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full border-2 border-[var(--ink)] object-cover"
-                  />
-                )}
-              </button>
-              <p className={`mt-2 text-center text-[11px] font-bold leading-tight ${isLocked ? 'text-[var(--ink-muted)]' : ''}`}>
-                {unit.title}
-                {unit.kind === 'topical' && <span className="ml-1 text-[9px] uppercase text-[var(--ink-muted)]">Big Truths</span>}
-              </p>
-            </div>
-          )
-        })}
+        </div>
+
+        <div className="shrink-0" style={{ width: 360 }}>
+          {stats_}
         </div>
       </div>
     </div>
   )
 }
 
-function CurrentLessonCard({
-  current,
-  stats,
+function LessonPreviewCard({
+  stop,
+  idx,
+  total,
+  firstIncompleteIdx,
+  onPrev,
+  onNext,
   onOpenLesson,
-  layout,
+  big,
 }: {
-  current: { unit: JourneyBook['units'][number]; lesson: JourneyBook['units'][number]['lessons'][number] }
-  stats: JourneyStats | null
+  stop: { unit: JourneyBook['units'][number]; lesson: JourneyLesson }
+  idx: number
+  total: number
+  firstIncompleteIdx: number
+  onPrev: () => void
+  onNext: () => void
   onOpenLesson: (lessonKey: string) => void
-  layout: 'left' | 'right' | 'stacked'
+  big?: boolean
 }) {
-  const { unit, lesson } = current
-  const start = (
-    <button
-      onClick={() => {
-        playClick()
-        onOpenLesson(lesson.key)
-      }}
-      className="btn-solid w-full py-2 text-sm"
-    >
-      Start Lesson
-    </button>
-  )
-  const portrait = (
-    <div className="space-y-2 text-center">
-      {lesson.image ? (
-        <img src={lesson.image} alt="" className="mx-auto h-20 w-20 rounded-full object-cover" style={{ boxShadow: `0 0 0 4px ${ACCENT}` }} />
-      ) : (
-        <span
-          className="mx-auto flex h-20 w-20 items-center justify-center rounded-full text-4xl"
-          style={{ background: `color-mix(in srgb, ${ACCENT} 18%, transparent)`, boxShadow: `0 0 0 4px ${ACCENT}` }}
+  const { unit, lesson } = stop
+  const image = lesson.image ?? CHARACTER_FALLBACK_IMAGES[idx % CHARACTER_FALLBACK_IMAGES.length]
+  const state: 'done' | 'current' | 'locked' = idx < firstIncompleteIdx ? 'done' : idx === firstIncompleteIdx ? 'current' : 'locked'
+
+  return (
+    <div className="panel space-y-3" style={{ padding: big ? 24 : 14 }}>
+      <div className="flex items-center justify-between">
+        <button
+          onClick={onPrev}
+          disabled={idx === 0}
+          className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--lp-hairline)] transition disabled:opacity-30"
         >
-          {unit.emoji}
-        </span>
+          <ChevronLeft className="h-4 w-4" />
+        </button>
+        <p className="text-xs font-bold text-[var(--ink-muted)]">
+          {idx + 1} / {total}
+        </p>
+        <button
+          onClick={onNext}
+          disabled={idx === total - 1}
+          className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--lp-hairline)] transition disabled:opacity-30"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="space-y-2 text-center">
+        <img
+          src={image}
+          alt=""
+          className={`mx-auto rounded-full object-cover ${big ? 'h-36 w-36' : 'h-20 w-20'}`}
+          style={{ boxShadow: `0 0 0 4px ${ACCENT}` }}
+        />
+        <p className={`font-display font-extrabold ${big ? 'text-2xl' : 'text-sm'}`}>Learn about {unit.title}</p>
+        <a
+          href={bibleComUrl(lesson.reference)}
+          target="_blank"
+          rel="noreferrer"
+          className={`inline-flex items-center gap-1 rounded-full border border-[var(--lp-hairline)] font-bold text-[var(--ink-muted)] transition hover:text-[var(--lp-heading)] ${
+            big ? 'px-3 py-1.5 text-sm' : 'px-2.5 py-1 text-[11px]'
+          }`}
+        >
+          <BookOpen className={big ? 'h-4 w-4' : 'h-3 w-3'} /> {lesson.reference}
+        </a>
+      </div>
+
+      {state === 'current' && (
+        <button
+          onClick={() => {
+            playClick()
+            onOpenLesson(lesson.key)
+          }}
+          className={`btn-solid w-full ${big ? 'py-3 text-base' : 'py-2 text-sm'}`}
+        >
+          Start Lesson
+        </button>
       )}
-      <p className="font-display text-sm font-extrabold">Learn about {unit.title}</p>
-      <a
-        href={bibleComUrl(lesson.reference)}
-        target="_blank"
-        rel="noreferrer"
-        className="inline-flex items-center gap-1 rounded-full border border-[var(--lp-hairline)] px-2.5 py-1 text-[11px] font-bold text-[var(--ink-muted)] transition hover:text-[var(--lp-heading)]"
+      {state === 'done' && (
+        <button
+          onClick={() => {
+            playClick()
+            onOpenLesson(lesson.key)
+          }}
+          className={`btn-outline flex w-full items-center justify-center gap-1.5 ${big ? 'py-3 text-base' : 'py-2 text-sm'}`}
+        >
+          <Check className="h-4 w-4" /> Review Lesson
+        </button>
+      )}
+      {state === 'locked' && (
+        <button disabled className={`btn-outline flex w-full items-center justify-center gap-1.5 opacity-50 ${big ? 'py-3 text-base' : 'py-2 text-sm'}`}>
+          <Lock className="h-4 w-4" /> Locked
+        </button>
+      )}
+    </div>
+  )
+}
+
+function StatsPanel({ stats, lesson, big }: { stats: JourneyStats | null; lesson?: JourneyLesson; big?: boolean }) {
+  const totalQuestions = lesson ? lesson.sections.reduce((n, s) => n + s.checkQuestions.length, 0) + lesson.masteryQuestions.length : 0
+  const pad = big ? 24 : 14
+  return (
+    <div className="space-y-3">
+      <div
+        className="rounded-2xl text-white"
+        style={{ background: `linear-gradient(135deg, color-mix(in srgb, ${ACCENT} 75%, #180a2e), color-mix(in srgb, ${ACCENT} 30%, #180a2e))`, padding: pad }}
       >
-        <BookOpen className="h-3 w-3" /> {lesson.reference}
-      </a>
-    </div>
-  )
-  const totalQuestions = lesson.sections.reduce((n, s) => n + s.checkQuestions.length, 0) + lesson.masteryQuestions.length
-  const stat = (icon: React.ReactNode, label: string, value: string | number) => (
-    <div className="flex items-center gap-1.5">
-      {icon}
-      <span className="text-xs font-bold">{value}</span>
-      <span className="text-[10px] text-[var(--ink-muted)]">{label}</span>
-    </div>
-  )
-  // Two separate stacked cards, Duolingo-style: a Leaderboard card with a
-  // headline + rank, then a Daily Quests style card with streak/points and
-  // an "up next" progress line - instead of one merged stats block.
-  const leaderboardCard = (
-    <div className="panel space-y-1.5 p-4">
-      <p className="eyebrow">Leaderboard</p>
-      <p className="font-display text-sm font-extrabold">{stats?.rank ? `You're #${stats.rank}!` : 'Climb the leaderboard!'}</p>
-      <p className="text-[11px] text-[var(--ink-muted)]">Keep completing lessons to move up.</p>
-    </div>
-  )
-  const questsCard = (
-    <div className="panel space-y-1.5 p-4">
-      <p className="eyebrow">Daily Quests</p>
-      {stat(<Flame className="h-4 w-4 text-orange-500" />, 'day streak', stats?.streak ?? '–')}
-      {stat(<Coins className="h-4 w-4 text-yellow-500" />, 'points', stats?.points ?? '–')}
-      <p className="border-t border-[var(--lp-hairline)] pt-1.5 text-[11px] text-[var(--ink-muted)]">
-        Up next: <span className="font-bold text-[var(--lp-heading)]">{lesson.title}</span> · {lesson.sections.length} sections · {totalQuestions} questions
-      </p>
-    </div>
-  )
-
-  if (layout === 'stacked') {
-    return (
-      <div className="panel space-y-3 p-4">
-        {portrait}
-        {start}
-        <div className="flex items-center justify-between border-t border-[var(--lp-hairline)] pt-2">
-          {stat(<Flame className="h-4 w-4 text-orange-500" />, 'streak', stats?.streak ?? '–')}
-          {stat(<Trophy className="h-4 w-4 text-amber-500" />, 'rank', stats?.rank ? `#${stats.rank}` : '–')}
-          {stat(<Coins className="h-4 w-4 text-yellow-500" />, 'pts', stats?.points ?? '–')}
+        <p className={`font-bold uppercase tracking-wide text-white/70 ${big ? 'text-sm' : 'text-xs'}`}>Leaderboard</p>
+        <p className={`mt-1 font-display font-extrabold ${big ? 'text-2xl' : 'text-base'}`}>{stats?.rank ? `You're #${stats.rank}!` : 'Climb the leaderboard!'}</p>
+        <p className={`mt-1 text-white/80 ${big ? 'text-sm' : 'text-xs'}`}>Keep completing lessons to move up.</p>
+      </div>
+      <div className="rounded-2xl" style={{ background: 'color-mix(in srgb, var(--gold) 16%, var(--ink-panel))', padding: pad }}>
+        <p className={`font-bold uppercase tracking-wide text-[var(--gold)] ${big ? 'text-sm' : 'text-xs'}`}>Daily Quests</p>
+        <div className={`flex items-center gap-2 ${big ? 'mt-3' : 'mt-2'}`}>
+          <Flame className={big ? 'h-6 w-6 text-orange-500' : 'h-4 w-4 text-orange-500'} />
+          <span className={`font-display font-extrabold ${big ? 'text-xl' : 'text-sm'}`}>{stats?.streak ?? '–'}</span>
+          <span className={big ? 'text-sm text-[var(--ink-muted)]' : 'text-xs text-[var(--ink-muted)]'}>day streak</span>
         </div>
+        <div className={`flex items-center gap-2 ${big ? 'mt-2' : 'mt-1.5'}`}>
+          <Coins className={big ? 'h-6 w-6 text-yellow-500' : 'h-4 w-4 text-yellow-500'} />
+          <span className={`font-display font-extrabold ${big ? 'text-xl' : 'text-sm'}`}>{stats?.points ?? '–'}</span>
+          <span className={big ? 'text-sm text-[var(--ink-muted)]' : 'text-xs text-[var(--ink-muted)]'}>points</span>
+        </div>
+        {lesson && (
+          <p className={`border-t border-[var(--hairline)] ${big ? 'mt-3 pt-3 text-sm' : 'mt-2 pt-2 text-[11px]'} text-[var(--ink-muted)]`}>
+            Up next: <span className="font-bold text-[var(--fg)]">{lesson.title}</span> · {lesson.sections.length} sections · {totalQuestions} questions
+          </p>
+        )}
       </div>
-    )
-  }
-
-  if (layout === 'right') {
-    return (
-      <div className="space-y-3">
-        {leaderboardCard}
-        {questsCard}
-      </div>
-    )
-  }
-
-  return <div className="panel space-y-3 p-3">{[portrait, start]}</div>
+    </div>
+  )
 }
 
 type LearnStep = { kind: 'card'; text: string; emoji: string; ref: string; image?: string } | { kind: 'groupcheck'; check: JourneyCheckCard }

@@ -51,6 +51,7 @@ import { useMinistryAuth } from '../lib/useMinistryAuth'
 import VillageMap from '../components/VillageMap'
 import BibleJourneyPanel from '../components/BibleJourney'
 import IsometricPhone from '../components/IsometricPhone'
+import { useAutoHideNav } from '../lib/useAutoHideNav'
 import {
   getMyStudentProfile,
   updateMyStudentProfile,
@@ -154,14 +155,10 @@ function Dashboard() {
   const [view, setView] = useState<'map' | 'tab'>('map')
   const [student, setStudent] = useState<StudentRow | null>(null)
   const [klass, setKlass] = useState<(ClassRow & { teacher_name: string }) | null>(null)
-  const [rank, setRank] = useState<number | null>(null)
   const [achievements, setAchievements] = useState<EarnedAchievement[]>([])
 
   const load = () => {
-    getMyStudentProfile().then((s) => {
-      setStudent(s)
-      if (s) getLeaderboard(500).then((rows) => setRank(rows.findIndex((r) => r.student_id === s.id) + 1 || null))
-    })
+    getMyStudentProfile().then(setStudent)
     getMyClass().then(setKlass)
     listMyAchievements().then(setAchievements)
   }
@@ -188,6 +185,9 @@ function Dashboard() {
     const el = mapScrollRef.current
     if (el) el.scrollTop = el.scrollHeight
   }, [view])
+  const tabScrollRef = useRef<HTMLDivElement>(null)
+  const mapNavHidden = useAutoHideNav(mapScrollRef)
+  const tabNavHidden = useAutoHideNav(tabScrollRef)
 
   // Fixed, full-viewport: this is the whole kids app once signed in - it
   // deliberately breaks out of KidsShell's padded max-w-3xl column so the
@@ -205,7 +205,11 @@ function Dashboard() {
             transition={{ duration: 0.25 }}
             className="absolute inset-0 overflow-y-auto overflow-x-hidden"
           >
-            <div className="sticky top-0 z-10 flex items-center justify-between gap-3 p-3">
+            <div
+              className={`sticky top-0 z-10 flex items-center justify-between gap-3 p-3 transition-transform duration-300 ${
+                mapNavHidden ? '-translate-y-24' : 'translate-y-0'
+              }`}
+            >
               <div className="flex items-center gap-2 rounded-full bg-white/90 py-1.5 pl-1.5 pr-3 shadow-lg backdrop-blur">
                 {student?.avatar_url ? (
                   <img src={student.avatar_url} alt="" className="h-9 w-9 rounded-full object-cover ring-2 ring-[var(--gold)]/60" />
@@ -231,6 +235,7 @@ function Dashboard() {
         ) : (
           <motion.div
             key={tab}
+            ref={tabScrollRef}
             initial={{ opacity: 0, scale: 0.92 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.96 }}
@@ -240,7 +245,11 @@ function Dashboard() {
               background: `radial-gradient(ellipse 100% 55% at 50% -8%, color-mix(in srgb, ${TAB_ACCENT[tab]} 30%, transparent), transparent 60%), var(--ink)`,
             }}
           >
-            <div className="sticky top-0 z-10 flex items-center gap-3 border-b border-[var(--lp-hairline)] bg-[var(--ink)]/80 px-4 py-3 backdrop-blur">
+            <div
+              className={`sticky top-0 z-10 flex items-center gap-3 border-b border-[var(--lp-hairline)] bg-[var(--ink)]/80 px-4 py-3 backdrop-blur transition-transform duration-300 ${
+                tabNavHidden ? '-translate-y-full' : 'translate-y-0'
+              }`}
+            >
               <button
                 onClick={backToMap}
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 transition hover:scale-105"
@@ -251,8 +260,8 @@ function Dashboard() {
               </button>
               <h1 className="font-display text-lg font-extrabold text-[var(--lp-heading)]">{TAB_TITLE[tab]}</h1>
             </div>
-            <div className={tab === 'bible' || tab === 'game' ? 'pb-12' : 'mx-auto max-w-2xl p-4 pb-12'}>
-              {tab === 'home' && <HomeTab student={student} klass={klass} rank={rank} achievements={achievements} onNavigate={enterTab} />}
+            <div className={tab === 'bible' || tab === 'game' || tab === 'home' ? 'pb-12' : 'mx-auto max-w-2xl p-4 pb-12'}>
+              {tab === 'home' && <HomeTab student={student} klass={klass} achievements={achievements} onNavigate={enterTab} />}
               {tab === 'class' && <ClassTab klass={klass} />}
               {tab === 'bible' && <SundaySchoolTab klass={klass} />}
               {tab === 'leaderboard' && <LeaderboardTab myId={student?.id ?? null} />}
@@ -293,87 +302,173 @@ const ACHIEVEMENT_ICONS: Record<string, LucideIcon> = {
 function HomeTab({
   student,
   klass,
-  rank,
   achievements,
   onNavigate,
 }: {
   student: StudentRow | null
   klass: (ClassRow & { teacher_name: string }) | null
-  rank: number | null
   achievements: EarnedAchievement[]
   onNavigate: (tab: Tab) => void
 }) {
   return (
-    <div className="space-y-6">
+    <div className="relative min-h-full">
+      {/* `fixed` rather than `background-attachment: fixed` on this div itself -
+          a transformed ancestor (the tab's own enter/exit scale animation)
+          would otherwise force a plain `fixed` background to scroll away
+          with the content, same bug as the app's headers had before the
+          nav-auto-hide fix; a separately fixed layer isn't affected by that. */}
       <div
-        className="-mx-4 -mt-4 flex items-end rounded-b-3xl p-5"
+        className="fixed inset-0 z-0"
         style={{
-          backgroundImage: 'linear-gradient(180deg, rgba(10,20,40,0.2) 0%, rgba(10,20,40,0.8) 100%), url(/village-home-bg.jpg)',
+          backgroundImage: 'linear-gradient(180deg, rgba(8,16,32,0.55) 0%, rgba(8,16,32,0.85) 100%), url(/village-home-bg.jpg)',
           backgroundSize: 'cover',
-          backgroundPosition: 'center 65%',
-          minHeight: 170,
+          backgroundPosition: 'center',
         }}
-      >
-        <p className="font-display text-xl font-extrabold text-white drop-shadow-md">
+      />
+      <div className="relative z-10 space-y-6 pb-4">
+        <p className="px-4 pt-8 text-center font-display text-3xl font-extrabold text-white drop-shadow-lg sm:text-4xl">
           Welcome back, {student?.full_name?.split(' ')[0] ?? 'friend'}!
         </p>
-      </div>
 
-      <div className="stat-strip grid-cols-2">
-        <div className="stat-cell">
-          <div className="stat-cell-value">{(student?.total_points ?? 0).toLocaleString()}</div>
-          <div className="stat-cell-label">Points</div>
+        <div className="mx-auto max-w-xs px-4">
+          <ShinyDigitalCard student={student} klass={klass} onViewFull={() => onNavigate('profile')} />
         </div>
-        <div className="stat-cell">
-          <div className="stat-cell-value">{rank ? `#${rank}` : '—'}</div>
-          <div className="stat-cell-label">Leaderboard Rank</div>
-        </div>
-      </div>
-      {klass && (
-        <p className="text-center text-sm text-[var(--ink-muted)]">
-          in {klass.name}, with {klass.teacher_name}
-        </p>
-      )}
 
-      {achievements.length > 0 && (
-        <div>
-          <p className="eyebrow">My Badges</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {achievements.map((a) => {
-              const Icon = ACHIEVEMENT_ICONS[a.icon] ?? Award
-              return (
-                <div key={a.id} title={a.description} className="flex items-center gap-2 rounded-full border border-[var(--gold)]/30 bg-[var(--gold)]/10 py-1.5 pl-2 pr-3">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--gold)] text-[var(--gold-ink)]">
-                    <Icon className="h-3.5 w-3.5" strokeWidth={2} />
-                  </span>
-                  <span className="text-xs font-bold text-[var(--gold)]">{a.name}</span>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-      )}
-
-      {klass && <StudentPhoneChat teacherId={klass.teacher_id} teacherName={klass.teacher_name} />}
-
-      <MiniDigitalCard student={student} klass={klass} onViewFull={() => onNavigate('profile')} />
-
-      <DigitalBankSection />
-
-      <NotesSection kind="prayer" title="Prayer Journal" icon={Heart} accent="var(--lp-accent-bible)" placeholder="What's on your heart today?" />
-
-      <NotesSection kind="diary" title="Diary" icon={PenLine} accent="var(--lp-accent-anthem)" placeholder="Dear diary…" />
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        <HomeLink to="/anthem" icon={Music} accent="var(--lp-accent-anthem)" title="Our Anthem" description="Sing along with the children's ministry anthem." />
+        <StudentHomePhone klass={klass} achievements={achievements} />
       </div>
     </div>
   )
 }
 
-// Home's chat is the same conversation as the Messages tab (and Ears for
-// You is separate on purpose) - this is just a second, more fun way in.
-function StudentPhoneChat({ teacherId, teacherName }: { teacherId: string; teacherName: string }) {
+const DOCK_APPS = [
+  { key: 'chat' as const, label: 'Chat', icon: Send, bg: '#3b82f6' },
+  { key: 'badges' as const, label: 'Badges', icon: Award, bg: '#f2c94c' },
+  { key: 'bank' as const, label: 'Digital Bank', icon: Wallet, bg: '#8b5cf6' },
+  { key: 'prayer' as const, label: 'Prayer', icon: Heart, bg: '#ec4899' },
+  { key: 'diary' as const, label: 'Diary', icon: PenLine, bg: '#14b8a6' },
+]
+type DockApp = (typeof DOCK_APPS)[number]['key']
+
+// The whole Home experience for a kid lives inside one big phone: a
+// home-screen dock of app icons (chat, badges, digital bank, prayer
+// journal, diary), each opening as its own "screen" with a back arrow -
+// same big isometric shell as Teacher Home's phone.
+function StudentHomePhone({
+  klass,
+  achievements,
+}: {
+  klass: (ClassRow & { teacher_name: string }) | null
+  achievements: EarnedAchievement[]
+}) {
+  const [screen, setScreen] = useState<DockApp | null>(null)
+
+  const backButton = (
+    <button onClick={() => setScreen(null)} className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20">
+      <ArrowLeft className="h-4 w-4" />
+    </button>
+  )
+  const header = (title: string) => (
+    <div className="flex items-center gap-2 pb-4">
+      {backButton}
+      <p className="font-display text-base font-extrabold text-white">{title}</p>
+    </div>
+  )
+
+  return (
+    <IsometricPhone accent="var(--lp-accent-bible)">
+      <div className="flex flex-1 flex-col overflow-hidden px-4 pb-5">
+        {screen === null && (
+          <>
+            <p className="pb-4 text-center font-display text-lg font-extrabold text-white">My Space</p>
+            <div className="grid grid-cols-3 gap-4">
+              {DOCK_APPS.map((app) => (
+                <button key={app.key} onClick={() => setScreen(app.key)} className="flex flex-col items-center gap-1.5">
+                  <span className="flex h-14 w-14 items-center justify-center rounded-2xl shadow-lg transition hover:scale-105" style={{ background: app.bg }}>
+                    <app.icon className="h-6 w-6 text-white" />
+                  </span>
+                  <span className="text-[11px] font-bold text-white/80">{app.label}</span>
+                </button>
+              ))}
+              <Link to="/anthem" onClick={() => playClick()} className="flex flex-col items-center gap-1.5">
+                <span className="flex h-14 w-14 items-center justify-center rounded-2xl shadow-lg transition hover:scale-105" style={{ background: '#f97316' }}>
+                  <Music className="h-6 w-6 text-white" />
+                </span>
+                <span className="text-[11px] font-bold text-white/80">Anthem</span>
+              </Link>
+            </div>
+          </>
+        )}
+
+        {screen === 'chat' && klass && (
+          <>
+            {header(klass.teacher_name)}
+            <ChatScreen teacherId={klass.teacher_id} teacherName={klass.teacher_name} />
+          </>
+        )}
+        {screen === 'chat' && !klass && (
+          <>
+            {header('Chat')}
+            <p className="pt-8 text-center text-sm text-white/50">You&apos;re not in a class yet, so there&apos;s no teacher to message.</p>
+          </>
+        )}
+
+        {screen === 'badges' && (
+          <>
+            {header('My Badges')}
+            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
+              {achievements.length === 0 && <p className="pt-8 text-center text-sm text-white/40">No badges yet - keep going!</p>}
+              {achievements.map((a) => {
+                const Icon = ACHIEVEMENT_ICONS[a.icon] ?? Award
+                return (
+                  <div key={a.id} className="flex items-center gap-3 rounded-2xl bg-white/5 p-3">
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full" style={{ background: '#f2c94c' }}>
+                      <Icon className="h-4 w-4 text-black" strokeWidth={2} />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold text-white">{a.name}</p>
+                      <p className="truncate text-xs text-white/50">{a.description}</p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </>
+        )}
+
+        {screen === 'bank' && (
+          <>
+            <div className="pb-3">{backButton}</div>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <DigitalBankSection />
+            </div>
+          </>
+        )}
+
+        {screen === 'prayer' && (
+          <>
+            <div className="pb-3">{backButton}</div>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <NotesSection kind="prayer" title="Prayer Journal" icon={Heart} accent="var(--lp-accent-bible)" placeholder="What's on your heart today?" />
+            </div>
+          </>
+        )}
+
+        {screen === 'diary' && (
+          <>
+            <div className="pb-3">{backButton}</div>
+            <div className="min-h-0 flex-1 overflow-y-auto">
+              <NotesSection kind="diary" title="Diary" icon={PenLine} accent="var(--lp-accent-anthem)" placeholder="Dear diary…" />
+            </div>
+          </>
+        )}
+      </div>
+    </IsometricPhone>
+  )
+}
+
+// Home's chat is the same conversation as the standalone Messages tab
+// (Ears for You is separate on purpose) - this is just the fun way in.
+function ChatScreen({ teacherId, teacherName }: { teacherId: string; teacherName: string }) {
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [messages, setMessages] = useState<MessageRow[]>([])
   const [draft, setDraft] = useState('')
@@ -400,46 +495,36 @@ function StudentPhoneChat({ teacherId, teacherName }: { teacherId: string; teach
   }
 
   return (
-    <IsometricPhone accent="var(--lp-accent-bible)">
-      <div className="flex flex-1 flex-col overflow-hidden px-4 pb-5">
-        <div className="flex items-center gap-3 pb-4">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-lg font-extrabold text-white ring-2 ring-white/30">
-            {teacherName.charAt(0).toUpperCase()}
-          </span>
-          <div className="min-w-0">
-            <p className="truncate font-display text-base font-extrabold text-white">{teacherName}</p>
-            <p className="text-xs text-white/50">Your Sunday school teacher</p>
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <p className="pb-2 text-xs text-white/50">{teacherName} · Your Sunday school teacher</p>
+      <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pb-2">
+        {messages.map((m) => (
+          <div
+            key={m.id}
+            className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${m.sender_id === myId ? 'ml-auto bg-[var(--gold)] text-black' : 'bg-white/10 text-white'}`}
+          >
+            {m.body}
           </div>
-        </div>
-        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pb-2">
-          {messages.map((m) => (
-            <div
-              key={m.id}
-              className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${m.sender_id === myId ? 'ml-auto bg-[var(--gold)] text-black' : 'bg-white/10 text-white'}`}
-            >
-              {m.body}
-            </div>
-          ))}
-          {messages.length === 0 && <p className="pt-8 text-center text-sm text-white/40">Say hi to your teacher!</p>}
-        </div>
-        <div className="flex gap-2 pt-2">
-          <input
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder="Message…"
-            onKeyDown={(e) => e.key === 'Enter' && send()}
-            className="flex-1 rounded-full bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40"
-          />
-          <button onClick={send} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--gold)] text-black">
-            <Send className="h-4 w-4" />
-          </button>
-        </div>
+        ))}
+        {messages.length === 0 && <p className="pt-8 text-center text-sm text-white/40">Say hi to your teacher!</p>}
       </div>
-    </IsometricPhone>
+      <div className="flex gap-2 pt-2">
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder="Message…"
+          onKeyDown={(e) => e.key === 'Enter' && send()}
+          className="flex-1 rounded-full bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40"
+        />
+        <button onClick={send} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--gold)] text-black">
+          <Send className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
   )
 }
 
-function MiniDigitalCard({
+function ShinyDigitalCard({
   student,
   klass,
   onViewFull,
@@ -449,31 +534,33 @@ function MiniDigitalCard({
   onViewFull: () => void
 }) {
   return (
-    <div>
-      <p className="eyebrow">My Digital Card</p>
-      <button
-        onClick={() => {
-          playClick()
-          onViewFull()
-        }}
-        className="mt-2 flex w-full items-center gap-4 rounded-2xl p-5 text-left transition hover:scale-[1.01]"
-        style={{ background: 'linear-gradient(135deg, color-mix(in srgb, var(--gold) 55%, #1a1030) 0%, color-mix(in srgb, var(--gold) 15%, #1a1030) 100%)' }}
-      >
-        {student?.avatar_url ? (
-          <img src={student.avatar_url} alt="" className="h-16 w-16 shrink-0 rounded-full object-cover ring-2 ring-white/50" />
-        ) : (
-          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-white/15 text-2xl font-extrabold text-white ring-2 ring-white/50">
-            {(student?.full_name ?? '?').charAt(0).toUpperCase()}
-          </span>
-        )}
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-display text-lg font-extrabold text-white">{student?.full_name ?? 'My Card'}</p>
-          <p className="truncate text-xs text-white/70">{klass?.name ?? 'No class yet'}</p>
-          <p className="mt-1 text-sm font-bold text-white">{(student?.total_points ?? 0).toLocaleString()} pts</p>
-        </div>
-        <ArrowRight className="h-5 w-5 shrink-0 text-white/70" />
-      </button>
-    </div>
+    <button
+      onClick={() => {
+        playClick()
+        onViewFull()
+      }}
+      className="relative flex w-full items-center gap-3 overflow-hidden rounded-2xl p-4 text-left shadow-xl transition hover:scale-[1.02]"
+      style={{ background: 'linear-gradient(135deg, #7b2ff7 0%, #4a1a8a 55%, #2b0f5c 100%)' }}
+    >
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0"
+        style={{ background: 'linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.35) 45%, transparent 60%)' }}
+      />
+      {student?.avatar_url ? (
+        <img src={student.avatar_url} alt="" className="h-12 w-12 shrink-0 rounded-full object-cover ring-2 ring-white/50" />
+      ) : (
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/15 text-lg font-extrabold text-white ring-2 ring-white/50">
+          {(student?.full_name ?? '?').charAt(0).toUpperCase()}
+        </span>
+      )}
+      <div className="relative z-10 min-w-0 flex-1">
+        <p className="truncate font-display text-base font-extrabold text-white">{student?.full_name ?? 'My Card'}</p>
+        <p className="truncate text-[11px] text-white/70">{klass?.name ?? 'No class yet'}</p>
+        <p className="mt-0.5 text-xs font-bold text-white">{(student?.total_points ?? 0).toLocaleString()} pts</p>
+      </div>
+      <ArrowRight className="relative z-10 h-5 w-5 shrink-0 text-white/70" />
+    </button>
   )
 }
 
@@ -917,40 +1004,6 @@ function GameTile({
     <div className={className} style={style}>
       {content}
     </div>
-  )
-}
-
-function HomeLink({
-  to,
-  icon: Icon,
-  accent,
-  title,
-  description,
-}: {
-  to: string
-  icon: typeof Dumbbell
-  accent: string
-  title: string
-  description: string
-}) {
-  return (
-    <Link
-      to={to}
-      onClick={() => playClick()}
-      className="lp-panel lp-panel-accented lp-panel-interactive flex items-start gap-4 p-5"
-      style={{ ['--card-accent' as string]: accent }}
-    >
-      <span
-        className="lp-icon-chip flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-        style={{ background: 'color-mix(in srgb, ' + accent + ' 16%, transparent)', color: accent }}
-      >
-        <Icon className="h-5 w-5" strokeWidth={1.75} />
-      </span>
-      <div>
-        <p className="lp-heading font-display text-lg font-bold">{title}</p>
-        <p className="mt-1 text-sm text-[var(--lp-body)]">{description}</p>
-      </div>
-    </Link>
   )
 }
 

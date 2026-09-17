@@ -1,7 +1,7 @@
 // Data layer for the Children's Ministry platform: teacher applications,
 // classes/roster, student profiles, leaderboard, messaging, and Ears for You.
 // Thin wrappers over Supabase so the pages stay focused on UI.
-import { supabase, JOIN_CLASS_FUNCTION_URL, STUDENT_REGISTER_FUNCTION_URL } from './supabase'
+import { supabase, JOIN_CLASS_FUNCTION_URL, STUDENT_REGISTER_FUNCTION_URL, AI_COMPANION_FUNCTION_URL } from './supabase'
 import type { AnswerRecord } from '../db/types'
 
 // ---------- shared types ----------
@@ -1269,4 +1269,62 @@ export async function listChildQuizAttempts(studentId: string, sinceIso: string)
   const { data, error } = await supabase.from('quiz_attempts').select('created_at').eq('student_id', studentId).gte('created_at', sinceIso)
   if (error) throw error
   return (data ?? []) as { created_at: string }[]
+}
+
+// ---------- Bible Buddy (AI companion) ----------
+// A tightly-scoped kid-facing AI, answered server-side (ai-companion edge
+// function - the API key never reaches the browser). Every Q&A is logged
+// for safeguarding review, with the same anonymous-identity masking as
+// Ears for You: a teacher/admin never gets the real identity for an
+// anonymous question through any path.
+
+export interface AiCompanionMessageRow {
+  id: string
+  question: string
+  answer: string
+  is_anonymous: boolean
+  created_at: string
+}
+
+export interface AiCompanionTeacherLogRow extends AiCompanionMessageRow {
+  class_id: string | null
+  student_id: string | null
+  student_name: string | null
+}
+
+export async function askBibleBuddy(question: string, isAnonymous: boolean): Promise<string> {
+  const { data: session } = await supabase.auth.getSession()
+  const token = session.session?.access_token
+  if (!token) throw new Error('Not signed in.')
+
+  const res = await fetch(AI_COMPANION_FUNCTION_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ question, is_anonymous: isAnonymous }),
+  })
+  const body = await res.json()
+  if (!res.ok) throw new Error(body.error ?? 'Bible Buddy could not answer that.')
+  return body.answer as string
+}
+
+export async function listMyBibleBuddyHistory(): Promise<AiCompanionMessageRow[]> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) return []
+  const { data, error } = await supabase
+    .from('ai_companion_messages')
+    .select('id, question, answer, is_anonymous, created_at')
+    .eq('student_id', auth.user.id)
+    .order('created_at', { ascending: true })
+  if (error) throw error
+  return (data ?? []) as AiCompanionMessageRow[]
+}
+
+export async function listBibleBuddyTeacherLog(limit = 50): Promise<AiCompanionTeacherLogRow[]> {
+  const { data, error } = await supabase
+    .from('ai_companion_teacher_log')
+    .select('id, class_id, student_id, student_name, question, answer, is_anonymous, created_at')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  return (data ?? []) as AiCompanionTeacherLogRow[]
 }

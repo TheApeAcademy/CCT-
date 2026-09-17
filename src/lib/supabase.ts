@@ -26,6 +26,11 @@ export const JOIN_CLASS_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/join-class`
 // Student Code. Class enrollment happens later, separately, via a teacher.
 export const STUDENT_REGISTER_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/student-register`
 
+// Unlike the two above, this one requires a signed-in student - the
+// Authorization header (a real session JWT) goes with every call, not a
+// bare fetch, so verify_jwt stays ON for this function.
+export const AI_COMPANION_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/ai-companion`
+
 export type UserRole = 'admin' | 'teacher' | 'student' | 'parent'
 
 export interface Profile {

@@ -23,6 +23,8 @@ import {
   Lock,
   ClipboardCheck,
   Award,
+  Sparkles,
+  EyeOff,
   type LucideIcon,
 } from 'lucide-react'
 import { supabase, signOut, type Profile } from '../lib/supabase'
@@ -72,6 +74,8 @@ import {
   aggregateClassLeaderboard,
   listAttendanceForDate,
   saveAttendance,
+  listBibleBuddyTeacherLog,
+  type AiCompanionTeacherLogRow,
   type TeacherApplication,
   type ClassRow,
   type StudentRow,
@@ -209,7 +213,7 @@ function ApplyForm({ onSubmitted }: { onSubmitted: () => void }) {
 
 // ---------- main dashboard ----------
 
-type Tab = 'home' | 'chat' | 'classes' | 'quiz' | 'ears' | 'calendar' | 'profile'
+type Tab = 'home' | 'chat' | 'classes' | 'quiz' | 'ears' | 'buddy' | 'calendar' | 'profile'
 
 function TeacherDashboard({ profile }: { profile: Profile | null }) {
   const [tab, setTab] = useState<Tab>('home')
@@ -239,6 +243,7 @@ function TeacherDashboard({ profile }: { profile: Profile | null }) {
           { value: 'classes', label: 'Classes', icon: GraduationCap },
           { value: 'quiz', label: 'Quiz', icon: Gamepad2 },
           { value: 'ears', label: 'Ears for You', icon: HeartHandshake },
+          { value: 'buddy', label: 'Bible Buddy', icon: Sparkles },
           { value: 'calendar', label: 'Ministry Calendar', icon: Calendar },
           { value: 'profile', label: 'Profile', icon: Settings },
         ]}
@@ -250,6 +255,7 @@ function TeacherDashboard({ profile }: { profile: Profile | null }) {
         (openClass ? <ClassDetail klass={openClass} teacherName={profile?.full_name ?? 'Your Teacher'} onBack={() => setOpenClass(null)} /> : <ClassesTab onOpen={setOpenClass} />)}
       {tab === 'quiz' && <QuizTab />}
       {tab === 'ears' && <EarsInboxTab />}
+      {tab === 'buddy' && <BibleBuddyLogTab />}
       {tab === 'calendar' && <MinistryCalendarReadOnly />}
       {tab === 'profile' && <ProfileTab />}
     </div>
@@ -1330,6 +1336,40 @@ function EarsInboxTab() {
             </div>
             <p className="mt-2 line-clamp-2 whitespace-pre-wrap text-sm text-[var(--fg)]/80">{m.body}</p>
           </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function BibleBuddyLogTab() {
+  const [items, setItems] = useState<AiCompanionTeacherLogRow[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    listBibleBuddyTeacherLog(50).then(setItems).finally(() => setLoading(false))
+  }, [])
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-[var(--ink-muted)]">
+        Every question your students ask Bible Buddy, for safeguarding review. Anonymous ones never reveal who sent them.
+      </p>
+      {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
+      {!loading && items.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No questions logged yet.</p>}
+      <div className="space-y-3">
+        {items.map((m) => (
+          <div key={m.id} className="panel p-5">
+            <div className="flex items-start justify-between gap-2">
+              <p className="flex items-center gap-1.5 text-sm font-semibold text-[var(--ink-muted)]">
+                {m.is_anonymous && <EyeOff className="h-3.5 w-3.5" />}
+                {m.is_anonymous ? 'Anonymous' : m.student_name || 'A student'}
+              </p>
+              <p className="text-xs text-[var(--ink-faint)]">{new Date(m.created_at).toLocaleString()}</p>
+            </div>
+            <p className="mt-2 text-sm font-bold">{m.question}</p>
+            <p className="mt-1 text-sm text-[var(--fg)]/70">{m.answer}</p>
+          </div>
         ))}
       </div>
     </div>

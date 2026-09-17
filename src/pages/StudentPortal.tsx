@@ -58,6 +58,7 @@ import { bibleComUrl } from '../lib/bibleLink'
 import { getMyJourneyProgress } from '../lib/journey'
 import { CharacterCollectionGallery, CharacterRevealModal } from '../components/CharacterCollection'
 import PrayerGlobe from '../components/PrayerGlobe'
+import BibleBuddyChat from '../components/BibleBuddy'
 import { useAutoHideNav } from '../lib/useAutoHideNav'
 import {
   getMyStudentProfile,
@@ -469,6 +470,7 @@ const DOCK_APPS = [
   { key: 'calendar' as const, label: 'Calendar', icon: CalendarDays, from: '#fca5a5', to: '#b91c1c' },
   { key: 'collection' as const, label: 'Collection', icon: Sparkles, from: '#fbcfe8', to: '#9d174d' },
   { key: 'world' as const, label: 'Pray for World', icon: Globe, from: '#93c5fd', to: '#1e3a8a' },
+  { key: 'buddy' as const, label: 'Bible Buddy', icon: Sparkles, from: '#a5b4fc', to: '#4338ca' },
 ]
 type DockApp = (typeof DOCK_APPS)[number]['key']
 
@@ -675,6 +677,19 @@ function StandingPhone({
                   {header('Pray for the World')}
                   <div className="min-h-0 flex-1 overflow-y-auto">
                     <PrayerGlobe />
+                  </div>
+                </>
+              )}
+              {screen === 'buddy' && (
+                <>
+                  {header('Bible Buddy')}
+                  <div className="min-h-0 flex-1">
+                    <BibleBuddyChat
+                      onAskTeacher={() => {
+                        setScreen(null)
+                        onNavigate('messages')
+                      }}
+                    />
                   </div>
                 </>
               )}

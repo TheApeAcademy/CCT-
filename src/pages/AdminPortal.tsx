@@ -22,6 +22,7 @@ import {
   Upload,
   Lock,
   Eye,
+  EyeOff,
   Heart,
   type LucideIcon,
 } from 'lucide-react'
@@ -53,7 +54,9 @@ import {
   updateMinistryEvent,
   deleteMinistryEvent,
   listEarsAuditLog,
+  listBibleBuddyTeacherLog,
   type EarsAuditLogRow,
+  type AiCompanionTeacherLogRow,
   type TeacherApplication,
   type ClassRow,
   type SeasonRow,
@@ -855,10 +858,16 @@ const SAFETY_GUARANTEES: { icon: LucideIcon; title: string; body: string }[] = [
 
 function SafetyTab() {
   const [logs, setLogs] = useState<EarsAuditLogRow[]>([])
+  const [buddyLog, setBuddyLog] = useState<AiCompanionTeacherLogRow[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    listEarsAuditLog(50).then(setLogs).finally(() => setLoading(false))
+    Promise.all([listEarsAuditLog(50), listBibleBuddyTeacherLog(50)])
+      .then(([l, b]) => {
+        setLogs(l)
+        setBuddyLog(b)
+      })
+      .finally(() => setLoading(false))
   }, [])
 
   return (
@@ -893,6 +902,27 @@ function SafetyTab() {
             <div key={log.id} className="flex items-center justify-between rounded-md px-3 py-2 text-sm odd:bg-[var(--ink-panel)]">
               <span className="font-semibold capitalize">{log.action.replace(/_/g, ' ')}</span>
               <span className="text-xs text-[var(--ink-faint)]">{new Date(log.created_at).toLocaleString()}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="eyebrow mb-3">Audit Trail - Bible Buddy</p>
+        <p className="mb-2 text-xs text-[var(--ink-muted)]">Every question asked across the whole ministry, for safeguarding review. Anonymous ones never reveal who sent them.</p>
+        {!loading && buddyLog.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No questions logged yet.</p>}
+        <div className="space-y-2">
+          {buddyLog.map((m) => (
+            <div key={m.id} className="panel p-4">
+              <div className="flex items-start justify-between gap-2">
+                <p className="flex items-center gap-1.5 text-xs font-semibold text-[var(--ink-muted)]">
+                  {m.is_anonymous && <EyeOff className="h-3 w-3" />}
+                  {m.is_anonymous ? 'Anonymous' : m.student_name || 'A student'}
+                </p>
+                <p className="text-xs text-[var(--ink-faint)]">{new Date(m.created_at).toLocaleString()}</p>
+              </div>
+              <p className="mt-1.5 text-sm font-bold">{m.question}</p>
+              <p className="mt-1 text-sm text-[var(--fg)]/70">{m.answer}</p>
             </div>
           ))}
         </div>

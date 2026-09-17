@@ -906,6 +906,23 @@ export interface EarnedAchievement extends AchievementRow {
   earned_at: string
 }
 
+export interface BibleCharacterRow {
+  key: string
+  name: string
+  book: string
+  lesson_key: string
+  image: string
+  short_story: string
+  sort_order: number
+}
+
+/** The full character catalog - unlock state lives in achievements (code = "character_" + key), not here. */
+export async function listBibleCharacters(): Promise<BibleCharacterRow[]> {
+  const { data, error } = await supabase.from('bible_characters').select('*').order('sort_order')
+  if (error) throw error
+  return (data ?? []) as BibleCharacterRow[]
+}
+
 export async function listMyAchievements(): Promise<EarnedAchievement[]> {
   const { data: auth } = await supabase.auth.getUser()
   if (!auth.user) return []

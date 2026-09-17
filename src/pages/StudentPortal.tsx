@@ -55,6 +55,7 @@ import MinistryCalendarReadOnly from '../components/MinistryCalendarView'
 import { SUNDAY_LESSON_THEMES, SUNDAYS_2026, sundayDateKey } from '../content/sundaySchoolCalendar'
 import { bibleComUrl } from '../lib/bibleLink'
 import { getMyJourneyProgress } from '../lib/journey'
+import { CharacterCollectionGallery, CharacterRevealModal } from '../components/CharacterCollection'
 import { useAutoHideNav } from '../lib/useAutoHideNav'
 import {
   getMyStudentProfile,
@@ -74,6 +75,8 @@ import {
   getMyBibleStreak,
   listMyAchievements,
   listUnlockedSundays,
+  listBibleCharacters,
+  type BibleCharacterRow,
   type EarnedAchievement,
   type StudentRow,
   type LeaderboardRow,
@@ -207,6 +210,8 @@ function Dashboard() {
   const [student, setStudent] = useState<StudentRow | null>(null)
   const [klass, setKlass] = useState<(ClassRow & { teacher_name: string; teacher_avatar: string | null }) | null>(null)
   const [achievements, setAchievements] = useState<EarnedAchievement[]>([])
+  const [revealCharacter, setRevealCharacter] = useState<BibleCharacterRow | null>(null)
+  const [characterCatalog, setCharacterCatalog] = useState<BibleCharacterRow[]>([])
 
   useEffect(() => {
     try {
@@ -216,10 +221,42 @@ function Dashboard() {
     }
   }, [tab, view])
 
+  // A character unlock is a DB-side side effect of earning points (see
+  // check_character_unlocks() in Supabase) - the frontend only finds out
+  // by noticing a new "character_*" achievement that hasn't been shown as
+  // a reveal yet. "Shown" is tracked per-device in localStorage since it's
+  // just a one-time celebration, not anything that needs to sync.
+  const checkForNewCharacterReveal = (earned: EarnedAchievement[], catalog: BibleCharacterRow[]) => {
+    if (catalog.length === 0) return
+    let celebrated: string[] = []
+    try {
+      celebrated = JSON.parse(localStorage.getItem('celebrated_characters') ?? '[]')
+    } catch {
+      celebrated = []
+    }
+    const newOne = earned.find((a) => a.code.startsWith('character_') && !celebrated.includes(a.code))
+    if (!newOne) return
+    const key = newOne.code.slice('character_'.length)
+    const character = catalog.find((c) => c.key === key)
+    if (!character) return
+    try {
+      localStorage.setItem('celebrated_characters', JSON.stringify([...celebrated, newOne.code]))
+    } catch {
+      // ignore - worst case the same reveal shows again once
+    }
+    setRevealCharacter(character)
+  }
+
   const load = () => {
     getMyStudentProfile().then(setStudent)
     getMyClass().then(setKlass)
-    listMyAchievements().then(setAchievements)
+    Promise.all([listMyAchievements(), characterCatalog.length ? Promise.resolve(characterCatalog) : listBibleCharacters()]).then(
+      ([earned, catalog]) => {
+        setAchievements(earned)
+        if (catalog !== characterCatalog) setCharacterCatalog(catalog)
+        checkForNewCharacterReveal(earned, catalog)
+      },
+    )
   }
   useEffect(() => {
     load()
@@ -243,6 +280,7 @@ function Dashboard() {
   const backToMap = () => {
     playClick()
     setView('map')
+    load()
   }
 
   // My House sits near the bottom of the map art, so kids should land there
@@ -360,6 +398,16 @@ function Dashboard() {
           </motion.div>
         )}
       </AnimatePresence>
+      {revealCharacter && (
+        <CharacterRevealModal
+          character={revealCharacter}
+          onClose={() => setRevealCharacter(null)}
+          onGoToJourney={() => {
+            setRevealCharacter(null)
+            enterTab('bible')
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -374,6 +422,7 @@ const ACHIEVEMENT_ICONS: Record<string, LucideIcon> = {
   map: Map,
   compass: Compass,
   'graduation-cap': GraduationCap,
+  sparkles: Sparkles,
 }
 
 function HomeTab({
@@ -401,7 +450,7 @@ function HomeTab({
         <ShinyDigitalCard student={student} klass={klass} onViewFull={() => onNavigate('profile')} />
       </div>
 
-      <StandingPhone klass={klass} achievements={achievements} />
+      <StandingPhone klass={klass} achievements={achievements} onNavigate={onNavigate} />
     </div>
   )
 }
@@ -414,6 +463,7 @@ const DOCK_APPS = [
   { key: 'prayer' as const, label: 'Prayer', icon: Heart, from: '#f9a8d4', to: '#be185d' },
   { key: 'diary' as const, label: 'Diary', icon: PenLine, from: '#5eead4', to: '#0f766e' },
   { key: 'calendar' as const, label: 'Calendar', icon: CalendarDays, from: '#fca5a5', to: '#b91c1c' },
+  { key: 'collection' as const, label: 'Collection', icon: Sparkles, from: '#fbcfe8', to: '#9d174d' },
 ]
 type DockApp = (typeof DOCK_APPS)[number]['key']
 
@@ -439,9 +489,11 @@ function DockIcon({ icon: Icon, from, to }: { icon: LucideIcon; from: string; to
 function StandingPhone({
   klass,
   achievements,
+  onNavigate,
 }: {
   klass: (ClassRow & { teacher_name: string; teacher_avatar: string | null }) | null
   achievements: EarnedAchievement[]
+  onNavigate: (tab: Tab) => void
 }) {
   const [screen, setScreen] = useState<DockApp | null>(null)
   const [wobble, setWobble] = useState<'left' | 'right' | null>(null)
@@ -602,6 +654,14 @@ function StandingPhone({
                   {header('Ministry Calendar')}
                   <div className="min-h-0 flex-1 overflow-y-auto">
                     <MinistryCalendarReadOnly dark />
+                  </div>
+                </>
+              )}
+              {screen === 'collection' && (
+                <>
+                  {header('My Collection')}
+                  <div className="min-h-0 flex-1 overflow-y-auto">
+                    <CharacterCollectionGallery achievements={achievements} onGoToJourney={() => onNavigate('bible')} />
                   </div>
                 </>
               )}

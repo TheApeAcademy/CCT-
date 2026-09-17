@@ -86,16 +86,23 @@ function bookProgressCount(book: JourneyBook, completedKeys: Set<string>): numbe
   return lessonKeysInOrder(book).filter((k) => completedKeys.has(k)).length
 }
 
-// An organic "blob" outline, scattered onto two axes (rotate + a vertical
-// bob) - used for a loose flex-wrap pile of tiles rather than a tidy
-// grid/column, so nothing lines up into rows.
-const ROCK_RADIUS = ['52% 48% 45% 55% / 55% 45% 58% 42%', '45% 55% 58% 42% / 48% 52% 45% 55%', '58% 42% 48% 52% / 42% 58% 52% 48%']
+// Scattered onto two axes (rotate + a vertical bob) for a loose flex-wrap
+// pile of tiles rather than a tidy grid/column, so nothing lines up into
+// rows. The tile's actual outline comes from masking it with the real
+// stone-render photo below rather than a CSS-drawn approximation.
 const SCATTER_ROTATE = [-8, 6, -4, 9, -6, 5, -9, 4, -5, 7, -7, 3]
 const SCATTER_LIFT = [0, 22, -16, 30, -10, 14, -26, 8, -18, 24, 4, -12]
 function scatterStyle(idx: number): React.CSSProperties {
   return {
-    borderRadius: ROCK_RADIUS[idx % ROCK_RADIUS.length],
     transform: `rotate(${SCATTER_ROTATE[idx % SCATTER_ROTATE.length]}deg) translateY(${SCATTER_LIFT[idx % SCATTER_LIFT.length]}px)`,
+    WebkitMaskImage: 'url(/stone-render.png)',
+    maskImage: 'url(/stone-render.png)',
+    WebkitMaskSize: 'contain',
+    maskSize: 'contain',
+    WebkitMaskRepeat: 'no-repeat',
+    maskRepeat: 'no-repeat',
+    WebkitMaskPosition: 'center',
+    maskPosition: 'center',
   }
 }
 
@@ -427,24 +434,40 @@ function UnitPath({
                       playClick()
                       setPreviewIdx(i)
                     }}
-                    className="relative flex shrink-0 items-center justify-center rounded-full text-2xl transition"
-                    style={{
-                      width: NODE_SIZE,
-                      height: NODE_SIZE,
-                      background: fill,
-                      boxShadow: isLocked
-                        ? 'inset 0 -4px 0 rgba(0,0,0,0.18)'
-                        : `0 4px 0 color-mix(in srgb, ${ACCENT} 55%, black), inset 0 3px 0 rgba(255,255,255,0.35)`,
-                    }}
+                    className="relative flex shrink-0 items-center justify-center text-2xl transition hover:scale-[1.08]"
+                    style={{ width: NODE_SIZE, height: NODE_SIZE }}
                   >
-                    {isDone ? (
-                      <Check className="h-7 w-7 text-white" strokeWidth={3} />
-                    ) : isLocked ? (
-                      <Lock className="h-6 w-6 text-white/70" />
-                    ) : (
-                      <span>{unit.emoji}</span>
-                    )}
-                    <img src={badgeImage} alt="" className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full border-2 border-[var(--ink)] object-cover" />
+                    <img
+                      src="/stone-render.png"
+                      alt=""
+                      className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 object-contain"
+                      style={{
+                        width: NODE_SIZE * 1.55,
+                        height: NODE_SIZE * 1.55,
+                        filter: isLocked
+                          ? 'grayscale(0.85) brightness(0.55)'
+                          : isDone
+                            ? `drop-shadow(0 6px 8px color-mix(in srgb, ${ACCENT} 65%, transparent)) saturate(1.15)`
+                            : `drop-shadow(0 6px 10px color-mix(in srgb, ${ACCENT} 75%, transparent)) saturate(1.15)`,
+                      }}
+                    />
+                    <span
+                      className="relative z-10 flex h-8 w-8 items-center justify-center rounded-full"
+                      style={{ background: fill, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.4), 0 2px 6px rgba(0,0,0,0.35)' }}
+                    >
+                      {isDone ? (
+                        <Check className="h-4 w-4 text-white" strokeWidth={3} />
+                      ) : isLocked ? (
+                        <Lock className="h-3.5 w-3.5 text-white/80" />
+                      ) : (
+                        <span className="text-sm">{unit.emoji}</span>
+                      )}
+                    </span>
+                    <img
+                      src={badgeImage}
+                      alt=""
+                      className="absolute -bottom-1 -right-1 z-20 h-6 w-6 rounded-full border-2 border-[var(--ink)] object-cover"
+                    />
                   </button>
                   <p className={`mt-2 text-center text-[11px] font-bold leading-tight ${isLocked ? 'text-[var(--ink-muted)]' : ''}`}>
                     {unit.title}

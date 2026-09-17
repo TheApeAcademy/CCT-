@@ -923,13 +923,13 @@ function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string 
             ))}
           </div>
         )}
+      </div>
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {SUNDAYS_2026.map((date, i) => {
-            const theme = SUNDAY_LESSON_THEMES[i % SUNDAY_LESSON_THEMES.length]
-            return <SundayLessonCard key={date.toISOString()} date={date} title={theme.title} image={theme.image} locked={date >= LOCK_CUTOFF} />
-          })}
-        </div>
+      <div className="grid gap-3 px-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' }}>
+        {SUNDAYS_2026.map((date, i) => {
+          const theme = SUNDAY_LESSON_THEMES[i % SUNDAY_LESSON_THEMES.length]
+          return <SundayLessonCard key={date.toISOString()} date={date} title={theme.title} image={theme.image} locked={date >= LOCK_CUTOFF} />
+        })}
       </div>
     </div>
   )

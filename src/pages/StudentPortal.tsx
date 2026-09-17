@@ -34,12 +34,23 @@ import {
   GraduationCap,
   ArrowRight,
   Lock,
+  Wallet,
+  PenLine,
+  Heart,
+  FileText,
+  Image as ImageIcon,
+  Mic,
+  Upload,
+  Trash2,
+  Plus,
+  X,
   type LucideIcon,
 } from 'lucide-react'
 import { supabase, signOut } from '../lib/supabase'
 import { useMinistryAuth } from '../lib/useMinistryAuth'
 import VillageMap from '../components/VillageMap'
 import BibleJourneyPanel from '../components/BibleJourney'
+import IsometricPhone from '../components/IsometricPhone'
 import {
   getMyStudentProfile,
   updateMyStudentProfile,
@@ -57,6 +68,14 @@ import {
   submitAssignment,
   getMyBibleStreak,
   listMyAchievements,
+  listMyNotes,
+  createNote,
+  deleteNote,
+  listMyVaultItems,
+  addVaultNote,
+  uploadVaultFile,
+  getVaultFileUrl,
+  deleteVaultItem,
   type EarnedAchievement,
   type StudentRow,
   type LeaderboardRow,
@@ -66,6 +85,10 @@ import {
   type ClassRow,
   type LectureRow,
   type AssignmentRow,
+  type NoteKind,
+  type PrivateNoteRow,
+  type VaultCategory,
+  type VaultItemRow,
 } from '../lib/ministry'
 import { fileToResizedDataUrl } from '../lib/image'
 import { renderIdCardPng } from '../lib/idCard'
@@ -282,6 +305,20 @@ function HomeTab({
 }) {
   return (
     <div className="space-y-6">
+      <div
+        className="-mx-4 -mt-4 flex items-end rounded-b-3xl p-5"
+        style={{
+          backgroundImage: 'linear-gradient(180deg, rgba(10,20,40,0.2) 0%, rgba(10,20,40,0.8) 100%), url(/village-home-bg.jpg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center 65%',
+          minHeight: 170,
+        }}
+      >
+        <p className="font-display text-xl font-extrabold text-white drop-shadow-md">
+          Welcome back, {student?.full_name?.split(' ')[0] ?? 'friend'}!
+        </p>
+      </div>
+
       <div className="stat-strip grid-cols-2">
         <div className="stat-cell">
           <div className="stat-cell-value">{(student?.total_points ?? 0).toLocaleString()}</div>
@@ -317,14 +354,15 @@ function HomeTab({
         </div>
       )}
 
-      <div>
-        <p className="eyebrow">Explore</p>
-        <div className="mt-2 grid gap-3 sm:grid-cols-2">
-          <QuickLinkButton onClick={() => onNavigate('bible')} icon={BookOpen} accent="var(--lp-accent-bible)" title="Sunday School" description="Lessons and your Bible reading streak." />
-          <QuickLinkButton onClick={() => onNavigate('leaderboard')} icon={Trophy} accent="var(--lp-accent-leaderboard)" title="Leaderboard" description="See how you rank ministry-wide." />
-          <QuickLinkButton onClick={() => onNavigate('game')} icon={Gamepad2} accent="var(--lp-accent-compete)" title="Games" description="Join a live match or practice solo." />
-        </div>
-      </div>
+      {klass && <StudentPhoneChat teacherId={klass.teacher_id} teacherName={klass.teacher_name} />}
+
+      <MiniDigitalCard student={student} klass={klass} onViewFull={() => onNavigate('profile')} />
+
+      <DigitalBankSection />
+
+      <NotesSection kind="prayer" title="Prayer Journal" icon={Heart} accent="var(--lp-accent-bible)" placeholder="What's on your heart today?" />
+
+      <NotesSection kind="diary" title="Diary" icon={PenLine} accent="var(--lp-accent-anthem)" placeholder="Dear diary…" />
 
       <div className="grid gap-3 sm:grid-cols-2">
         <HomeLink to="/anthem" icon={Music} accent="var(--lp-accent-anthem)" title="Our Anthem" description="Sing along with the children's ministry anthem." />
@@ -333,39 +371,314 @@ function HomeTab({
   )
 }
 
-function QuickLinkButton({
-  onClick,
-  icon: Icon,
-  accent,
-  title,
-  description,
+// Home's chat is the same conversation as the Messages tab (and Ears for
+// You is separate on purpose) - this is just a second, more fun way in.
+function StudentPhoneChat({ teacherId, teacherName }: { teacherId: string; teacherName: string }) {
+  const [conversationId, setConversationId] = useState<string | null>(null)
+  const [messages, setMessages] = useState<MessageRow[]>([])
+  const [draft, setDraft] = useState('')
+  const [myId, setMyId] = useState<string | null>(null)
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => setMyId(data.user?.id ?? null))
+  }, [])
+
+  useEffect(() => {
+    if (!myId) return
+    getOrCreateConversation(teacherId, myId).then((id) => {
+      setConversationId(id)
+      listMessages(id).then(setMessages)
+    })
+  }, [teacherId, myId])
+
+  const send = async () => {
+    if (!draft.trim() || !conversationId) return
+    await sendMessage(conversationId, draft)
+    setDraft('')
+    playClick()
+    listMessages(conversationId).then(setMessages)
+  }
+
+  return (
+    <IsometricPhone accent="var(--lp-accent-bible)">
+      <div className="flex flex-1 flex-col overflow-hidden px-4 pb-5">
+        <div className="flex items-center gap-3 pb-4">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-lg font-extrabold text-white ring-2 ring-white/30">
+            {teacherName.charAt(0).toUpperCase()}
+          </span>
+          <div className="min-w-0">
+            <p className="truncate font-display text-base font-extrabold text-white">{teacherName}</p>
+            <p className="text-xs text-white/50">Your Sunday school teacher</p>
+          </div>
+        </div>
+        <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pb-2">
+          {messages.map((m) => (
+            <div
+              key={m.id}
+              className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${m.sender_id === myId ? 'ml-auto bg-[var(--gold)] text-black' : 'bg-white/10 text-white'}`}
+            >
+              {m.body}
+            </div>
+          ))}
+          {messages.length === 0 && <p className="pt-8 text-center text-sm text-white/40">Say hi to your teacher!</p>}
+        </div>
+        <div className="flex gap-2 pt-2">
+          <input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="Message…"
+            onKeyDown={(e) => e.key === 'Enter' && send()}
+            className="flex-1 rounded-full bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40"
+          />
+          <button onClick={send} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--gold)] text-black">
+            <Send className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </IsometricPhone>
+  )
+}
+
+function MiniDigitalCard({
+  student,
+  klass,
+  onViewFull,
 }: {
-  onClick: () => void
-  icon: LucideIcon
-  accent: string
-  title: string
-  description: string
+  student: StudentRow | null
+  klass: (ClassRow & { teacher_name: string }) | null
+  onViewFull: () => void
 }) {
   return (
-    <button
-      onClick={() => {
-        playClick()
-        onClick()
-      }}
-      className="lp-panel lp-panel-accented lp-panel-interactive flex items-start gap-4 p-5 text-left"
-      style={{ ['--card-accent' as string]: accent }}
-    >
-      <span
-        className="lp-icon-chip flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-        style={{ background: 'color-mix(in srgb, ' + accent + ' 16%, transparent)', color: accent }}
+    <div>
+      <p className="eyebrow">My Digital Card</p>
+      <button
+        onClick={() => {
+          playClick()
+          onViewFull()
+        }}
+        className="mt-2 flex w-full items-center gap-4 rounded-2xl p-5 text-left transition hover:scale-[1.01]"
+        style={{ background: 'linear-gradient(135deg, color-mix(in srgb, var(--gold) 55%, #1a1030) 0%, color-mix(in srgb, var(--gold) 15%, #1a1030) 100%)' }}
       >
-        <Icon className="h-5 w-5" strokeWidth={1.75} />
-      </span>
-      <div>
-        <p className="lp-heading font-display text-lg font-bold">{title}</p>
-        <p className="mt-1 text-sm text-[var(--lp-body)]">{description}</p>
+        {student?.avatar_url ? (
+          <img src={student.avatar_url} alt="" className="h-16 w-16 shrink-0 rounded-full object-cover ring-2 ring-white/50" />
+        ) : (
+          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-white/15 text-2xl font-extrabold text-white ring-2 ring-white/50">
+            {(student?.full_name ?? '?').charAt(0).toUpperCase()}
+          </span>
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-display text-lg font-extrabold text-white">{student?.full_name ?? 'My Card'}</p>
+          <p className="truncate text-xs text-white/70">{klass?.name ?? 'No class yet'}</p>
+          <p className="mt-1 text-sm font-bold text-white">{(student?.total_points ?? 0).toLocaleString()} pts</p>
+        </div>
+        <ArrowRight className="h-5 w-5 shrink-0 text-white/70" />
+      </button>
+    </div>
+  )
+}
+
+const VAULT_CATEGORY_ICON: Record<VaultCategory, LucideIcon> = {
+  assignment: FileText,
+  note: PenLine,
+  photo: ImageIcon,
+  audio: Mic,
+  other: Wallet,
+}
+
+function DigitalBankSection() {
+  const [items, setItems] = useState<VaultItemRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [uploading, setUploading] = useState(false)
+  const [adding, setAdding] = useState(false)
+  const [noteTitle, setNoteTitle] = useState('')
+  const [noteBody, setNoteBody] = useState('')
+
+  const load = () => listMyVaultItems().then(setItems).finally(() => setLoading(false))
+  useEffect(() => {
+    load()
+  }, [])
+
+  const onPick = async (file: File | undefined) => {
+    if (!file) return
+    setUploading(true)
+    try {
+      const category: VaultCategory = file.type.startsWith('image/') ? 'photo' : file.type.startsWith('audio/') ? 'audio' : 'other'
+      await uploadVaultFile(file, category, file.name)
+      playClick()
+      haptics.success()
+      load()
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const saveNote = async () => {
+    if (!noteBody.trim()) return
+    await addVaultNote(noteTitle || 'Note', noteBody)
+    setNoteTitle('')
+    setNoteBody('')
+    setAdding(false)
+    playClick()
+    load()
+  }
+
+  const openItem = async (item: VaultItemRow) => {
+    if (!item.file_path) return
+    const url = await getVaultFileUrl(item.file_path)
+    if (url) window.open(url, '_blank', 'noopener,noreferrer')
+  }
+
+  const remove = async (item: VaultItemRow) => {
+    await deleteVaultItem(item)
+    haptics.success()
+    load()
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between">
+        <p className="eyebrow">Digital Bank</p>
+        <div className="flex items-center gap-1.5">
+          <label className="flex cursor-pointer items-center gap-1 rounded-full border border-[var(--hairline-strong)] px-2.5 py-1 text-xs font-bold text-[var(--ink-muted)] transition hover:text-[var(--fg)]">
+            <Upload className="h-3 w-3" /> {uploading ? 'Uploading…' : 'Add file'}
+            <input type="file" className="hidden" disabled={uploading} onChange={(e) => onPick(e.target.files?.[0])} />
+          </label>
+          <button
+            onClick={() => setAdding((v) => !v)}
+            className="flex items-center gap-1 rounded-full border border-[var(--hairline-strong)] px-2.5 py-1 text-xs font-bold text-[var(--ink-muted)] transition hover:text-[var(--fg)]"
+          >
+            <Plus className="h-3 w-3" /> Note
+          </button>
+        </div>
       </div>
-    </button>
+
+      {adding && (
+        <div className="mt-2 space-y-2 rounded-2xl border border-[var(--hairline)] bg-[var(--ink-panel)] p-4">
+          <input value={noteTitle} onChange={(e) => setNoteTitle(e.target.value)} placeholder="Title (optional)" className={inputClass} />
+          <textarea value={noteBody} onChange={(e) => setNoteBody(e.target.value)} placeholder="Write it down…" rows={3} className={inputClass} />
+          <button onClick={saveNote} className="btn-solid w-full py-2 text-sm">
+            Save to Bank
+          </button>
+        </div>
+      )}
+
+      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {!loading && items.length === 0 && !adding && (
+          <p className="col-span-full text-center text-sm text-[var(--ink-muted)]">
+            Empty for now - save finished assignments, notes, photos, or voice notes here.
+          </p>
+        )}
+        {items.map((item) => {
+          const Icon = VAULT_CATEGORY_ICON[item.category]
+          return (
+            <div key={item.id} className="group relative rounded-2xl border border-[var(--hairline)] bg-[var(--ink-panel)] p-4">
+              <button
+                onClick={() => remove(item)}
+                className="absolute right-2 top-2 hidden h-6 w-6 items-center justify-center rounded-full bg-black/40 text-white/70 transition hover:text-white group-hover:flex"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+              <button onClick={() => (item.file_path ? openItem(item) : undefined)} className="flex w-full flex-col items-start gap-2 text-left">
+                <span
+                  className="flex h-9 w-9 items-center justify-center rounded-xl"
+                  style={{ background: 'color-mix(in srgb, var(--gold) 18%, transparent)', color: 'var(--gold)' }}
+                >
+                  <Icon className="h-4 w-4" />
+                </span>
+                <p className="w-full truncate text-sm font-bold">{item.title}</p>
+                {item.note && <p className="line-clamp-2 text-xs text-[var(--ink-muted)]">{item.note}</p>}
+              </button>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function NotesSection({
+  kind,
+  title,
+  icon: Icon,
+  accent,
+  placeholder,
+}: {
+  kind: NoteKind
+  title: string
+  icon: LucideIcon
+  accent: string
+  placeholder: string
+}) {
+  const [notes, setNotes] = useState<PrivateNoteRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [adding, setAdding] = useState(false)
+  const [draftTitle, setDraftTitle] = useState('')
+  const [draftBody, setDraftBody] = useState('')
+
+  const load = () =>
+    listMyNotes(kind)
+      .then(setNotes)
+      .finally(() => setLoading(false))
+  useEffect(() => {
+    load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const save = async () => {
+    if (!draftBody.trim()) return
+    await createNote(kind, draftTitle, draftBody)
+    setDraftTitle('')
+    setDraftBody('')
+    setAdding(false)
+    playClick()
+    load()
+  }
+
+  const remove = async (id: string) => {
+    await deleteNote(id)
+    load()
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between">
+        <p className="eyebrow flex items-center gap-1.5">
+          <Icon className="h-3.5 w-3.5" style={{ color: accent }} /> {title}
+        </p>
+        <button
+          onClick={() => setAdding((v) => !v)}
+          className="flex items-center gap-1 rounded-full border border-[var(--hairline-strong)] px-2.5 py-1 text-xs font-bold text-[var(--ink-muted)] transition hover:text-[var(--fg)]"
+        >
+          {adding ? <X className="h-3 w-3" /> : <Plus className="h-3 w-3" />} {adding ? 'Cancel' : 'New'}
+        </button>
+      </div>
+
+      {adding && (
+        <div className="mt-2 space-y-2 rounded-2xl border border-[var(--hairline)] bg-[var(--ink-panel)] p-4">
+          <input value={draftTitle} onChange={(e) => setDraftTitle(e.target.value)} placeholder="Title (optional)" className={inputClass} />
+          <textarea value={draftBody} onChange={(e) => setDraftBody(e.target.value)} placeholder={placeholder} rows={4} className={inputClass} />
+          <button onClick={save} className="btn-solid w-full py-2 text-sm">
+            Save Entry
+          </button>
+        </div>
+      )}
+
+      <div className="mt-3 space-y-2">
+        {!loading && notes.length === 0 && !adding && <p className="text-sm text-[var(--ink-muted)]">Nothing written yet.</p>}
+        {notes.map((n) => (
+          <div key={n.id} className="group relative rounded-2xl border border-[var(--hairline)] bg-[var(--ink-panel)] p-4">
+            <button onClick={() => remove(n.id)} className="absolute right-3 top-3 hidden text-[var(--ink-faint)] transition hover:text-red-400 group-hover:block">
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+            {n.title && <p className="pr-6 font-bold">{n.title}</p>}
+            <p className="mt-1 whitespace-pre-wrap pr-6 text-sm text-[var(--ink-muted)]">{n.body}</p>
+            <p className="mt-2 text-[10px] uppercase tracking-wide text-[var(--ink-faint)]">
+              {new Date(n.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -656,37 +969,39 @@ function ClassTab({ klass }: { klass: (ClassRow & { teacher_name: string }) | nu
     })
   }, [klass])
 
-  if (!klass) {
-    return (
-      <div className="panel p-6 text-center">
-        <p className="font-display text-lg font-bold">No class yet</p>
-        <p className="mt-1 text-sm text-[var(--ink-muted)]">
-          You&apos;re not in a class yet. Give your Student Code to your Sunday school teacher and they&apos;ll add you.
-        </p>
-      </div>
-    )
-  }
-
   return (
     <div className="space-y-6">
-      <div>
-        <p className="eyebrow">Class Info</p>
-        <div className="mt-2 panel p-4">
-          <p className="font-bold">{klass.name}</p>
-          <p className="text-sm text-[var(--ink-muted)]">Taught by {klass.teacher_name}</p>
+      {!klass ? (
+        <div className="panel p-6 text-center">
+          <p className="font-display text-lg font-bold">No class yet</p>
+          <p className="mt-1 text-sm text-[var(--ink-muted)]">
+            You&apos;re not in a class yet. Give your Student Code to your Sunday school teacher and they&apos;ll add you.
+          </p>
         </div>
-      </div>
+      ) : (
+        <>
+          <div>
+            <p className="eyebrow">Class Info</p>
+            <div className="mt-2 panel p-4">
+              <p className="font-bold">{klass.name}</p>
+              <p className="text-sm text-[var(--ink-muted)]">Taught by {klass.teacher_name}</p>
+            </div>
+          </div>
 
-      <div>
-        <p className="eyebrow">Assignments</p>
-        <div className="mt-2 space-y-2">
-          {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
-          {!loading && assignments.length === 0 && (
-            <p className="text-sm text-[var(--ink-muted)]">No assignments right now. When your teacher posts one, you&apos;ll see it here.</p>
-          )}
-          {!loading && assignments.map((a) => <AssignmentCard key={a.id} assignment={a} />)}
-        </div>
-      </div>
+          <div>
+            <p className="eyebrow">Assignments</p>
+            <div className="mt-2 space-y-2">
+              {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
+              {!loading && assignments.length === 0 && (
+                <p className="text-sm text-[var(--ink-muted)]">No assignments right now. When your teacher posts one, you&apos;ll see it here.</p>
+              )}
+              {!loading && assignments.map((a) => <AssignmentCard key={a.id} assignment={a} />)}
+            </div>
+          </div>
+        </>
+      )}
+
+      <NotesSection kind="notebook" title="Notebook" icon={FileText} accent="var(--lp-accent-class)" placeholder="Jot down what you're learning…" />
     </div>
   )
 }

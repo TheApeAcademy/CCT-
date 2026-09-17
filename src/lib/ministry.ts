@@ -899,3 +899,129 @@ export async function listAllAchievements(): Promise<AchievementRow[]> {
   if (error) throw error
   return data ?? []
 }
+
+// ---------- private notes (Notebook / Diary / Prayer Journal) ----------
+// Always fully private to the student who wrote them - no teacher/admin
+// policy exists on this table at all, by design.
+
+export type NoteKind = 'notebook' | 'diary' | 'prayer'
+
+export interface PrivateNoteRow {
+  id: string
+  student_id: string
+  kind: NoteKind
+  title: string
+  body: string
+  created_at: string
+  updated_at: string
+}
+
+export async function listMyNotes(kind: NoteKind): Promise<PrivateNoteRow[]> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) return []
+  const { data, error } = await supabase
+    .from('private_notes')
+    .select('*')
+    .eq('student_id', auth.user.id)
+    .eq('kind', kind)
+    .order('updated_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as PrivateNoteRow[]
+}
+
+export async function createNote(kind: NoteKind, title: string, body: string): Promise<PrivateNoteRow> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) throw new Error('Not signed in')
+  const { data, error } = await supabase
+    .from('private_notes')
+    .insert({ student_id: auth.user.id, kind, title: title.trim(), body: body.trim() })
+    .select('*')
+    .single()
+  if (error) throw error
+  return data as PrivateNoteRow
+}
+
+export async function updateNote(id: string, title: string, body: string) {
+  const { error } = await supabase.from('private_notes').update({ title: title.trim(), body: body.trim(), updated_at: new Date().toISOString() }).eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteNote(id: string) {
+  const { error } = await supabase.from('private_notes').delete().eq('id', id)
+  if (error) throw error
+}
+
+// ---------- digital bank (vault) ----------
+// A private place for a kid to keep files that matter to them - finished
+// assignments, notes, photos, voice notes. Text notes are stored inline;
+// anything with an actual file goes to the private `vault` storage bucket,
+// under a folder named for the student's own auth id (RLS enforces that a
+// student can only read/write their own folder).
+
+export type VaultCategory = 'assignment' | 'note' | 'photo' | 'audio' | 'other'
+
+export interface VaultItemRow {
+  id: string
+  student_id: string
+  category: VaultCategory
+  title: string
+  note: string | null
+  file_path: string | null
+  file_type: string | null
+  file_size: number | null
+  created_at: string
+}
+
+export async function listMyVaultItems(): Promise<VaultItemRow[]> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) return []
+  const { data, error } = await supabase.from('vault_items').select('*').eq('student_id', auth.user.id).order('created_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as VaultItemRow[]
+}
+
+export async function addVaultNote(title: string, note: string): Promise<VaultItemRow> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) throw new Error('Not signed in')
+  const { data, error } = await supabase
+    .from('vault_items')
+    .insert({ student_id: auth.user.id, category: 'note', title: title.trim(), note: note.trim() })
+    .select('*')
+    .single()
+  if (error) throw error
+  return data as VaultItemRow
+}
+
+export async function uploadVaultFile(file: File, category: VaultCategory, title: string): Promise<VaultItemRow> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) throw new Error('Not signed in')
+  const path = `${auth.user.id}/${crypto.randomUUID()}-${file.name}`
+  const { error: uploadError } = await supabase.storage.from('vault').upload(path, file)
+  if (uploadError) throw uploadError
+  const { data, error } = await supabase
+    .from('vault_items')
+    .insert({
+      student_id: auth.user.id,
+      category,
+      title: title.trim() || file.name,
+      file_path: path,
+      file_type: file.type,
+      file_size: file.size,
+    })
+    .select('*')
+    .single()
+  if (error) throw error
+  return data as VaultItemRow
+}
+
+export async function getVaultFileUrl(path: string): Promise<string | null> {
+  const { data, error } = await supabase.storage.from('vault').createSignedUrl(path, 60 * 60)
+  if (error) return null
+  return data.signedUrl
+}
+
+export async function deleteVaultItem(item: VaultItemRow) {
+  if (item.file_path) await supabase.storage.from('vault').remove([item.file_path])
+  const { error } = await supabase.from('vault_items').delete().eq('id', item.id)
+  if (error) throw error
+}

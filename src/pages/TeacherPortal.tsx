@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import {
   GraduationCap,
   ClipboardList,
-  MessageCircle,
+  Smartphone,
   HeartHandshake,
   Settings,
   ArrowLeft,
@@ -19,10 +19,11 @@ import {
   Trophy,
   type LucideIcon,
 } from 'lucide-react'
-import { supabase, signOut } from '../lib/supabase'
+import { supabase, signOut, type Profile } from '../lib/supabase'
 import { useMinistryAuth } from '../lib/useMinistryAuth'
 import AuthCard from '../components/ui/AuthCard'
 import TabBar from '../components/ui/TabBar'
+import IsometricPhone from '../components/IsometricPhone'
 import {
   getMyTeacherApplication,
   submitTeacherApplication,
@@ -77,7 +78,7 @@ export default function TeacherPortal() {
 
   if (loading) return <div className="py-20 text-center text-xl">Loading…</div>
   if (!session) return <AuthCard icon={GraduationCap} title="Teacher Portal" subtitle="Sign in, or create an account and apply to teach." />
-  if (profile?.role === 'teacher') return <TeacherDashboard />
+  if (profile?.role === 'teacher') return <TeacherDashboard profile={profile} />
   return <ApplicationGate onChange={refreshProfile} />
 }
 
@@ -192,10 +193,10 @@ function ApplyForm({ onSubmitted }: { onSubmitted: () => void }) {
 
 // ---------- main dashboard ----------
 
-type Tab = 'classes' | 'quiz' | 'messages' | 'ears' | 'profile'
+type Tab = 'home' | 'classes' | 'quiz' | 'ears' | 'profile'
 
-function TeacherDashboard() {
-  const [tab, setTab] = useState<Tab>('classes')
+function TeacherDashboard({ profile }: { profile: Profile | null }) {
+  const [tab, setTab] = useState<Tab>('home')
   const [openClass, setOpenClass] = useState<ClassRow | null>(null)
 
   return (
@@ -217,17 +218,17 @@ function TeacherDashboard() {
           setOpenClass(null)
         }}
         items={[
+          { value: 'home', label: 'Home', icon: Smartphone },
           { value: 'classes', label: 'Classes', icon: GraduationCap },
           { value: 'quiz', label: 'Quiz', icon: Gamepad2 },
-          { value: 'messages', label: 'Messages', icon: MessageCircle },
           { value: 'ears', label: 'Ears for You', icon: HeartHandshake },
           { value: 'profile', label: 'Profile', icon: Settings },
         ]}
       />
 
+      {tab === 'home' && <TeacherHomeTab profile={profile} />}
       {tab === 'classes' && (openClass ? <ClassDetail klass={openClass} onBack={() => setOpenClass(null)} /> : <ClassesTab onOpen={setOpenClass} />)}
       {tab === 'quiz' && <QuizTab />}
-      {tab === 'messages' && <MessagesTab />}
       {tab === 'ears' && <EarsInboxTab />}
       {tab === 'profile' && <ProfileTab />}
     </div>
@@ -730,7 +731,10 @@ function SubmissionsView({ assignment, onBack }: { assignment: AssignmentRow; on
   )
 }
 
-function MessagesTab() {
+// Teacher Home: a big isometric phone whose entire screen is the teacher's
+// messaging inbox - conversation list, then a thread once one is opened.
+// This replaced the old separate "Messages" tab outright.
+function TeacherHomeTab({ profile }: { profile: Profile | null }) {
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
   const [open, setOpen] = useState<ConversationSummary | null>(null)
 
@@ -738,28 +742,70 @@ function MessagesTab() {
     listMyConversations().then(setConversations)
   }, [])
 
-  if (open) return <ThreadView conversationId={open.id} title={open.other_name} onBack={() => setOpen(null)} />
-
   return (
     <div className="space-y-2">
-      {conversations.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No conversations yet. Students can message you once they join a class.</p>}
-      {conversations.map((c) => (
-        <button key={c.id} onClick={() => setOpen(c)} className="panel panel-interactive flex w-full items-center gap-3 p-4 text-left">
-          {c.other_avatar ? (
-            <img src={c.other_avatar} alt="" className="h-10 w-10 rounded-full object-cover" />
+      <div
+        className="flex items-end justify-center rounded-3xl p-6"
+        style={{
+          backgroundImage: 'linear-gradient(180deg, rgba(60,20,10,0.15) 0%, rgba(60,20,10,0.7) 100%), url(/teacher-home-bg.jpg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center 60%',
+          minHeight: 140,
+        }}
+      >
+        <p className="font-display text-lg font-extrabold text-white drop-shadow-md">Welcome back, {(profile?.full_name ?? 'Teacher').split(' ')[0]}!</p>
+      </div>
+      <IsometricPhone accent="var(--lp-accent-class)">
+      <div className="flex flex-1 flex-col overflow-hidden px-4 pb-5">
+        <div className="flex items-center gap-3 pb-4">
+          {profile?.avatar_url ? (
+            <img src={profile.avatar_url} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover ring-2 ring-white/30" />
           ) : (
-            <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--hairline-strong)] text-[var(--gold)]">
-              <User className="h-5 w-5" strokeWidth={1.75} />
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-lg font-extrabold text-white ring-2 ring-white/30">
+              {(profile?.full_name ?? '?').charAt(0).toUpperCase()}
             </span>
           )}
-          <p className="font-semibold">{c.other_name}</p>
-        </button>
-      ))}
+          <div className="min-w-0">
+            <p className="truncate font-display text-base font-extrabold text-white">{profile?.full_name ?? 'Teacher'}</p>
+            <p className="text-xs text-white/50">{open ? open.other_name : 'Messages'}</p>
+          </div>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {open ? (
+            <PhoneThread conversationId={open.id} onBack={() => setOpen(null)} />
+          ) : (
+            <div className="space-y-2">
+              {conversations.length === 0 && <p className="pt-8 text-center text-sm text-white/40">No conversations yet.</p>}
+              {conversations.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => {
+                    playClick()
+                    setOpen(c)
+                  }}
+                  className="flex w-full items-center gap-3 rounded-2xl bg-white/5 p-3 text-left transition hover:bg-white/10"
+                >
+                  {c.other_avatar ? (
+                    <img src={c.other_avatar} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
+                  ) : (
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-sm font-bold text-white">
+                      {c.other_name.charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                  <p className="truncate text-sm font-semibold text-white">{c.other_name}</p>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      </IsometricPhone>
     </div>
   )
 }
 
-function ThreadView({ conversationId, title, onBack }: { conversationId: string; title: string; onBack: () => void }) {
+function PhoneThread({ conversationId, onBack }: { conversationId: string; onBack: () => void }) {
   const [messages, setMessages] = useState<MessageRow[]>([])
   const [draft, setDraft] = useState('')
   const [myId, setMyId] = useState<string | null>(null)
@@ -780,29 +826,31 @@ function ThreadView({ conversationId, title, onBack }: { conversationId: string;
   }
 
   return (
-    <div className="space-y-4">
-      <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-[var(--ink-muted)] hover:text-[var(--fg)]">
-        <ArrowLeft className="h-4 w-4" /> Back to messages
+    <div className="flex h-full flex-col">
+      <button onClick={onBack} className="mb-2 flex items-center gap-1 text-xs font-bold text-white/60 transition hover:text-white">
+        <ArrowLeft className="h-3.5 w-3.5" /> Back
       </button>
-      <h3 className="font-display text-lg font-bold">{title}</h3>
-      <div className="panel space-y-2 p-4">
+      <div className="flex-1 space-y-2 overflow-y-auto pb-2">
         {messages.map((m) => (
-          <div key={m.id} className={`max-w-[80%] rounded-md px-3 py-2 text-sm ${m.sender_id === myId ? 'ml-auto bg-[var(--gold)]/15 text-right' : 'bg-[var(--fg)]/5'}`}>
+          <div
+            key={m.id}
+            className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${m.sender_id === myId ? 'ml-auto bg-[var(--gold)] text-black' : 'bg-white/10 text-white'}`}
+          >
             {m.body}
           </div>
         ))}
-        {messages.length === 0 && <p className="text-center text-sm text-[var(--ink-faint)]">No messages yet.</p>}
+        {messages.length === 0 && <p className="pt-6 text-center text-xs text-white/40">No messages yet.</p>}
       </div>
-      <div className="flex gap-2">
+      <div className="flex gap-2 pt-2">
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="Write a message…"
-          className={inputClass}
+          placeholder="Message…"
           onKeyDown={(e) => e.key === 'Enter' && send()}
+          className="flex-1 rounded-full bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40"
         />
-        <button onClick={send} className="btn-solid flex shrink-0 items-center gap-1.5 text-sm">
-          <Send className="h-4 w-4" /> Send
+        <button onClick={send} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--gold)] text-black">
+          <Send className="h-4 w-4" />
         </button>
       </div>
     </div>

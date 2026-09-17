@@ -24,6 +24,7 @@ const dropdowns = [
       { to: '/#wuye', label: 'MFM Wuye' },
       { to: '/#leadership', label: 'Leadership' },
       { to: '/#ministry', label: "Children's Ministry" },
+      { to: '/safety', label: 'Safety & Privacy' },
     ],
   },
   {

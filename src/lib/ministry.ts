@@ -609,6 +609,25 @@ export async function listEarsInternalNotes(messageId: string): Promise<EarsNote
   return (data ?? []) as EarsNoteRow[]
 }
 
+export interface EarsAuditLogRow {
+  id: string
+  action: string
+  detail: string | null
+  actor_id: string | null
+  created_at: string
+}
+
+/** Admin/assigned-teacher only (RLS on ears_audit_log) - the concrete evidence behind the Safety & Privacy guarantees. */
+export async function listEarsAuditLog(limit = 50): Promise<EarsAuditLogRow[]> {
+  const { data, error } = await supabase
+    .from('ears_audit_log')
+    .select('id, action, detail, actor_id, created_at')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  return (data ?? []) as EarsAuditLogRow[]
+}
+
 export async function acknowledgeEarsMessage(id: string) {
   const { error } = await supabase.rpc('acknowledge_ears_message', { p_id: id })
   if (error) throw error

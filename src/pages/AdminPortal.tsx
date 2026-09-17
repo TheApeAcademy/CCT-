@@ -20,6 +20,9 @@ import {
   Trash2,
   Download,
   Upload,
+  Lock,
+  Eye,
+  Heart,
   type LucideIcon,
 } from 'lucide-react'
 import { signOut } from '../lib/supabase'
@@ -49,6 +52,8 @@ import {
   createMinistryEvent,
   updateMinistryEvent,
   deleteMinistryEvent,
+  listEarsAuditLog,
+  type EarsAuditLogRow,
   type TeacherApplication,
   type ClassRow,
   type SeasonRow,
@@ -101,7 +106,7 @@ function NotAuthorized() {
   )
 }
 
-type Tab = 'applications' | 'classes' | 'seasons' | 'quiz' | 'bible' | 'calendar' | 'admins' | 'digitalbank'
+type Tab = 'applications' | 'classes' | 'seasons' | 'quiz' | 'bible' | 'calendar' | 'admins' | 'digitalbank' | 'safety'
 
 function AdminDashboard() {
   const [tab, setTab] = useState<Tab>('applications')
@@ -130,6 +135,7 @@ function AdminDashboard() {
           { value: 'calendar', label: 'Ministry Calendar', icon: CalendarDays },
           { value: 'digitalbank', label: 'Digital Bank', icon: Database },
           { value: 'admins', label: 'Admins', icon: Users },
+          { value: 'safety', label: 'Safety & Privacy', icon: ShieldCheck },
         ]}
       />
 
@@ -141,6 +147,7 @@ function AdminDashboard() {
       {tab === 'calendar' && <MinistryCalendarTab />}
       {tab === 'digitalbank' && <DigitalBankTab />}
       {tab === 'admins' && <AdminsTab />}
+      {tab === 'safety' && <SafetyTab />}
     </div>
   )
 }
@@ -834,6 +841,61 @@ function AdminsTab() {
             )}
           </div>
         ))}
+      </div>
+    </div>
+  )
+}
+
+const SAFETY_GUARANTEES: { icon: LucideIcon; title: string; body: string }[] = [
+  { icon: Lock, title: 'No public profiles, no random messaging', body: 'Children never appear on a public leaderboard, and cannot message each other directly - only their own assigned teacher.' },
+  { icon: Eye, title: 'Role separation enforced at the database', body: 'Teachers see only their own class, admins see across the ministry - enforced by row-level security, not just hidden UI.' },
+  { icon: Heart, title: 'Ears for You hides identity for real', body: 'An anonymous message’s real student_id is removed from the data itself before it reaches a teacher or admin - not just hidden on screen.' },
+  { icon: Users, title: 'Parents opt in - nothing auto-created', body: 'A parent account is never created without a parent explicitly signing up and linking with a code the child controls.' },
+]
+
+function SafetyTab() {
+  const [logs, setLogs] = useState<EarsAuditLogRow[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    listEarsAuditLog(50).then(setLogs).finally(() => setLoading(false))
+  }, [])
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <p className="eyebrow mb-3">What's Actually True</p>
+        <div className="space-y-2">
+          {SAFETY_GUARANTEES.map((g) => (
+            <div key={g.title} className="panel flex gap-3 p-4">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-[var(--hairline-strong)] text-[var(--gold)]">
+                <g.icon className="h-4 w-4" strokeWidth={1.75} />
+              </span>
+              <div>
+                <p className="text-sm font-bold">{g.title}</p>
+                <p className="mt-0.5 text-xs text-[var(--ink-muted)]">{g.body}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <Link to="/safety" target="_blank" className="mt-3 inline-block text-sm font-bold text-[var(--gold)] underline">
+          View the public Safety &amp; Privacy page ↗
+        </Link>
+      </div>
+
+      <div>
+        <p className="eyebrow mb-3">Audit Trail - Ears for You</p>
+        <p className="mb-2 text-xs text-[var(--ink-muted)]">Every acknowledge, reply, and escalation on a safeguarding message is recorded here with a timestamp.</p>
+        {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
+        {!loading && logs.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No activity logged yet.</p>}
+        <div className="space-y-1.5">
+          {logs.map((log) => (
+            <div key={log.id} className="flex items-center justify-between rounded-md px-3 py-2 text-sm odd:bg-[var(--ink-panel)]">
+              <span className="font-semibold capitalize">{log.action.replace(/_/g, ' ')}</span>
+              <span className="text-xs text-[var(--ink-faint)]">{new Date(log.created_at).toLocaleString()}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )

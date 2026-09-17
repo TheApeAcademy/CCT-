@@ -17,6 +17,7 @@ import History from './pages/History'
 import Seasons from './pages/Seasons'
 import Anthem from './pages/Anthem'
 import Training from './pages/Training'
+import Safety from './pages/Safety'
 
 // These are the only screens that need the network (Supabase accounts,
 // classes, messaging). Lazy load them so the @supabase/supabase-js bundle
@@ -137,6 +138,7 @@ function App() {
             <Route path="seasons" element={<Seasons />} />
             <Route path="anthem" element={<Anthem />} />
             <Route path="training" element={<Training />} />
+            <Route path="safety" element={<Safety />} />
           </Route>
 
           {/* Admin, Teacher, and Kids are deliberately NOT nested under the

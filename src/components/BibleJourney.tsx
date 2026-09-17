@@ -488,74 +488,80 @@ function LessonPreviewCard({
   const state: 'done' | 'current' | 'locked' = idx < firstIncompleteIdx ? 'done' : idx === firstIncompleteIdx ? 'current' : 'locked'
 
   return (
-    <div className="panel space-y-3" style={{ padding: big ? 24 : 14 }}>
-      <div className="flex items-center justify-between">
+    <div className="relative overflow-hidden rounded-[28px]" style={{ minHeight: big ? 420 : 280 }}>
+      <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-black/40" />
+
+      <div className="relative z-10 flex items-center justify-between p-3">
         <button
           onClick={onPrev}
           disabled={idx === 0}
-          className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--lp-hairline)] transition disabled:opacity-30"
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur transition disabled:opacity-30"
         >
           <ChevronLeft className="h-4 w-4" />
         </button>
-        <p className="text-xs font-bold text-[var(--ink-muted)]">
+        <p className="rounded-full bg-black/40 px-2.5 py-1 text-xs font-bold text-white backdrop-blur">
           {idx + 1} / {total}
         </p>
         <button
           onClick={onNext}
           disabled={idx === total - 1}
-          className="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--lp-hairline)] transition disabled:opacity-30"
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur transition disabled:opacity-30"
         >
           <ChevronRight className="h-4 w-4" />
         </button>
       </div>
 
-      <div className="space-y-2 text-center">
-        <img
-          src={image}
-          alt=""
-          className={`mx-auto rounded-full object-cover ${big ? 'h-36 w-36' : 'h-20 w-20'}`}
-          style={{ boxShadow: `0 0 0 4px ${ACCENT}` }}
-        />
-        <p className={`font-display font-extrabold ${big ? 'text-2xl' : 'text-sm'}`}>Learn about {unit.title}</p>
-        <a
-          href={bibleComUrl(lesson.reference)}
-          target="_blank"
-          rel="noreferrer"
-          className={`inline-flex items-center gap-1 rounded-full border border-[var(--lp-hairline)] font-bold text-[var(--ink-muted)] transition hover:text-[var(--lp-heading)] ${
-            big ? 'px-3 py-1.5 text-sm' : 'px-2.5 py-1 text-[11px]'
-          }`}
-        >
-          <BookOpen className={big ? 'h-4 w-4' : 'h-3 w-3'} /> {lesson.reference}
-        </a>
-      </div>
+      <div className={`absolute inset-x-0 bottom-0 z-10 space-y-3 text-center ${big ? 'p-6' : 'p-4'}`}>
+        <div className="space-y-1.5">
+          <p className={`font-display font-extrabold text-white drop-shadow-lg ${big ? 'text-2xl' : 'text-lg'}`}>Learn about {unit.title}</p>
+          <a
+            href={bibleComUrl(lesson.reference)}
+            target="_blank"
+            rel="noreferrer"
+            className={`inline-flex items-center gap-1 rounded-full bg-white/15 font-bold text-white backdrop-blur transition hover:bg-white/25 ${
+              big ? 'px-3 py-1.5 text-sm' : 'px-2.5 py-1 text-[11px]'
+            }`}
+          >
+            <BookOpen className={big ? 'h-4 w-4' : 'h-3 w-3'} /> {lesson.reference}
+          </a>
+        </div>
 
-      {state === 'current' && (
-        <button
-          onClick={() => {
-            playClick()
-            onOpenLesson(lesson.key)
-          }}
-          className={`btn-solid w-full ${big ? 'py-3 text-base' : 'py-2 text-sm'}`}
-        >
-          Start Lesson
-        </button>
-      )}
-      {state === 'done' && (
-        <button
-          onClick={() => {
-            playClick()
-            onOpenLesson(lesson.key)
-          }}
-          className={`btn-outline flex w-full items-center justify-center gap-1.5 ${big ? 'py-3 text-base' : 'py-2 text-sm'}`}
-        >
-          <Check className="h-4 w-4" /> Review Lesson
-        </button>
-      )}
-      {state === 'locked' && (
-        <button disabled className={`btn-outline flex w-full items-center justify-center gap-1.5 opacity-50 ${big ? 'py-3 text-base' : 'py-2 text-sm'}`}>
-          <Lock className="h-4 w-4" /> Locked
-        </button>
-      )}
+        {state === 'current' && (
+          <button
+            onClick={() => {
+              playClick()
+              onOpenLesson(lesson.key)
+            }}
+            className={`btn-solid w-full ${big ? 'py-3 text-base' : 'py-2 text-sm'}`}
+          >
+            Start Lesson
+          </button>
+        )}
+        {state === 'done' && (
+          <button
+            onClick={() => {
+              playClick()
+              onOpenLesson(lesson.key)
+            }}
+            className={`flex w-full items-center justify-center gap-1.5 rounded-full bg-white/90 font-bold text-black transition hover:bg-white ${
+              big ? 'py-3 text-base' : 'py-2 text-sm'
+            }`}
+          >
+            <Check className="h-4 w-4" /> Review Lesson
+          </button>
+        )}
+        {state === 'locked' && (
+          <button
+            disabled
+            className={`flex w-full items-center justify-center gap-1.5 rounded-full bg-white/20 font-bold text-white/70 backdrop-blur ${
+              big ? 'py-3 text-base' : 'py-2 text-sm'
+            }`}
+          >
+            <Lock className="h-4 w-4" /> Locked
+          </button>
+        )}
+      </div>
     </div>
   )
 }

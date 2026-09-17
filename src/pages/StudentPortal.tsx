@@ -45,6 +45,7 @@ import {
   Plus,
   X,
   Users,
+  ClipboardList,
   type LucideIcon,
 } from 'lucide-react'
 import { supabase, signOut } from '../lib/supabase'
@@ -260,9 +261,9 @@ function Dashboard() {
               </button>
               <h1 className="font-display text-lg font-extrabold text-[var(--lp-heading)]">{TAB_TITLE[tab]}</h1>
             </div>
-            <div className={tab === 'bible' || tab === 'game' || tab === 'home' ? 'pb-12' : 'mx-auto max-w-2xl p-4 pb-12'}>
+            <div className={tab === 'bible' || tab === 'game' || tab === 'home' || tab === 'class' ? 'pb-12' : 'mx-auto max-w-2xl p-4 pb-12'}>
               {tab === 'home' && <HomeTab student={student} klass={klass} achievements={achievements} onNavigate={enterTab} />}
-              {tab === 'class' && <ClassTab klass={klass} />}
+              {tab === 'class' && <ClassTab klass={klass} student={student} />}
               {tab === 'bible' && <SundaySchoolTab klass={klass} />}
               {tab === 'leaderboard' && <LeaderboardTab myId={student?.id ?? null} />}
               {tab === 'profile' && student && <ProfileTab student={student} klass={klass} onSaved={load} />}
@@ -1105,54 +1106,254 @@ function GameTile({
   )
 }
 
-function ClassTab({ klass }: { klass: (ClassRow & { teacher_name: string }) | null }) {
+const CLASS_FEATURES = [
+  { key: 'info', label: 'Class Info', icon: Users },
+  { key: 'lessons', label: 'Lessons', icon: BookOpen },
+  { key: 'assignments', label: 'Assignments', icon: ClipboardList },
+  { key: 'verse', label: 'Memory Verse', icon: Heart },
+  { key: 'notes', label: 'Notebook', icon: FileText },
+] as const
+type ClassFeatureKey = (typeof CLASS_FEATURES)[number]['key']
+
+function ClassTab({ klass, student }: { klass: (ClassRow & { teacher_name: string }) | null; student: StudentRow | null }) {
   const [assignments, setAssignments] = useState<AssignmentRow[]>([])
+  const [lessons, setLessons] = useState<LectureRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [active, setActive] = useState<ClassFeatureKey | null>(null)
 
   useEffect(() => {
     if (!klass) {
       setLoading(false)
       return
     }
-    listPublishedAssignments(klass.id).then((a) => {
+    Promise.all([listPublishedAssignments(klass.id), listPublishedLectures(klass.id)]).then(([a, l]) => {
       setAssignments(a)
+      setLessons(l)
       setLoading(false)
     })
   }, [klass])
 
-  return (
-    <div className="space-y-6">
-      {!klass ? (
+  if (!klass) {
+    return (
+      <div className="space-y-6">
         <div className="panel p-6 text-center">
           <p className="font-display text-lg font-bold">No class yet</p>
           <p className="mt-1 text-sm text-[var(--ink-muted)]">
             You&apos;re not in a class yet. Give your Student Code to your Sunday school teacher and they&apos;ll add you.
           </p>
         </div>
-      ) : (
-        <>
-          <div>
-            <p className="eyebrow">Class Info</p>
-            <div className="mt-2 panel p-4">
-              <p className="font-bold">{klass.name}</p>
-              <p className="text-sm text-[var(--ink-muted)]">Taught by {klass.teacher_name}</p>
-            </div>
-          </div>
+        <NotesSection kind="notebook" title="Notebook" icon={FileText} accent="var(--lp-accent-class)" placeholder="Jot down what you're learning…" />
+      </div>
+    )
+  }
 
-          <div>
-            <p className="eyebrow">Assignments</p>
-            <div className="mt-2 space-y-2">
-              {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
-              {!loading && assignments.length === 0 && (
-                <p className="text-sm text-[var(--ink-muted)]">No assignments right now. When your teacher posts one, you&apos;ll see it here.</p>
-              )}
-              {!loading && assignments.map((a) => <AssignmentCard key={a.id} assignment={a} />)}
-            </div>
-          </div>
-        </>
+  return (
+    <div className="fixed inset-0 z-0 overflow-hidden">
+      <img src="/classroom-bible-reading-bg.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />
+      <div className="absolute inset-0 bg-black/45" />
+      <div className="relative z-10 flex h-full flex-col items-center justify-center overflow-y-auto px-4 py-16">
+        <AnimatePresence mode="wait">
+          {active ? (
+            <motion.div
+              key="panel"
+              initial={{ opacity: 0, y: 16, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.96 }}
+              transition={{ duration: 0.22 }}
+              className="w-full max-w-md"
+            >
+              <ClassFeaturePanel
+                feature={active}
+                klass={klass}
+                student={student}
+                assignments={assignments}
+                lessons={lessons}
+                loading={loading}
+                onClose={() => setActive(null)}
+              />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="dial"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.22 }}
+              className="flex flex-col items-center gap-4"
+            >
+              <ClassDial onSelect={setActive} />
+              <p className="text-xs font-bold uppercase tracking-wide text-white/70">Tap an icon to open it</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * GTA V weapon-wheel style hub for the classroom: a glass ring floating over
+ * the class photo with the teacher figurine at its center and one wedge icon
+ * per feature spaced evenly around the circle.
+ */
+function ClassDial({ onSelect }: { onSelect: (key: ClassFeatureKey) => void }) {
+  const n = CLASS_FEATURES.length
+  return (
+    <div className="relative" style={{ width: 'min(84vw, 420px)', height: 'min(84vw, 420px)' }}>
+      <div
+        className="absolute inset-0 rounded-full"
+        style={{
+          background: 'radial-gradient(circle at 50% 38%, rgba(255,255,255,0.16), rgba(255,255,255,0.04) 70%)',
+          border: '1px solid rgba(255,255,255,0.35)',
+          boxShadow: '0 30px 70px -20px rgba(0,0,0,0.65), inset 0 0 50px rgba(255,255,255,0.08), inset 0 0 0 10px rgba(255,255,255,0.05)',
+          backdropFilter: 'blur(18px)',
+          WebkitBackdropFilter: 'blur(18px)',
+        }}
+      />
+      <div className="absolute rounded-full border border-white/20" style={{ inset: '15%' }} />
+
+      <div
+        className="absolute left-1/2 top-1/2 flex items-center justify-center rounded-full"
+        style={{
+          width: '46%',
+          height: '46%',
+          transform: 'translate(-50%,-50%)',
+          background: 'radial-gradient(circle, rgba(255,255,255,0.18), rgba(255,255,255,0.02))',
+          boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.25), 0 10px 30px -10px rgba(0,0,0,0.55)',
+        }}
+      >
+        <img src="/teacher-isometric.png" alt="" className="h-[82%] w-[82%] object-contain drop-shadow-2xl" />
+      </div>
+
+      {CLASS_FEATURES.map((f, i) => {
+        const angle = (-90 + (360 / n) * i) * (Math.PI / 180)
+        const R = 42
+        const x = 50 + R * Math.cos(angle)
+        const y = 50 + R * Math.sin(angle)
+        const Icon = f.icon
+        return (
+          <button
+            key={f.key}
+            onClick={() => {
+              playClick()
+              onSelect(f.key)
+            }}
+            className="absolute flex flex-col items-center gap-1.5 transition hover:scale-110 active:scale-95"
+            style={{ left: `${x}%`, top: `${y}%`, transform: 'translate(-50%,-50%)' }}
+          >
+            <span
+              className="flex h-14 w-14 items-center justify-center rounded-full sm:h-16 sm:w-16"
+              style={{
+                background: 'rgba(255,255,255,0.16)',
+                border: '1px solid rgba(255,255,255,0.45)',
+                boxShadow: '0 10px 24px -8px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.4)',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+              }}
+            >
+              <Icon className="h-6 w-6 text-white" strokeWidth={2.1} />
+            </span>
+            <span className="whitespace-nowrap rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur">{f.label}</span>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function ClassFeaturePanel({
+  feature,
+  klass,
+  student,
+  assignments,
+  lessons,
+  loading,
+  onClose,
+}: {
+  feature: ClassFeatureKey
+  klass: ClassRow & { teacher_name: string }
+  student: StudentRow | null
+  assignments: AssignmentRow[]
+  lessons: LectureRow[]
+  loading: boolean
+  onClose: () => void
+}) {
+  const titles: Record<ClassFeatureKey, string> = {
+    info: 'Class Info',
+    lessons: 'Lessons',
+    assignments: 'Assignments',
+    verse: 'Memory Verse',
+    notes: 'Notebook',
+  }
+
+  return (
+    <div
+      className="w-full rounded-[28px] p-5"
+      style={{
+        background: 'rgba(12,10,20,0.72)',
+        border: '1px solid rgba(255,255,255,0.16)',
+        backdropFilter: 'blur(22px)',
+        WebkitBackdropFilter: 'blur(22px)',
+        boxShadow: '0 30px 70px -20px rgba(0,0,0,0.65)',
+        maxHeight: '72vh',
+        overflowY: 'auto',
+      }}
+    >
+      <div className="mb-3 flex items-center justify-between">
+        <p className="font-display text-lg font-extrabold text-white">{titles[feature]}</p>
+        <button
+          onClick={onClose}
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
+          aria-label="Back to the dial"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+
+      {feature === 'info' && (
+        <div className="rounded-2xl bg-white/8 p-4">
+          <p className="font-bold text-white">{klass.name}</p>
+          <p className="mt-1 text-sm text-white/70">Taught by {klass.teacher_name}</p>
+        </div>
       )}
 
-      <NotesSection kind="notebook" title="Notebook" icon={FileText} accent="var(--lp-accent-class)" placeholder="Jot down what you're learning…" />
+      {feature === 'lessons' && (
+        <div className="space-y-2">
+          {loading && <p className="text-sm text-white/60">Loading…</p>}
+          {!loading && lessons.length === 0 && <p className="text-sm text-white/60">No lessons posted yet.</p>}
+          {!loading && lessons.map((l) => (
+            <div key={l.id} className="rounded-xl bg-white/8 p-3">
+              <p className="font-bold text-white">{l.title}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {feature === 'assignments' && (
+        <div className="space-y-2">
+          {loading && <p className="text-sm text-white/60">Loading…</p>}
+          {!loading && assignments.length === 0 && (
+            <p className="text-sm text-white/60">No assignments right now. When your teacher posts one, you&apos;ll see it here.</p>
+          )}
+          {!loading && assignments.map((a) => <AssignmentCard key={a.id} assignment={a} />)}
+        </div>
+      )}
+
+      {feature === 'verse' && (
+        <div className="rounded-2xl bg-white/8 p-5 text-center">
+          {student?.favorite_verse ? (
+            <p className="font-display text-base font-bold italic leading-relaxed text-white">&ldquo;{student.favorite_verse}&rdquo;</p>
+          ) : (
+            <p className="text-sm text-white/70">
+              You haven&apos;t added a favourite verse yet. Add one from your Profile and it&apos;ll show up here.
+            </p>
+          )}
+        </div>
+      )}
+
+      {feature === 'notes' && (
+        <NotesSection kind="notebook" title="Notebook" icon={FileText} accent="var(--lp-accent-class)" placeholder="Jot down what you're learning…" />
+      )}
     </div>
   )
 }

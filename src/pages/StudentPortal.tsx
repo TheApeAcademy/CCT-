@@ -990,11 +990,11 @@ function ClassTab({ klass, student }: { klass: (ClassRow & { teacher_name: strin
 function ClassDial({ onSelect }: { onSelect: (key: ClassFeatureKey) => void }) {
   const n = CLASS_FEATURES.length
   return (
-    <div className="relative" style={{ width: 'min(94vw, 500px)', height: 'min(70vw, 340px)' }}>
+    <div className="relative" style={{ width: 'min(96vw, 750px)', height: 'min(105vw, 510px)' }}>
       <div
         className="absolute inset-0"
         style={{
-          borderRadius: 56,
+          borderRadius: 84,
           background: 'radial-gradient(circle at 50% 38%, rgba(255,255,255,0.16), rgba(255,255,255,0.04) 70%)',
           border: '1px solid rgba(255,255,255,0.35)',
           boxShadow: '0 30px 70px -20px rgba(0,0,0,0.65), inset 0 0 50px rgba(255,255,255,0.08), inset 0 0 0 10px rgba(255,255,255,0.05)',
@@ -1002,13 +1002,13 @@ function ClassDial({ onSelect }: { onSelect: (key: ClassFeatureKey) => void }) {
           WebkitBackdropFilter: 'blur(18px)',
         }}
       />
-      <div className="absolute border border-white/20" style={{ inset: '15%', borderRadius: 36 }} />
+      <div className="absolute border border-white/20" style={{ inset: '15%', borderRadius: 54 }} />
 
       <div
         className="absolute left-1/2 top-1/2 flex items-center justify-center rounded-full"
         style={{
-          width: 190,
-          height: 190,
+          width: 285,
+          height: 285,
           transform: 'translate(-50%,-50%)',
           background: 'radial-gradient(circle, rgba(255,255,255,0.18), rgba(255,255,255,0.02))',
           boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.25), 0 10px 30px -10px rgba(0,0,0,0.55)',

@@ -17,7 +17,16 @@ import {
 import { playClick } from '../lib/sound'
 import { haptics } from '../lib/haptics'
 
-const inputClass = 'w-full rounded-md border border-[var(--hairline-strong)] bg-transparent px-4 py-3 outline-none focus:border-[var(--gold)]'
+// Deliberately hardcoded, not theme-var-based: this widget gets dropped onto
+// all sorts of backdrops (a dark glass dial panel, a phone screen, a light
+// dashboard card), and --ink-muted/--hairline-strong resolve to a dark-navy
+// tone meant for light pages - unreadable on the dark ones. Owning a solid
+// dark card with explicit white text keeps it legible everywhere it's used.
+const CARD_BG = '#15101f'
+const inputClass =
+  'w-full rounded-md border border-white/15 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40'
+const toggleButtonClass =
+  'flex items-center gap-1 rounded-full border border-white/15 bg-white/5 px-2.5 py-1 text-xs font-bold text-white/80 transition hover:bg-white/15 hover:text-white'
 
 const VAULT_CATEGORY_ICON: Record<VaultCategory, LucideIcon> = {
   assignment: FileText,
@@ -102,11 +111,11 @@ export function DigitalBankSection() {
   }
 
   return (
-    <div>
+    <div className="rounded-2xl p-4" style={{ background: CARD_BG }}>
       <div className="flex items-center justify-between">
         <p className="eyebrow">Digital Bank</p>
         <div className="flex items-center gap-1.5">
-          <label className="flex cursor-pointer items-center gap-1 rounded-full border border-[var(--hairline-strong)] px-2.5 py-1 text-xs font-bold text-[var(--ink-muted)] transition hover:text-[var(--fg)]">
+          <label className={`cursor-pointer ${toggleButtonClass}`}>
             <Upload className="h-3 w-3" /> {uploading ? 'Uploading…' : 'Add file'}
             <input type="file" className="hidden" disabled={uploading} onChange={(e) => onPick(e.target.files?.[0])} />
           </label>
@@ -116,35 +125,35 @@ export function DigitalBankSection() {
               setError('')
               setAdding((v) => !v)
             }}
-            className="flex items-center gap-1 rounded-full border border-[var(--hairline-strong)] px-2.5 py-1 text-xs font-bold text-[var(--ink-muted)] transition hover:text-[var(--fg)]"
+            className={toggleButtonClass}
           >
-            <Plus className="h-3 w-3" /> Note
+            {adding ? <X className="h-3 w-3" /> : <Plus className="h-3 w-3" />} {adding ? 'Cancel' : 'Note'}
           </button>
         </div>
       </div>
 
       {adding && (
-        <div className="mt-2 space-y-2 rounded-2xl border border-[var(--hairline)] bg-[var(--ink-panel)] p-4">
+        <div className="mt-3 space-y-2 rounded-2xl border border-white/10 bg-white/5 p-4">
           <input value={noteTitle} onChange={(e) => setNoteTitle(e.target.value)} placeholder="Title (optional)" className={inputClass} />
           <textarea value={noteBody} onChange={(e) => setNoteBody(e.target.value)} placeholder="Write it down…" rows={3} className={inputClass} />
-          {error && <p className="text-sm text-red-500">{error}</p>}
+          {error && <p className="text-sm text-red-400">{error}</p>}
           <button type="button" onClick={saveNote} disabled={saving} className="btn-solid w-full py-2 text-sm">
             {saving ? 'Saving…' : 'Save to Bank'}
           </button>
         </div>
       )}
-      {error && !adding && <p className="mt-2 text-sm text-red-500">{error}</p>}
+      {error && !adding && <p className="mt-2 text-sm text-red-400">{error}</p>}
 
       <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
         {!loading && items.length === 0 && !adding && (
-          <p className="col-span-full text-center text-sm text-[var(--ink-muted)]">
+          <p className="col-span-full text-center text-sm text-white/50">
             Empty for now - save finished assignments, notes, photos, or voice notes here.
           </p>
         )}
         {items.map((item) => {
           const Icon = VAULT_CATEGORY_ICON[item.category]
           return (
-            <div key={item.id} className="relative rounded-2xl border border-[var(--hairline)] bg-[var(--ink-panel)] p-4">
+            <div key={item.id} className="relative rounded-2xl border border-white/10 bg-white/5 p-4">
               <button
                 type="button"
                 onClick={() => remove(item)}
@@ -160,8 +169,8 @@ export function DigitalBankSection() {
                 >
                   <Icon className="h-4 w-4" />
                 </span>
-                <p className="w-full truncate text-sm font-bold">{item.title}</p>
-                {item.note && <p className="line-clamp-2 text-xs text-[var(--ink-muted)]">{item.note}</p>}
+                <p className="w-full truncate text-sm font-bold text-white">{item.title}</p>
+                {item.note && <p className="line-clamp-2 text-xs text-white/60">{item.note}</p>}
               </button>
             </div>
           )
@@ -234,7 +243,7 @@ export function NotesSection({
   }
 
   return (
-    <div>
+    <div className="rounded-2xl p-4" style={{ background: CARD_BG }}>
       <div className="flex items-center justify-between">
         <p className="eyebrow flex items-center gap-1.5">
           <Icon className="h-3.5 w-3.5" style={{ color: accent }} /> {title}
@@ -245,38 +254,39 @@ export function NotesSection({
             setError('')
             setAdding((v) => !v)
           }}
-          className="flex items-center gap-1 rounded-full border border-[var(--hairline-strong)] px-2.5 py-1 text-xs font-bold text-[var(--ink-muted)] transition hover:text-[var(--fg)]"
+          className={toggleButtonClass}
         >
           {adding ? <X className="h-3 w-3" /> : <Plus className="h-3 w-3" />} {adding ? 'Cancel' : 'New'}
         </button>
       </div>
 
       {adding && (
-        <div className="mt-2 space-y-2 rounded-2xl border border-[var(--hairline)] bg-[var(--ink-panel)] p-4">
+        <div className="mt-3 space-y-2 rounded-2xl border border-white/10 bg-white/5 p-4">
           <input value={draftTitle} onChange={(e) => setDraftTitle(e.target.value)} placeholder="Title (optional)" className={inputClass} />
           <textarea value={draftBody} onChange={(e) => setDraftBody(e.target.value)} placeholder={placeholder} rows={4} className={inputClass} />
-          {error && <p className="text-sm text-red-500">{error}</p>}
+          {error && <p className="text-sm text-red-400">{error}</p>}
           <button type="button" onClick={save} disabled={saving} className="btn-solid w-full py-2 text-sm">
             {saving ? 'Saving…' : 'Save Entry'}
           </button>
         </div>
       )}
+      {error && !adding && <p className="mt-2 text-sm text-red-400">{error}</p>}
 
       <div className="mt-3 space-y-2">
-        {!loading && notes.length === 0 && !adding && <p className="text-sm text-[var(--ink-muted)]">Nothing written yet.</p>}
+        {!loading && notes.length === 0 && !adding && <p className="text-sm text-white/50">Nothing written yet.</p>}
         {notes.map((n) => (
-          <div key={n.id} className="relative rounded-2xl border border-[var(--hairline)] bg-[var(--ink-panel)] p-4">
+          <div key={n.id} className="relative rounded-2xl border border-white/10 bg-white/5 p-4">
             <button
               type="button"
               onClick={() => remove(n.id)}
               aria-label="Delete entry"
-              className="absolute right-3 top-3 text-[var(--ink-faint)] transition hover:text-red-400"
+              className="absolute right-3 top-3 text-white/40 transition hover:text-red-400"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>
-            {n.title && <p className="pr-6 font-bold">{n.title}</p>}
-            <p className="mt-1 whitespace-pre-wrap pr-6 text-sm text-[var(--ink-muted)]">{n.body}</p>
-            <p className="mt-2 text-[10px] uppercase tracking-wide text-[var(--ink-faint)]">
+            {n.title && <p className="pr-6 font-bold text-white">{n.title}</p>}
+            <p className="mt-1 whitespace-pre-wrap pr-6 text-sm text-white/70">{n.body}</p>
+            <p className="mt-2 text-[10px] uppercase tracking-wide text-white/40">
               {new Date(n.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
             </p>
           </div>

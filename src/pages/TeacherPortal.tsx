@@ -20,6 +20,7 @@ import {
   LayoutDashboard,
   Users,
   Calendar,
+  Lock,
   type LucideIcon,
 } from 'lucide-react'
 import { supabase, signOut, type Profile } from '../lib/supabase'
@@ -28,6 +29,7 @@ import AuthCard from '../components/ui/AuthCard'
 import TabBar from '../components/ui/TabBar'
 import IsometricPhone from '../components/IsometricPhone'
 import { NotesSection, DigitalBankSection } from '../components/PersonalVault'
+import { SUNDAY_LESSON_THEMES, SUNDAYS_2026, sundayDateKey } from '../content/sundaySchoolCalendar'
 import {
   getMyTeacherApplication,
   submitTeacherApplication,
@@ -45,6 +47,9 @@ import {
   setAssignmentStatus,
   listSubmissionsForAssignment,
   gradeSubmission,
+  listUnlockedSundays,
+  unlockSunday,
+  lockSunday,
   type LectureRow,
   type AssignmentRow,
   type SubmissionRow,
@@ -519,7 +524,14 @@ function ClassWorkTab({ classId }: { classId: string }) {
           </button>
         ))}
       </div>
-      {sub === 'lectures' ? <LecturesManager classId={classId} /> : <AssignmentsManager classId={classId} />}
+      {sub === 'lectures' ? (
+        <div className="space-y-6">
+          <LecturesManager classId={classId} />
+          <SundayCalendarManager classId={classId} />
+        </div>
+      ) : (
+        <AssignmentsManager classId={classId} />
+      )}
     </div>
   )
 }
@@ -588,6 +600,75 @@ function LecturesManager({ classId }: { classId: string }) {
             </button>
           </div>
         ))}
+      </div>
+    </div>
+  )
+}
+
+// The same themed weekly cards the kids see on their Sunday School tab -
+// here the teacher taps a card to unlock/lock it for their own class,
+// instead of it following an automatic date-based rule.
+function SundayCalendarManager({ classId }: { classId: string }) {
+  const [unlocked, setUnlocked] = useState<Set<string>>(new Set())
+  const [loading, setLoading] = useState(true)
+
+  const load = () => listUnlockedSundays(classId).then((dates) => { setUnlocked(new Set(dates)); setLoading(false) })
+  useEffect(() => {
+    load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [classId])
+
+  const toggle = async (dateKey: string) => {
+    haptics.tap()
+    if (unlocked.has(dateKey)) await lockSunday(classId, dateKey)
+    else await unlockSunday(classId, dateKey)
+    playClick()
+    load()
+  }
+
+  return (
+    <div>
+      <p className="eyebrow mb-3">Sunday School Calendar</p>
+      <p className="mb-3 text-sm text-[var(--ink-muted)]">Tap a Sunday to unlock it for your class - kids only see lessons you've unlocked.</p>
+      {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
+      <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))' }}>
+        {SUNDAYS_2026.map((date, i) => {
+          const theme = SUNDAY_LESSON_THEMES[i % SUNDAY_LESSON_THEMES.length]
+          const key = sundayDateKey(date)
+          const isUnlocked = unlocked.has(key)
+          const isMascotPng = theme.image.endsWith('.png')
+          return (
+            <button
+              key={key}
+              onClick={() => toggle(key)}
+              className="relative aspect-square overflow-hidden rounded-2xl text-left"
+              style={{ background: 'var(--ink-panel)' }}
+            >
+              {isMascotPng ? (
+                <div
+                  className="flex h-full w-full items-center justify-center"
+                  style={{ background: 'color-mix(in srgb, var(--lp-accent-bible, var(--gold)) 16%, var(--ink-panel))' }}
+                >
+                  <img src={theme.image} alt="" className={`h-2/3 w-2/3 object-contain ${isUnlocked ? '' : 'opacity-40'}`} />
+                </div>
+              ) : (
+                <img src={theme.image} alt="" className={`h-full w-full object-cover ${isUnlocked ? '' : 'opacity-40'}`} />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/5 to-transparent" />
+              <span
+                className={`absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full ${isUnlocked ? 'bg-emerald-500' : 'bg-black/55'}`}
+              >
+                {isUnlocked ? <Check className="h-3.5 w-3.5 text-white" /> : <Lock className="h-3 w-3 text-white/80" />}
+              </span>
+              <div className="absolute inset-x-0 bottom-0 p-2.5">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-white/70">
+                  {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </p>
+                <p className="text-xs font-bold leading-tight text-white">{theme.title}</p>
+              </div>
+            </button>
+          )
+        })}
       </div>
     </div>
   )

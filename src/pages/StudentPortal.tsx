@@ -49,6 +49,7 @@ import VillageMap from '../components/VillageMap'
 import BibleJourneyPanel from '../components/BibleJourney'
 import IsometricPhone from '../components/IsometricPhone'
 import { NotesSection, DigitalBankSection } from '../components/PersonalVault'
+import { SUNDAY_LESSON_THEMES, SUNDAYS_2026, sundayDateKey } from '../content/sundaySchoolCalendar'
 import { useAutoHideNav } from '../lib/useAutoHideNav'
 import {
   getMyStudentProfile,
@@ -67,6 +68,7 @@ import {
   submitAssignment,
   getMyBibleStreak,
   listMyAchievements,
+  listUnlockedSundays,
   type EarnedAchievement,
   type StudentRow,
   type LeaderboardRow,
@@ -1284,7 +1286,16 @@ function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string;
   const [streak, setStreak] = useState(0)
   const [lessons, setLessons] = useState<LectureRow[]>([])
   const [lessonsLoading, setLessonsLoading] = useState(true)
+  const [unlockedDates, setUnlockedDates] = useState<Set<string>>(new Set())
   const lessonsSectionRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!klass) {
+      setUnlockedDates(new Set())
+      return
+    }
+    listUnlockedSundays(klass.id).then((dates) => setUnlockedDates(new Set(dates)))
+  }, [klass])
 
   useEffect(() => {
     getMyBibleStreak().then(setStreak)
@@ -1318,8 +1329,7 @@ function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string;
         }}
       >
         <div className="px-5 pt-5">
-          <p className="font-display text-2xl font-extrabold text-white drop-shadow-md">Sunday School</p>
-          <p className="mt-1 max-w-xs text-sm text-white/85 drop-shadow-md">
+          <p className="max-w-xs text-sm text-white/85 drop-shadow-md">
             Everything for growing your faith, one day at a time.
           </p>
         </div>
@@ -1367,47 +1377,19 @@ function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string;
         )}
       </div>
 
-      <div className="grid gap-3 px-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' }}>
-        {SUNDAYS_2026.map((date, i) => {
-          const theme = SUNDAY_LESSON_THEMES[i % SUNDAY_LESSON_THEMES.length]
-          return <SundayLessonCard key={date.toISOString()} date={date} title={theme.title} image={theme.image} locked={date >= LOCK_CUTOFF} />
-        })}
+      <div className="mx-auto max-w-2xl space-y-3 px-4">
+        <p className="eyebrow">Sunday School Calendar</p>
+        <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' }}>
+          {SUNDAYS_2026.map((date, i) => {
+            const theme = SUNDAY_LESSON_THEMES[i % SUNDAY_LESSON_THEMES.length]
+            const locked = !klass || !unlockedDates.has(sundayDateKey(date))
+            return <SundayLessonCard key={date.toISOString()} date={date} title={theme.title} image={theme.image} locked={locked} />
+          })}
+        </div>
       </div>
     </div>
   )
 }
-
-const SUNDAY_LESSON_THEMES: { title: string; image: string }[] = [
-  { title: "Creation & God's Love", image: '/journey/adam-eve-garden-home.jpg' },
-  { title: 'Adam and Eve', image: '/journey/adam-eve-first-sin.jpg' },
-  { title: 'Cain and Abel', image: '/journey/cain-abel-offerings.jpg' },
-  { title: "Noah's Ark", image: '/journey/noah-building-ark.jpg' },
-  { title: "God's Promise", image: '/journey/noah-dove-olive-branch.jpg' },
-  { title: 'The Tower of Babel', image: '/journey/tower-of-babel.jpg' },
-  { title: "Abraham's Faith", image: '/journey/abraham-isaac-ram-provided.jpg' },
-  { title: "Jacob's Ladder", image: '/journey/jacob-ladder-dream.jpg' },
-  { title: "Learning God's Word", image: '/feature-bible.png' },
-  { title: 'Sunday Worship', image: '/hero-bible.jpg' },
-  { title: 'Our Church Family', image: '/mfm-wuye-building.jpg' },
-  { title: 'A Message From Pastor', image: '/children-pastor.jpg' },
-  { title: 'Fun in Sunday School', image: '/feature-class.png' },
-  { title: 'Growing Together', image: '/hero-kids.jpg' },
-]
-
-function getSundaysIn2026(): Date[] {
-  const sundays: Date[] = []
-  const d = new Date(2026, 0, 1)
-  d.setDate(d.getDate() + ((7 - d.getDay()) % 7))
-  while (d.getFullYear() === 2026) {
-    sundays.push(new Date(d))
-    d.setDate(d.getDate() + 7)
-  }
-  return sundays
-}
-
-const SUNDAYS_2026 = getSundaysIn2026()
-// Sundays from here on haven't actually been taught yet in real life, so they stay locked in this simulated calendar.
-const LOCK_CUTOFF = new Date(2026, 8, 16)
 
 function SundayLessonCard({ date, title, image, locked }: { date: Date; title: string; image: string; locked: boolean }) {
   const isMascotPng = image.endsWith('.png')

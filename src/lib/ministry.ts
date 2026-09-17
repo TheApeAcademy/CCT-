@@ -705,6 +705,27 @@ export async function listAssignments(classId: string): Promise<AssignmentRow[]>
   return (data ?? []) as AssignmentRow[]
 }
 
+// ---------- Sunday School calendar unlocks ----------
+// A teacher decides which Sundays are "taught" for their own class; kids
+// just read which dates are unlocked. Dates are plain 'YYYY-MM-DD' strings
+// (see sundayDateKey in content/sundaySchoolCalendar.ts).
+
+export async function listUnlockedSundays(classId: string): Promise<string[]> {
+  const { data, error } = await supabase.from('class_sunday_unlocks').select('sunday_date').eq('class_id', classId)
+  if (error) throw error
+  return (data ?? []).map((row: any) => row.sunday_date as string)
+}
+
+export async function unlockSunday(classId: string, dateKey: string) {
+  const { error } = await supabase.from('class_sunday_unlocks').upsert({ class_id: classId, sunday_date: dateKey }, { onConflict: 'class_id,sunday_date' })
+  if (error) throw error
+}
+
+export async function lockSunday(classId: string, dateKey: string) {
+  const { error } = await supabase.from('class_sunday_unlocks').delete().eq('class_id', classId).eq('sunday_date', dateKey)
+  if (error) throw error
+}
+
 export async function createAssignment(params: { class_id: string; title: string; instructions?: string; due_date?: string; max_score?: number }) {
   const { data: auth } = await supabase.auth.getUser()
   const { error } = await supabase.from('assignments').insert({ ...params, teacher_id: auth.user?.id })

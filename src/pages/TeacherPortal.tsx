@@ -21,6 +21,8 @@ import {
   Users,
   Calendar,
   Lock,
+  ClipboardCheck,
+  Award,
   type LucideIcon,
 } from 'lucide-react'
 import { supabase, signOut, type Profile } from '../lib/supabase'
@@ -30,6 +32,7 @@ import TabBar from '../components/ui/TabBar'
 import IsometricPhone from '../components/IsometricPhone'
 import { NotesSection, DigitalBankSection } from '../components/PersonalVault'
 import MinistryCalendarReadOnly from '../components/MinistryCalendarView'
+import { renderCertificatePng } from '../lib/certificate'
 import { SUNDAY_LESSON_THEMES, SUNDAYS_2026, sundayDateKey } from '../content/sundaySchoolCalendar'
 import {
   getMyTeacherApplication,
@@ -67,6 +70,8 @@ import {
   addEarsInternalNote,
   getLeaderboard,
   aggregateClassLeaderboard,
+  listAttendanceForDate,
+  saveAttendance,
   type TeacherApplication,
   type ClassRow,
   type StudentRow,
@@ -241,7 +246,8 @@ function TeacherDashboard({ profile }: { profile: Profile | null }) {
 
       {tab === 'home' && <TeacherHomeTab profile={profile} />}
       {tab === 'chat' && <TeacherChatTab profile={profile} />}
-      {tab === 'classes' && (openClass ? <ClassDetail klass={openClass} onBack={() => setOpenClass(null)} /> : <ClassesTab onOpen={setOpenClass} />)}
+      {tab === 'classes' &&
+        (openClass ? <ClassDetail klass={openClass} teacherName={profile?.full_name ?? 'Your Teacher'} onBack={() => setOpenClass(null)} /> : <ClassesTab onOpen={setOpenClass} />)}
       {tab === 'quiz' && <QuizTab />}
       {tab === 'ears' && <EarsInboxTab />}
       {tab === 'calendar' && <MinistryCalendarReadOnly />}
@@ -394,9 +400,9 @@ function ClassesTab({ onOpen }: { onOpen: (c: ClassRow) => void }) {
   )
 }
 
-type DetailTab = 'students' | 'work'
+type DetailTab = 'students' | 'work' | 'attendance'
 
-function ClassDetail({ klass, onBack }: { klass: ClassRow; onBack: () => void }) {
+function ClassDetail({ klass, teacherName, onBack }: { klass: ClassRow; teacherName: string; onBack: () => void }) {
   const [detailTab, setDetailTab] = useState<DetailTab>('students')
   const [students, setStudents] = useState<StudentRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -404,6 +410,7 @@ function ClassDetail({ klass, onBack }: { klass: ClassRow; onBack: () => void })
   const [enrollError, setEnrollError] = useState('')
   const [enrollSuccess, setEnrollSuccess] = useState('')
   const [enrolling, setEnrolling] = useState(false)
+  const [certificateFor, setCertificateFor] = useState<StudentRow | null>(null)
 
   const load = () => {
     listStudentsInClass(klass.id).then((s) => {
@@ -462,13 +469,13 @@ function ClassDetail({ klass, onBack }: { klass: ClassRow; onBack: () => void })
       </div>
 
       <div className="flex gap-1 rounded-md border border-[var(--hairline-strong)] p-1 w-fit">
-        {(['students', 'work'] as const).map((t) => (
+        {(['students', 'attendance', 'work'] as const).map((t) => (
           <button
             key={t}
             onClick={() => setDetailTab(t)}
             className={`rounded px-4 py-1.5 text-sm font-bold capitalize transition ${detailTab === t ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'text-[var(--fg)]/60 hover:text-[var(--fg)]'}`}
           >
-            {t === 'students' ? 'Students' : 'Class Work'}
+            {t === 'students' ? 'Students' : t === 'attendance' ? 'Attendance' : 'Class Work'}
           </button>
         ))}
       </div>
@@ -524,9 +531,17 @@ function ClassDetail({ klass, onBack }: { klass: ClassRow; onBack: () => void })
                       <p className="text-xs text-[var(--ink-faint)]">{s.total_points.toLocaleString()} points</p>
                     </div>
                   </div>
-                  <button onClick={() => removeStudent(s.id)} className="rounded-md bg-red-500/15 px-3 py-1.5 text-xs font-bold text-red-400 hover:bg-red-500/25">
-                    Remove
-                  </button>
+                  <div className="flex shrink-0 gap-2">
+                    <button
+                      onClick={() => setCertificateFor(s)}
+                      className="flex items-center gap-1.5 rounded-md bg-[var(--gold)]/15 px-3 py-1.5 text-xs font-bold text-[var(--gold)] hover:bg-[var(--gold)]/25"
+                    >
+                      <Award className="h-3.5 w-3.5" /> Certificate
+                    </button>
+                    <button onClick={() => removeStudent(s.id)} className="rounded-md bg-red-500/15 px-3 py-1.5 text-xs font-bold text-red-400 hover:bg-red-500/25">
+                      Remove
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -534,7 +549,172 @@ function ClassDetail({ klass, onBack }: { klass: ClassRow; onBack: () => void })
         </>
       )}
 
+      {detailTab === 'attendance' && <AttendanceManager classId={klass.id} students={students} />}
       {detailTab === 'work' && <ClassWorkTab classId={klass.id} />}
+
+      {certificateFor && (
+        <CertificateModal student={certificateFor} className={klass.name} teacherName={teacherName} onClose={() => setCertificateFor(null)} />
+      )}
+    </div>
+  )
+}
+
+function todayDateKey(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function AttendanceManager({ classId, students }: { classId: string; students: StudentRow[] }) {
+  const [date, setDate] = useState(todayDateKey())
+  const [present, setPresent] = useState<Record<string, boolean>>({})
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    setLoading(true)
+    listAttendanceForDate(classId, date).then((rows) => {
+      const marked = new Map(rows.map((r) => [r.student_id, r.present]))
+      // Default to present for anyone not yet marked today - it's rarer to be absent.
+      setPresent(Object.fromEntries(students.map((s) => [s.id, marked.get(s.id) ?? true])))
+      setLoading(false)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [classId, date, students.length])
+
+  const save = async () => {
+    setSaving(true)
+    setSaved(false)
+    try {
+      await saveAttendance(
+        classId,
+        date,
+        students.map((s) => ({ student_id: s.id, present: present[s.id] ?? true })),
+      )
+      haptics.success()
+      playClick()
+      setSaved(true)
+      window.setTimeout(() => setSaved(false), 2000)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const presentCount = Object.values(present).filter(Boolean).length
+
+  return (
+    <div className="space-y-4">
+      <div className="panel flex flex-wrap items-center justify-between gap-3 p-5">
+        <div className="flex items-center gap-2">
+          <ClipboardCheck className="h-4 w-4 text-[var(--gold)]" />
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={`${inputClass} w-auto py-2 text-sm`} />
+        </div>
+        <p className="text-sm text-[var(--ink-muted)]">
+          {presentCount} of {students.length} present
+        </p>
+      </div>
+
+      {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
+      {!loading && students.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No students in this class yet.</p>}
+
+      <div className="space-y-2">
+        {students.map((s) => (
+          <button
+            key={s.id}
+            onClick={() => setPresent((p) => ({ ...p, [s.id]: !p[s.id] }))}
+            className="panel flex w-full items-center justify-between gap-3 p-4 text-left"
+          >
+            <div className="flex items-center gap-3">
+              {s.avatar_url ? (
+                <img src={s.avatar_url} alt="" className="h-9 w-9 rounded-full object-cover" />
+              ) : (
+                <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--hairline-strong)] text-[var(--gold)]">
+                  <User className="h-4 w-4" strokeWidth={1.75} />
+                </span>
+              )}
+              <p className="font-semibold">{s.full_name}</p>
+            </div>
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-bold ${present[s.id] ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/15 text-red-400'}`}
+            >
+              {present[s.id] ? 'Present' : 'Absent'}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {students.length > 0 && (
+        <button onClick={save} disabled={saving} className="btn-solid w-full py-3 text-sm">
+          {saving ? 'Saving…' : saved ? 'Saved ✓' : 'Save Attendance'}
+        </button>
+      )}
+    </div>
+  )
+}
+
+function CertificateModal({
+  student,
+  className,
+  teacherName,
+  onClose,
+}: {
+  student: StudentRow
+  className: string
+  teacherName: string
+  onClose: () => void
+}) {
+  const [achievement, setAchievement] = useState(`For outstanding dedication and growth in ${className}.`)
+  const [url, setUrl] = useState<string | null>(null)
+  const [rendering, setRendering] = useState(false)
+
+  const generate = async () => {
+    setRendering(true)
+    try {
+      setUrl(
+        await renderCertificatePng({
+          studentName: student.full_name,
+          className,
+          teacherName,
+          achievement: achievement.trim() || 'For outstanding dedication and growth.',
+          churchName: "MFM Children's Ministry",
+          date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+        }),
+      )
+    } finally {
+      setRendering(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-[var(--ink-panel)] p-5" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-3 flex items-center justify-between">
+          <p className="font-display text-lg font-bold">Certificate for {student.full_name}</p>
+          <button onClick={onClose} className="text-[var(--ink-muted)] hover:text-[var(--fg)]">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {url ? (
+          <div className="space-y-3">
+            <img src={url} alt="Certificate preview" className="w-full rounded-lg border border-[var(--hairline-strong)]" />
+            <a href={url} download={`${student.full_name.replace(/\s+/g, '-')}-certificate.png`} className="btn-solid block w-full text-center text-sm">
+              Download Certificate
+            </a>
+            <button onClick={() => setUrl(null)} className="btn-outline w-full py-2 text-sm">
+              Edit Text
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <label className="text-xs font-bold uppercase tracking-wide text-[var(--ink-muted)]">Achievement text</label>
+            <textarea value={achievement} onChange={(e) => setAchievement(e.target.value)} rows={3} className={`${inputClass} resize-none`} />
+            <button onClick={generate} disabled={rendering} className="btn-solid w-full py-3 text-sm">
+              {rendering ? 'Generating…' : 'Generate Certificate'}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

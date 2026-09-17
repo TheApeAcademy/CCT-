@@ -200,6 +200,29 @@ export async function listStudentsInClass(classId: string): Promise<StudentRow[]
   })) as StudentRow[]
 }
 
+// ---------- attendance ----------
+
+export interface AttendanceRow {
+  student_id: string
+  date: string
+  present: boolean
+}
+
+export async function listAttendanceForDate(classId: string, date: string): Promise<AttendanceRow[]> {
+  const { data, error } = await supabase.from('attendance').select('student_id, date, present').eq('class_id', classId).eq('date', date)
+  if (error) throw error
+  return (data ?? []) as AttendanceRow[]
+}
+
+export async function saveAttendance(classId: string, date: string, records: { student_id: string; present: boolean }[]) {
+  const { data: auth } = await supabase.auth.getUser()
+  const { error } = await supabase.from('attendance').upsert(
+    records.map((r) => ({ class_id: classId, date, student_id: r.student_id, present: r.present, marked_by: auth.user?.id ?? null })),
+    { onConflict: 'class_id,student_id,date' },
+  )
+  if (error) throw error
+}
+
 export async function moveStudent(studentId: string, newClassId: string | null) {
   const { error } = await supabase.rpc('move_student', { p_student_id: studentId, p_new_class_id: newClassId })
   if (error) throw error

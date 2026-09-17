@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { useReducedMotion, motion, AnimatePresence } from 'framer-motion'
-import { User } from 'lucide-react'
+import { User, Globe, Lock } from 'lucide-react'
 import { playClick } from '../lib/sound'
 
 export type VillageTab = 'home' | 'class' | 'bible' | 'leaderboard' | 'profile' | 'messages' | 'ears' | 'game'
@@ -41,6 +42,10 @@ const BUILDINGS: Building[] = [
 
 const BY_ID = Object.fromEntries(BUILDINGS.map((b) => [b.id, b])) as Record<VillageTab, Building>
 
+// Not a real destination yet - no VillageTab, no onNavigate. Sits on open
+// grass past the pond, past My Card, so it reads as "further out" on the map.
+const COMING_SOON_SPOT = { label: 'Bible World Map', x: 58, y: 42 }
+
 export default function VillageMap({
   active,
   onNavigate,
@@ -52,6 +57,7 @@ export default function VillageMap({
 }) {
   const reduced = useReducedMotion()
   const avatarAt = BY_ID[active] ?? BY_ID.home
+  const [showComingSoon, setShowComingSoon] = useState(false)
 
   return (
     <div className="relative w-full" style={{ aspectRatio: '24 / 43' }}>
@@ -111,6 +117,43 @@ export default function VillageMap({
           </div>
         )
       })}
+
+      {/* ---------- coming soon: Bible World Map ---------- */}
+      <div
+        className="absolute -translate-x-1/2 -translate-y-1/2"
+        style={{ left: `${COMING_SOON_SPOT.x}%`, top: `${COMING_SOON_SPOT.y}%` }}
+      >
+        <button
+          type="button"
+          onClick={() => {
+            playClick()
+            setShowComingSoon(true)
+            setTimeout(() => setShowComingSoon(false), 1600)
+          }}
+          aria-label={`${COMING_SOON_SPOT.label} - coming soon`}
+          className="relative flex h-12 w-12 items-center justify-center rounded-full border-2 border-dashed border-white/70 bg-black/30 opacity-80 shadow-md transition active:scale-90 sm:h-14 sm:w-14"
+        >
+          <Globe className="h-5 w-5 text-white sm:h-6 sm:w-6" strokeWidth={1.75} />
+          <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full border border-white/70 bg-[var(--ink-panel)]">
+            <Lock className="h-2.5 w-2.5" strokeWidth={2.25} />
+          </span>
+        </button>
+        <span className="absolute left-1/2 top-full -translate-x-1/2 whitespace-nowrap rounded-full border border-white/70 bg-white/90 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide text-[var(--lp-heading)] shadow-md sm:text-xs" style={{ marginTop: '4px' }}>
+          Coming Soon
+        </span>
+        <AnimatePresence>
+          {showComingSoon && (
+            <motion.div
+              initial={{ opacity: 0, y: 6, scale: 0.9 }}
+              animate={{ opacity: 1, y: -6, scale: 1 }}
+              exit={{ opacity: 0, y: -14, scale: 0.9 }}
+              className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-full bg-black/80 px-3 py-1.5 text-[11px] font-bold text-white shadow-lg"
+            >
+              Bible World Map is coming soon!
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* ---------- kid avatar, hops from building to building ---------- */}
       <AnimatePresence>

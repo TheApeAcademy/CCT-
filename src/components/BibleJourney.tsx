@@ -130,6 +130,21 @@ function BookMap({ completedKeys, onOpenBook }: { completedKeys: Set<string>; on
   )
 }
 
+// A flat-design, code-drawn path (no external art needed): stops zigzag
+// left-right down a fixed-width track, connected by a dashed line, each
+// rendered as a chunky flat "button" stone in the Duolingo mold rather
+// than a photoreal image - stays crisp at any size and scales to however
+// many stops a book actually has.
+const TRACK_WIDTH = 260
+const TRACK_CENTER_X = TRACK_WIDTH / 2
+const WAVE_AMPLITUDE = 66
+const ROW_HEIGHT = 112
+const NODE_SIZE = 64
+
+function waveX(idx: number): number {
+  return TRACK_CENTER_X + Math.sin((idx * Math.PI) / 2) * WAVE_AMPLITUDE
+}
+
 function UnitPath({
   bookKey,
   completedKeys,
@@ -141,56 +156,70 @@ function UnitPath({
 }) {
   const book = getJourneyBook(bookKey)
   if (!book) return null
-  const orderedKeys = lessonKeysInOrder(book)
-  let firstIncompleteIdx = orderedKeys.findIndex((k) => !completedKeys.has(k))
-  if (firstIncompleteIdx === -1) firstIncompleteIdx = orderedKeys.length
-  let globalIdx = -1
+  const stops = book.units.flatMap((unit) => unit.lessons.map((lesson) => ({ unit, lesson })))
+  let firstIncompleteIdx = stops.findIndex(({ lesson }) => !completedKeys.has(lesson.key))
+  if (firstIncompleteIdx === -1) firstIncompleteIdx = stops.length
+  const trackHeight = stops.length * ROW_HEIGHT
+
+  const pathD = stops.map((_, i) => `${i === 0 ? 'M' : 'L'} ${waveX(i)} ${i * ROW_HEIGHT + NODE_SIZE / 2}`).join(' ')
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <p className="eyebrow">{book.title}</p>
-      {book.units.map((unit) => (
-        <div key={unit.key} className="space-y-2">
-          <p className="flex items-center gap-2 text-sm font-bold">
-            <span>{unit.emoji}</span> {unit.title}
-            {unit.kind === 'topical' && <span className="text-[10px] font-bold uppercase text-[var(--ink-muted)]">Big Truths</span>}
-          </p>
-          <div className="space-y-1.5 border-l-2 border-[var(--lp-hairline)] pl-4">
-            {unit.lessons.map((lesson) => {
-              globalIdx += 1
-              const isDone = completedKeys.has(lesson.key)
-              const isNext = globalIdx === firstIncompleteIdx
-              const isLocked = !isDone && !isNext
-              return (
-                <button
-                  key={lesson.key}
-                  disabled={isLocked}
-                  onClick={() => {
-                    playClick()
-                    onOpenLesson(lesson.key)
-                  }}
-                  className={`flex w-full items-center gap-3 rounded-md p-3 text-left transition ${
-                    isLocked ? 'opacity-40' : 'hover:scale-[1.01]'
-                  }`}
-                  style={{ background: isDone || isNext ? `color-mix(in srgb, ${ACCENT} 10%, transparent)` : 'transparent' }}
-                >
-                  <span
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold"
-                    style={{ background: isDone ? ACCENT : isNext ? `color-mix(in srgb, ${ACCENT} 30%, transparent)` : 'transparent', color: isDone ? '#fff' : undefined }}
-                  >
-                    {isDone ? <Check className="h-4 w-4" /> : isLocked ? <Lock className="h-3.5 w-3.5" /> : globalIdx + 1}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-bold">{lesson.title}</p>
-                    <p className="text-[11px] text-[var(--ink-muted)]">{lesson.reference}</p>
-                  </div>
-                  {lesson.image && <img src={lesson.image} alt="" className="h-10 w-10 shrink-0 rounded-md object-cover" />}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      ))}
+      <div className="relative mx-auto" style={{ width: TRACK_WIDTH, height: trackHeight }}>
+        <svg className="absolute inset-0" width={TRACK_WIDTH} height={trackHeight} viewBox={`0 0 ${TRACK_WIDTH} ${trackHeight}`}>
+          <path d={pathD} fill="none" stroke="var(--lp-hairline-strong)" strokeWidth={6} strokeLinecap="round" strokeDasharray="2 14" />
+        </svg>
+        {stops.map(({ unit, lesson }, i) => {
+          const isDone = completedKeys.has(lesson.key)
+          const isNext = i === firstIncompleteIdx
+          const isLocked = !isDone && !isNext
+          const fill = isLocked ? 'var(--lp-hairline-strong)' : ACCENT
+          return (
+            <div
+              key={lesson.key}
+              className="absolute flex flex-col items-center"
+              style={{ left: waveX(i), top: i * ROW_HEIGHT + NODE_SIZE / 2, transform: 'translate(-50%, -50%)', width: 150 }}
+            >
+              <button
+                disabled={isLocked}
+                onClick={() => {
+                  playClick()
+                  onOpenLesson(lesson.key)
+                }}
+                className="relative flex shrink-0 items-center justify-center rounded-full text-2xl transition disabled:cursor-not-allowed"
+                style={{
+                  width: NODE_SIZE,
+                  height: NODE_SIZE,
+                  background: fill,
+                  boxShadow: isLocked
+                    ? 'inset 0 -4px 0 rgba(0,0,0,0.18)'
+                    : `0 4px 0 color-mix(in srgb, ${ACCENT} 55%, black), inset 0 3px 0 rgba(255,255,255,0.35)`,
+                }}
+              >
+                {isDone ? (
+                  <Check className="h-7 w-7 text-white" strokeWidth={3} />
+                ) : isLocked ? (
+                  <Lock className="h-6 w-6 text-white/70" />
+                ) : (
+                  <span>{unit.emoji}</span>
+                )}
+                {lesson.image && (
+                  <img
+                    src={lesson.image}
+                    alt=""
+                    className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full border-2 border-[var(--ink)] object-cover"
+                  />
+                )}
+              </button>
+              <p className={`mt-2 text-center text-[11px] font-bold leading-tight ${isLocked ? 'text-[var(--ink-muted)]' : ''}`}>
+                {unit.title}
+                {unit.kind === 'topical' && <span className="ml-1 text-[9px] uppercase text-[var(--ink-muted)]">Big Truths</span>}
+              </p>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }

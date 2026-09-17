@@ -162,6 +162,7 @@ const noah: JourneyUnit = {
       key: 'genesis-noah',
       title: 'Noah and the Flood',
       reference: 'Genesis 6:1-9:17',
+      image: '/journey/noah-building-ark.jpg',
       sections: [
         {
           cards: [
@@ -266,6 +267,7 @@ const abraham: JourneyUnit = {
       key: 'genesis-abraham',
       title: 'Abraham: Called, Promised, Tested',
       reference: 'Genesis 12:1-22:18',
+      image: '/journey/abraham-isaac-ram-provided.jpg',
       sections: [
         {
           cards: [
@@ -368,6 +370,7 @@ const jacob: JourneyUnit = {
       key: 'genesis-jacob',
       title: 'Jacob: Trickery to Israel',
       reference: 'Genesis 25:19-32:32',
+      image: '/journey/jacob-ladder-dream.jpg',
       sections: [
         {
           cards: [

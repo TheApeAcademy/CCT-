@@ -97,6 +97,83 @@ function rockStyle(idx: number): React.CSSProperties {
   return { borderRadius: ROCK_RADIUS[idx % ROCK_RADIUS.length], transform: `rotate(${rotate}deg) translateX(${indent}px)` }
 }
 
+// No dedicated cover exists per book (only Genesis has real content so far) -
+// cycles through the app's existing Bible-scene art so every tile still
+// looks like a real book cover, same trick as the Sunday School calendar.
+const BOOK_COVER_IMAGES = [
+  '/journey/adam-eve-garden-home.jpg',
+  '/journey/noah-building-ark.jpg',
+  '/journey/tower-of-babel.jpg',
+  '/journey/abraham-isaac-ram-provided.jpg',
+  '/journey/jacob-ladder-dream.jpg',
+  '/journey/cain-abel-offerings.jpg',
+  '/journey/noah-dove-olive-branch.jpg',
+  '/journey/adam-eve-first-sin.jpg',
+  '/feature-bible.png',
+  '/hero-bible.jpg',
+  '/mfm-wuye-building.jpg',
+]
+
+function BookSquircle({
+  title,
+  image,
+  subtitle,
+  badge,
+  locked,
+  onClick,
+}: {
+  title: string
+  image: string
+  subtitle?: string
+  badge?: string
+  locked?: boolean
+  onClick?: () => void
+}) {
+  const isMascotPng = image.endsWith('.png')
+  const content = (
+    <>
+      {isMascotPng ? (
+        <div className="flex h-full w-full items-center justify-center" style={{ background: `color-mix(in srgb, ${ACCENT} 16%, var(--ink-panel))` }}>
+          <img src={image} alt="" className={`h-2/3 w-2/3 object-contain ${locked ? 'opacity-40' : ''}`} />
+        </div>
+      ) : (
+        <img src={image} alt="" className={`h-full w-full object-cover ${locked ? 'opacity-40' : ''}`} />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+      {locked ? (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-black/55">
+            <Lock className="h-4 w-4 text-white" />
+          </span>
+        </div>
+      ) : (
+        badge && (
+          <span
+            className="absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full text-base"
+            style={{ background: `color-mix(in srgb, ${ACCENT} 30%, black)` }}
+          >
+            {badge}
+          </span>
+        )
+      )}
+      <div className="absolute inset-x-0 bottom-0 p-3">
+        <p className="font-display text-sm font-extrabold leading-tight text-white drop-shadow">{title}</p>
+        {subtitle && <p className="text-[10px] font-semibold text-white/80">{subtitle}</p>}
+      </div>
+    </>
+  )
+  const className = `relative aspect-square overflow-hidden rounded-[28px] bg-[var(--ink-panel)] text-left transition ${
+    locked ? 'opacity-70' : 'hover:scale-[1.02]'
+  }`
+  return onClick ? (
+    <button onClick={onClick} className={className}>
+      {content}
+    </button>
+  ) : (
+    <div className={className}>{content}</div>
+  )
+}
+
 function BookMap({
   completedKeys,
   onOpenBook,
@@ -140,45 +217,34 @@ function BookMap({
             Walk through the Bible one book at a time, learning the stories, the people, and what they teach - at your own pace.
           </p>
           <div
-            className="-mx-4 space-y-3 px-4 py-3"
-            style={{ backgroundImage: 'radial-gradient(var(--ink-faint) 1px, transparent 1px)', backgroundSize: '22px 22px' }}
+            className="-mx-4 grid gap-3 px-4 py-3"
+            style={{
+              gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+              backgroundImage: 'radial-gradient(var(--ink-faint) 1px, transparent 1px)',
+              backgroundSize: '22px 22px',
+            }}
           >
-            {BIBLE_BOOK_ORDER.map((title) => {
+            {BIBLE_BOOK_ORDER.map((title, i) => {
               const key = slugifyBookTitle(title)
               const book = getJourneyBook(key)
+              const cover = BOOK_COVER_IMAGES[i % BOOK_COVER_IMAGES.length]
               if (!book) {
-                return (
-                  <div key={key} className="panel flex items-center justify-between rounded-[28px] p-4 opacity-40">
-                    <p className="font-bold">{title}</p>
-                    <span className="text-xs font-bold text-[var(--ink-muted)]">Coming soon</span>
-                  </div>
-                )
+                return <BookSquircle key={key} title={title} image={cover} locked />
               }
               const total = lessonKeysInOrder(book).length
               const done = bookProgressCount(book, completedKeys)
               return (
-                <button
+                <BookSquircle
                   key={key}
+                  title={book.title}
+                  image={cover}
+                  subtitle={`${done}/${total} lessons`}
+                  badge={done === total ? '👑' : '📖'}
                   onClick={() => {
                     playClick()
                     onOpenBook(key)
                   }}
-                  className="panel flex w-full items-center justify-between rounded-[28px] p-4 text-left transition hover:scale-[1.01]"
-                  style={{ borderColor: done > 0 ? ACCENT : undefined }}
-                >
-                  <div>
-                    <p className="font-display font-bold">{book.title}</p>
-                    <p className="text-xs text-[var(--ink-muted)]">
-                      {done}/{total} lessons complete
-                    </p>
-                  </div>
-                  <span
-                    className="flex h-9 w-9 items-center justify-center rounded-full text-lg"
-                    style={{ background: `color-mix(in srgb, ${ACCENT} 18%, transparent)` }}
-                  >
-                    {done === total ? '👑' : '📖'}
-                  </span>
-                </button>
+                />
               )
             })}
           </div>
@@ -217,13 +283,13 @@ function CharacterBrowse({
                 playClick()
                 onOpenLesson(book.key, lesson.key)
               }}
-              className="relative flex aspect-[4/3] flex-col items-start justify-end overflow-hidden p-3 text-left transition hover:scale-[1.02]"
+              className="relative flex aspect-square flex-col items-center justify-end overflow-hidden p-3 text-center transition hover:scale-[1.02]"
               style={rockStyle(i)}
             >
               {lesson.image ? (
                 <>
                   <img src={lesson.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
                 </>
               ) : (
                 <div
@@ -233,8 +299,10 @@ function CharacterBrowse({
                   {unit.emoji}
                 </div>
               )}
-              <p className="relative z-10 text-sm font-bold leading-tight text-white drop-shadow">{unit.title}</p>
-              <p className="relative z-10 text-[10px] text-white/80">{book.title}</p>
+              <p className="font-display relative z-10 text-lg font-extrabold uppercase leading-tight tracking-wide text-white drop-shadow-lg">
+                {unit.title}
+              </p>
+              <p className="relative z-10 text-[10px] font-semibold text-white/80">{book.title}</p>
               {isDone && (
                 <span className="absolute right-2.5 top-2.5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-white/90">
                   <Check className="h-3.5 w-3.5" style={{ color: ACCENT }} />
@@ -434,10 +502,20 @@ function CurrentLessonCard({
       <span className="text-[10px] text-[var(--ink-muted)]">{label}</span>
     </div>
   )
-  const statsBlock = (
-    <div className="space-y-1.5">
+  // Two separate stacked cards, Duolingo-style: a Leaderboard card with a
+  // headline + rank, then a Daily Quests style card with streak/points and
+  // an "up next" progress line - instead of one merged stats block.
+  const leaderboardCard = (
+    <div className="panel space-y-1.5 p-4">
+      <p className="eyebrow">Leaderboard</p>
+      <p className="font-display text-sm font-extrabold">{stats?.rank ? `You're #${stats.rank}!` : 'Climb the leaderboard!'}</p>
+      <p className="text-[11px] text-[var(--ink-muted)]">Keep completing lessons to move up.</p>
+    </div>
+  )
+  const questsCard = (
+    <div className="panel space-y-1.5 p-4">
+      <p className="eyebrow">Daily Quests</p>
       {stat(<Flame className="h-4 w-4 text-orange-500" />, 'day streak', stats?.streak ?? '–')}
-      {stat(<Trophy className="h-4 w-4 text-amber-500" />, 'on leaderboard', stats?.rank ? `#${stats.rank}` : '–')}
       {stat(<Coins className="h-4 w-4 text-yellow-500" />, 'points', stats?.points ?? '–')}
       <p className="border-t border-[var(--lp-hairline)] pt-1.5 text-[11px] text-[var(--ink-muted)]">
         Up next: <span className="font-bold text-[var(--lp-heading)]">{lesson.title}</span> · {lesson.sections.length} sections · {totalQuestions} questions
@@ -459,7 +537,16 @@ function CurrentLessonCard({
     )
   }
 
-  return <div className="panel space-y-3 p-3">{layout === 'left' ? [portrait, start] : [statsBlock]}</div>
+  if (layout === 'right') {
+    return (
+      <div className="space-y-3">
+        {leaderboardCard}
+        {questsCard}
+      </div>
+    )
+  }
+
+  return <div className="panel space-y-3 p-3">{[portrait, start]}</div>
 }
 
 type LearnStep = { kind: 'card'; text: string; emoji: string; ref: string; image?: string } | { kind: 'groupcheck'; check: JourneyCheckCard }

@@ -36,6 +36,7 @@ export default function KidsShell({ eyebrow }: { eyebrow: string }) {
         <Link to="/" className="text-xs text-[var(--lp-faint)] transition hover:text-[var(--lp-muted)]">
           &larr; MFM Children&apos;s Ministry
         </Link>
+        <p className="mt-1 text-[10px] text-[var(--lp-faint)]">Built by Zebraish</p>
       </footer>
     </div>
   )

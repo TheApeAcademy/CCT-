@@ -1177,6 +1177,8 @@ function ProfileTab({ student, klass, onSaved }: { student: StudentRow; klass: (
           )}
         </div>
       </div>
+
+      <p className="text-center text-[10px] text-[var(--ink-faint)]">Built by Zebraish</p>
     </div>
   )
 }

@@ -336,6 +336,29 @@ export async function getLeaderboard(limit = 50): Promise<LeaderboardRow[]> {
   return (data ?? []) as LeaderboardRow[]
 }
 
+export interface ClassLeaderboardRow {
+  class_id: string
+  class_name: string
+  total_points: number
+  student_count: number
+}
+
+/** Rolls student rows up into class totals, for Feature 4's "Class vs Class" view. */
+export function aggregateClassLeaderboard(rows: LeaderboardRow[]): ClassLeaderboardRow[] {
+  const byClass = new Map<string, ClassLeaderboardRow>()
+  for (const r of rows) {
+    if (!r.class_id) continue
+    const existing = byClass.get(r.class_id)
+    if (existing) {
+      existing.total_points += r.total_points
+      existing.student_count += 1
+    } else {
+      byClass.set(r.class_id, { class_id: r.class_id, class_name: r.class_name ?? 'Unnamed Class', total_points: r.total_points, student_count: 1 })
+    }
+  }
+  return Array.from(byClass.values()).sort((a, b) => b.total_points - a.total_points)
+}
+
 export async function recordQuizAttempt(params: { class_id?: string | null; season_id?: string | null; set_name: string; points: number; correct_count: number; total_questions: number }) {
   const { data: auth } = await supabase.auth.getUser()
   if (!auth.user) return

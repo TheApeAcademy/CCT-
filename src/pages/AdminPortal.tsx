@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ShieldCheck,
@@ -44,6 +44,7 @@ import {
   listPlanReadings,
   addBibleReading,
   getLeaderboard,
+  aggregateClassLeaderboard,
   listMinistryEvents,
   createMinistryEvent,
   updateMinistryEvent,
@@ -147,12 +148,17 @@ function AdminDashboard() {
 function QuizTab() {
   const [rows, setRows] = useState<LeaderboardRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [board, setBoard] = useState<'students' | 'classes'>('students')
 
   useEffect(() => {
-    getLeaderboard(20)
+    // High enough to be "everyone" for any realistic church - the class
+    // totals below would silently undercount if this were capped low.
+    getLeaderboard(1000)
       .then(setRows)
       .finally(() => setLoading(false))
   }, [])
+
+  const classRows = useMemo(() => aggregateClassLeaderboard(rows), [rows])
 
   return (
     <div className="space-y-4">
@@ -161,20 +167,48 @@ function QuizTab() {
         <QuizLink to="/history" icon={Trophy} title="History" description="Every completed match, team score, and full recap." />
       </div>
       <div className="panel p-5">
-        <p className="eyebrow mb-3">Ministry Leaderboard</p>
+        <div className="mb-3 flex items-center justify-between">
+          <p className="eyebrow">Ministry Leaderboard</p>
+          <div className="flex gap-1.5">
+            {(['students', 'classes'] as const).map((b) => (
+              <button
+                key={b}
+                onClick={() => setBoard(b)}
+                className="rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide transition"
+                style={{
+                  background: board === b ? 'var(--gold)' : 'var(--ink-panel)',
+                  color: board === b ? '#000' : 'var(--ink-muted)',
+                }}
+              >
+                {b === 'students' ? 'Students' : 'Class vs Class'}
+              </button>
+            ))}
+          </div>
+        </div>
         {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
         {!loading && rows.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No quiz results recorded yet.</p>}
         <div className="space-y-1.5">
-          {rows.map((r, i) => (
-            <div key={r.student_id} className="flex items-center justify-between rounded-md px-3 py-2 text-sm odd:bg-[var(--ink-panel)]">
-              <span className="flex min-w-0 items-center gap-2">
-                <span className="w-6 shrink-0 font-bold text-[var(--ink-muted)]">{i + 1}</span>
-                <span className="truncate font-semibold">{r.full_name}</span>
-                {r.class_name && <span className="shrink-0 text-xs text-[var(--ink-faint)]">· {r.class_name}</span>}
-              </span>
-              <span className="shrink-0 font-bold text-[var(--gold)]">{r.total_points.toLocaleString()} pts</span>
-            </div>
-          ))}
+          {board === 'students'
+            ? rows.slice(0, 20).map((r, i) => (
+                <div key={r.student_id} className="flex items-center justify-between rounded-md px-3 py-2 text-sm odd:bg-[var(--ink-panel)]">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="w-6 shrink-0 font-bold text-[var(--ink-muted)]">{i + 1}</span>
+                    <span className="truncate font-semibold">{r.full_name}</span>
+                    {r.class_name && <span className="shrink-0 text-xs text-[var(--ink-faint)]">· {r.class_name}</span>}
+                  </span>
+                  <span className="shrink-0 font-bold text-[var(--gold)]">{r.total_points.toLocaleString()} pts</span>
+                </div>
+              ))
+            : classRows.map((c, i) => (
+                <div key={c.class_id} className="flex items-center justify-between rounded-md px-3 py-2 text-sm odd:bg-[var(--ink-panel)]">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="w-6 shrink-0 font-bold text-[var(--ink-muted)]">{i + 1}</span>
+                    <span className="truncate font-semibold">{c.class_name}</span>
+                    <span className="shrink-0 text-xs text-[var(--ink-faint)]">· {c.student_count} students</span>
+                  </span>
+                  <span className="shrink-0 font-bold text-[var(--gold)]">{c.total_points.toLocaleString()} pts</span>
+                </div>
+              ))}
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import {
   GraduationCap,
@@ -66,6 +66,7 @@ import {
   addEarsReply,
   addEarsInternalNote,
   getLeaderboard,
+  aggregateClassLeaderboard,
   type TeacherApplication,
   type ClassRow,
   type StudentRow,
@@ -252,15 +253,18 @@ function TeacherDashboard({ profile }: { profile: Profile | null }) {
 function QuizTab() {
   const [rows, setRows] = useState<LeaderboardRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [board, setBoard] = useState<'students' | 'classes'>('students')
 
   useEffect(() => {
-    Promise.all([listMyClasses(), getLeaderboard(500)])
+    Promise.all([listMyClasses(), getLeaderboard(1000)])
       .then(([classes, leaderboard]) => {
         const myClassIds = new Set(classes.map((c) => c.id))
         setRows(leaderboard.filter((r) => r.class_id && myClassIds.has(r.class_id)))
       })
       .finally(() => setLoading(false))
   }, [])
+
+  const classRows = useMemo(() => aggregateClassLeaderboard(rows), [rows])
 
   return (
     <div className="space-y-4">
@@ -270,20 +274,50 @@ function QuizTab() {
         <QuizLink to="/history" icon={Trophy} title="History" description="Every completed match, team score, and full recap." />
       </div>
       <div className="panel p-5">
-        <p className="eyebrow mb-3">Your Classes' Leaderboard</p>
+        <div className="mb-3 flex items-center justify-between">
+          <p className="eyebrow">Your Classes' Leaderboard</p>
+          {classRows.length > 1 && (
+            <div className="flex gap-1.5">
+              {(['students', 'classes'] as const).map((b) => (
+                <button
+                  key={b}
+                  onClick={() => setBoard(b)}
+                  className="rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide transition"
+                  style={{
+                    background: board === b ? 'var(--gold)' : 'var(--ink-panel)',
+                    color: board === b ? '#000' : 'var(--ink-muted)',
+                  }}
+                >
+                  {b === 'students' ? 'Students' : 'Class vs Class'}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
         {!loading && rows.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No quiz results recorded yet for your students.</p>}
         <div className="space-y-1.5">
-          {rows.map((r, i) => (
-            <div key={r.student_id} className="flex items-center justify-between rounded-md px-3 py-2 text-sm odd:bg-[var(--ink-panel)]">
-              <span className="flex min-w-0 items-center gap-2">
-                <span className="w-6 shrink-0 font-bold text-[var(--ink-muted)]">{i + 1}</span>
-                <span className="truncate font-semibold">{r.full_name}</span>
-                {r.class_name && <span className="shrink-0 text-xs text-[var(--ink-faint)]">· {r.class_name}</span>}
-              </span>
-              <span className="shrink-0 font-bold text-[var(--gold)]">{r.total_points.toLocaleString()} pts</span>
-            </div>
-          ))}
+          {board === 'students' || classRows.length <= 1
+            ? rows.map((r, i) => (
+                <div key={r.student_id} className="flex items-center justify-between rounded-md px-3 py-2 text-sm odd:bg-[var(--ink-panel)]">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="w-6 shrink-0 font-bold text-[var(--ink-muted)]">{i + 1}</span>
+                    <span className="truncate font-semibold">{r.full_name}</span>
+                    {r.class_name && <span className="shrink-0 text-xs text-[var(--ink-faint)]">· {r.class_name}</span>}
+                  </span>
+                  <span className="shrink-0 font-bold text-[var(--gold)]">{r.total_points.toLocaleString()} pts</span>
+                </div>
+              ))
+            : classRows.map((c, i) => (
+                <div key={c.class_id} className="flex items-center justify-between rounded-md px-3 py-2 text-sm odd:bg-[var(--ink-panel)]">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="w-6 shrink-0 font-bold text-[var(--ink-muted)]">{i + 1}</span>
+                    <span className="truncate font-semibold">{c.class_name}</span>
+                    <span className="shrink-0 text-xs text-[var(--ink-faint)]">· {c.student_count} students</span>
+                  </span>
+                  <span className="shrink-0 font-bold text-[var(--gold)]">{c.total_points.toLocaleString()} pts</span>
+                </div>
+              ))}
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -62,6 +62,7 @@ import {
   updateMyStudentProfile,
   getMyClass,
   getLeaderboard,
+  aggregateClassLeaderboard,
   getOrCreateConversation,
   listMessages,
   sendMessage,
@@ -377,7 +378,7 @@ function Dashboard() {
               {tab === 'home' && <HomeTab student={student} klass={klass} achievements={achievements} onNavigate={enterTab} />}
               {tab === 'class' && <ClassTab klass={klass} student={student} onNestedViewChange={setHideMapBack} />}
               {tab === 'bible' && <SundaySchoolTab klass={klass} onNestedViewChange={setHideMapBack} />}
-              {tab === 'leaderboard' && <LeaderboardTab myId={student?.id ?? null} />}
+              {tab === 'leaderboard' && <LeaderboardTab myId={student?.id ?? null} myClassId={klass?.id ?? null} />}
               {tab === 'profile' && student && <ProfileTab student={student} klass={klass} onSaved={load} />}
               {tab === 'messages' &&
                 (klass ? (
@@ -1652,46 +1653,93 @@ function SundayLessonCard({ date, title, image, locked }: { date: Date; title: s
   )
 }
 
-function LeaderboardTab({ myId }: { myId: string | null }) {
+function LeaderboardTab({ myId, myClassId }: { myId: string | null; myClassId: string | null }) {
   const [rows, setRows] = useState<LeaderboardRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [mode, setMode] = useState<'students' | 'classes'>('students')
 
   useEffect(() => {
-    getLeaderboard().then(setRows).finally(() => setLoading(false))
+    // High enough to be "everyone" for any realistic church - class totals
+    // below would silently undercount if this were capped at the default 50.
+    getLeaderboard(1000).then(setRows).finally(() => setLoading(false))
   }, [])
+
+  const classRows = useMemo(() => aggregateClassLeaderboard(rows), [rows])
 
   if (loading) return <p className="text-sm text-[var(--ink-muted)]">Loading…</p>
   if (rows.length === 0) return <p className="text-sm text-[var(--ink-muted)]">No quiz points recorded yet. Be the first to play!</p>
 
   return (
-    <div
-      className="space-y-2 rounded-2xl p-4"
-      style={{
-        background: 'linear-gradient(135deg, color-mix(in srgb, var(--lp-accent-leaderboard) 70%, #180a2e) 0%, color-mix(in srgb, var(--lp-accent-leaderboard) 15%, #180a2e) 100%)',
-      }}
-    >
-      {rows.map((r, i) => (
-        <div
-          key={r.student_id}
-          className={`flex items-center justify-between rounded-xl px-4 py-3 ${r.student_id === myId ? 'bg-white/15 ring-1 ring-white/30' : 'bg-white/5'}`}
-        >
-          <div className="flex items-center gap-3">
-            <span className="w-6 text-center font-display font-bold text-white/70">{i + 1}</span>
-            {r.avatar_url ? (
-              <img src={r.avatar_url} alt="" className="h-9 w-9 rounded-full object-cover" />
-            ) : (
-              <span className="flex h-9 w-9 items-center justify-center rounded-full border border-white/25 text-white">
-                <User className="h-4 w-4" strokeWidth={1.75} />
-              </span>
-            )}
-            <div>
-              <p className="font-semibold text-white">{r.full_name}</p>
-              <p className="text-xs text-white/60">{r.class_name}</p>
-            </div>
-          </div>
-          <p className="font-bold text-white">{r.total_points.toLocaleString()}</p>
-        </div>
-      ))}
+    <div className="space-y-3">
+      <div className="flex justify-center gap-2">
+        {(['students', 'classes'] as const).map((m) => (
+          <button
+            key={m}
+            onClick={() => {
+              playClick()
+              setMode(m)
+            }}
+            className="rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-wide transition"
+            style={{
+              background: mode === m ? 'var(--lp-accent-leaderboard)' : 'var(--ink-panel)',
+              color: mode === m ? '#fff' : 'var(--ink-muted)',
+            }}
+          >
+            {m === 'students' ? 'Students' : 'Class vs Class'}
+          </button>
+        ))}
+      </div>
+
+      <div
+        className="space-y-2 rounded-2xl p-4"
+        style={{
+          background: 'linear-gradient(135deg, color-mix(in srgb, var(--lp-accent-leaderboard) 70%, #180a2e) 0%, color-mix(in srgb, var(--lp-accent-leaderboard) 15%, #180a2e) 100%)',
+        }}
+      >
+        {mode === 'students'
+          ? rows.map((r, i) => (
+              <div
+                key={r.student_id}
+                className={`flex items-center justify-between rounded-xl px-4 py-3 ${r.student_id === myId ? 'bg-white/15 ring-1 ring-white/30' : 'bg-white/5'}`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="w-6 text-center font-display font-bold text-white/70">{i + 1}</span>
+                  {r.avatar_url ? (
+                    <img src={r.avatar_url} alt="" className="h-9 w-9 rounded-full object-cover" />
+                  ) : (
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full border border-white/25 text-white">
+                      <User className="h-4 w-4" strokeWidth={1.75} />
+                    </span>
+                  )}
+                  <div>
+                    <p className="font-semibold text-white">{r.full_name}</p>
+                    <p className="text-xs text-white/60">{r.class_name}</p>
+                  </div>
+                </div>
+                <p className="font-bold text-white">{r.total_points.toLocaleString()}</p>
+              </div>
+            ))
+          : classRows.map((c, i) => (
+              <div
+                key={c.class_id}
+                className={`flex items-center justify-between rounded-xl px-4 py-3 ${c.class_id === myClassId ? 'bg-white/15 ring-1 ring-white/30' : 'bg-white/5'}`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="w-6 text-center font-display font-bold text-white/70">{i + 1}</span>
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full border border-white/25 text-white">
+                    <Trophy className="h-4 w-4" strokeWidth={1.75} />
+                  </span>
+                  <div>
+                    <p className="font-semibold text-white">{c.class_name}</p>
+                    <p className="text-xs text-white/60">
+                      {c.student_count} student{c.student_count === 1 ? '' : 's'}
+                    </p>
+                  </div>
+                </div>
+                <p className="font-bold text-white">{c.total_points.toLocaleString()}</p>
+              </div>
+            ))}
+      </div>
     </div>
   )
 }

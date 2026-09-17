@@ -139,13 +139,16 @@ function BookMap({
           <p className="text-sm text-[var(--ink-muted)]">
             Walk through the Bible one book at a time, learning the stories, the people, and what they teach - at your own pace.
           </p>
-          <div className="space-y-3">
-            {BIBLE_BOOK_ORDER.map((title, i) => {
+          <div
+            className="-mx-4 space-y-3 px-4 py-3"
+            style={{ backgroundImage: 'radial-gradient(var(--ink-faint) 1px, transparent 1px)', backgroundSize: '22px 22px' }}
+          >
+            {BIBLE_BOOK_ORDER.map((title) => {
               const key = slugifyBookTitle(title)
               const book = getJourneyBook(key)
               if (!book) {
                 return (
-                  <div key={key} className="panel flex items-center justify-between p-4 opacity-40" style={rockStyle(i)}>
+                  <div key={key} className="panel flex items-center justify-between rounded-[28px] p-4 opacity-40">
                     <p className="font-bold">{title}</p>
                     <span className="text-xs font-bold text-[var(--ink-muted)]">Coming soon</span>
                   </div>
@@ -160,8 +163,8 @@ function BookMap({
                     playClick()
                     onOpenBook(key)
                   }}
-                  className="panel flex w-full items-center justify-between p-4 text-left transition hover:scale-[1.01]"
-                  style={{ borderColor: done > 0 ? ACCENT : undefined, ...rockStyle(i) }}
+                  className="panel flex w-full items-center justify-between rounded-[28px] p-4 text-left transition hover:scale-[1.01]"
+                  style={{ borderColor: done > 0 ? ACCENT : undefined }}
                 >
                   <div>
                     <p className="font-display font-bold">{book.title}</p>
@@ -214,22 +217,29 @@ function CharacterBrowse({
                 playClick()
                 onOpenLesson(book.key, lesson.key)
               }}
-              className="panel flex flex-col items-center gap-2 p-4 text-center transition hover:scale-[1.02]"
+              className="relative flex aspect-[4/3] flex-col items-start justify-end overflow-hidden p-3 text-left transition hover:scale-[1.02]"
               style={rockStyle(i)}
             >
               {lesson.image ? (
-                <img src={lesson.image} alt="" className="h-14 w-14 rounded-full object-cover" />
+                <>
+                  <img src={lesson.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
+                </>
               ) : (
-                <span
-                  className="flex h-14 w-14 items-center justify-center rounded-full text-3xl"
+                <div
+                  className="absolute inset-0 flex items-center justify-center text-5xl"
                   style={{ background: `color-mix(in srgb, ${ACCENT} 18%, transparent)` }}
                 >
                   {unit.emoji}
+                </div>
+              )}
+              <p className="relative z-10 text-sm font-bold leading-tight text-white drop-shadow">{unit.title}</p>
+              <p className="relative z-10 text-[10px] text-white/80">{book.title}</p>
+              {isDone && (
+                <span className="absolute right-2.5 top-2.5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-white/90">
+                  <Check className="h-3.5 w-3.5" style={{ color: ACCENT }} />
                 </span>
               )}
-              <p className="text-sm font-bold leading-tight">{unit.title}</p>
-              <p className="text-[10px] text-[var(--ink-muted)]">{book.title}</p>
-              {isDone && <Check className="h-4 w-4" style={{ color: ACCENT }} />}
             </button>
           )
         })}

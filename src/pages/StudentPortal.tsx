@@ -33,10 +33,10 @@ import {
   Compass,
   GraduationCap,
   ArrowRight,
+  Lock,
   type LucideIcon,
 } from 'lucide-react'
 import { supabase, signOut } from '../lib/supabase'
-import { bibleComUrl } from '../lib/bibleLink'
 import { useMinistryAuth } from '../lib/useMinistryAuth'
 import VillageMap from '../components/VillageMap'
 import BibleJourneyPanel from '../components/BibleJourney'
@@ -55,12 +55,8 @@ import {
   listPublishedAssignments,
   getMySubmission,
   submitAssignment,
-  getTodaysBibleReading,
   getMyBibleStreak,
-  completeBibleReading,
-  haveICompletedReading,
   listMyAchievements,
-  type TodaysReading,
   type EarnedAchievement,
   type StudentRow,
   type LeaderboardRow,
@@ -645,56 +641,6 @@ function HomeLink({
   )
 }
 
-/**
- * Same card treatment as HomeLink, but for a link off the site (SuperBook,
- * Bible.com) - a plain <a target="_blank">, not a router Link. `logoSrc` is
- * an actual brand logo image (e.g. once one is dropped into /public) shown
- * instead of the lucide icon; omit it to fall back to the icon.
- */
-function ExternalLinkCard({
-  href,
-  icon: Icon,
-  logoSrc,
-  accent,
-  title,
-  description,
-}: {
-  href: string
-  icon: typeof Dumbbell
-  logoSrc?: string
-  accent: string
-  title: string
-  description: string
-}) {
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={() => playClick()}
-      className="lp-panel lp-panel-accented lp-panel-interactive flex items-start gap-4 p-5"
-      style={{ ['--card-accent' as string]: accent }}
-    >
-      {logoSrc ? (
-        <img src={logoSrc} alt="" className="h-10 w-10 shrink-0 rounded-xl object-contain" />
-      ) : (
-        <span
-          className="lp-icon-chip flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-          style={{ background: 'color-mix(in srgb, ' + accent + ' 16%, transparent)', color: accent }}
-        >
-          <Icon className="h-5 w-5" strokeWidth={1.75} />
-        </span>
-      )}
-      <div>
-        <p className="lp-heading font-display text-lg font-bold">
-          {title} <span className="text-sm font-normal">↗</span>
-        </p>
-        <p className="mt-1 text-sm text-[var(--lp-body)]">{description}</p>
-      </div>
-    </a>
-  )
-}
-
 function ClassTab({ klass }: { klass: (ClassRow & { teacher_name: string }) | null }) {
   const [assignments, setAssignments] = useState<AssignmentRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -887,24 +833,13 @@ function HugeHeroIcon({
 
 function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string }) | null }) {
   const [journeyOpen, setJourneyOpen] = useState(false)
-  const [reading, setReading] = useState<TodaysReading | null | 'loading'>('loading')
   const [streak, setStreak] = useState(0)
-  const [completed, setCompleted] = useState(false)
-  const [completing, setCompleting] = useState(false)
   const [lessons, setLessons] = useState<LectureRow[]>([])
   const [lessonsLoading, setLessonsLoading] = useState(true)
   const lessonsSectionRef = useRef<HTMLDivElement>(null)
-  const readingSectionRef = useRef<HTMLDivElement>(null)
 
-  const load = () => {
-    getTodaysBibleReading().then((r) => {
-      setReading(r)
-      if (r) haveICompletedReading(r.reading_id).then(setCompleted)
-    })
-    getMyBibleStreak().then(setStreak)
-  }
   useEffect(() => {
-    load()
+    getMyBibleStreak().then(setStreak)
   }, [])
 
   useEffect(() => {
@@ -917,20 +852,6 @@ function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string 
       setLessonsLoading(false)
     })
   }, [klass])
-
-  const markComplete = async () => {
-    if (reading === 'loading' || !reading) return
-    setCompleting(true)
-    try {
-      await completeBibleReading(reading.reading_id)
-      playClick()
-      haptics.success()
-      setCompleted(true)
-      getMyBibleStreak().then(setStreak)
-    } finally {
-      setCompleting(false)
-    }
-  }
 
   if (journeyOpen) {
     return <BibleJourneyPanel onExit={() => setJourneyOpen(false)} />
@@ -963,7 +884,7 @@ function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string 
           left="12%"
           top={160}
           rotate={-9}
-          onClick={() => readingSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          onClick={() => playClick()}
         />
         <HugeHeroIcon
           image="/icons/bible-journey-book.png"
@@ -990,17 +911,9 @@ function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string 
 
       <div ref={lessonsSectionRef} className="mx-auto max-w-2xl space-y-3 px-4">
         <p className="eyebrow">Sunday School Lessons</p>
-        {!klass && (
-          <p className="text-sm text-[var(--ink-muted)]">
-            You&apos;re not in a class yet. Give your Student Code to your Sunday school teacher and they&apos;ll add you.
-          </p>
-        )}
         {klass && lessonsLoading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
-        {klass && !lessonsLoading && (
+        {klass && !lessonsLoading && lessons.length > 0 && (
           <div className="space-y-2">
-            {lessons.length === 0 && (
-              <p className="text-sm text-[var(--ink-muted)]">Nothing here yet. Your teacher hasn&apos;t posted a lesson — check back soon.</p>
-            )}
             {lessons.map((l) => (
               <div key={l.id} className="panel p-4">
                 <p className="font-bold">{l.title}</p>
@@ -1010,56 +923,77 @@ function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string 
             ))}
           </div>
         )}
+
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {SUNDAYS_2026.map((date, i) => {
+            const theme = SUNDAY_LESSON_THEMES[i % SUNDAY_LESSON_THEMES.length]
+            return <SundayLessonCard key={date.toISOString()} date={date} title={theme.title} image={theme.image} locked={date >= LOCK_CUTOFF} />
+          })}
+        </div>
       </div>
+    </div>
+  )
+}
 
-      <div ref={readingSectionRef} className="mx-auto max-w-2xl space-y-3 px-4">
-        <p className="eyebrow">Bible Reading Plan</p>
+const SUNDAY_LESSON_THEMES: { title: string; image: string }[] = [
+  { title: "Creation & God's Love", image: '/journey/adam-eve-garden-home.jpg' },
+  { title: 'Adam and Eve', image: '/journey/adam-eve-first-sin.jpg' },
+  { title: 'Cain and Abel', image: '/journey/cain-abel-offerings.jpg' },
+  { title: "Noah's Ark", image: '/journey/noah-building-ark.jpg' },
+  { title: "God's Promise", image: '/journey/noah-dove-olive-branch.jpg' },
+  { title: 'The Tower of Babel', image: '/journey/tower-of-babel.jpg' },
+  { title: "Abraham's Faith", image: '/journey/abraham-isaac-ram-provided.jpg' },
+  { title: "Jacob's Ladder", image: '/journey/jacob-ladder-dream.jpg' },
+  { title: "Learning God's Word", image: '/feature-bible.png' },
+  { title: 'Sunday Worship', image: '/hero-bible.jpg' },
+  { title: 'Our Church Family', image: '/mfm-wuye-building.jpg' },
+  { title: 'A Message From Pastor', image: '/children-pastor.jpg' },
+  { title: 'Fun in Sunday School', image: '/feature-class.png' },
+  { title: 'Growing Together', image: '/hero-kids.jpg' },
+]
 
-        <ExternalLinkCard
-          href="https://www.bible.com/reading-plans"
-          icon={BookOpen}
-          accent="var(--lp-accent-bible)"
-          title="More Reading Plans"
-          description="Browse hundreds more reading plans on Bible.com."
-        />
+function getSundaysIn2026(): Date[] {
+  const sundays: Date[] = []
+  const d = new Date(2026, 0, 1)
+  d.setDate(d.getDate() + ((7 - d.getDay()) % 7))
+  while (d.getFullYear() === 2026) {
+    sundays.push(new Date(d))
+    d.setDate(d.getDate() + 7)
+  }
+  return sundays
+}
 
-        {reading === 'loading' && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
+const SUNDAYS_2026 = getSundaysIn2026()
+// Sundays from here on haven't actually been taught yet in real life, so they stay locked in this simulated calendar.
+const LOCK_CUTOFF = new Date(2026, 8, 16)
 
-        {reading === null && (
-          <div className="panel p-6 text-center">
-            <p className="font-display text-lg font-bold">No reading plan is active yet</p>
-            <p className="mt-1 text-sm text-[var(--ink-muted)]">Check back soon — your admin sets up the next plan.</p>
-          </div>
-        )}
-
-        {reading && reading !== 'loading' && (
-          <div className="panel space-y-3 p-6">
-            <p className="eyebrow">{reading.plan_title} &middot; Day {reading.day_number}</p>
-            <h2 className="font-display text-2xl font-extrabold">{reading.title}</h2>
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="font-semibold text-[var(--gold)]">{reading.reference}</p>
-              <a
-                href={bibleComUrl(reading.reference)}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => playClick()}
-                className="rounded-full bg-[var(--ink-panel)] px-3 py-1 text-xs font-semibold text-[var(--ink-muted)] transition hover:bg-[var(--ink-raised)]"
-              >
-                Read on Bible.com ↗
-              </a>
-            </div>
-            {reading.passage_text && <p className="whitespace-pre-wrap text-sm leading-relaxed text-[var(--ink-muted)]">{reading.passage_text}</p>}
-            {completed ? (
-              <p className="flex items-center gap-1.5 text-sm font-bold text-emerald-400">
-                <Check className="h-4 w-4" /> Read today. Come back tomorrow to keep your streak!
-              </p>
-            ) : (
-              <button onClick={markComplete} disabled={completing} className="btn-solid w-full py-3">
-                {completing ? 'Saving…' : 'Mark as Read'}
-              </button>
-            )}
-          </div>
-        )}
+function SundayLessonCard({ date, title, image, locked }: { date: Date; title: string; image: string; locked: boolean }) {
+  const isMascotPng = image.endsWith('.png')
+  return (
+    <div className="relative aspect-square overflow-hidden rounded-2xl bg-[var(--ink-panel)]">
+      {isMascotPng ? (
+        <div
+          className="flex h-full w-full items-center justify-center"
+          style={{ background: 'color-mix(in srgb, var(--lp-accent-bible) 16%, var(--ink-panel))' }}
+        >
+          <img src={image} alt="" className={`h-2/3 w-2/3 object-contain ${locked ? 'opacity-40' : ''}`} />
+        </div>
+      ) : (
+        <img src={image} alt="" className={`h-full w-full object-cover ${locked ? 'opacity-40' : ''}`} />
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/5 to-transparent" />
+      {locked && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-black/55">
+            <Lock className="h-4 w-4 text-white" />
+          </span>
+        </div>
+      )}
+      <div className="absolute inset-x-0 bottom-0 p-2.5">
+        <p className="text-[10px] font-bold uppercase tracking-wide text-white/70">
+          {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+        </p>
+        <p className="text-xs font-bold leading-tight text-white">{title}</p>
       </div>
     </div>
   )

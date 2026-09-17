@@ -232,7 +232,11 @@ function Dashboard() {
               </button>
               <h1 className="font-display text-lg font-extrabold text-[var(--lp-heading)]">{TAB_TITLE[tab]}</h1>
             </div>
-            <div className="mx-auto max-w-2xl p-4 pb-12">
+            <div
+              className={
+                tab === 'bible' || tab === 'game' ? 'mx-auto max-w-4xl pb-12' : 'mx-auto max-w-2xl p-4 pb-12'
+              }
+            >
               {tab === 'home' && <HomeTab student={student} klass={klass} rank={rank} achievements={achievements} onNavigate={enterTab} />}
               {tab === 'class' && <ClassTab klass={klass} />}
               {tab === 'bible' && <SundaySchoolTab klass={klass} />}
@@ -386,62 +390,120 @@ const COMING_SOON_GAMES: { title: string; icon: LucideIcon }[] = [
   { title: 'Brain Teasers', icon: Brain },
 ]
 
-const TRENDING_GAMES: {
+function BentoTile({
+  title,
+  description,
+  icon: Icon,
+  accent,
+  dark,
+  cta,
+  to,
+  href,
+  col,
+  row,
+}: {
   title: string
-  description: string
+  description?: string
   icon: LucideIcon
   accent: string
+  dark: string
+  cta?: string
   to?: string
   href?: string
-}[] = [
-  {
-    title: 'Practice Bible Quiz',
-    description: 'Unlimited solo practice, no pressure, no timer.',
-    icon: Dumbbell,
-    accent: 'var(--lp-accent-training)',
-    to: '/training',
-  },
-  {
-    title: 'SuperBook Games',
-    description: 'More Bible games and adventures on SuperBook.',
-    icon: Gamepad2,
-    accent: 'var(--lp-accent-compete)',
-    href: 'https://id.superbook.cbn.com/games',
-  },
-]
+  col: string
+  row: string
+}) {
+  const big = row === '1 / 3'
+  const content = (
+    <>
+      <span
+        className={`inline-flex items-center justify-center rounded-2xl bg-white/15 ${big ? 'h-12 w-12' : 'h-9 w-9'}`}
+      >
+        <Icon className={big ? 'h-6 w-6 text-white' : 'h-4 w-4 text-white'} strokeWidth={1.75} />
+      </span>
+      <p className={`font-display font-extrabold text-white ${big ? 'mt-3 text-xl' : 'mt-2 text-sm'}`}>{title}</p>
+      {description && <p className="mt-1 max-w-[85%] text-xs text-white/80">{description}</p>}
+      {cta && (to || href) && (
+        <span className="mt-3 inline-flex items-center gap-1 self-start rounded-full bg-white px-3 py-1.5 text-xs font-extrabold" style={{ color: accent }}>
+          {cta} <ArrowRight className="h-3.5 w-3.5" />
+        </span>
+      )}
+    </>
+  )
+  const className = 'relative flex flex-col items-start overflow-hidden p-4 transition hover:scale-[1.015] active:scale-[0.98]'
+  const style: React.CSSProperties = {
+    gridColumn: col,
+    gridRow: row,
+    background: `linear-gradient(135deg, color-mix(in srgb, ${accent} 65%, ${dark}) 0%, color-mix(in srgb, ${accent} 25%, ${dark}) 100%)`,
+  }
+
+  if (to) {
+    return (
+      <Link to={to} onClick={() => playClick()} className={className} style={style}>
+        {content}
+      </Link>
+    )
+  }
+  if (href) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" onClick={() => playClick()} className={className} style={style}>
+        {content}
+      </a>
+    )
+  }
+  return (
+    <div className={className} style={style}>
+      {content}
+    </div>
+  )
+}
 
 function GameTab() {
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 px-3 pt-3 sm:px-4">
       <div
-        className="relative overflow-hidden rounded-2xl p-6"
-        style={{
-          background:
-            'linear-gradient(135deg, color-mix(in srgb, var(--lp-accent-compete) 65%, #180a2e) 0%, color-mix(in srgb, var(--lp-accent-compete) 25%, #180a2e) 100%)',
-        }}
+        className="grid gap-2.5"
+        style={{ gridTemplateColumns: 'repeat(5, 1fr)', gridTemplateRows: '150px 96px' }}
       >
-        <span className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15">
-          <Gamepad2 className="h-7 w-7 text-white" strokeWidth={1.75} />
-        </span>
-        <p className="mt-4 font-display text-2xl font-extrabold text-white">Bible Quiz Live Match</p>
-        <p className="mt-1 max-w-sm text-sm text-white/80">
-          Ask your teacher to start a live match on the big screen for your class! When they do, you&apos;ll join
-          right from here.
-        </p>
-        <Link
+        <BentoTile
+          title="Bible Quiz Live Match"
+          description="Ask your teacher to start a live match! When they do, you'll join right from here."
+          icon={Gamepad2}
+          accent="var(--lp-accent-compete)"
+          dark="#180a2e"
+          cta="Practice Solo"
           to="/training"
-          onClick={() => playClick()}
-          className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-sm font-extrabold text-[var(--lp-accent-compete)] transition hover:scale-[1.03] active:scale-[0.97]"
-        >
-          Practice Solo <ArrowRight className="h-4 w-4" />
-        </Link>
+          col="1 / 4"
+          row="1 / 3"
+        />
+        <BentoTile
+          title="Practice Bible Quiz"
+          description="Unlimited solo practice, no timer."
+          icon={Dumbbell}
+          accent="var(--lp-accent-training)"
+          dark="#0b2e1a"
+          to="/training"
+          col="4 / 6"
+          row="1 / 2"
+        />
+        <BentoTile
+          title="SuperBook Games"
+          icon={Gamepad2}
+          accent="var(--lp-accent-compete)"
+          dark="#180a2e"
+          href="https://id.superbook.cbn.com/games"
+          col="4 / 5"
+          row="2 / 3"
+        />
+        <BentoTile
+          title="Bible Word Search"
+          icon={Grid3x3}
+          accent="var(--ink-faint)"
+          dark="#101014"
+          col="5 / 6"
+          row="2 / 3"
+        />
       </div>
-
-      <GameRow title="Trending Now">
-        {TRENDING_GAMES.map((game) => (
-          <GameTile key={game.title} {...game} />
-        ))}
-      </GameRow>
 
       <GameRow title="More Games Coming Soon">
         {COMING_SOON_GAMES.map(({ title, icon }) => (
@@ -455,8 +517,8 @@ function GameTab() {
 function GameRow({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="eyebrow px-1">{title}</p>
-      <div className="mt-2 flex gap-3 overflow-x-auto px-1 pb-2" style={{ scrollSnapType: 'x mandatory' }}>
+      <p className="eyebrow">{title}</p>
+      <div className="mt-2 flex gap-2.5 overflow-x-auto pb-2" style={{ scrollSnapType: 'x mandatory' }}>
         {children}
       </div>
     </div>
@@ -481,10 +543,10 @@ function GameTile({
   const content = (
     <>
       <span
-        className="flex h-12 w-12 items-center justify-center rounded-2xl"
+        className="flex h-14 w-14 items-center justify-center rounded-2xl"
         style={{ background: `color-mix(in srgb, ${accent} 16%, transparent)`, color: accent }}
       >
-        <Icon className="h-6 w-6" strokeWidth={1.75} />
+        <Icon className="h-7 w-7" strokeWidth={1.75} />
       </span>
       <p className="mt-2 text-xs font-bold leading-tight">{title}</p>
       {comingSoon && (
@@ -494,7 +556,7 @@ function GameTile({
       )}
     </>
   )
-  const className = `flex w-28 shrink-0 flex-col items-center gap-0.5 rounded-2xl border border-[var(--hairline)] bg-[var(--ink-panel)] p-3 text-center ${
+  const className = `flex w-32 shrink-0 flex-col items-center gap-0.5 rounded-2xl border border-[var(--hairline)] bg-[var(--ink-panel)] p-3 text-center ${
     comingSoon ? 'opacity-60' : 'transition hover:scale-[1.05] active:scale-[0.96]'
   }`
   const style: React.CSSProperties = { scrollSnapAlign: 'start' }
@@ -743,39 +805,46 @@ function AssignmentCard({ assignment }: { assignment: AssignmentRow }) {
   )
 }
 
-function HeroTile({
+/**
+ * A huge, freestanding icon that floats directly over the Sunday School
+ * hero photo - no card/panel behind it, positioned by the caller (percentage
+ * `left` + a slight rotation) so a row of these reads as scattered stickers
+ * rather than a uniform grid.
+ */
+function HugeHeroIcon({
   image,
   label,
   value,
+  size,
+  left,
+  rotate,
+  top,
   onClick,
 }: {
   image: string
   label: string
-  value: string
-  onClick?: () => void
+  value?: string
+  size: number
+  left: string
+  rotate: number
+  top: number
+  onClick: () => void
 }) {
-  const Tile = onClick ? 'button' : 'div'
   return (
-    <Tile
+    <button
       onClick={onClick}
-      className={`flex flex-col items-center gap-1.5 rounded-xl p-3 text-center transition ${onClick ? 'hover:scale-[1.04] active:scale-[0.98]' : ''}`}
-      style={{
-        background: 'rgba(255,255,255,0.16)',
-        backdropFilter: 'blur(10px)',
-        WebkitBackdropFilter: 'blur(10px)',
-        border: '1px solid rgba(255,255,255,0.28)',
-        boxShadow: '0 8px 20px -8px rgba(0,0,0,0.35)',
-      }}
+      className="absolute flex flex-col items-center gap-1.5 transition hover:scale-[1.06] active:scale-[0.96]"
+      style={{ left, top, transform: `translateX(-50%) rotate(${rotate}deg)` }}
     >
       <span
-        className="h-11 w-11 overflow-hidden rounded-full border-2 border-white/40"
-        style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}
+        className="overflow-hidden rounded-full border-[3px] border-white"
+        style={{ height: size, width: size, boxShadow: '0 10px 24px -8px rgba(0,0,0,0.5)' }}
       >
         <img src={image} alt="" className="h-full w-full object-cover" />
       </span>
-      <span className="font-display text-sm font-extrabold text-white">{value}</span>
-      <span className="text-[11px] font-semibold text-white/75">{label}</span>
-    </Tile>
+      {value && <span className="font-display text-base font-extrabold text-white drop-shadow-md">{value}</span>}
+      <span className="max-w-[6.5rem] text-center text-[11px] font-bold leading-tight text-white drop-shadow-md">{label}</span>
+    </button>
   )
 }
 
@@ -788,6 +857,7 @@ function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string 
   const [lessons, setLessons] = useState<LectureRow[]>([])
   const [lessonsLoading, setLessonsLoading] = useState(true)
   const lessonsSectionRef = useRef<HTMLDivElement>(null)
+  const readingSectionRef = useRef<HTMLDivElement>(null)
 
   const load = () => {
     getTodaysBibleReading().then((r) => {
@@ -832,39 +902,56 @@ function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string 
   return (
     <div className="space-y-8">
       <div
-        className="relative overflow-hidden rounded-2xl p-5"
+        className="relative w-full overflow-hidden"
         style={{
           backgroundImage:
-            'linear-gradient(135deg, color-mix(in srgb, var(--lp-accent-bible) 55%, #0b2e1a) 0%, rgba(11,46,26,0.55) 100%), url(/icons/sunday-school-cover.jpg)',
+            'linear-gradient(180deg, rgba(11,46,26,0.3) 0%, rgba(11,46,26,0.72) 100%), url(/icons/sunday-school-cover.jpg)',
           backgroundSize: 'cover',
-          backgroundPosition: 'center 70%',
-          minHeight: 200,
+          backgroundPosition: 'center 65%',
+          minHeight: 320,
         }}
       >
-        <p className="font-display text-xl font-extrabold text-white">Sunday School</p>
-        <p className="mt-1 text-sm text-white/80">Everything for growing your faith, one day at a time.</p>
-
-        <div className="mt-5 grid grid-cols-3 gap-3">
-          <HeroTile image="/icons/streak-flame.jpg" label="Day Streak" value={String(streak)} />
-          <HeroTile
-            image="/icons/bible-journey-book.jpg"
-            label="Bible Journey"
-            value="Start"
-            onClick={() => {
-              playClick()
-              setJourneyOpen(true)
-            }}
-          />
-          <HeroTile
-            image="/icons/sunday-school-church.jpg"
-            label="Lessons"
-            value={klass ? String(lessons.length) : '—'}
-            onClick={() => lessonsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-          />
+        <div className="px-5 pt-5">
+          <p className="font-display text-2xl font-extrabold text-white drop-shadow-md">Sunday School</p>
+          <p className="mt-1 max-w-xs text-sm text-white/85 drop-shadow-md">
+            Everything for growing your faith, one day at a time.
+          </p>
         </div>
+
+        <HugeHeroIcon
+          image="/icons/streak-flame.jpg"
+          label="Bible Reading Plan"
+          value={String(streak)}
+          size={88}
+          left="16%"
+          top={130}
+          rotate={-8}
+          onClick={() => readingSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+        />
+        <HugeHeroIcon
+          image="/icons/bible-journey-book.jpg"
+          label="Bible Journey"
+          size={108}
+          left="50%"
+          top={110}
+          rotate={6}
+          onClick={() => {
+            playClick()
+            setJourneyOpen(true)
+          }}
+        />
+        <HugeHeroIcon
+          image="/icons/sunday-school-church.jpg"
+          label="Sunday School Lessons"
+          size={88}
+          left="83%"
+          top={140}
+          rotate={-4}
+          onClick={() => lessonsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+        />
       </div>
 
-      <div ref={lessonsSectionRef} className="space-y-3">
+      <div ref={lessonsSectionRef} className="space-y-3 px-4">
         <p className="eyebrow">Sunday School Lessons</p>
         {!klass && (
           <p className="text-sm text-[var(--ink-muted)]">
@@ -888,18 +975,18 @@ function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string 
         )}
       </div>
 
-      <div className="space-y-3">
+      <div ref={readingSectionRef} className="space-y-3 px-4">
         <p className="eyebrow">Bible Reading Plan</p>
-        <div className="stat-strip grid-cols-2">
-          <div className="stat-cell">
-            <div className="stat-cell-value flex items-center justify-center gap-1.5">
-              <Flame className="h-5 w-5 text-[var(--gold)]" /> {streak}
-            </div>
-            <div className="stat-cell-label">Day Streak</div>
+        <div className="flex items-center justify-between gap-4 rounded-[28px] border border-[var(--hairline)] bg-[var(--ink-panel)] px-5 py-3">
+          <div className="flex items-center gap-2">
+            <Flame className="h-5 w-5 text-[var(--gold)]" />
+            <span className="font-display text-lg font-extrabold">{streak}</span>
+            <span className="text-xs font-bold uppercase tracking-wide text-[var(--ink-faint)]">Day Streak</span>
           </div>
-          <div className="stat-cell">
-            <div className="stat-cell-value">{completed ? '✓' : '—'}</div>
-            <div className="stat-cell-label">Today</div>
+          <div className="h-6 w-px bg-[var(--hairline)]" />
+          <div className="flex items-center gap-2">
+            <span className="text-base">{completed ? '✅' : '⭕'}</span>
+            <span className="text-xs font-bold uppercase tracking-wide text-[var(--ink-faint)]">Today</span>
           </div>
         </div>
 

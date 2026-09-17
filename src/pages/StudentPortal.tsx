@@ -261,7 +261,7 @@ function Dashboard() {
               </button>
               <h1 className="font-display text-lg font-extrabold text-[var(--lp-heading)]">{TAB_TITLE[tab]}</h1>
             </div>
-            <div className={tab === 'bible' || tab === 'game' || tab === 'home' || tab === 'class' ? 'pb-12' : 'mx-auto max-w-2xl p-4 pb-12'}>
+            <div className={tab === 'bible' || tab === 'game' || tab === 'home' || tab === 'class' || tab === 'ears' ? 'pb-12' : 'mx-auto max-w-2xl p-4 pb-12'}>
               {tab === 'home' && <HomeTab student={student} klass={klass} achievements={achievements} onNavigate={enterTab} />}
               {tab === 'class' && <ClassTab klass={klass} student={student} />}
               {tab === 'bible' && <SundaySchoolTab klass={klass} />}
@@ -1943,42 +1943,63 @@ function EarsTab({ klass }: { klass: (ClassRow & { teacher_name: string }) | nul
   }
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-md border border-[var(--gold)]/25 bg-[var(--gold)]/10 p-4 text-sm text-[var(--gold)]">
-        You can talk to us. Share something that's worrying you, a question, or anything you'd like an adult to know. If you or someone you know
-        is ever in danger, please tell a trusted adult right away.
-      </div>
-      <div className="panel space-y-3 p-5">
-        <textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Write anything on your mind…" rows={4} className={inputClass} />
-        <div className="grid gap-2 sm:grid-cols-2">
-          <button
-            onClick={() => setAnonymous(true)}
-            className={`rounded-md border p-3 text-left text-sm transition ${anonymous ? 'border-[var(--gold)] bg-[var(--gold)]/10' : 'border-[var(--hairline-strong)] hover:border-[var(--ink-muted)]'}`}
-          >
-            <p className="font-bold">Anonymous</p>
-            <p className="text-[var(--ink-muted)]">Your teacher won&apos;t know it&apos;s you.</p>
-          </button>
-          <button
-            onClick={() => setAnonymous(false)}
-            className={`rounded-md border p-3 text-left text-sm transition ${!anonymous ? 'border-[var(--gold)] bg-[var(--gold)]/10' : 'border-[var(--hairline-strong)] hover:border-[var(--ink-muted)]'}`}
-          >
-            <p className="font-bold">With My Name</p>
-            <p className="text-[var(--ink-muted)]">Your teacher can follow up with you.</p>
-          </button>
-        </div>
-        <button onClick={submit} disabled={submitting || !klass} className="btn-solid w-full py-3">
-          {submitting ? 'Sending…' : 'Send'}
-        </button>
-      </div>
+    <div className="fixed inset-0 z-0">
+      <img src="/village/ears-grass-bg.jpg" alt="" className="pointer-events-none absolute inset-0 h-full w-full object-cover" />
+      <div className="relative z-10 h-full overflow-y-auto px-4 pb-12 pt-16 sm:pt-20">
+        <div className="mx-auto max-w-md space-y-6">
+          <div className="rounded-md border border-[var(--gold)]/25 bg-[var(--gold)]/10 p-4 text-sm text-[var(--gold)] backdrop-blur">
+            You can talk to us. Share something that's worrying you, a question, or anything you'd like an adult to know. If you or someone you know
+            is ever in danger, please tell a trusted adult right away.
+          </div>
 
-      {history.length > 0 && (
-        <div className="space-y-2">
-          <p className="eyebrow">My Messages</p>
-          {history.map((m) => (
-            <EarsHistoryItem key={m.id} message={m} />
-          ))}
+          <div className="relative pt-6">
+            <img
+              src="/village/ears-hearttree.png"
+              alt=""
+              className="pointer-events-none absolute -right-8 -top-6 z-0 w-24 rotate-6 drop-shadow-xl sm:-right-14 sm:-top-10 sm:w-32"
+            />
+            <div className="panel relative z-10 space-y-3 p-5">
+              <textarea
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                placeholder="Write anything on your mind…"
+                rows={4}
+                className={`${inputClass} relative z-10`}
+              />
+              <div className="grid gap-2 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => setAnonymous(true)}
+                  className={`rounded-md border p-3 text-left text-sm transition ${anonymous ? 'border-[var(--gold)] bg-[var(--gold)]/10' : 'border-[var(--hairline-strong)] hover:border-[var(--ink-muted)]'}`}
+                >
+                  <p className="font-bold">Anonymous</p>
+                  <p className="text-[var(--ink-muted)]">Your teacher won&apos;t know it&apos;s you.</p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAnonymous(false)}
+                  className={`rounded-md border p-3 text-left text-sm transition ${!anonymous ? 'border-[var(--gold)] bg-[var(--gold)]/10' : 'border-[var(--hairline-strong)] hover:border-[var(--ink-muted)]'}`}
+                >
+                  <p className="font-bold">With My Name</p>
+                  <p className="text-[var(--ink-muted)]">Your teacher can follow up with you.</p>
+                </button>
+              </div>
+              <button type="button" onClick={submit} disabled={submitting || !klass} className="btn-solid w-full py-3">
+                {submitting ? 'Sending…' : 'Send'}
+              </button>
+            </div>
+          </div>
+
+          {history.length > 0 && (
+            <div className="space-y-2">
+              <p className="eyebrow">My Messages</p>
+              {history.map((m) => (
+                <EarsHistoryItem key={m.id} message={m} />
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   )
 }

@@ -454,7 +454,7 @@ button:active, a:active {
 }
 .panel-interactive:hover {
   border-color: var(--hairline-strong);
-  background: #241a3d;
+  background: color-mix(in srgb, var(--ink-panel), var(--fg) 8%);
 }
 
 .eyebrow {

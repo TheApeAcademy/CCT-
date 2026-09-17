@@ -129,12 +129,40 @@ const TAB_ACCENT: Record<Tab, string> = {
   game: 'var(--lp-accent-compete)',
 }
 
+// A mobile browser can unload/reload this tab in the background (low
+// memory, coming back from another app) - without this, that reload
+// dumps the kid straight back to the village map instead of wherever
+// they actually were.
+const DASHBOARD_STATE_KEY = 'mfm-kids-dashboard-state'
+
+function loadDashboardState(): { tab: Tab; view: 'map' | 'tab' } | null {
+  try {
+    const raw = sessionStorage.getItem(DASHBOARD_STATE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if ((parsed?.view === 'map' || parsed?.view === 'tab') && typeof parsed?.tab === 'string' && parsed.tab in TAB_ACCENT) {
+      return { tab: parsed.tab, view: parsed.view }
+    }
+  } catch {
+    // sessionStorage can throw in private/locked-down browsing - just skip restoring.
+  }
+  return null
+}
+
 function Dashboard() {
-  const [tab, setTab] = useState<Tab>('home')
-  const [view, setView] = useState<'map' | 'tab'>('map')
+  const [tab, setTab] = useState<Tab>(() => loadDashboardState()?.tab ?? 'home')
+  const [view, setView] = useState<'map' | 'tab'>(() => loadDashboardState()?.view ?? 'map')
   const [student, setStudent] = useState<StudentRow | null>(null)
   const [klass, setKlass] = useState<(ClassRow & { teacher_name: string; teacher_avatar: string | null }) | null>(null)
   const [achievements, setAchievements] = useState<EarnedAchievement[]>([])
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(DASHBOARD_STATE_KEY, JSON.stringify({ tab, view }))
+    } catch {
+      // ignore - same private-browsing case as loadDashboardState
+    }
+  }, [tab, view])
 
   const load = () => {
     getMyStudentProfile().then(setStudent)
@@ -171,7 +199,7 @@ function Dashboard() {
   // deliberately breaks out of KidsShell's padded max-w-3xl column so the
   // village map and each section can go edge to edge, game-screen style.
   return (
-    <div className="fixed inset-0 z-30 bg-[var(--ink)]">
+    <div className="fixed inset-0 z-[45] bg-[var(--ink)]">
       <AnimatePresence mode="wait" initial={false}>
         {view === 'map' ? (
           <motion.div

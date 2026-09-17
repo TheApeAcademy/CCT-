@@ -174,10 +174,19 @@ function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // A tab with its own nested navigation (Bible Journey's books/path/lesson
+  // steps, the classroom dial's open feature panel) has its own back
+  // control for stepping back one level within itself - while that's
+  // showing, hide the map-level back button instead of leaving two "back"
+  // buttons on screen where the wrong one skips past the nested view
+  // straight to the village map.
+  const [hideMapBack, setHideMapBack] = useState(false)
+
   const enterTab = (t: Tab) => {
     playNav()
     setTab(t)
     setView('tab')
+    setHideMapBack(false)
   }
   const backToMap = () => {
     playClick()
@@ -254,14 +263,16 @@ function Dashboard() {
             {/* No sliding title bar here - it would hold nothing but this back
                 button, so it stays a plain fixed button instead of a nav bar
                 that has to disappear and reappear. */}
-            <button
-              onClick={backToMap}
-              className="fixed left-3 top-3 z-40 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 bg-black/50 backdrop-blur transition hover:scale-105"
-              style={{ borderColor: TAB_ACCENT[tab], color: TAB_ACCENT[tab] }}
-              aria-label="Back to the village map"
-            >
-              <ArrowLeft className="h-4 w-4" strokeWidth={2.25} />
-            </button>
+            {!hideMapBack && (
+              <button
+                onClick={backToMap}
+                className="fixed left-3 top-3 z-40 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 bg-black/50 backdrop-blur transition hover:scale-105"
+                style={{ borderColor: TAB_ACCENT[tab], color: TAB_ACCENT[tab] }}
+                aria-label="Back to the village map"
+              >
+                <ArrowLeft className="h-4 w-4" strokeWidth={2.25} />
+              </button>
+            )}
             {(tab === 'leaderboard' || tab === 'profile') && (
               <div
                 aria-hidden="true"
@@ -273,8 +284,8 @@ function Dashboard() {
               className={`relative z-10 ${tab === 'bible' || tab === 'game' || tab === 'home' || tab === 'class' || tab === 'ears' || tab === 'messages' ? 'pb-12' : 'mx-auto max-w-2xl p-4 pt-14 pb-12'}`}
             >
               {tab === 'home' && <HomeTab student={student} klass={klass} achievements={achievements} onNavigate={enterTab} />}
-              {tab === 'class' && <ClassTab klass={klass} student={student} />}
-              {tab === 'bible' && <SundaySchoolTab klass={klass} />}
+              {tab === 'class' && <ClassTab klass={klass} student={student} onNestedViewChange={setHideMapBack} />}
+              {tab === 'bible' && <SundaySchoolTab klass={klass} onNestedViewChange={setHideMapBack} />}
               {tab === 'leaderboard' && <LeaderboardTab myId={student?.id ?? null} />}
               {tab === 'profile' && student && <ProfileTab student={student} klass={klass} onSaved={load} />}
               {tab === 'messages' &&
@@ -922,7 +933,15 @@ const CLASS_FEATURES = [
 ] as const
 type ClassFeatureKey = (typeof CLASS_FEATURES)[number]['key']
 
-function ClassTab({ klass, student }: { klass: (ClassRow & { teacher_name: string; teacher_avatar: string | null }) | null; student: StudentRow | null }) {
+function ClassTab({
+  klass,
+  student,
+  onNestedViewChange,
+}: {
+  klass: (ClassRow & { teacher_name: string; teacher_avatar: string | null }) | null
+  student: StudentRow | null
+  onNestedViewChange: (nested: boolean) => void
+}) {
   const [assignments, setAssignments] = useState<AssignmentRow[]>([])
   const [lessons, setLessons] = useState<LectureRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -939,6 +958,11 @@ function ClassTab({ klass, student }: { klass: (ClassRow & { teacher_name: strin
       setLoading(false)
     })
   }, [klass])
+
+  useEffect(() => {
+    onNestedViewChange(active !== null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active])
 
   if (!klass) {
     return (
@@ -1321,7 +1345,13 @@ function HugeHeroIcon({
   )
 }
 
-function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string; teacher_avatar: string | null }) | null }) {
+function SundaySchoolTab({
+  klass,
+  onNestedViewChange,
+}: {
+  klass: (ClassRow & { teacher_name: string; teacher_avatar: string | null }) | null
+  onNestedViewChange: (nested: boolean) => void
+}) {
   const [journeyOpen, setJourneyOpen] = useState(false)
   const [streak, setStreak] = useState(0)
   const [unlockedDates, setUnlockedDates] = useState<Set<string>>(new Set())
@@ -1337,6 +1367,11 @@ function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string;
   useEffect(() => {
     getMyBibleStreak().then(setStreak)
   }, [])
+
+  useEffect(() => {
+    onNestedViewChange(journeyOpen)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [journeyOpen])
 
   if (journeyOpen) {
     return <BibleJourneyPanel onExit={() => setJourneyOpen(false)} />
@@ -1402,7 +1437,14 @@ const TODAY_START = new Date()
 TODAY_START.setHours(0, 0, 0, 0)
 
 const CALENDAR_COLS = 4
-const CALENDAR_ROW_HEIGHT = 200
+const CALENDAR_MAX_WIDTH = 1040
+const CALENDAR_CARD_GAP = 18
+// The card is aspect-square, so its rendered height always equals its
+// rendered width - row height has to be derived from that same width
+// (not an independent guess) or rows overlap as soon as the container
+// gets wide enough to make the cards bigger than a fixed row height.
+const CALENDAR_CARD_WIDTH = CALENDAR_MAX_WIDTH / CALENDAR_COLS - CALENDAR_CARD_GAP
+const CALENDAR_ROW_HEIGHT = CALENDAR_CARD_WIDTH + 34
 
 // The weekly calendar cards laid out as a snaking, roped-together path
 // (left-to-right, then right-to-left down the next row, like a board game
@@ -1423,7 +1465,7 @@ function SundayCalendarPath({ klass, unlockedDates }: { klass: boolean; unlocked
   const pathD = positions.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.xPct} ${p.y}`).join(' ')
 
   return (
-    <div className="relative mx-auto" style={{ height: totalHeight, maxWidth: 1400 }}>
+    <div className="relative mx-auto" style={{ height: totalHeight, maxWidth: CALENDAR_MAX_WIDTH }}>
       <svg className="absolute inset-0 h-full w-full" viewBox={`0 0 100 ${totalHeight}`} preserveAspectRatio="none">
         <path
           d={pathD}
@@ -1445,7 +1487,7 @@ function SundayCalendarPath({ klass, unlockedDates }: { klass: boolean; unlocked
           <div
             key={key}
             className="absolute"
-            style={{ left: `${xPct}%`, top: y, transform: 'translate(-50%, -50%)', width: `calc(${100 / CALENDAR_COLS}% - 18px)` }}
+            style={{ left: `${xPct}%`, top: y, transform: 'translate(-50%, -50%)', width: `calc(${100 / CALENDAR_COLS}% - ${CALENDAR_CARD_GAP}px)` }}
           >
             <SundayLessonCard date={date} title={theme.title} image={theme.image} locked={locked} />
           </div>

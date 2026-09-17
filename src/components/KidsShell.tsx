@@ -43,7 +43,7 @@ export default function KidsShell({ eyebrow }: { eyebrow: string }) {
         </div>
       </header>
       <BackButton className="fixed left-3 top-3 z-40" />
-      <main className="relative z-10 mx-auto max-w-3xl px-4 py-10 sm:py-14">
+      <main className="relative z-50 mx-auto max-w-3xl px-4 py-10 sm:py-14">
         <Outlet />
       </main>
       <footer className="relative mx-auto max-w-3xl px-4 pb-8 pt-4 text-center">

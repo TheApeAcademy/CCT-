@@ -37,7 +37,7 @@ export default function PortalShell({ eyebrow }: { eyebrow: string }) {
         </div>
       </header>
       <BackButton className="fixed left-3 top-3 z-40" />
-      <main className="relative z-10 mx-auto max-w-5xl px-4 py-8">
+      <main className="relative z-50 mx-auto max-w-5xl px-4 py-8">
         <Outlet />
       </main>
       <footer className="relative mx-auto max-w-5xl px-4 pb-8 pt-4 text-center">

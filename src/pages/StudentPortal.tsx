@@ -1324,10 +1324,7 @@ function HugeHeroIcon({
 function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string; teacher_avatar: string | null }) | null }) {
   const [journeyOpen, setJourneyOpen] = useState(false)
   const [streak, setStreak] = useState(0)
-  const [lessons, setLessons] = useState<LectureRow[]>([])
-  const [lessonsLoading, setLessonsLoading] = useState(true)
   const [unlockedDates, setUnlockedDates] = useState<Set<string>>(new Set())
-  const lessonsSectionRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!klass) {
@@ -1340,17 +1337,6 @@ function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string;
   useEffect(() => {
     getMyBibleStreak().then(setStreak)
   }, [])
-
-  useEffect(() => {
-    if (!klass) {
-      setLessonsLoading(false)
-      return
-    }
-    listPublishedLectures(klass.id).then((l) => {
-      setLessons(l)
-      setLessonsLoading(false)
-    })
-  }, [klass])
 
   if (journeyOpen) {
     return <BibleJourneyPanel onExit={() => setJourneyOpen(false)} />
@@ -1401,32 +1387,70 @@ function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string;
         />
       </div>
 
-      <div ref={lessonsSectionRef} className="mx-auto max-w-2xl space-y-3 px-4">
-        <p className="eyebrow">Lessons</p>
-        {klass && lessonsLoading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
-        {klass && !lessonsLoading && lessons.length > 0 && (
-          <div className="space-y-2">
-            {lessons.map((l) => (
-              <div key={l.id} className="panel p-4">
-                <p className="font-bold">{l.title}</p>
-                {l.description && <p className="mt-1 text-sm text-[var(--ink-muted)]">{l.description}</p>}
-                {l.body && <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--ink-muted)]">{l.body}</p>}
-              </div>
-            ))}
-          </div>
-        )}
+      <div className="space-y-3 px-4">
+        <p className="eyebrow mx-auto max-w-2xl">Calendar</p>
+        <SundayCalendarPath klass={Boolean(klass)} unlockedDates={unlockedDates} />
       </div>
+    </div>
+  )
+}
 
-      <div className="mx-auto max-w-2xl space-y-3 px-4">
-        <p className="eyebrow">Calendar</p>
-        <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' }}>
-          {SUNDAYS_2026.map((date, i) => {
-            const theme = SUNDAY_LESSON_THEMES[i % SUNDAY_LESSON_THEMES.length]
-            const locked = !klass || !unlockedDates.has(sundayDateKey(date))
-            return <SundayLessonCard key={date.toISOString()} date={date} title={theme.title} image={theme.image} locked={locked} />
-          })}
-        </div>
-      </div>
+// A Sunday is unlocked once it's actually happened (kids shouldn't be
+// stuck waiting on a teacher to unlock last month) or once the teacher has
+// unlocked it early for their class.
+const TODAY_START = new Date()
+TODAY_START.setHours(0, 0, 0, 0)
+
+const CALENDAR_COLS = 4
+const CALENDAR_ROW_HEIGHT = 200
+
+// The weekly calendar cards laid out as a snaking, roped-together path
+// (left-to-right, then right-to-left down the next row, like a board game
+// track) instead of a plain grid, so it reads as one step-by-step journey
+// and fills the full width instead of being capped to a narrow column.
+function SundayCalendarPath({ klass, unlockedDates }: { klass: boolean; unlockedDates: Set<string> }) {
+  const rows = Math.ceil(SUNDAYS_2026.length / CALENDAR_COLS)
+  const totalHeight = rows * CALENDAR_ROW_HEIGHT
+
+  const positions = SUNDAYS_2026.map((_, i) => {
+    const row = Math.floor(i / CALENDAR_COLS)
+    const colInRow = i % CALENDAR_COLS
+    const col = row % 2 === 0 ? colInRow : CALENDAR_COLS - 1 - colInRow
+    const xPct = ((col + 0.5) / CALENDAR_COLS) * 100
+    const y = row * CALENDAR_ROW_HEIGHT + CALENDAR_ROW_HEIGHT / 2
+    return { xPct, y }
+  })
+  const pathD = positions.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.xPct} ${p.y}`).join(' ')
+
+  return (
+    <div className="relative mx-auto" style={{ height: totalHeight, maxWidth: 1400 }}>
+      <svg className="absolute inset-0 h-full w-full" viewBox={`0 0 100 ${totalHeight}`} preserveAspectRatio="none">
+        <path
+          d={pathD}
+          fill="none"
+          stroke="#8b5e3c"
+          strokeWidth={7}
+          strokeLinecap="round"
+          strokeDasharray="3 16"
+          opacity={0.6}
+          vectorEffect="non-scaling-stroke"
+        />
+      </svg>
+      {SUNDAYS_2026.map((date, i) => {
+        const theme = SUNDAY_LESSON_THEMES[i % SUNDAY_LESSON_THEMES.length]
+        const key = sundayDateKey(date)
+        const locked = !klass || (!unlockedDates.has(key) && date > TODAY_START)
+        const { xPct, y } = positions[i]
+        return (
+          <div
+            key={key}
+            className="absolute"
+            style={{ left: `${xPct}%`, top: y, transform: 'translate(-50%, -50%)', width: `calc(${100 / CALENDAR_COLS}% - 18px)` }}
+          >
+            <SundayLessonCard date={date} title={theme.title} image={theme.image} locked={locked} />
+          </div>
+        )
+      })}
     </div>
   )
 }

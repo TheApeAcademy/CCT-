@@ -206,18 +206,19 @@ function BookMap({
   onOpenLessonDirect: (bookKey: string, lessonKey: string) => void
 }) {
   const [mode, setMode] = useState<'books' | 'characters'>('books')
+  const dark = mode === 'characters'
 
   return (
-    <div className="space-y-3">
-      <p className="eyebrow">Bible Journey</p>
-      <div className="inline-flex rounded-full border border-[var(--lp-hairline)] p-1 text-xs font-bold">
+    <div className={dark ? '-mx-4 space-y-3 px-4 pb-6' : 'space-y-3'} style={dark ? { background: '#120a1f' } : undefined}>
+      <p className="eyebrow pt-3">Bible Journey</p>
+      <div className={`inline-flex rounded-full border p-1 text-xs font-bold ${dark ? 'border-white/20' : 'border-[var(--lp-hairline)]'}`}>
         <button
           onClick={() => {
             playClick()
             setMode('books')
           }}
           className="rounded-full px-3 py-1.5 transition"
-          style={{ background: mode === 'books' ? ACCENT : 'transparent', color: mode === 'books' ? '#fff' : undefined }}
+          style={{ background: mode === 'books' ? ACCENT : 'transparent', color: mode === 'books' ? '#fff' : dark ? 'rgba(255,255,255,0.7)' : undefined }}
         >
           By Book
         </button>
@@ -227,7 +228,7 @@ function BookMap({
             setMode('characters')
           }}
           className="rounded-full px-3 py-1.5 transition"
-          style={{ background: mode === 'characters' ? ACCENT : 'transparent', color: mode === 'characters' ? '#fff' : undefined }}
+          style={{ background: mode === 'characters' ? ACCENT : 'transparent', color: mode === 'characters' ? '#fff' : dark ? 'rgba(255,255,255,0.7)' : undefined }}
         >
           By Character
         </button>
@@ -298,7 +299,7 @@ function CharacterBrowse({
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-[var(--ink-muted)]">Pick any Bible character to learn about them right away - no order required.</p>
+      <p className="text-sm text-white/70">Pick any Bible character to learn about them right away - no order required.</p>
       <div className="flex flex-wrap justify-center gap-x-5 gap-y-10 py-6">
         {characters.map(({ book, unit, lesson }, i) => {
           const isDone = completedKeys.has(lesson.key)

@@ -44,13 +44,13 @@ import {
   Trash2,
   Plus,
   X,
+  Users,
   type LucideIcon,
 } from 'lucide-react'
 import { supabase, signOut } from '../lib/supabase'
 import { useMinistryAuth } from '../lib/useMinistryAuth'
 import VillageMap from '../components/VillageMap'
 import BibleJourneyPanel from '../components/BibleJourney'
-import IsometricPhone from '../components/IsometricPhone'
 import { useAutoHideNav } from '../lib/useAutoHideNav'
 import {
   getMyStudentProfile,
@@ -311,49 +311,54 @@ function HomeTab({
   onNavigate: (tab: Tab) => void
 }) {
   return (
-    <div className="relative min-h-full">
-      {/* `fixed` rather than `background-attachment: fixed` on this div itself -
-          a transformed ancestor (the tab's own enter/exit scale animation)
-          would otherwise force a plain `fixed` background to scroll away
-          with the content, same bug as the app's headers had before the
-          nav-auto-hide fix; a separately fixed layer isn't affected by that. */}
-      <div
-        className="fixed inset-0 z-0"
-        style={{
-          backgroundImage: 'linear-gradient(180deg, rgba(8,16,32,0.55) 0%, rgba(8,16,32,0.85) 100%), url(/village-home-bg.jpg)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-        }}
-      />
-      <div className="relative z-10 space-y-6 pb-4">
-        <p className="px-4 pt-8 text-center font-display text-3xl font-extrabold text-white drop-shadow-lg sm:text-4xl">
-          Welcome back, {student?.full_name?.split(' ')[0] ?? 'friend'}!
-        </p>
+    <div className="fixed inset-0 z-0 overflow-hidden">
+      {/* Bright, uncovered - no dark scrim, no blur, per feedback. Just the
+          photo, full brightness, with the phone standing on the rug. */}
+      <img src="/village-home-bg.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />
 
-        <div className="mx-auto max-w-xs px-4">
-          <ShinyDigitalCard student={student} klass={klass} onViewFull={() => onNavigate('profile')} />
-        </div>
+      <p className="absolute left-4 top-5 max-w-[45%] font-display text-2xl font-extrabold leading-tight text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.65)] sm:text-3xl">
+        Welcome back, {student?.full_name?.split(' ')[0] ?? 'friend'}!
+      </p>
 
-        <StudentHomePhone klass={klass} achievements={achievements} />
+      <div className="absolute right-4 top-5 w-[46%] max-w-[220px]">
+        <ShinyDigitalCard student={student} klass={klass} onViewFull={() => onNavigate('profile')} />
       </div>
+
+      <StandingPhone klass={klass} achievements={achievements} />
     </div>
   )
 }
 
 const DOCK_APPS = [
-  { key: 'chat' as const, label: 'Chat', icon: Send, bg: '#3b82f6' },
-  { key: 'badges' as const, label: 'Badges', icon: Award, bg: '#f2c94c' },
-  { key: 'bank' as const, label: 'Digital Bank', icon: Wallet, bg: '#8b5cf6' },
-  { key: 'prayer' as const, label: 'Prayer', icon: Heart, bg: '#ec4899' },
-  { key: 'diary' as const, label: 'Diary', icon: PenLine, bg: '#14b8a6' },
+  { key: 'chat' as const, label: 'Chat', icon: Send, from: '#60a5fa', to: '#1d4ed8' },
+  { key: 'friends' as const, label: 'Friends', icon: Users, from: '#6ee7b7', to: '#047857' },
+  { key: 'badges' as const, label: 'Badges', icon: Award, from: '#fde68a', to: '#b45309' },
+  { key: 'bank' as const, label: 'Bank', icon: Wallet, from: '#c4b5fd', to: '#6d28d9' },
+  { key: 'prayer' as const, label: 'Prayer', icon: Heart, from: '#f9a8d4', to: '#be185d' },
+  { key: 'diary' as const, label: 'Diary', icon: PenLine, from: '#5eead4', to: '#0f766e' },
 ]
 type DockApp = (typeof DOCK_APPS)[number]['key']
 
-// The whole Home experience for a kid lives inside one big phone: a
-// home-screen dock of app icons (chat, badges, digital bank, prayer
-// journal, diary), each opening as its own "screen" with a back arrow -
-// same big isometric shell as Teacher Home's phone.
-function StudentHomePhone({
+function DockIcon({ icon: Icon, from, to }: { icon: LucideIcon; from: string; to: string }) {
+  return (
+    <span
+      className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl transition group-active:scale-90 group-hover:scale-105"
+      style={{
+        background: `linear-gradient(155deg, ${from} 0%, ${to} 100%)`,
+        boxShadow: '0 4px 10px -3px rgba(0,0,0,0.55), inset 0 1px 1px rgba(255,255,255,0.4), inset 0 -2px 3px rgba(0,0,0,0.3)',
+      }}
+    >
+      <span className="absolute inset-0" style={{ background: 'radial-gradient(circle at 30% 20%, rgba(255,255,255,0.5), transparent 55%)' }} />
+      <Icon className="relative h-5 w-5 text-white drop-shadow" strokeWidth={2.25} />
+    </span>
+  )
+}
+
+// A real phone-shaped object standing on the rug in the background photo -
+// small, upright, barely tilted (not the big floating card-style mockup),
+// with a nudge-left/nudge-right wobble when you tap its edges instead of
+// a continuous idle float, since a standing object shouldn't drift.
+function StandingPhone({
   klass,
   achievements,
 }: {
@@ -361,108 +366,201 @@ function StudentHomePhone({
   achievements: EarnedAchievement[]
 }) {
   const [screen, setScreen] = useState<DockApp | null>(null)
+  const [wobble, setWobble] = useState<'left' | 'right' | null>(null)
+
+  const nudge = (dir: 'left' | 'right') => {
+    playClick()
+    setWobble(dir)
+    window.setTimeout(() => setWobble(null), 380)
+  }
 
   const backButton = (
-    <button onClick={() => setScreen(null)} className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20">
-      <ArrowLeft className="h-4 w-4" />
+    <button onClick={() => setScreen(null)} className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20">
+      <ArrowLeft className="h-3.5 w-3.5" />
     </button>
   )
   const header = (title: string) => (
-    <div className="flex items-center gap-2 pb-4">
+    <div className="flex items-center gap-2 pb-2.5">
       {backButton}
-      <p className="font-display text-base font-extrabold text-white">{title}</p>
+      <p className="font-display text-sm font-extrabold text-white">{title}</p>
     </div>
   )
 
   return (
-    <IsometricPhone accent="var(--lp-accent-bible)">
-      <div className="flex flex-1 flex-col overflow-hidden px-4 pb-5">
-        {screen === null && (
-          <>
-            <p className="pb-4 text-center font-display text-lg font-extrabold text-white">My Space</p>
-            <div className="grid grid-cols-3 gap-4">
-              {DOCK_APPS.map((app) => (
-                <button key={app.key} onClick={() => setScreen(app.key)} className="flex flex-col items-center gap-1.5">
-                  <span className="flex h-14 w-14 items-center justify-center rounded-2xl shadow-lg transition hover:scale-105" style={{ background: app.bg }}>
-                    <app.icon className="h-6 w-6 text-white" />
-                  </span>
-                  <span className="text-[11px] font-bold text-white/80">{app.label}</span>
-                </button>
-              ))}
-              <Link to="/anthem" onClick={() => playClick()} className="flex flex-col items-center gap-1.5">
-                <span className="flex h-14 w-14 items-center justify-center rounded-2xl shadow-lg transition hover:scale-105" style={{ background: '#f97316' }}>
-                  <Music className="h-6 w-6 text-white" />
-                </span>
-                <span className="text-[11px] font-bold text-white/80">Anthem</span>
-              </Link>
-            </div>
-          </>
-        )}
+    <div className="absolute bottom-3 left-1/2 -translate-x-1/2" style={{ width: 210 }}>
+      {/* contact shadow blending the phone onto the rug */}
+      <div
+        aria-hidden="true"
+        className="absolute -bottom-2 left-1/2 h-6 w-36 -translate-x-1/2 rounded-full opacity-60 blur-md"
+        style={{ background: 'radial-gradient(ellipse, rgba(0,0,0,0.65), transparent 72%)' }}
+      />
+      <motion.div
+        initial={{ opacity: 0, y: 14, scale: 0.94 }}
+        animate={{
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          rotate: wobble === 'left' ? -7 : wobble === 'right' ? 7 : -2,
+          x: wobble === 'left' ? -5 : wobble === 'right' ? 5 : 0,
+        }}
+        transition={{ type: 'spring', stiffness: 260, damping: 14 }}
+        style={{ transformOrigin: 'bottom center', transformStyle: 'preserve-3d', transform: 'perspective(700px) rotateY(-6deg)' }}
+        className="relative"
+      >
+        <button aria-label="Nudge phone left" onClick={() => nudge('left')} className="absolute -left-5 top-10 bottom-10 z-30 w-5" />
+        <button aria-label="Nudge phone right" onClick={() => nudge('right')} className="absolute -right-5 top-10 bottom-10 z-30 w-5" />
 
-        {screen === 'chat' && klass && (
-          <>
-            {header(klass.teacher_name)}
-            <ChatScreen teacherId={klass.teacher_id} teacherName={klass.teacher_name} />
-          </>
-        )}
-        {screen === 'chat' && !klass && (
-          <>
-            {header('Chat')}
-            <p className="pt-8 text-center text-sm text-white/50">You&apos;re not in a class yet, so there&apos;s no teacher to message.</p>
-          </>
-        )}
+        <div
+          className="relative overflow-hidden rounded-[22px] border-[3px]"
+          style={{
+            borderColor: '#e4e7ec',
+            background: 'linear-gradient(155deg, #f5f6f8 0%, #b9c0ca 100%)',
+            boxShadow: '0 20px 34px -12px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.08)',
+          }}
+        >
+          <div className="relative overflow-hidden rounded-[18px]" style={{ height: 400 }}>
+            {screen === null ? (
+              <img src="/hero-kids.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />
+            ) : (
+              <div className="absolute inset-0" style={{ background: 'linear-gradient(160deg, #14141c 0%, #0a0a10 100%)' }} />
+            )}
+            {screen === null && <div className="absolute inset-0 bg-black/10" />}
+            {/* glass glare for a bit more "3d" realism */}
+            <div
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0"
+              style={{ background: 'linear-gradient(115deg, rgba(255,255,255,0.22) 0%, transparent 18%, transparent 82%, rgba(255,255,255,0.1) 100%)' }}
+            />
+            <div className="absolute left-1/2 top-2 z-20 h-4 w-16 -translate-x-1/2 rounded-full bg-black/70" />
 
-        {screen === 'badges' && (
-          <>
-            {header('My Badges')}
-            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
-              {achievements.length === 0 && <p className="pt-8 text-center text-sm text-white/40">No badges yet - keep going!</p>}
-              {achievements.map((a) => {
-                const Icon = ACHIEVEMENT_ICONS[a.icon] ?? Award
-                return (
-                  <div key={a.id} className="flex items-center gap-3 rounded-2xl bg-white/5 p-3">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full" style={{ background: '#f2c94c' }}>
-                      <Icon className="h-4 w-4 text-black" strokeWidth={2} />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-bold text-white">{a.name}</p>
-                      <p className="truncate text-xs text-white/50">{a.description}</p>
-                    </div>
+            <div className="relative z-10 flex h-full flex-col px-2.5 pb-3 pt-7">
+              {screen === null && (
+                <div className="grid flex-1 grid-cols-3 content-start gap-x-2 gap-y-4 pt-2">
+                  {DOCK_APPS.map((app) => (
+                    <button key={app.key} onClick={() => setScreen(app.key)} className="group flex flex-col items-center gap-1">
+                      <DockIcon icon={app.icon} from={app.from} to={app.to} />
+                      <span className="text-[9px] font-bold text-white drop-shadow">{app.label}</span>
+                    </button>
+                  ))}
+                  <Link to="/anthem" onClick={() => playClick()} className="group flex flex-col items-center gap-1">
+                    <DockIcon icon={Music} from="#fdba74" to="#c2410c" />
+                    <span className="text-[9px] font-bold text-white drop-shadow">Anthem</span>
+                  </Link>
+                </div>
+              )}
+
+              {screen === 'chat' && klass && (
+                <>
+                  {header(klass.teacher_name)}
+                  <ChatScreen teacherId={klass.teacher_id} teacherName={klass.teacher_name} />
+                </>
+              )}
+              {screen === 'chat' && !klass && (
+                <>
+                  {header('Chat')}
+                  <p className="pt-8 text-center text-xs text-white/50">You&apos;re not in a class yet, so there&apos;s no teacher to message.</p>
+                </>
+              )}
+
+              {screen === 'friends' && (
+                <>
+                  {header('Friends')}
+                  <FriendsScreen klass={klass} />
+                </>
+              )}
+
+              {screen === 'badges' && (
+                <>
+                  {header('My Badges')}
+                  <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
+                    {achievements.length === 0 && <p className="pt-8 text-center text-xs text-white/40">No badges yet - keep going!</p>}
+                    {achievements.map((a) => {
+                      const Icon = ACHIEVEMENT_ICONS[a.icon] ?? Award
+                      return (
+                        <div key={a.id} className="flex items-center gap-2.5 rounded-2xl bg-white/5 p-2.5">
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full" style={{ background: '#f2c94c' }}>
+                            <Icon className="h-3.5 w-3.5 text-black" strokeWidth={2} />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="truncate text-xs font-bold text-white">{a.name}</p>
+                            <p className="truncate text-[10px] text-white/50">{a.description}</p>
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
-                )
-              })}
-            </div>
-          </>
-        )}
+                </>
+              )}
 
-        {screen === 'bank' && (
-          <>
-            <div className="pb-3">{backButton}</div>
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              <DigitalBankSection />
-            </div>
-          </>
-        )}
+              {screen === 'bank' && (
+                <>
+                  <div className="pb-2.5">{backButton}</div>
+                  <div className="min-h-0 flex-1 overflow-y-auto">
+                    <DigitalBankSection />
+                  </div>
+                </>
+              )}
 
-        {screen === 'prayer' && (
-          <>
-            <div className="pb-3">{backButton}</div>
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              <NotesSection kind="prayer" title="Prayer Journal" icon={Heart} accent="var(--lp-accent-bible)" placeholder="What's on your heart today?" />
-            </div>
-          </>
-        )}
+              {screen === 'prayer' && (
+                <>
+                  <div className="pb-2.5">{backButton}</div>
+                  <div className="min-h-0 flex-1 overflow-y-auto">
+                    <NotesSection kind="prayer" title="Prayer Journal" icon={Heart} accent="var(--lp-accent-bible)" placeholder="What's on your heart today?" />
+                  </div>
+                </>
+              )}
 
-        {screen === 'diary' && (
-          <>
-            <div className="pb-3">{backButton}</div>
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              <NotesSection kind="diary" title="Diary" icon={PenLine} accent="var(--lp-accent-anthem)" placeholder="Dear diary…" />
+              {screen === 'diary' && (
+                <>
+                  <div className="pb-2.5">{backButton}</div>
+                  <div className="min-h-0 flex-1 overflow-y-auto">
+                    <NotesSection kind="diary" title="Diary" icon={PenLine} accent="var(--lp-accent-anthem)" placeholder="Dear diary…" />
+                  </div>
+                </>
+              )}
             </div>
-          </>
-        )}
-      </div>
-    </IsometricPhone>
+            <div className="absolute bottom-1 left-1/2 z-20 h-1 w-14 -translate-x-1/2 rounded-full bg-white/60" />
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  )
+}
+
+function FriendsScreen({ klass }: { klass: (ClassRow & { teacher_name: string }) | null }) {
+  const [rows, setRows] = useState<LeaderboardRow[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!klass) {
+      setLoading(false)
+      return
+    }
+    getLeaderboard(500)
+      .then((all) => setRows(all.filter((r) => r.class_id === klass.id)))
+      .finally(() => setLoading(false))
+  }, [klass])
+
+  if (!klass) return <p className="pt-8 text-center text-xs text-white/50">Join a class to see your classmates here.</p>
+  if (loading) return <p className="pt-8 text-center text-xs text-white/40">Loading…</p>
+
+  return (
+    <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
+      {rows.length === 0 && <p className="pt-8 text-center text-xs text-white/40">No classmates yet.</p>}
+      {rows.map((r) => (
+        <div key={r.student_id} className="flex items-center gap-2.5 rounded-2xl bg-white/5 p-2.5">
+          {r.avatar_url ? (
+            <img src={r.avatar_url} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
+          ) : (
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs font-bold text-white">
+              {r.full_name.charAt(0).toUpperCase()}
+            </span>
+          )}
+          <p className="min-w-0 flex-1 truncate text-xs font-bold text-white">{r.full_name}</p>
+          <span className="shrink-0 text-[10px] font-bold text-[var(--gold)]">{r.total_points.toLocaleString()}</span>
+        </div>
+      ))}
+    </div>
   )
 }
 

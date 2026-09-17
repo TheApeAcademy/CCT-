@@ -20,6 +20,14 @@ export default function KidsShell({ eyebrow }: { eyebrow: string }) {
   const autoHidden = useAutoHideNav()
   return (
     <div data-landing-theme="light" className="site-light-theme lp-page relative isolate min-h-screen">
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 z-0"
+        style={{
+          backgroundImage: 'radial-gradient(var(--lp-hairline-strong) 1px, transparent 1px)',
+          backgroundSize: '22px 22px',
+        }}
+      />
       <header
         className={`sticky top-0 z-30 border-b border-[var(--lp-hairline)] bg-[var(--lp-bg)] transition-transform duration-300 ${
           autoHidden ? '-translate-y-full' : 'translate-y-0'

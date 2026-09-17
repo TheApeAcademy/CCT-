@@ -377,17 +377,17 @@ function QuickLinkButton({
   )
 }
 
-const COMING_SOON_GAMES: { title: string; icon: LucideIcon }[] = [
-  { title: 'Bible Word Search', icon: Grid3x3 },
-  { title: 'Memory Match', icon: Layers },
-  { title: 'Verse Scramble', icon: Shuffle },
-  { title: 'Story Builder', icon: PencilLine },
-  { title: 'Bible Bingo', icon: Puzzle },
-  { title: 'Coloring Book', icon: Palette },
-  { title: 'Sing-Along', icon: Music2 },
-  { title: 'Guess the Sound', icon: Mic2 },
-  { title: 'Roll & Answer', icon: Dice5 },
-  { title: 'Brain Teasers', icon: Brain },
+const COMING_SOON_GAMES: { title: string; icon: LucideIcon; photo: string }[] = [
+  { title: 'Bible Word Search', icon: Grid3x3, photo: '/journey/tower-of-babel.jpg' },
+  { title: 'Memory Match', icon: Layers, photo: '/journey/noah-dove-olive-branch.jpg' },
+  { title: 'Verse Scramble', icon: Shuffle, photo: '/journey/adam-eve-garden-home.jpg' },
+  { title: 'Story Builder', icon: PencilLine, photo: '/journey/jacob-ladder-dream.jpg' },
+  { title: 'Bible Bingo', icon: Puzzle, photo: '/journey/abraham-isaac-ram-provided.jpg' },
+  { title: 'Coloring Book', icon: Palette, photo: '/journey/cain-abel-offerings.jpg' },
+  { title: 'Sing-Along', icon: Music2, photo: '/journey/noah-building-ark.jpg' },
+  { title: 'Guess the Sound', icon: Mic2, photo: '/journey/adam-eve-first-sin.jpg' },
+  { title: 'Roll & Answer', icon: Dice5, photo: '/feature-rocket.png' },
+  { title: 'Brain Teasers', icon: Brain, photo: '/feature-achievements.png' },
 ]
 
 function BentoTile({
@@ -396,6 +396,7 @@ function BentoTile({
   icon: Icon,
   accent,
   dark,
+  photo,
   cta,
   to,
   href,
@@ -407,6 +408,8 @@ function BentoTile({
   icon: LucideIcon
   accent: string
   dark: string
+  /** A cover photo behind the tile - jpg scene photos fill the whole tile; feature-*.png mascots stay contained and pinned to the bottom-right so their transparency reads cleanly. */
+  photo: string
   cta?: string
   to?: string
   href?: string
@@ -414,28 +417,40 @@ function BentoTile({
   row: string
 }) {
   const big = row === '1 / 3'
+  const isMascotPng = photo.endsWith('.png')
   const content = (
     <>
+      {isMascotPng ? (
+        <img src={photo} alt="" className="pointer-events-none absolute bottom-0 right-0 h-[85%] w-auto object-contain opacity-90" />
+      ) : (
+        <img src={photo} alt="" className="pointer-events-none absolute inset-0 h-full w-full object-cover" />
+      )}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: `linear-gradient(135deg, color-mix(in srgb, ${accent} 70%, ${dark}) 0%, color-mix(in srgb, ${accent} 15%, ${dark}) 100%)`,
+          opacity: isMascotPng ? 0.88 : 0.72,
+        }}
+      />
       <span
-        className={`inline-flex items-center justify-center rounded-2xl bg-white/15 ${big ? 'h-12 w-12' : 'h-9 w-9'}`}
+        className={`relative inline-flex items-center justify-center rounded-2xl bg-white/15 ${big ? 'h-12 w-12' : 'h-9 w-9'}`}
       >
         <Icon className={big ? 'h-6 w-6 text-white' : 'h-4 w-4 text-white'} strokeWidth={1.75} />
       </span>
-      <p className={`font-display font-extrabold text-white ${big ? 'mt-3 text-xl' : 'mt-2 text-sm'}`}>{title}</p>
-      {description && <p className="mt-1 max-w-[85%] text-xs text-white/80">{description}</p>}
+      <p className={`relative font-display font-extrabold text-white drop-shadow ${big ? 'mt-3 text-xl' : 'mt-2 text-sm'}`}>{title}</p>
+      {description && <p className="relative mt-1 max-w-[85%] text-xs text-white/85 drop-shadow">{description}</p>}
       {cta && (to || href) && (
-        <span className="mt-3 inline-flex items-center gap-1 self-start rounded-full bg-white px-3 py-1.5 text-xs font-extrabold" style={{ color: accent }}>
+        <span
+          className="relative mt-3 inline-flex items-center gap-1 self-start rounded-full bg-white px-3 py-1.5 text-xs font-extrabold"
+          style={{ color: accent }}
+        >
           {cta} <ArrowRight className="h-3.5 w-3.5" />
         </span>
       )}
     </>
   )
   const className = 'relative flex flex-col items-start overflow-hidden p-4 transition hover:scale-[1.015] active:scale-[0.98]'
-  const style: React.CSSProperties = {
-    gridColumn: col,
-    gridRow: row,
-    background: `linear-gradient(135deg, color-mix(in srgb, ${accent} 65%, ${dark}) 0%, color-mix(in srgb, ${accent} 25%, ${dark}) 100%)`,
-  }
+  const style: React.CSSProperties = { gridColumn: col, gridRow: row }
 
   if (to) {
     return (
@@ -471,6 +486,7 @@ function GameTab() {
           icon={Gamepad2}
           accent="var(--lp-accent-compete)"
           dark="#180a2e"
+          photo="/hero-quiz.jpg"
           cta="Practice Solo"
           to="/training"
           col="1 / 4"
@@ -482,6 +498,7 @@ function GameTab() {
           icon={Dumbbell}
           accent="var(--lp-accent-training)"
           dark="#0b2e1a"
+          photo="/feature-quiz.png"
           to="/training"
           col="4 / 6"
           row="1 / 2"
@@ -491,6 +508,7 @@ function GameTab() {
           icon={Gamepad2}
           accent="var(--lp-accent-compete)"
           dark="#180a2e"
+          photo="/trophy-leaderboard.jpg"
           href="https://id.superbook.cbn.com/games"
           col="4 / 5"
           row="2 / 3"
@@ -500,14 +518,15 @@ function GameTab() {
           icon={Grid3x3}
           accent="var(--ink-faint)"
           dark="#101014"
+          photo="/village/game-rocket.png"
           col="5 / 6"
           row="2 / 3"
         />
       </div>
 
       <GameRow title="More Games Coming Soon">
-        {COMING_SOON_GAMES.map(({ title, icon }) => (
-          <GameTile key={title} title={title} icon={icon} accent="var(--ink-faint)" comingSoon />
+        {COMING_SOON_GAMES.map(({ title, icon, photo }) => (
+          <GameTile key={title} title={title} icon={icon} photo={photo} accent="var(--ink-faint)" comingSoon />
         ))}
       </GameRow>
     </div>
@@ -528,6 +547,7 @@ function GameRow({ title, children }: { title: string; children: React.ReactNode
 function GameTile({
   title,
   icon: Icon,
+  photo,
   accent,
   to,
   href,
@@ -535,20 +555,32 @@ function GameTile({
 }: {
   title: string
   icon: LucideIcon
+  photo: string
   accent: string
   to?: string
   href?: string
   comingSoon?: boolean
 }) {
+  const isMascotPng = photo.endsWith('.png')
   const content = (
     <>
+      {isMascotPng ? (
+        <div className="flex h-20 w-full items-center justify-center rounded-xl" style={{ background: `color-mix(in srgb, ${accent} 14%, var(--ink-raised))` }}>
+          <img src={photo} alt="" className="h-16 w-16 object-contain" />
+        </div>
+      ) : (
+        <div className="relative h-20 w-full overflow-hidden rounded-xl">
+          <img src={photo} alt="" className="h-full w-full object-cover" />
+          <div className="absolute inset-0 bg-black/25" />
+        </div>
+      )}
       <span
-        className="flex h-14 w-14 items-center justify-center rounded-2xl"
-        style={{ background: `color-mix(in srgb, ${accent} 16%, transparent)`, color: accent }}
+        className="relative -mt-6 flex h-9 w-9 items-center justify-center rounded-xl border-2 border-[var(--ink-panel)]"
+        style={{ background: `color-mix(in srgb, ${accent} 20%, var(--ink-panel))`, color: accent }}
       >
-        <Icon className="h-7 w-7" strokeWidth={1.75} />
+        <Icon className="h-4 w-4" strokeWidth={1.75} />
       </span>
-      <p className="mt-2 text-xs font-bold leading-tight">{title}</p>
+      <p className="mt-1 text-xs font-bold leading-tight">{title}</p>
       {comingSoon && (
         <span className="mt-1 rounded-full bg-[var(--ink-raised)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[var(--ink-faint)]">
           Soon
@@ -556,8 +588,8 @@ function GameTile({
       )}
     </>
   )
-  const className = `flex w-32 shrink-0 flex-col items-center gap-0.5 rounded-2xl border border-[var(--hairline)] bg-[var(--ink-panel)] p-3 text-center ${
-    comingSoon ? 'opacity-60' : 'transition hover:scale-[1.05] active:scale-[0.96]'
+  const className = `flex w-32 shrink-0 flex-col items-center gap-0.5 overflow-hidden rounded-2xl border border-[var(--hairline)] bg-[var(--ink-panel)] pb-3 text-center ${
+    comingSoon ? 'opacity-75' : 'transition hover:scale-[1.05] active:scale-[0.96]'
   }`
   const style: React.CSSProperties = { scrollSnapAlign: 'start' }
 

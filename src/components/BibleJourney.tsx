@@ -340,8 +340,8 @@ function CharacterBrowse({
 const TRACK_WIDTH = 260
 const TRACK_CENTER_X = TRACK_WIDTH / 2
 const WAVE_AMPLITUDE = 66
-const ROW_HEIGHT = 112
-const NODE_SIZE = 64
+const ROW_HEIGHT = 128
+const NODE_SIZE = 80
 
 function waveX(idx: number): number {
   return TRACK_CENTER_X + Math.sin((idx * Math.PI) / 2) * WAVE_AMPLITUDE
@@ -452,21 +452,21 @@ function UnitPath({
                       }}
                     />
                     <span
-                      className="relative z-10 flex h-8 w-8 items-center justify-center rounded-full"
+                      className="relative z-10 flex h-10 w-10 items-center justify-center rounded-full"
                       style={{ background: fill, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.4), 0 2px 6px rgba(0,0,0,0.35)' }}
                     >
                       {isDone ? (
-                        <Check className="h-4 w-4 text-white" strokeWidth={3} />
+                        <Check className="h-5 w-5 text-white" strokeWidth={3} />
                       ) : isLocked ? (
-                        <Lock className="h-3.5 w-3.5 text-white/80" />
+                        <Lock className="h-4 w-4 text-white/80" />
                       ) : (
-                        <span className="text-sm">{unit.emoji}</span>
+                        <span className="text-base">{unit.emoji}</span>
                       )}
                     </span>
                     <img
                       src={badgeImage}
                       alt=""
-                      className="absolute -bottom-1 -right-1 z-20 h-6 w-6 rounded-full border-2 border-[var(--ink)] object-cover"
+                      className="absolute -bottom-1 -right-1 z-20 h-7 w-7 rounded-full border-2 border-[var(--ink)] object-cover"
                     />
                   </button>
                   <p className={`mt-2 text-center text-[11px] font-bold leading-tight ${isLocked ? 'text-[var(--ink-muted)]' : ''}`}>

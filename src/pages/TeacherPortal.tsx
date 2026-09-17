@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import {
   GraduationCap,
@@ -17,6 +17,9 @@ import {
   FileText,
   Gamepad2,
   Trophy,
+  LayoutDashboard,
+  Users,
+  Calendar,
   type LucideIcon,
 } from 'lucide-react'
 import { supabase, signOut, type Profile } from '../lib/supabase'
@@ -24,6 +27,7 @@ import { useMinistryAuth } from '../lib/useMinistryAuth'
 import AuthCard from '../components/ui/AuthCard'
 import TabBar from '../components/ui/TabBar'
 import IsometricPhone from '../components/IsometricPhone'
+import { NotesSection, DigitalBankSection } from '../components/PersonalVault'
 import {
   getMyTeacherApplication,
   submitTeacherApplication,
@@ -193,7 +197,7 @@ function ApplyForm({ onSubmitted }: { onSubmitted: () => void }) {
 
 // ---------- main dashboard ----------
 
-type Tab = 'home' | 'classes' | 'quiz' | 'ears' | 'profile'
+type Tab = 'home' | 'chat' | 'classes' | 'quiz' | 'ears' | 'profile'
 
 function TeacherDashboard({ profile }: { profile: Profile | null }) {
   const [tab, setTab] = useState<Tab>('home')
@@ -218,7 +222,8 @@ function TeacherDashboard({ profile }: { profile: Profile | null }) {
           setOpenClass(null)
         }}
         items={[
-          { value: 'home', label: 'Home', icon: Smartphone },
+          { value: 'home', label: 'Home', icon: LayoutDashboard },
+          { value: 'chat', label: 'Chat', icon: Smartphone },
           { value: 'classes', label: 'Classes', icon: GraduationCap },
           { value: 'quiz', label: 'Quiz', icon: Gamepad2 },
           { value: 'ears', label: 'Ears for You', icon: HeartHandshake },
@@ -227,6 +232,7 @@ function TeacherDashboard({ profile }: { profile: Profile | null }) {
       />
 
       {tab === 'home' && <TeacherHomeTab profile={profile} />}
+      {tab === 'chat' && <TeacherChatTab profile={profile} />}
       {tab === 'classes' && (openClass ? <ClassDetail klass={openClass} onBack={() => setOpenClass(null)} /> : <ClassesTab onOpen={setOpenClass} />)}
       {tab === 'quiz' && <QuizTab />}
       {tab === 'ears' && <EarsInboxTab />}
@@ -731,10 +737,145 @@ function SubmissionsView({ assignment, onBack }: { assignment: AssignmentRow; on
   )
 }
 
-// Teacher Home: a big isometric phone whose entire screen is the teacher's
-// messaging inbox - conversation list, then a thread once one is opened.
-// This replaced the old separate "Messages" tab outright.
+interface UpcomingDue {
+  title: string
+  className: string
+  dueDate: string
+}
+
+// Home: the teacher's dashboard - classes and their student counts, quick
+// links into Quiz, a live Ears for You pending count, upcoming assignment
+// due dates across every class, and the teacher's own private Notes /
+// Digital Bank (same generic per-user tables the kids' Home phone uses).
 function TeacherHomeTab({ profile }: { profile: Profile | null }) {
+  const [classes, setClasses] = useState<ClassRow[]>([])
+  const [studentCounts, setStudentCounts] = useState<Record<string, number>>({})
+  const [upcoming, setUpcoming] = useState<UpcomingDue[]>([])
+  const [earsPending, setEarsPending] = useState(0)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    listMyClasses().then(async (list) => {
+      setClasses(list)
+      const counts: Record<string, number> = {}
+      const due: UpcomingDue[] = []
+      await Promise.all(
+        list.map(async (c) => {
+          const [students, assignments] = await Promise.all([listStudentsInClass(c.id), listAssignments(c.id)])
+          counts[c.id] = students.length
+          for (const a of assignments) {
+            if (a.due_date && new Date(a.due_date) >= new Date()) due.push({ title: a.title, className: c.name, dueDate: a.due_date })
+          }
+        }),
+      )
+      due.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+      setStudentCounts(counts)
+      setUpcoming(due.slice(0, 5))
+      setLoading(false)
+    })
+    listEarsTeacherInbox().then((rows) => setEarsPending(rows.filter((r) => r.status === 'new').length))
+  }, [])
+
+  const totalStudents = Object.values(studentCounts).reduce((a, b) => a + b, 0)
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <p className="eyebrow">Teacher</p>
+        <h2 className="font-display text-2xl font-extrabold">Welcome back, {(profile?.full_name ?? 'Teacher').split(' ')[0]}!</h2>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <DashboardCard icon={GraduationCap} label="Your Classes" value={String(classes.length)} accent="var(--lp-accent-class, #4caf6d)">
+          <div className="mt-3 space-y-1.5">
+            {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
+            {!loading && classes.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No classes yet.</p>}
+            {classes.map((c) => (
+              <div key={c.id} className="flex items-center justify-between text-sm">
+                <span className="truncate">{c.name}</span>
+                <span className="shrink-0 text-[var(--ink-muted)]">{studentCounts[c.id] ?? 0} students</span>
+              </div>
+            ))}
+          </div>
+        </DashboardCard>
+
+        <DashboardCard icon={Users} label="Total Students" value={String(totalStudents)} accent="#60a5fa" />
+
+        <DashboardCard icon={Gamepad2} label="Quizzes" accent="#a78bfa">
+          <div className="mt-2 space-y-1.5">
+            <Link to="/questions" onClick={() => playClick()} className="block text-sm font-bold text-[var(--gold)]">
+              Question Bank →
+            </Link>
+            <Link to="/setup" onClick={() => playClick()} className="block text-sm font-bold text-[var(--gold)]">
+              Host a Match →
+            </Link>
+            <Link to="/history" onClick={() => playClick()} className="block text-sm font-bold text-[var(--gold)]">
+              History →
+            </Link>
+          </div>
+        </DashboardCard>
+
+        <DashboardCard icon={HeartHandshake} label="Ears for You" value={String(earsPending)} accent="#fb7185">
+          <p className="mt-2 text-sm text-[var(--ink-muted)]">{earsPending > 0 ? 'New messages waiting.' : 'All caught up.'}</p>
+        </DashboardCard>
+
+        <DashboardCard icon={Calendar} label="Upcoming" accent="var(--gold)">
+          <div className="mt-2 space-y-2">
+            {!loading && upcoming.length === 0 && <p className="text-sm text-[var(--ink-muted)]">Nothing due soon.</p>}
+            {upcoming.map((a, i) => (
+              <div key={i} className="text-sm">
+                <p className="truncate font-bold">{a.title}</p>
+                <p className="truncate text-[var(--ink-muted)]">
+                  {a.className} · Due {new Date(a.dueDate).toLocaleDateString()}
+                </p>
+              </div>
+            ))}
+          </div>
+        </DashboardCard>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="panel p-5">
+          <NotesSection kind="notebook" title="Notes" icon={FileText} accent="var(--gold)" placeholder="Jot something down…" />
+        </div>
+        <div className="panel p-5">
+          <DigitalBankSection />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function DashboardCard({
+  icon: Icon,
+  label,
+  value,
+  accent,
+  children,
+}: {
+  icon: LucideIcon
+  label: string
+  value?: string
+  accent: string
+  children?: ReactNode
+}) {
+  return (
+    <div className="panel p-5">
+      <div className="flex items-center justify-between">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: `color-mix(in srgb, ${accent} 18%, transparent)`, color: accent }}>
+          <Icon className="h-5 w-5" strokeWidth={2} />
+        </span>
+        {value !== undefined && <span className="font-display text-2xl font-extrabold">{value}</span>}
+      </div>
+      <p className="mt-3 eyebrow">{label}</p>
+      {children}
+    </div>
+  )
+}
+
+// Chat: a big isometric phone whose entire screen is the teacher's
+// messaging inbox - conversation list, then a thread once one is opened.
+function TeacherChatTab({ profile }: { profile: Profile | null }) {
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
   const [open, setOpen] = useState<ConversationSummary | null>(null)
 
@@ -744,15 +885,7 @@ function TeacherHomeTab({ profile }: { profile: Profile | null }) {
 
   return (
     <div className="space-y-2">
-      <div
-        className="flex items-end justify-center rounded-3xl p-6"
-        style={{
-          backgroundImage: 'linear-gradient(180deg, rgba(60,20,10,0.15) 0%, rgba(60,20,10,0.7) 100%), url(/teacher-home-bg.jpg)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center 60%',
-          minHeight: 140,
-        }}
-      >
+      <div className="flex items-end justify-center rounded-3xl p-6" style={{ background: '#5b21b6', minHeight: 140 }}>
         <p className="font-display text-lg font-extrabold text-white drop-shadow-md">Welcome back, {(profile?.full_name ?? 'Teacher').split(' ')[0]}!</p>
       </div>
       <IsometricPhone accent="var(--lp-accent-class)">

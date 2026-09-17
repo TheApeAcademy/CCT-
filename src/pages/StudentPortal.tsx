@@ -38,11 +38,6 @@ import {
   PenLine,
   Heart,
   FileText,
-  Image as ImageIcon,
-  Mic,
-  Upload,
-  Trash2,
-  Plus,
   X,
   Users,
   ClipboardList,
@@ -52,6 +47,8 @@ import { supabase, signOut } from '../lib/supabase'
 import { useMinistryAuth } from '../lib/useMinistryAuth'
 import VillageMap from '../components/VillageMap'
 import BibleJourneyPanel from '../components/BibleJourney'
+import IsometricPhone from '../components/IsometricPhone'
+import { NotesSection, DigitalBankSection } from '../components/PersonalVault'
 import { useAutoHideNav } from '../lib/useAutoHideNav'
 import {
   getMyStudentProfile,
@@ -70,14 +67,6 @@ import {
   submitAssignment,
   getMyBibleStreak,
   listMyAchievements,
-  listMyNotes,
-  createNote,
-  deleteNote,
-  listMyVaultItems,
-  addVaultNote,
-  uploadVaultFile,
-  getVaultFileUrl,
-  deleteVaultItem,
   type EarnedAchievement,
   type StudentRow,
   type LeaderboardRow,
@@ -87,10 +76,6 @@ import {
   type ClassRow,
   type LectureRow,
   type AssignmentRow,
-  type NoteKind,
-  type PrivateNoteRow,
-  type VaultCategory,
-  type VaultItemRow,
 } from '../lib/ministry'
 import { fileToResizedDataUrl } from '../lib/image'
 import { renderIdCardPng } from '../lib/idCard'
@@ -155,7 +140,7 @@ function Dashboard() {
   const [tab, setTab] = useState<Tab>('home')
   const [view, setView] = useState<'map' | 'tab'>('map')
   const [student, setStudent] = useState<StudentRow | null>(null)
-  const [klass, setKlass] = useState<(ClassRow & { teacher_name: string }) | null>(null)
+  const [klass, setKlass] = useState<(ClassRow & { teacher_name: string; teacher_avatar: string | null }) | null>(null)
   const [achievements, setAchievements] = useState<EarnedAchievement[]>([])
 
   const load = () => {
@@ -261,7 +246,7 @@ function Dashboard() {
               </button>
               <h1 className="font-display text-lg font-extrabold text-[var(--lp-heading)]">{TAB_TITLE[tab]}</h1>
             </div>
-            <div className={tab === 'bible' || tab === 'game' || tab === 'home' || tab === 'class' || tab === 'ears' ? 'pb-12' : 'mx-auto max-w-2xl p-4 pb-12'}>
+            <div className={tab === 'bible' || tab === 'game' || tab === 'home' || tab === 'class' || tab === 'ears' || tab === 'messages' ? 'pb-12' : 'mx-auto max-w-2xl p-4 pb-12'}>
               {tab === 'home' && <HomeTab student={student} klass={klass} achievements={achievements} onNavigate={enterTab} />}
               {tab === 'class' && <ClassTab klass={klass} student={student} />}
               {tab === 'bible' && <SundaySchoolTab klass={klass} />}
@@ -269,13 +254,15 @@ function Dashboard() {
               {tab === 'profile' && student && <ProfileTab student={student} klass={klass} onSaved={load} />}
               {tab === 'messages' &&
                 (klass ? (
-                  <MessagesTab teacherId={klass.teacher_id} teacherName={klass.teacher_name} />
+                  <MessagesTab teacherId={klass.teacher_id} teacherName={klass.teacher_name} teacherAvatar={klass.teacher_avatar} />
                 ) : (
-                  <div className="panel p-6 text-center">
-                    <p className="font-display text-lg font-bold">No teacher yet</p>
-                    <p className="mt-1 text-sm text-[var(--ink-muted)]">
-                      Once your teacher adds you to their class, you&apos;ll be able to message them here.
-                    </p>
+                  <div className="mx-auto max-w-2xl p-4">
+                    <div className="panel p-6 text-center">
+                      <p className="font-display text-lg font-bold">No teacher yet</p>
+                      <p className="mt-1 text-sm text-[var(--ink-muted)]">
+                        Once your teacher adds you to their class, you&apos;ll be able to message them here.
+                      </p>
+                    </div>
                   </div>
                 ))}
               {tab === 'ears' && <EarsTab klass={klass} />}
@@ -307,7 +294,7 @@ function HomeTab({
   onNavigate,
 }: {
   student: StudentRow | null
-  klass: (ClassRow & { teacher_name: string }) | null
+  klass: (ClassRow & { teacher_name: string; teacher_avatar: string | null }) | null
   achievements: EarnedAchievement[]
   onNavigate: (tab: Tab) => void
 }) {
@@ -343,14 +330,14 @@ type DockApp = (typeof DOCK_APPS)[number]['key']
 function DockIcon({ icon: Icon, from, to }: { icon: LucideIcon; from: string; to: string }) {
   return (
     <span
-      className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl transition group-active:scale-90 group-hover:scale-105"
+      className="relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl transition group-active:scale-90 group-hover:scale-105"
       style={{
         background: `linear-gradient(155deg, ${from} 0%, ${to} 100%)`,
-        boxShadow: '0 4px 10px -3px rgba(0,0,0,0.55), inset 0 1px 1px rgba(255,255,255,0.4), inset 0 -2px 3px rgba(0,0,0,0.3)',
+        boxShadow: '0 5px 12px -3px rgba(0,0,0,0.55), inset 0 1px 1px rgba(255,255,255,0.4), inset 0 -2px 3px rgba(0,0,0,0.3)',
       }}
     >
       <span className="absolute inset-0" style={{ background: 'radial-gradient(circle at 30% 20%, rgba(255,255,255,0.5), transparent 55%)' }} />
-      <Icon className="relative h-5 w-5 text-white drop-shadow" strokeWidth={2.25} />
+      <Icon className="relative h-6 w-6 text-white drop-shadow" strokeWidth={2.25} />
     </span>
   )
 }
@@ -363,7 +350,7 @@ function StandingPhone({
   klass,
   achievements,
 }: {
-  klass: (ClassRow & { teacher_name: string }) | null
+  klass: (ClassRow & { teacher_name: string; teacher_avatar: string | null }) | null
   achievements: EarnedAchievement[]
 }) {
   const [screen, setScreen] = useState<DockApp | null>(null)
@@ -376,23 +363,23 @@ function StandingPhone({
   }
 
   const backButton = (
-    <button onClick={() => setScreen(null)} className="flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20">
-      <ArrowLeft className="h-3.5 w-3.5" />
+    <button onClick={() => setScreen(null)} className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20">
+      <ArrowLeft className="h-4 w-4" />
     </button>
   )
   const header = (title: string) => (
-    <div className="flex items-center gap-2 pb-2.5">
+    <div className="flex items-center gap-2 pb-3">
       {backButton}
-      <p className="font-display text-sm font-extrabold text-white">{title}</p>
+      <p className="font-display text-base font-extrabold text-white">{title}</p>
     </div>
   )
 
   return (
-    <div className="absolute bottom-3 left-1/2 -translate-x-1/2" style={{ width: 210 }}>
+    <div className="absolute bottom-3 left-1/2 -translate-x-1/2" style={{ width: 300 }}>
       {/* contact shadow blending the phone onto the rug */}
       <div
         aria-hidden="true"
-        className="absolute -bottom-2 left-1/2 h-6 w-36 -translate-x-1/2 rounded-full opacity-60 blur-md"
+        className="absolute -bottom-2 left-1/2 h-8 w-52 -translate-x-1/2 rounded-full opacity-60 blur-md"
         style={{ background: 'radial-gradient(ellipse, rgba(0,0,0,0.65), transparent 72%)' }}
       />
       <motion.div
@@ -405,47 +392,47 @@ function StandingPhone({
           x: wobble === 'left' ? -5 : wobble === 'right' ? 5 : 0,
         }}
         transition={{ type: 'spring', stiffness: 260, damping: 14 }}
-        style={{ transformOrigin: 'bottom center', transformStyle: 'preserve-3d', transform: 'perspective(700px) rotateY(-6deg)' }}
+        style={{ transformOrigin: 'bottom center', transformStyle: 'preserve-3d', transform: 'perspective(900px) rotateY(-6deg)' }}
         className="relative"
       >
-        <button aria-label="Nudge phone left" onClick={() => nudge('left')} className="absolute -left-5 top-10 bottom-10 z-30 w-5" />
-        <button aria-label="Nudge phone right" onClick={() => nudge('right')} className="absolute -right-5 top-10 bottom-10 z-30 w-5" />
+        <button aria-label="Nudge phone left" onClick={() => nudge('left')} className="absolute -left-6 top-14 bottom-14 z-30 w-6" />
+        <button aria-label="Nudge phone right" onClick={() => nudge('right')} className="absolute -right-6 top-14 bottom-14 z-30 w-6" />
 
         <div
-          className="relative overflow-hidden rounded-[22px] border-[3px]"
+          className="relative overflow-hidden rounded-[30px] border-[5px]"
           style={{
             borderColor: '#e4e7ec',
             background: 'linear-gradient(155deg, #f5f6f8 0%, #b9c0ca 100%)',
-            boxShadow: '0 20px 34px -12px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,0,0,0.08)',
+            boxShadow: '0 28px 48px -14px rgba(0,0,0,0.65), 0 0 0 1px rgba(0,0,0,0.08), inset 0 0 0 1px rgba(255,255,255,0.6)',
           }}
         >
-          <div className="relative overflow-hidden rounded-[18px]" style={{ height: 400 }}>
-            {screen === null ? (
-              <img src="/hero-kids.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />
-            ) : (
-              <div className="absolute inset-0" style={{ background: 'linear-gradient(160deg, #14141c 0%, #0a0a10 100%)' }} />
-            )}
-            {screen === null && <div className="absolute inset-0 bg-black/10" />}
+          {/* metal side-frame highlight for a bit more realism */}
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-y-0 left-0 z-30 w-1"
+            style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.1))' }}
+          />
+          <div className="relative overflow-hidden rounded-[24px]" style={{ height: 560, background: 'linear-gradient(160deg, #1c1c26 0%, #0a0a10 100%)' }}>
             {/* glass glare for a bit more "3d" realism */}
             <div
               aria-hidden="true"
-              className="pointer-events-none absolute inset-0"
-              style={{ background: 'linear-gradient(115deg, rgba(255,255,255,0.22) 0%, transparent 18%, transparent 82%, rgba(255,255,255,0.1) 100%)' }}
+              className="pointer-events-none absolute inset-0 z-20"
+              style={{ background: 'linear-gradient(115deg, rgba(255,255,255,0.16) 0%, transparent 18%, transparent 82%, rgba(255,255,255,0.07) 100%)' }}
             />
-            <div className="absolute left-1/2 top-2 z-20 h-4 w-16 -translate-x-1/2 rounded-full bg-black/70" />
+            <div className="absolute left-1/2 top-3 z-20 h-5 w-24 -translate-x-1/2 rounded-full bg-black/70" />
 
-            <div className="relative z-10 flex h-full flex-col px-2.5 pb-3 pt-7">
+            <div className="relative z-10 flex h-full flex-col px-4 pb-4 pt-9">
               {screen === null && (
-                <div className="grid flex-1 grid-cols-3 content-start gap-x-2 gap-y-4 pt-2">
+                <div className="grid flex-1 grid-cols-3 content-start gap-x-3 gap-y-6 pt-3">
                   {DOCK_APPS.map((app) => (
-                    <button key={app.key} onClick={() => setScreen(app.key)} className="group flex flex-col items-center gap-1">
+                    <button key={app.key} onClick={() => setScreen(app.key)} className="group flex flex-col items-center gap-1.5">
                       <DockIcon icon={app.icon} from={app.from} to={app.to} />
-                      <span className="text-[9px] font-bold text-white drop-shadow">{app.label}</span>
+                      <span className="text-[11px] font-bold text-white drop-shadow">{app.label}</span>
                     </button>
                   ))}
-                  <Link to="/anthem" onClick={() => playClick()} className="group flex flex-col items-center gap-1">
+                  <Link to="/anthem" onClick={() => playClick()} className="group flex flex-col items-center gap-1.5">
                     <DockIcon icon={Music} from="#fdba74" to="#c2410c" />
-                    <span className="text-[9px] font-bold text-white drop-shadow">Anthem</span>
+                    <span className="text-[11px] font-bold text-white drop-shadow">Anthem</span>
                   </Link>
                 </div>
               )}
@@ -528,7 +515,7 @@ function StandingPhone({
   )
 }
 
-function FriendsScreen({ klass }: { klass: (ClassRow & { teacher_name: string }) | null }) {
+function FriendsScreen({ klass }: { klass: (ClassRow & { teacher_name: string; teacher_avatar: string | null }) | null }) {
   const [rows, setRows] = useState<LeaderboardRow[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -629,7 +616,7 @@ function ShinyDigitalCard({
   onViewFull,
 }: {
   student: StudentRow | null
-  klass: (ClassRow & { teacher_name: string }) | null
+  klass: (ClassRow & { teacher_name: string; teacher_avatar: string | null }) | null
   onViewFull: () => void
 }) {
   return (
@@ -660,211 +647,6 @@ function ShinyDigitalCard({
       </div>
       <ArrowRight className="relative z-10 h-5 w-5 shrink-0 text-white/70" />
     </button>
-  )
-}
-
-const VAULT_CATEGORY_ICON: Record<VaultCategory, LucideIcon> = {
-  assignment: FileText,
-  note: PenLine,
-  photo: ImageIcon,
-  audio: Mic,
-  other: Wallet,
-}
-
-function DigitalBankSection() {
-  const [items, setItems] = useState<VaultItemRow[]>([])
-  const [loading, setLoading] = useState(true)
-  const [uploading, setUploading] = useState(false)
-  const [adding, setAdding] = useState(false)
-  const [noteTitle, setNoteTitle] = useState('')
-  const [noteBody, setNoteBody] = useState('')
-
-  const load = () => listMyVaultItems().then(setItems).finally(() => setLoading(false))
-  useEffect(() => {
-    load()
-  }, [])
-
-  const onPick = async (file: File | undefined) => {
-    if (!file) return
-    setUploading(true)
-    try {
-      const category: VaultCategory = file.type.startsWith('image/') ? 'photo' : file.type.startsWith('audio/') ? 'audio' : 'other'
-      await uploadVaultFile(file, category, file.name)
-      playClick()
-      haptics.success()
-      load()
-    } finally {
-      setUploading(false)
-    }
-  }
-
-  const saveNote = async () => {
-    if (!noteBody.trim()) return
-    await addVaultNote(noteTitle || 'Note', noteBody)
-    setNoteTitle('')
-    setNoteBody('')
-    setAdding(false)
-    playClick()
-    load()
-  }
-
-  const openItem = async (item: VaultItemRow) => {
-    if (!item.file_path) return
-    const url = await getVaultFileUrl(item.file_path)
-    if (url) window.open(url, '_blank', 'noopener,noreferrer')
-  }
-
-  const remove = async (item: VaultItemRow) => {
-    await deleteVaultItem(item)
-    haptics.success()
-    load()
-  }
-
-  return (
-    <div>
-      <div className="flex items-center justify-between">
-        <p className="eyebrow">Digital Bank</p>
-        <div className="flex items-center gap-1.5">
-          <label className="flex cursor-pointer items-center gap-1 rounded-full border border-[var(--hairline-strong)] px-2.5 py-1 text-xs font-bold text-[var(--ink-muted)] transition hover:text-[var(--fg)]">
-            <Upload className="h-3 w-3" /> {uploading ? 'Uploading…' : 'Add file'}
-            <input type="file" className="hidden" disabled={uploading} onChange={(e) => onPick(e.target.files?.[0])} />
-          </label>
-          <button
-            onClick={() => setAdding((v) => !v)}
-            className="flex items-center gap-1 rounded-full border border-[var(--hairline-strong)] px-2.5 py-1 text-xs font-bold text-[var(--ink-muted)] transition hover:text-[var(--fg)]"
-          >
-            <Plus className="h-3 w-3" /> Note
-          </button>
-        </div>
-      </div>
-
-      {adding && (
-        <div className="mt-2 space-y-2 rounded-2xl border border-[var(--hairline)] bg-[var(--ink-panel)] p-4">
-          <input value={noteTitle} onChange={(e) => setNoteTitle(e.target.value)} placeholder="Title (optional)" className={inputClass} />
-          <textarea value={noteBody} onChange={(e) => setNoteBody(e.target.value)} placeholder="Write it down…" rows={3} className={inputClass} />
-          <button onClick={saveNote} className="btn-solid w-full py-2 text-sm">
-            Save to Bank
-          </button>
-        </div>
-      )}
-
-      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-        {!loading && items.length === 0 && !adding && (
-          <p className="col-span-full text-center text-sm text-[var(--ink-muted)]">
-            Empty for now - save finished assignments, notes, photos, or voice notes here.
-          </p>
-        )}
-        {items.map((item) => {
-          const Icon = VAULT_CATEGORY_ICON[item.category]
-          return (
-            <div key={item.id} className="group relative rounded-2xl border border-[var(--hairline)] bg-[var(--ink-panel)] p-4">
-              <button
-                onClick={() => remove(item)}
-                className="absolute right-2 top-2 hidden h-6 w-6 items-center justify-center rounded-full bg-black/40 text-white/70 transition hover:text-white group-hover:flex"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-              <button onClick={() => (item.file_path ? openItem(item) : undefined)} className="flex w-full flex-col items-start gap-2 text-left">
-                <span
-                  className="flex h-9 w-9 items-center justify-center rounded-xl"
-                  style={{ background: 'color-mix(in srgb, var(--gold) 18%, transparent)', color: 'var(--gold)' }}
-                >
-                  <Icon className="h-4 w-4" />
-                </span>
-                <p className="w-full truncate text-sm font-bold">{item.title}</p>
-                {item.note && <p className="line-clamp-2 text-xs text-[var(--ink-muted)]">{item.note}</p>}
-              </button>
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-function NotesSection({
-  kind,
-  title,
-  icon: Icon,
-  accent,
-  placeholder,
-}: {
-  kind: NoteKind
-  title: string
-  icon: LucideIcon
-  accent: string
-  placeholder: string
-}) {
-  const [notes, setNotes] = useState<PrivateNoteRow[]>([])
-  const [loading, setLoading] = useState(true)
-  const [adding, setAdding] = useState(false)
-  const [draftTitle, setDraftTitle] = useState('')
-  const [draftBody, setDraftBody] = useState('')
-
-  const load = () =>
-    listMyNotes(kind)
-      .then(setNotes)
-      .finally(() => setLoading(false))
-  useEffect(() => {
-    load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const save = async () => {
-    if (!draftBody.trim()) return
-    await createNote(kind, draftTitle, draftBody)
-    setDraftTitle('')
-    setDraftBody('')
-    setAdding(false)
-    playClick()
-    load()
-  }
-
-  const remove = async (id: string) => {
-    await deleteNote(id)
-    load()
-  }
-
-  return (
-    <div>
-      <div className="flex items-center justify-between">
-        <p className="eyebrow flex items-center gap-1.5">
-          <Icon className="h-3.5 w-3.5" style={{ color: accent }} /> {title}
-        </p>
-        <button
-          onClick={() => setAdding((v) => !v)}
-          className="flex items-center gap-1 rounded-full border border-[var(--hairline-strong)] px-2.5 py-1 text-xs font-bold text-[var(--ink-muted)] transition hover:text-[var(--fg)]"
-        >
-          {adding ? <X className="h-3 w-3" /> : <Plus className="h-3 w-3" />} {adding ? 'Cancel' : 'New'}
-        </button>
-      </div>
-
-      {adding && (
-        <div className="mt-2 space-y-2 rounded-2xl border border-[var(--hairline)] bg-[var(--ink-panel)] p-4">
-          <input value={draftTitle} onChange={(e) => setDraftTitle(e.target.value)} placeholder="Title (optional)" className={inputClass} />
-          <textarea value={draftBody} onChange={(e) => setDraftBody(e.target.value)} placeholder={placeholder} rows={4} className={inputClass} />
-          <button onClick={save} className="btn-solid w-full py-2 text-sm">
-            Save Entry
-          </button>
-        </div>
-      )}
-
-      <div className="mt-3 space-y-2">
-        {!loading && notes.length === 0 && !adding && <p className="text-sm text-[var(--ink-muted)]">Nothing written yet.</p>}
-        {notes.map((n) => (
-          <div key={n.id} className="group relative rounded-2xl border border-[var(--hairline)] bg-[var(--ink-panel)] p-4">
-            <button onClick={() => remove(n.id)} className="absolute right-3 top-3 hidden text-[var(--ink-faint)] transition hover:text-red-400 group-hover:block">
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-            {n.title && <p className="pr-6 font-bold">{n.title}</p>}
-            <p className="mt-1 whitespace-pre-wrap pr-6 text-sm text-[var(--ink-muted)]">{n.body}</p>
-            <p className="mt-2 text-[10px] uppercase tracking-wide text-[var(--ink-faint)]">
-              {new Date(n.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-            </p>
-          </div>
-        ))}
-      </div>
-    </div>
   )
 }
 
@@ -1107,15 +889,15 @@ function GameTile({
 }
 
 const CLASS_FEATURES = [
-  { key: 'info', label: 'Class Info', icon: Users },
-  { key: 'lessons', label: 'Lessons', icon: BookOpen },
-  { key: 'assignments', label: 'Assignments', icon: ClipboardList },
-  { key: 'verse', label: 'Memory Verse', icon: Heart },
-  { key: 'notes', label: 'Notebook', icon: FileText },
+  { key: 'info', label: 'Class Info', icon: Users, from: '#60a5fa', to: '#1d4ed8' },
+  { key: 'lessons', label: 'Lessons', icon: BookOpen, from: '#4ade80', to: '#15803d' },
+  { key: 'assignments', label: 'Assignments', icon: ClipboardList, from: '#fbbf24', to: '#b45309' },
+  { key: 'verse', label: 'Memory Verse', icon: Heart, from: '#fb7185', to: '#be123c' },
+  { key: 'notes', label: 'Notebook', icon: FileText, from: '#a78bfa', to: '#6d28d9' },
 ] as const
 type ClassFeatureKey = (typeof CLASS_FEATURES)[number]['key']
 
-function ClassTab({ klass, student }: { klass: (ClassRow & { teacher_name: string }) | null; student: StudentRow | null }) {
+function ClassTab({ klass, student }: { klass: (ClassRow & { teacher_name: string; teacher_avatar: string | null }) | null; student: StudentRow | null }) {
   const [assignments, setAssignments] = useState<AssignmentRow[]>([])
   const [lessons, setLessons] = useState<LectureRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -1199,7 +981,7 @@ function ClassTab({ klass, student }: { klass: (ClassRow & { teacher_name: strin
 function ClassDial({ onSelect }: { onSelect: (key: ClassFeatureKey) => void }) {
   const n = CLASS_FEATURES.length
   return (
-    <div className="relative" style={{ width: 'min(84vw, 420px)', height: 'min(84vw, 420px)' }}>
+    <div className="relative" style={{ width: 'min(92vw, 630px)', height: 'min(92vw, 630px)' }}>
       <div
         className="absolute inset-0 rounded-full"
         style={{
@@ -1238,22 +1020,21 @@ function ClassDial({ onSelect }: { onSelect: (key: ClassFeatureKey) => void }) {
               playClick()
               onSelect(f.key)
             }}
-            className="absolute flex flex-col items-center gap-1.5 transition hover:scale-110 active:scale-95"
+            className="absolute flex flex-col items-center gap-2 transition hover:scale-110 active:scale-95"
             style={{ left: `${x}%`, top: `${y}%`, transform: 'translate(-50%,-50%)' }}
           >
             <span
-              className="flex h-14 w-14 items-center justify-center rounded-full sm:h-16 sm:w-16"
+              className="relative flex h-[84px] w-[84px] items-center justify-center overflow-hidden rounded-full sm:h-24 sm:w-24"
               style={{
-                background: 'rgba(255,255,255,0.16)',
+                background: `linear-gradient(155deg, ${f.from} 0%, ${f.to} 100%)`,
                 border: '1px solid rgba(255,255,255,0.45)',
-                boxShadow: '0 10px 24px -8px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.4)',
-                backdropFilter: 'blur(10px)',
-                WebkitBackdropFilter: 'blur(10px)',
+                boxShadow: '0 10px 24px -8px rgba(0,0,0,0.55), inset 0 1px 1px rgba(255,255,255,0.45), inset 0 -3px 6px rgba(0,0,0,0.3)',
               }}
             >
-              <Icon className="h-6 w-6 text-white" strokeWidth={2.1} />
+              <span className="absolute inset-0" style={{ background: 'radial-gradient(circle at 30% 20%, rgba(255,255,255,0.45), transparent 55%)' }} />
+              <Icon className="relative h-9 w-9 text-white drop-shadow" strokeWidth={2.1} />
             </span>
-            <span className="whitespace-nowrap rounded-full bg-black/50 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur">{f.label}</span>
+            <span className="whitespace-nowrap rounded-full bg-black/50 px-2.5 py-1 text-xs font-bold text-white backdrop-blur">{f.label}</span>
           </button>
         )
       })}
@@ -1271,7 +1052,7 @@ function ClassFeaturePanel({
   onClose,
 }: {
   feature: ClassFeatureKey
-  klass: ClassRow & { teacher_name: string }
+  klass: ClassRow & { teacher_name: string; teacher_avatar: string | null }
   student: StudentRow | null
   assignments: AssignmentRow[]
   lessons: LectureRow[]
@@ -1498,7 +1279,7 @@ function HugeHeroIcon({
   )
 }
 
-function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string }) | null }) {
+function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string; teacher_avatar: string | null }) | null }) {
   const [journeyOpen, setJourneyOpen] = useState(false)
   const [streak, setStreak] = useState(0)
   const [lessons, setLessons] = useState<LectureRow[]>([])
@@ -1696,7 +1477,7 @@ function LeaderboardTab({ myId }: { myId: string | null }) {
   )
 }
 
-function ProfileTab({ student, klass, onSaved }: { student: StudentRow; klass: (ClassRow & { teacher_name: string }) | null; onSaved: () => void }) {
+function ProfileTab({ student, klass, onSaved }: { student: StudentRow; klass: (ClassRow & { teacher_name: string; teacher_avatar: string | null }) | null; onSaved: () => void }) {
   const [bio, setBio] = useState(student.bio ?? '')
   const [verse, setVerse] = useState(student.favorite_verse ?? '')
   const [quote, setQuote] = useState(student.favorite_quote ?? '')
@@ -1844,7 +1625,7 @@ function ProfileTab({ student, klass, onSaved }: { student: StudentRow; klass: (
   )
 }
 
-function MessagesTab({ teacherId, teacherName }: { teacherId: string; teacherName: string }) {
+function MessagesTab({ teacherId, teacherName, teacherAvatar }: { teacherId: string; teacherName: string; teacherAvatar: string | null }) {
   const [conversationId, setConversationId] = useState<string | null>(null)
   const [messages, setMessages] = useState<MessageRow[]>([])
   const [draft, setDraft] = useState('')
@@ -1871,39 +1652,56 @@ function MessagesTab({ teacherId, teacherName }: { teacherId: string; teacherNam
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <p className="eyebrow">About Your Teacher</p>
-        <div className="mt-2 panel p-4">
-          <p className="font-bold">{teacherName}</p>
-          <p className="text-sm text-[var(--ink-muted)]">Your Sunday school teacher - message them any time.</p>
-        </div>
-      </div>
-
-      <div>
-        <p className="eyebrow">Chat</p>
-        <div className="mt-2 space-y-3">
-          <div className="panel space-y-2 p-4">
-            {messages.map((m) => (
-              <div key={m.id} className={`max-w-[80%] rounded-md px-3 py-2 text-sm ${m.sender_id === myId ? 'ml-auto bg-[var(--gold)]/15 text-right' : 'bg-[var(--ink-panel)]'}`}>
-                {m.body}
+    <div className="fixed inset-0 z-0 overflow-hidden">
+      <img src="/teacher-home-bg.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />
+      <div className="relative z-10 flex h-full items-center justify-center px-4">
+        <IsometricPhone accent="var(--lp-accent-training)">
+          <div className="flex flex-1 flex-col overflow-hidden px-4 pb-5">
+            <div className="flex items-center gap-3 pb-4">
+              {teacherAvatar ? (
+                <img src={teacherAvatar} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover ring-2 ring-white/30" />
+              ) : (
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-lg font-extrabold text-white ring-2 ring-white/30">
+                  {teacherName.charAt(0).toUpperCase()}
+                </span>
+              )}
+              <div className="min-w-0">
+                <p className="truncate font-display text-base font-extrabold text-white">{teacherName}</p>
+                <p className="text-xs text-white/50">Your Sunday school teacher</p>
               </div>
-            ))}
-            {messages.length === 0 && <p className="text-center text-sm text-[var(--ink-faint)]">Say hi to your teacher!</p>}
+            </div>
+
+            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
+              {messages.map((m) => (
+                <div
+                  key={m.id}
+                  className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${m.sender_id === myId ? 'ml-auto bg-[var(--gold)] text-black' : 'bg-white/10 text-white'}`}
+                >
+                  {m.body}
+                </div>
+              ))}
+              {messages.length === 0 && <p className="pt-8 text-center text-sm text-white/40">Say hi to your teacher!</p>}
+            </div>
+
+            <div className="mt-3 flex gap-2">
+              <input
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                placeholder="Write a message…"
+                className="flex-1 rounded-full border border-white/15 bg-white/10 px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
+                onKeyDown={(e) => e.key === 'Enter' && send()}
+              />
+              <button
+                onClick={send}
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+                style={{ background: 'var(--gold)' }}
+                aria-label="Send"
+              >
+                <Send className="h-4 w-4 text-black" />
+              </button>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <input
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              placeholder="Write a message…"
-              className={inputClass}
-              onKeyDown={(e) => e.key === 'Enter' && send()}
-            />
-            <button onClick={send} className="btn-solid flex shrink-0 items-center gap-1.5 text-sm">
-              <Send className="h-4 w-4" /> Send
-            </button>
-          </div>
-        </div>
+        </IsometricPhone>
       </div>
     </div>
   )
@@ -1917,7 +1715,7 @@ const EARS_STATUS_LABEL: Record<string, string> = {
   resolved: 'Resolved',
 }
 
-function EarsTab({ klass }: { klass: (ClassRow & { teacher_name: string }) | null }) {
+function EarsTab({ klass }: { klass: (ClassRow & { teacher_name: string; teacher_avatar: string | null }) | null }) {
   const [body, setBody] = useState('')
   const [anonymous, setAnonymous] = useState(true)
   const [submitting, setSubmitting] = useState(false)

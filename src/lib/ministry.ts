@@ -314,14 +314,18 @@ export async function updateMyStudentProfile(params: {
   if (error) throw error
 }
 
-export async function getMyClass(): Promise<(ClassRow & { teacher_name: string }) | null> {
+export async function getMyClass(): Promise<(ClassRow & { teacher_name: string; teacher_avatar: string | null }) | null> {
   const student = await getMyStudentProfile()
   if (!student?.class_id) return null
-  const { data, error } = await supabase.from('classes').select('*, profiles!classes_teacher_id_fkey(full_name)').eq('id', student.class_id).maybeSingle()
+  const { data, error } = await supabase
+    .from('classes')
+    .select('*, profiles!classes_teacher_id_fkey(full_name, avatar_url)')
+    .eq('id', student.class_id)
+    .maybeSingle()
   if (error) throw error
   if (!data) return null
   const row = data as any
-  return { ...row, teacher_name: row.profiles?.full_name ?? '' }
+  return { ...row, teacher_name: row.profiles?.full_name ?? '', teacher_avatar: row.profiles?.avatar_url ?? null }
 }
 
 // ---------- leaderboard ----------

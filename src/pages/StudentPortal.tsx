@@ -51,6 +51,7 @@ import BibleJourneyPanel from '../components/BibleJourney'
 import IsometricPhone from '../components/IsometricPhone'
 import { NotesSection, DigitalBankSection } from '../components/PersonalVault'
 import { SUNDAY_LESSON_THEMES, SUNDAYS_2026, sundayDateKey } from '../content/sundaySchoolCalendar'
+import { bibleComUrl } from '../lib/bibleLink'
 import { useAutoHideNav } from '../lib/useAutoHideNav'
 import {
   getMyStudentProfile,
@@ -927,43 +928,27 @@ function ClassTab({ klass, student }: { klass: (ClassRow & { teacher_name: strin
 
   return (
     <div className="fixed inset-0 z-0 overflow-hidden">
-      <img src="/classroom-bible-reading-bg.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />
+      <img src="/classroom-bible-reading-bg.jpg" alt="" className="absolute inset-0 h-full w-full scale-110 object-cover blur-md" />
       <div className="absolute inset-0 bg-black/45" />
       <div className="relative z-10 flex h-full flex-col items-center justify-center overflow-y-auto px-4 py-16">
-        <AnimatePresence mode="wait">
-          {active ? (
-            <motion.div
-              key="panel"
-              initial={{ opacity: 0, y: 16, scale: 0.96 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 16, scale: 0.96 }}
-              transition={{ duration: 0.22 }}
-              className="w-full max-w-md"
-            >
-              <ClassFeaturePanel
-                feature={active}
-                klass={klass}
-                student={student}
-                assignments={assignments}
-                lessons={lessons}
-                loading={loading}
-                onClose={() => setActive(null)}
-              />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="dial"
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.22 }}
-              className="flex flex-col items-center gap-4"
-            >
-              <ClassDial onSelect={setActive} />
-              <p className="text-xs font-bold uppercase tracking-wide text-white/70">Tap an icon to open it</p>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {active ? (
+          <div key="panel" className="w-full max-w-md animate-page-in">
+            <ClassFeaturePanel
+              feature={active}
+              klass={klass}
+              student={student}
+              assignments={assignments}
+              lessons={lessons}
+              loading={loading}
+              onClose={() => setActive(null)}
+            />
+          </div>
+        ) : (
+          <div key="dial" className="flex flex-col items-center gap-4 animate-page-in">
+            <ClassDial onSelect={setActive} />
+            <p className="text-xs font-bold uppercase tracking-wide text-white/70">Tap an icon to open it</p>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -1117,7 +1102,18 @@ function ClassFeaturePanel({
       {feature === 'verse' && (
         <div className="rounded-2xl bg-white/8 p-5 text-center">
           {student?.favorite_verse ? (
-            <p className="font-display text-base font-bold italic leading-relaxed text-white">&ldquo;{student.favorite_verse}&rdquo;</p>
+            <>
+              <p className="font-display text-base font-bold italic leading-relaxed text-white">&ldquo;{student.favorite_verse}&rdquo;</p>
+              <a
+                href={bibleComUrl(student.favorite_verse)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => playClick()}
+                className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-sm font-bold text-[#be123c]"
+              >
+                Read the Full Verse on Bible.com <ArrowRight className="h-3.5 w-3.5" />
+              </a>
+            </>
           ) : (
             <p className="text-sm text-white/70">
               You haven&apos;t added a favourite verse yet. Add one from your Profile and it&apos;ll show up here.

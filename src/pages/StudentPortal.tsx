@@ -32,6 +32,7 @@ import {
   Map,
   Compass,
   GraduationCap,
+  ArrowRight,
   type LucideIcon,
 } from 'lucide-react'
 import { supabase, signOut } from '../lib/supabase'
@@ -385,52 +386,136 @@ const COMING_SOON_GAMES: { title: string; icon: LucideIcon }[] = [
   { title: 'Brain Teasers', icon: Brain },
 ]
 
+const TRENDING_GAMES: {
+  title: string
+  description: string
+  icon: LucideIcon
+  accent: string
+  to?: string
+  href?: string
+}[] = [
+  {
+    title: 'Practice Bible Quiz',
+    description: 'Unlimited solo practice, no pressure, no timer.',
+    icon: Dumbbell,
+    accent: 'var(--lp-accent-training)',
+    to: '/training',
+  },
+  {
+    title: 'SuperBook Games',
+    description: 'More Bible games and adventures on SuperBook.',
+    icon: Gamepad2,
+    accent: 'var(--lp-accent-compete)',
+    href: 'https://id.superbook.cbn.com/games',
+  },
+]
+
 function GameTab() {
   return (
-    <div className="space-y-6">
-      <div>
-        <p className="eyebrow">Available Now</p>
-        <div className="mt-2 space-y-3">
-          <div className="lp-panel lp-panel-accented flex flex-col items-center gap-3 p-8 text-center" style={{ ['--card-accent' as string]: 'var(--lp-accent-compete)' }}>
-            <span
-              className="flex h-14 w-14 items-center justify-center rounded-2xl"
-              style={{ background: 'color-mix(in srgb, var(--lp-accent-compete) 16%, transparent)', color: 'var(--lp-accent-compete)' }}
-            >
-              <Gamepad2 className="h-7 w-7" strokeWidth={1.75} />
-            </span>
-            <p className="lp-heading font-display text-xl font-bold">Bible Quiz Live Match</p>
-            <p className="max-w-xs text-sm text-[var(--lp-muted)]">
-              Ask your teacher to start a live match on the big screen for your class! When they do, you&apos;ll join
-              from here.
-            </p>
-          </div>
-          <HomeLink to="/training" icon={Dumbbell} accent="var(--lp-accent-training)" title="Practice Bible Quiz" description="Unlimited solo practice, no pressure, no timer." />
-          <ExternalLinkCard
-            href="https://id.superbook.cbn.com/games"
-            icon={Gamepad2}
-            accent="var(--lp-accent-compete)"
-            title="SuperBook Games"
-            description="More Bible games and adventures on SuperBook."
-          />
-        </div>
+    <div className="space-y-8">
+      <div
+        className="relative overflow-hidden rounded-2xl p-6"
+        style={{
+          background:
+            'linear-gradient(135deg, color-mix(in srgb, var(--lp-accent-compete) 65%, #180a2e) 0%, color-mix(in srgb, var(--lp-accent-compete) 25%, #180a2e) 100%)',
+        }}
+      >
+        <span className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-white/15">
+          <Gamepad2 className="h-7 w-7 text-white" strokeWidth={1.75} />
+        </span>
+        <p className="mt-4 font-display text-2xl font-extrabold text-white">Bible Quiz Live Match</p>
+        <p className="mt-1 max-w-sm text-sm text-white/80">
+          Ask your teacher to start a live match on the big screen for your class! When they do, you&apos;ll join
+          right from here.
+        </p>
+        <Link
+          to="/training"
+          onClick={() => playClick()}
+          className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-sm font-extrabold text-[var(--lp-accent-compete)] transition hover:scale-[1.03] active:scale-[0.97]"
+        >
+          Practice Solo <ArrowRight className="h-4 w-4" />
+        </Link>
       </div>
 
-      <div>
-        <p className="eyebrow">More Games Coming Soon</p>
-        <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {COMING_SOON_GAMES.map(({ title, icon: Icon }) => (
-            <div key={title} className="flex flex-col items-center gap-2 rounded-2xl border border-[var(--hairline)] bg-[var(--ink-panel)] p-4 text-center opacity-60">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--ink-raised)] text-[var(--ink-faint)]">
-                <Icon className="h-5 w-5" strokeWidth={1.75} />
-              </span>
-              <p className="text-xs font-bold">{title}</p>
-              <span className="rounded-full bg-[var(--ink-raised)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[var(--ink-faint)]">
-                Coming Soon
-              </span>
-            </div>
-          ))}
-        </div>
+      <GameRow title="Trending Now">
+        {TRENDING_GAMES.map((game) => (
+          <GameTile key={game.title} {...game} />
+        ))}
+      </GameRow>
+
+      <GameRow title="More Games Coming Soon">
+        {COMING_SOON_GAMES.map(({ title, icon }) => (
+          <GameTile key={title} title={title} icon={icon} accent="var(--ink-faint)" comingSoon />
+        ))}
+      </GameRow>
+    </div>
+  )
+}
+
+function GameRow({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="eyebrow px-1">{title}</p>
+      <div className="mt-2 flex gap-3 overflow-x-auto px-1 pb-2" style={{ scrollSnapType: 'x mandatory' }}>
+        {children}
       </div>
+    </div>
+  )
+}
+
+function GameTile({
+  title,
+  icon: Icon,
+  accent,
+  to,
+  href,
+  comingSoon,
+}: {
+  title: string
+  icon: LucideIcon
+  accent: string
+  to?: string
+  href?: string
+  comingSoon?: boolean
+}) {
+  const content = (
+    <>
+      <span
+        className="flex h-12 w-12 items-center justify-center rounded-2xl"
+        style={{ background: `color-mix(in srgb, ${accent} 16%, transparent)`, color: accent }}
+      >
+        <Icon className="h-6 w-6" strokeWidth={1.75} />
+      </span>
+      <p className="mt-2 text-xs font-bold leading-tight">{title}</p>
+      {comingSoon && (
+        <span className="mt-1 rounded-full bg-[var(--ink-raised)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[var(--ink-faint)]">
+          Soon
+        </span>
+      )}
+    </>
+  )
+  const className = `flex w-28 shrink-0 flex-col items-center gap-0.5 rounded-2xl border border-[var(--hairline)] bg-[var(--ink-panel)] p-3 text-center ${
+    comingSoon ? 'opacity-60' : 'transition hover:scale-[1.05] active:scale-[0.96]'
+  }`
+  const style: React.CSSProperties = { scrollSnapAlign: 'start' }
+
+  if (to) {
+    return (
+      <Link to={to} onClick={() => playClick()} className={className} style={style}>
+        {content}
+      </Link>
+    )
+  }
+  if (href) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" onClick={() => playClick()} className={className} style={style}>
+        {content}
+      </a>
+    )
+  }
+  return (
+    <div className={className} style={style}>
+      {content}
     </div>
   )
 }
@@ -749,8 +834,11 @@ function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string 
       <div
         className="relative overflow-hidden rounded-2xl p-5"
         style={{
-          background:
-            'linear-gradient(135deg, color-mix(in srgb, var(--lp-accent-bible) 60%, #0b2e1a) 0%, color-mix(in srgb, var(--lp-accent-bible) 28%, #0b2e1a) 100%)',
+          backgroundImage:
+            'linear-gradient(135deg, color-mix(in srgb, var(--lp-accent-bible) 55%, #0b2e1a) 0%, rgba(11,46,26,0.55) 100%), url(/icons/sunday-school-cover.jpg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center 70%',
+          minHeight: 200,
         }}
       >
         <p className="font-display text-xl font-extrabold text-white">Sunday School</p>

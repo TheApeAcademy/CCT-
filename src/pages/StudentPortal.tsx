@@ -658,6 +658,42 @@ function AssignmentCard({ assignment }: { assignment: AssignmentRow }) {
   )
 }
 
+function HeroTile({
+  image,
+  label,
+  value,
+  onClick,
+}: {
+  image: string
+  label: string
+  value: string
+  onClick?: () => void
+}) {
+  const Tile = onClick ? 'button' : 'div'
+  return (
+    <Tile
+      onClick={onClick}
+      className={`flex flex-col items-center gap-1.5 rounded-xl p-3 text-center transition ${onClick ? 'hover:scale-[1.04] active:scale-[0.98]' : ''}`}
+      style={{
+        background: 'rgba(255,255,255,0.16)',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+        border: '1px solid rgba(255,255,255,0.28)',
+        boxShadow: '0 8px 20px -8px rgba(0,0,0,0.35)',
+      }}
+    >
+      <span
+        className="h-11 w-11 overflow-hidden rounded-full border-2 border-white/40"
+        style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.25)' }}
+      >
+        <img src={image} alt="" className="h-full w-full object-cover" />
+      </span>
+      <span className="font-display text-sm font-extrabold text-white">{value}</span>
+      <span className="text-[11px] font-semibold text-white/75">{label}</span>
+    </Tile>
+  )
+}
+
 function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string }) | null }) {
   const [journeyOpen, setJourneyOpen] = useState(false)
   const [reading, setReading] = useState<TodaysReading | null | 'loading'>('loading')
@@ -666,6 +702,7 @@ function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string 
   const [completing, setCompleting] = useState(false)
   const [lessons, setLessons] = useState<LectureRow[]>([])
   const [lessonsLoading, setLessonsLoading] = useState(true)
+  const lessonsSectionRef = useRef<HTMLDivElement>(null)
 
   const load = () => {
     getTodaysBibleReading().then((r) => {
@@ -709,22 +746,37 @@ function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string 
 
   return (
     <div className="space-y-8">
-      <button
-        onClick={() => {
-          playClick()
-          setJourneyOpen(true)
+      <div
+        className="relative overflow-hidden rounded-2xl p-5"
+        style={{
+          background:
+            'linear-gradient(135deg, color-mix(in srgb, var(--lp-accent-bible) 60%, #0b2e1a) 0%, color-mix(in srgb, var(--lp-accent-bible) 28%, #0b2e1a) 100%)',
         }}
-        className="panel flex w-full items-center gap-4 p-5 text-left transition hover:scale-[1.01]"
-        style={{ background: 'color-mix(in srgb, var(--lp-accent-bible) 14%, var(--lp-bg-panel))' }}
       >
-        <span className="text-4xl">🗺️</span>
-        <div>
-          <p className="font-display text-lg font-extrabold">Bible Journey</p>
-          <p className="text-xs text-[var(--ink-muted)]">Learn the Bible book by book, story by story - at your own pace.</p>
-        </div>
-      </button>
+        <p className="font-display text-xl font-extrabold text-white">Sunday School</p>
+        <p className="mt-1 text-sm text-white/80">Everything for growing your faith, one day at a time.</p>
 
-      <div className="space-y-3">
+        <div className="mt-5 grid grid-cols-3 gap-3">
+          <HeroTile image="/icons/streak-flame.jpg" label="Day Streak" value={String(streak)} />
+          <HeroTile
+            image="/icons/bible-journey-book.jpg"
+            label="Bible Journey"
+            value="Start"
+            onClick={() => {
+              playClick()
+              setJourneyOpen(true)
+            }}
+          />
+          <HeroTile
+            image="/icons/sunday-school-church.jpg"
+            label="Lessons"
+            value={klass ? String(lessons.length) : '—'}
+            onClick={() => lessonsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          />
+        </div>
+      </div>
+
+      <div ref={lessonsSectionRef} className="space-y-3">
         <p className="eyebrow">Sunday School Lessons</p>
         {!klass && (
           <p className="text-sm text-[var(--ink-muted)]">

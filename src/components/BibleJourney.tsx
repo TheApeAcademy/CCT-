@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Lock, Check, ArrowLeft, Sparkles, BookOpen } from 'lucide-react'
+import { Lock, Check, ArrowLeft, Sparkles, BookOpen, Flame, Trophy, Coins } from 'lucide-react'
 import {
   BIBLE_BOOK_ORDER,
+  JOURNEY_BOOKS,
   getJourneyBook,
   lessonKeysInOrder,
   slugifyBookTitle,
@@ -12,6 +13,7 @@ import {
 } from '../content/bibleJourney'
 import { bibleComUrl } from '../lib/bibleLink'
 import { getMyJourneyProgress, completeJourneyLesson, type JourneyProgressRow } from '../lib/journey'
+import { getMyStudentProfile, getLeaderboard, getMyBibleStreak } from '../lib/ministry'
 import { playClick } from '../lib/sound'
 import { haptics } from '../lib/haptics'
 import Confetti from './Confetti'
@@ -54,7 +56,11 @@ export default function BibleJourneyPanel({ onExit }: { onExit: () => void }) {
       {progress === null ? (
         <p className="text-sm text-[var(--ink-muted)]">Loading…</p>
       ) : view.screen === 'books' ? (
-        <BookMap completedKeys={completedKeys} onOpenBook={(bookKey) => setView({ screen: 'path', bookKey })} />
+        <BookMap
+          completedKeys={completedKeys}
+          onOpenBook={(bookKey) => setView({ screen: 'path', bookKey })}
+          onOpenLessonDirect={(bookKey, lessonKey) => setView({ screen: 'lesson', bookKey, lessonKey })}
+        />
       ) : view.screen === 'path' ? (
         <UnitPath
           bookKey={view.bookKey}
@@ -79,49 +85,151 @@ function bookProgressCount(book: JourneyBook, completedKeys: Set<string>): numbe
   return lessonKeysInOrder(book).filter((k) => completedKeys.has(k)).length
 }
 
-function BookMap({ completedKeys, onOpenBook }: { completedKeys: Set<string>; onOpenBook: (bookKey: string) => void }) {
+// A slight organic "blob" outline plus a small alternating rotation/indent
+// per tile - reads as scattered stones rather than a strict list, while
+// staying a normal scrollable column (no real overlap, so it's still easy
+// to tap and to read for a kid).
+const ROCK_RADIUS = ['52% 48% 45% 55% / 55% 45% 58% 42%', '45% 55% 58% 42% / 48% 52% 45% 55%', '58% 42% 48% 52% / 42% 58% 52% 48%']
+
+function rockStyle(idx: number): React.CSSProperties {
+  const rotate = [-2, 1.5, -1, 2][idx % 4]
+  const indent = [0, 14, -10, 6][idx % 4]
+  return { borderRadius: ROCK_RADIUS[idx % ROCK_RADIUS.length], transform: `rotate(${rotate}deg) translateX(${indent}px)` }
+}
+
+function BookMap({
+  completedKeys,
+  onOpenBook,
+  onOpenLessonDirect,
+}: {
+  completedKeys: Set<string>
+  onOpenBook: (bookKey: string) => void
+  onOpenLessonDirect: (bookKey: string, lessonKey: string) => void
+}) {
+  const [mode, setMode] = useState<'books' | 'characters'>('books')
+
   return (
     <div className="space-y-3">
       <p className="eyebrow">Bible Journey</p>
-      <p className="text-sm text-[var(--ink-muted)]">
-        Walk through the Bible one book at a time, learning the stories, the people, and what they teach - at your own pace.
-      </p>
-      <div className="space-y-2">
-        {BIBLE_BOOK_ORDER.map((title) => {
-          const key = slugifyBookTitle(title)
-          const book = getJourneyBook(key)
-          if (!book) {
-            return (
-              <div key={key} className="panel flex items-center justify-between p-4 opacity-50">
-                <p className="font-bold">{title}</p>
-                <span className="text-xs font-bold text-[var(--ink-muted)]">Coming soon</span>
-              </div>
-            )
-          }
-          const total = lessonKeysInOrder(book).length
-          const done = bookProgressCount(book, completedKeys)
+      <div className="inline-flex rounded-full border border-[var(--lp-hairline)] p-1 text-xs font-bold">
+        <button
+          onClick={() => {
+            playClick()
+            setMode('books')
+          }}
+          className="rounded-full px-3 py-1.5 transition"
+          style={{ background: mode === 'books' ? ACCENT : 'transparent', color: mode === 'books' ? '#fff' : undefined }}
+        >
+          By Book
+        </button>
+        <button
+          onClick={() => {
+            playClick()
+            setMode('characters')
+          }}
+          className="rounded-full px-3 py-1.5 transition"
+          style={{ background: mode === 'characters' ? ACCENT : 'transparent', color: mode === 'characters' ? '#fff' : undefined }}
+        >
+          By Character
+        </button>
+      </div>
+
+      {mode === 'books' ? (
+        <>
+          <p className="text-sm text-[var(--ink-muted)]">
+            Walk through the Bible one book at a time, learning the stories, the people, and what they teach - at your own pace.
+          </p>
+          <div className="space-y-3">
+            {BIBLE_BOOK_ORDER.map((title, i) => {
+              const key = slugifyBookTitle(title)
+              const book = getJourneyBook(key)
+              if (!book) {
+                return (
+                  <div key={key} className="panel flex items-center justify-between p-4 opacity-40" style={rockStyle(i)}>
+                    <p className="font-bold">{title}</p>
+                    <span className="text-xs font-bold text-[var(--ink-muted)]">Coming soon</span>
+                  </div>
+                )
+              }
+              const total = lessonKeysInOrder(book).length
+              const done = bookProgressCount(book, completedKeys)
+              return (
+                <button
+                  key={key}
+                  onClick={() => {
+                    playClick()
+                    onOpenBook(key)
+                  }}
+                  className="panel flex w-full items-center justify-between p-4 text-left transition hover:scale-[1.01]"
+                  style={{ borderColor: done > 0 ? ACCENT : undefined, ...rockStyle(i) }}
+                >
+                  <div>
+                    <p className="font-display font-bold">{book.title}</p>
+                    <p className="text-xs text-[var(--ink-muted)]">
+                      {done}/{total} lessons complete
+                    </p>
+                  </div>
+                  <span
+                    className="flex h-9 w-9 items-center justify-center rounded-full text-lg"
+                    style={{ background: `color-mix(in srgb, ${ACCENT} 18%, transparent)` }}
+                  >
+                    {done === total ? '👑' : '📖'}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </>
+      ) : (
+        <CharacterBrowse completedKeys={completedKeys} onOpenLesson={onOpenLessonDirect} />
+      )}
+    </div>
+  )
+}
+
+// Free-pick mode: every story character across every loaded book, in one
+// list, completely ungated (no locking) - the point is a kid can jump
+// straight to "Joseph" or "Noah" without playing the book in order first.
+function CharacterBrowse({
+  completedKeys,
+  onOpenLesson,
+}: {
+  completedKeys: Set<string>
+  onOpenLesson: (bookKey: string, lessonKey: string) => void
+}) {
+  const characters = JOURNEY_BOOKS.flatMap((book) =>
+    book.units.filter((unit) => unit.kind === 'story' && unit.lessons[0]).map((unit) => ({ book, unit, lesson: unit.lessons[0] })),
+  )
+
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-[var(--ink-muted)]">Pick any Bible character to learn about them right away - no order required.</p>
+      <div className="grid grid-cols-2 gap-3">
+        {characters.map(({ book, unit, lesson }, i) => {
+          const isDone = completedKeys.has(lesson.key)
           return (
             <button
-              key={key}
+              key={lesson.key}
               onClick={() => {
                 playClick()
-                onOpenBook(key)
+                onOpenLesson(book.key, lesson.key)
               }}
-              className="panel flex w-full items-center justify-between p-4 text-left transition hover:scale-[1.01]"
-              style={{ borderColor: done > 0 ? ACCENT : undefined }}
+              className="panel flex flex-col items-center gap-2 p-4 text-center transition hover:scale-[1.02]"
+              style={rockStyle(i)}
             >
-              <div>
-                <p className="font-display font-bold">{book.title}</p>
-                <p className="text-xs text-[var(--ink-muted)]">
-                  {done}/{total} lessons complete
-                </p>
-              </div>
-              <span
-                className="flex h-9 w-9 items-center justify-center rounded-full text-lg"
-                style={{ background: `color-mix(in srgb, ${ACCENT} 18%, transparent)` }}
-              >
-                {done === total ? '👑' : '📖'}
-              </span>
+              {lesson.image ? (
+                <img src={lesson.image} alt="" className="h-14 w-14 rounded-full object-cover" />
+              ) : (
+                <span
+                  className="flex h-14 w-14 items-center justify-center rounded-full text-3xl"
+                  style={{ background: `color-mix(in srgb, ${ACCENT} 18%, transparent)` }}
+                >
+                  {unit.emoji}
+                </span>
+              )}
+              <p className="text-sm font-bold leading-tight">{unit.title}</p>
+              <p className="text-[10px] text-[var(--ink-muted)]">{book.title}</p>
+              {isDone && <Check className="h-4 w-4" style={{ color: ACCENT }} />}
             </button>
           )
         })}
@@ -145,6 +253,12 @@ function waveX(idx: number): number {
   return TRACK_CENTER_X + Math.sin((idx * Math.PI) / 2) * WAVE_AMPLITUDE
 }
 
+interface JourneyStats {
+  points: number
+  rank: number | null
+  streak: number
+}
+
 function UnitPath({
   bookKey,
   completedKeys,
@@ -154,23 +268,54 @@ function UnitPath({
   completedKeys: Set<string>
   onOpenLesson: (lessonKey: string) => void
 }) {
+  const [stats, setStats] = useState<JourneyStats | null>(null)
+  useEffect(() => {
+    Promise.all([getMyStudentProfile(), getLeaderboard(500), getMyBibleStreak()]).then(([student, board, streak]) => {
+      if (!student) return
+      const rankIdx = board.findIndex((r) => r.student_id === student.id)
+      setStats({ points: student.total_points, rank: rankIdx === -1 ? null : rankIdx + 1, streak })
+    })
+  }, [])
+
   const book = getJourneyBook(bookKey)
   if (!book) return null
   const stops = book.units.flatMap((unit) => unit.lessons.map((lesson) => ({ unit, lesson })))
   let firstIncompleteIdx = stops.findIndex(({ lesson }) => !completedKeys.has(lesson.key))
   if (firstIncompleteIdx === -1) firstIncompleteIdx = stops.length
   const trackHeight = stops.length * ROW_HEIGHT
+  const current = stops[firstIncompleteIdx]
 
   const pathD = stops.map((_, i) => `${i === 0 ? 'M' : 'L'} ${waveX(i)} ${i * ROW_HEIGHT + NODE_SIZE / 2}`).join(' ')
+
+  const currentCardTop = Math.max(0, firstIncompleteIdx * ROW_HEIGHT + NODE_SIZE / 2 - 90)
 
   return (
     <div className="space-y-3">
       <p className="eyebrow">{book.title}</p>
-      <div className="relative mx-auto" style={{ width: TRACK_WIDTH, height: trackHeight }}>
-        <svg className="absolute inset-0" width={TRACK_WIDTH} height={trackHeight} viewBox={`0 0 ${TRACK_WIDTH} ${trackHeight}`}>
-          <path d={pathD} fill="none" stroke="var(--lp-hairline-strong)" strokeWidth={6} strokeLinecap="round" strokeDasharray="2 14" />
-        </svg>
-        {stops.map(({ unit, lesson }, i) => {
+
+      {/* Phones: the same info stacked above the path, since there's no room to flank it there. */}
+      {current && (
+        <div className="sm:hidden">
+          <CurrentLessonCard current={current} stats={stats} onOpenLesson={onOpenLesson} layout="stacked" />
+        </div>
+      )}
+
+      <div className="relative mx-auto" style={{ width: '100%', maxWidth: 640, height: trackHeight }}>
+        {current && (
+          <div className="absolute hidden sm:block" style={{ left: 0, top: currentCardTop, width: 190 }}>
+            <CurrentLessonCard current={current} stats={stats} onOpenLesson={onOpenLesson} layout="left" />
+          </div>
+        )}
+        {current && (
+          <div className="absolute hidden sm:block" style={{ right: 0, top: currentCardTop, width: 190 }}>
+            <CurrentLessonCard current={current} stats={stats} onOpenLesson={onOpenLesson} layout="right" />
+          </div>
+        )}
+        <div className="absolute" style={{ left: '50%', top: 0, transform: 'translateX(-50%)', width: TRACK_WIDTH, height: trackHeight }}>
+          <svg className="absolute inset-0" width={TRACK_WIDTH} height={trackHeight} viewBox={`0 0 ${TRACK_WIDTH} ${trackHeight}`}>
+            <path d={pathD} fill="none" stroke="var(--lp-hairline-strong)" strokeWidth={6} strokeLinecap="round" strokeDasharray="2 14" />
+          </svg>
+          {stops.map(({ unit, lesson }, i) => {
           const isDone = completedKeys.has(lesson.key)
           const isNext = i === firstIncompleteIdx
           const isLocked = !isDone && !isNext
@@ -219,9 +364,92 @@ function UnitPath({
             </div>
           )
         })}
+        </div>
       </div>
     </div>
   )
+}
+
+function CurrentLessonCard({
+  current,
+  stats,
+  onOpenLesson,
+  layout,
+}: {
+  current: { unit: JourneyBook['units'][number]; lesson: JourneyBook['units'][number]['lessons'][number] }
+  stats: JourneyStats | null
+  onOpenLesson: (lessonKey: string) => void
+  layout: 'left' | 'right' | 'stacked'
+}) {
+  const { unit, lesson } = current
+  const start = (
+    <button
+      onClick={() => {
+        playClick()
+        onOpenLesson(lesson.key)
+      }}
+      className="btn-solid w-full py-2 text-sm"
+    >
+      Start Lesson
+    </button>
+  )
+  const portrait = (
+    <div className="space-y-2 text-center">
+      {lesson.image ? (
+        <img src={lesson.image} alt="" className="mx-auto h-20 w-20 rounded-full object-cover" style={{ boxShadow: `0 0 0 4px ${ACCENT}` }} />
+      ) : (
+        <span
+          className="mx-auto flex h-20 w-20 items-center justify-center rounded-full text-4xl"
+          style={{ background: `color-mix(in srgb, ${ACCENT} 18%, transparent)`, boxShadow: `0 0 0 4px ${ACCENT}` }}
+        >
+          {unit.emoji}
+        </span>
+      )}
+      <p className="font-display text-sm font-extrabold">Learn about {unit.title}</p>
+      <a
+        href={bibleComUrl(lesson.reference)}
+        target="_blank"
+        rel="noreferrer"
+        className="inline-flex items-center gap-1 rounded-full border border-[var(--lp-hairline)] px-2.5 py-1 text-[11px] font-bold text-[var(--ink-muted)] transition hover:text-[var(--lp-heading)]"
+      >
+        <BookOpen className="h-3 w-3" /> {lesson.reference}
+      </a>
+    </div>
+  )
+  const totalQuestions = lesson.sections.reduce((n, s) => n + s.checkQuestions.length, 0) + lesson.masteryQuestions.length
+  const stat = (icon: React.ReactNode, label: string, value: string | number) => (
+    <div className="flex items-center gap-1.5">
+      {icon}
+      <span className="text-xs font-bold">{value}</span>
+      <span className="text-[10px] text-[var(--ink-muted)]">{label}</span>
+    </div>
+  )
+  const statsBlock = (
+    <div className="space-y-1.5">
+      {stat(<Flame className="h-4 w-4 text-orange-500" />, 'day streak', stats?.streak ?? '–')}
+      {stat(<Trophy className="h-4 w-4 text-amber-500" />, 'on leaderboard', stats?.rank ? `#${stats.rank}` : '–')}
+      {stat(<Coins className="h-4 w-4 text-yellow-500" />, 'points', stats?.points ?? '–')}
+      <p className="border-t border-[var(--lp-hairline)] pt-1.5 text-[11px] text-[var(--ink-muted)]">
+        Up next: <span className="font-bold text-[var(--lp-heading)]">{lesson.title}</span> · {lesson.sections.length} sections · {totalQuestions} questions
+      </p>
+    </div>
+  )
+
+  if (layout === 'stacked') {
+    return (
+      <div className="panel space-y-3 p-4">
+        {portrait}
+        {start}
+        <div className="flex items-center justify-between border-t border-[var(--lp-hairline)] pt-2">
+          {stat(<Flame className="h-4 w-4 text-orange-500" />, 'streak', stats?.streak ?? '–')}
+          {stat(<Trophy className="h-4 w-4 text-amber-500" />, 'rank', stats?.rank ? `#${stats.rank}` : '–')}
+          {stat(<Coins className="h-4 w-4 text-yellow-500" />, 'pts', stats?.points ?? '–')}
+        </div>
+      </div>
+    )
+  }
+
+  return <div className="panel space-y-3 p-3">{layout === 'left' ? [portrait, start] : [statsBlock]}</div>
 }
 
 type LearnStep = { kind: 'card'; text: string; emoji: string; ref: string; image?: string } | { kind: 'groupcheck'; check: JourneyCheckCard }

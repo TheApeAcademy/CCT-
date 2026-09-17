@@ -337,11 +337,11 @@ function CharacterBrowse({
 // rendered as a chunky flat "button" stone in the Duolingo mold rather
 // than a photoreal image - stays crisp at any size and scales to however
 // many stops a book actually has.
-const TRACK_WIDTH = 260
+const TRACK_WIDTH = 380
 const TRACK_CENTER_X = TRACK_WIDTH / 2
-const WAVE_AMPLITUDE = 66
-const ROW_HEIGHT = 128
-const NODE_SIZE = 80
+const WAVE_AMPLITUDE = 80
+const ROW_HEIGHT = 190
+const NODE_SIZE = 110
 
 function waveX(idx: number): number {
   return TRACK_CENTER_X + Math.sin((idx * Math.PI) / 2) * WAVE_AMPLITUDE
@@ -427,7 +427,7 @@ function UnitPath({
                 <div
                   key={lesson.key}
                   className="absolute flex flex-col items-center"
-                  style={{ left: waveX(i), top: i * ROW_HEIGHT + NODE_SIZE / 2, transform: 'translate(-50%, -50%)', width: 150 }}
+                  style={{ left: waveX(i), top: i * ROW_HEIGHT + NODE_SIZE / 2, transform: 'translate(-50%, -50%)', width: 190 }}
                 >
                   <button
                     onClick={() => {
@@ -442,8 +442,8 @@ function UnitPath({
                       alt=""
                       className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 object-contain"
                       style={{
-                        width: NODE_SIZE * 1.55,
-                        height: NODE_SIZE * 1.55,
+                        width: NODE_SIZE * 1.8,
+                        height: NODE_SIZE * 1.8,
                         filter: isLocked
                           ? 'grayscale(0.85) brightness(0.55)'
                           : isDone
@@ -452,26 +452,26 @@ function UnitPath({
                       }}
                     />
                     <span
-                      className="relative z-10 flex h-10 w-10 items-center justify-center rounded-full"
+                      className="relative z-10 flex h-14 w-14 items-center justify-center rounded-full"
                       style={{ background: fill, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.4), 0 2px 6px rgba(0,0,0,0.35)' }}
                     >
                       {isDone ? (
-                        <Check className="h-5 w-5 text-white" strokeWidth={3} />
+                        <Check className="h-7 w-7 text-white" strokeWidth={3} />
                       ) : isLocked ? (
-                        <Lock className="h-4 w-4 text-white/80" />
+                        <Lock className="h-6 w-6 text-white/80" />
                       ) : (
-                        <span className="text-base">{unit.emoji}</span>
+                        <span className="text-xl">{unit.emoji}</span>
                       )}
                     </span>
                     <img
                       src={badgeImage}
                       alt=""
-                      className="absolute -bottom-1 -right-1 z-20 h-7 w-7 rounded-full border-2 border-[var(--ink)] object-cover"
+                      className="absolute -bottom-1 -right-1 z-20 h-10 w-10 rounded-full border-2 border-[var(--ink)] object-cover"
                     />
                   </button>
-                  <p className={`mt-2 text-center text-[11px] font-bold leading-tight ${isLocked ? 'text-[var(--ink-muted)]' : ''}`}>
+                  <p className={`mt-2 text-center text-sm font-bold leading-tight ${isLocked ? 'text-[var(--ink-muted)]' : ''}`}>
                     {unit.title}
-                    {unit.kind === 'topical' && <span className="ml-1 text-[9px] uppercase text-[var(--ink-muted)]">Big Truths</span>}
+                    {unit.kind === 'topical' && <span className="ml-1 text-[10px] uppercase text-[var(--ink-muted)]">Big Truths</span>}
                   </p>
                 </div>
               )

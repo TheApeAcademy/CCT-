@@ -29,7 +29,6 @@ export default function PortalShell({ eyebrow }: { eyebrow: string }) {
       >
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
           <div className="flex min-w-0 shrink-0 items-center gap-2">
-            <BackButton />
             <Link to="/" className="flex min-w-0 shrink-0 items-center">
               <img src="/children-ministry-logo-splash.png" alt="MFM Children's Ministry" className="h-14 w-auto object-contain sm:h-16" />
             </Link>
@@ -37,6 +36,7 @@ export default function PortalShell({ eyebrow }: { eyebrow: string }) {
           <span className="lp-eyebrow">{eyebrow}</span>
         </div>
       </header>
+      <BackButton className="fixed left-3 top-3 z-40" />
       <main className="relative z-10 mx-auto max-w-5xl px-4 py-8">
         <Outlet />
       </main>

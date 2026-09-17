@@ -123,7 +123,6 @@ export default function Layout() {
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <div className="flex min-w-0 shrink-0 items-center gap-2">
-            {showBack && !isFullscreenQuiz && <BackButton dark />}
             <NavLink to="/" className="flex min-w-0 shrink-0 items-center">
               <img
                 src="/children-ministry-logo-splash.png"
@@ -272,7 +271,7 @@ export default function Layout() {
           </div>
         </nav>
       </header>
-      {showBack && isFullscreenQuiz && <BackButton dark className="fixed left-3 top-3 z-50" />}
+      {showBack && <BackButton dark className="fixed left-3 top-3 z-50" />}
       <main
         className={`relative z-10 ${
           isFullscreenQuiz

@@ -1435,24 +1435,32 @@ function LeaderboardTab({ myId }: { myId: string | null }) {
   if (rows.length === 0) return <p className="text-sm text-[var(--ink-muted)]">No quiz points recorded yet. Be the first to play!</p>
 
   return (
-    <div className="space-y-2">
+    <div
+      className="space-y-2 rounded-2xl p-4"
+      style={{
+        background: 'linear-gradient(135deg, color-mix(in srgb, var(--lp-accent-leaderboard) 70%, #180a2e) 0%, color-mix(in srgb, var(--lp-accent-leaderboard) 15%, #180a2e) 100%)',
+      }}
+    >
       {rows.map((r, i) => (
-        <div key={r.student_id} className={`panel flex items-center justify-between px-4 py-3 ${r.student_id === myId ? 'border-[var(--gold)]/40' : ''}`}>
+        <div
+          key={r.student_id}
+          className={`flex items-center justify-between rounded-xl px-4 py-3 ${r.student_id === myId ? 'bg-white/15 ring-1 ring-white/30' : 'bg-white/5'}`}
+        >
           <div className="flex items-center gap-3">
-            <span className="w-6 text-center font-display font-bold text-[var(--ink-faint)]">{i + 1}</span>
+            <span className="w-6 text-center font-display font-bold text-white/70">{i + 1}</span>
             {r.avatar_url ? (
               <img src={r.avatar_url} alt="" className="h-9 w-9 rounded-full object-cover" />
             ) : (
-              <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--hairline-strong)] text-[var(--gold)]">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full border border-white/25 text-white">
                 <User className="h-4 w-4" strokeWidth={1.75} />
               </span>
             )}
             <div>
-              <p className="font-semibold">{r.full_name}</p>
-              <p className="text-xs text-[var(--ink-faint)]">{r.class_name}</p>
+              <p className="font-semibold text-white">{r.full_name}</p>
+              <p className="text-xs text-white/60">{r.class_name}</p>
             </div>
           </div>
-          <p className="font-bold text-[var(--gold)]">{r.total_points.toLocaleString()}</p>
+          <p className="font-bold text-white">{r.total_points.toLocaleString()}</p>
         </div>
       ))}
     </div>
@@ -1583,19 +1591,24 @@ function ProfileTab({ student, klass, onSaved }: { student: StudentRow; klass: (
         </button>
       </div>
 
-      <div className="panel space-y-3 p-5 text-center">
-        <p className="eyebrow">My Digital ID Card</p>
+      <div
+        className="space-y-3 rounded-2xl p-5 text-center"
+        style={{
+          background: 'linear-gradient(135deg, color-mix(in srgb, var(--lp-accent-achievements) 70%, #180a2e) 0%, color-mix(in srgb, var(--lp-accent-achievements) 15%, #180a2e) 100%)',
+        }}
+      >
+        <p className="eyebrow text-white/70">My Digital ID Card</p>
         {cardUrl ? (
           <img src={cardUrl} alt="My ID card" className="mx-auto max-w-[260px] rounded-lg shadow-xl" />
         ) : (
-          <p className="text-sm text-[var(--ink-muted)]">Generate a shareable card with your photo, verse, and points.</p>
+          <p className="text-sm text-white/70">Generate a shareable card with your photo, verse, and points.</p>
         )}
         <div className="flex justify-center gap-2">
-          <button onClick={makeCard} disabled={rendering} className="btn-outline flex items-center gap-1.5 text-sm">
+          <button onClick={makeCard} disabled={rendering} className="flex items-center gap-1.5 rounded-md border border-white/25 px-4 py-2 text-sm font-bold text-white transition hover:bg-white/10">
             <Sparkles className="h-4 w-4" /> {rendering ? 'Making…' : cardUrl ? 'Re-generate' : 'Generate Card'}
           </button>
           {cardUrl && (
-            <button onClick={shareCard} className="btn-solid flex items-center gap-1.5 text-sm">
+            <button onClick={shareCard} className="flex items-center gap-1.5 rounded-md bg-white px-4 py-2 text-sm font-bold" style={{ color: 'var(--lp-accent-achievements)' }}>
               <Share2 className="h-4 w-4" /> Share
             </button>
           )}

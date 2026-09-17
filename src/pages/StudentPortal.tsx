@@ -112,17 +112,6 @@ export default function StudentPortal() {
 
 type Tab = 'home' | 'class' | 'bible' | 'leaderboard' | 'profile' | 'messages' | 'ears' | 'game'
 
-const TAB_TITLE: Record<Tab, string> = {
-  home: 'My House',
-  class: 'My Class',
-  bible: 'Sunday School',
-  leaderboard: 'Leaderboard',
-  profile: 'My Card',
-  messages: 'My Teacher',
-  ears: 'Ears for You',
-  game: 'Games',
-}
-
 // Each "room" gets its own colored glow (from the same accent tokens the
 // Village Map building already uses) instead of the same flat dark panel
 // everywhere - a placeholder for real isometric interior art per building,
@@ -175,7 +164,6 @@ function Dashboard() {
   }, [view])
   const tabScrollRef = useRef<HTMLDivElement>(null)
   const mapNavHidden = useAutoHideNav(mapScrollRef)
-  const tabNavHidden = useAutoHideNav(tabScrollRef)
 
   // Fixed, full-viewport: this is the whole kids app once signed in - it
   // deliberately breaks out of KidsShell's padded max-w-3xl column so the
@@ -233,22 +221,18 @@ function Dashboard() {
               background: `radial-gradient(ellipse 100% 55% at 50% -8%, color-mix(in srgb, ${TAB_ACCENT[tab]} 30%, transparent), transparent 60%), var(--ink)`,
             }}
           >
-            <div
-              className={`sticky top-0 z-10 flex items-center gap-3 border-b border-[var(--lp-hairline)] bg-[var(--ink)]/80 px-4 py-3 backdrop-blur transition-transform duration-300 ${
-                tabNavHidden ? '-translate-y-full' : 'translate-y-0'
-              }`}
+            {/* No sliding title bar here - it would hold nothing but this back
+                button, so it stays a plain fixed button instead of a nav bar
+                that has to disappear and reappear. */}
+            <button
+              onClick={backToMap}
+              className="fixed left-3 top-3 z-40 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 bg-black/50 backdrop-blur transition hover:scale-105"
+              style={{ borderColor: TAB_ACCENT[tab], color: TAB_ACCENT[tab] }}
+              aria-label="Back to the village map"
             >
-              <button
-                onClick={backToMap}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border-2 transition hover:scale-105"
-                style={{ borderColor: TAB_ACCENT[tab], color: TAB_ACCENT[tab] }}
-                aria-label="Back to the village map"
-              >
-                <ArrowLeft className="h-4 w-4" strokeWidth={2.25} />
-              </button>
-              <h1 className="font-display text-lg font-extrabold text-[var(--lp-heading)]">{TAB_TITLE[tab]}</h1>
-            </div>
-            <div className={tab === 'bible' || tab === 'game' || tab === 'home' || tab === 'class' || tab === 'ears' || tab === 'messages' ? 'pb-12' : 'mx-auto max-w-2xl p-4 pb-12'}>
+              <ArrowLeft className="h-4 w-4" strokeWidth={2.25} />
+            </button>
+            <div className={tab === 'bible' || tab === 'game' || tab === 'home' || tab === 'class' || tab === 'ears' || tab === 'messages' ? 'pb-12' : 'mx-auto max-w-2xl p-4 pt-14 pb-12'}>
               {tab === 'home' && <HomeTab student={student} klass={klass} achievements={achievements} onNavigate={enterTab} />}
               {tab === 'class' && <ClassTab klass={klass} student={student} />}
               {tab === 'bible' && <SundaySchoolTab klass={klass} />}
@@ -983,10 +967,11 @@ function ClassTab({ klass, student }: { klass: (ClassRow & { teacher_name: strin
 function ClassDial({ onSelect }: { onSelect: (key: ClassFeatureKey) => void }) {
   const n = CLASS_FEATURES.length
   return (
-    <div className="relative" style={{ width: 'min(92vw, 630px)', height: 'min(92vw, 630px)' }}>
+    <div className="relative" style={{ width: 'min(94vw, 500px)', height: 'min(70vw, 340px)' }}>
       <div
-        className="absolute inset-0 rounded-full"
+        className="absolute inset-0"
         style={{
+          borderRadius: 56,
           background: 'radial-gradient(circle at 50% 38%, rgba(255,255,255,0.16), rgba(255,255,255,0.04) 70%)',
           border: '1px solid rgba(255,255,255,0.35)',
           boxShadow: '0 30px 70px -20px rgba(0,0,0,0.65), inset 0 0 50px rgba(255,255,255,0.08), inset 0 0 0 10px rgba(255,255,255,0.05)',
@@ -994,13 +979,13 @@ function ClassDial({ onSelect }: { onSelect: (key: ClassFeatureKey) => void }) {
           WebkitBackdropFilter: 'blur(18px)',
         }}
       />
-      <div className="absolute rounded-full border border-white/20" style={{ inset: '15%' }} />
+      <div className="absolute border border-white/20" style={{ inset: '15%', borderRadius: 36 }} />
 
       <div
         className="absolute left-1/2 top-1/2 flex items-center justify-center rounded-full"
         style={{
-          width: '46%',
-          height: '46%',
+          width: 190,
+          height: 190,
           transform: 'translate(-50%,-50%)',
           background: 'radial-gradient(circle, rgba(255,255,255,0.18), rgba(255,255,255,0.02))',
           boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.25), 0 10px 30px -10px rgba(0,0,0,0.55)',

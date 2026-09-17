@@ -1956,7 +1956,7 @@ function EarsTab({ klass }: { klass: (ClassRow & { teacher_name: string }) | nul
             <img
               src="/village/ears-hearttree.png"
               alt=""
-              className="pointer-events-none absolute -right-8 -top-6 z-0 w-24 rotate-6 drop-shadow-xl sm:-right-14 sm:-top-10 sm:w-32"
+              className="pointer-events-none absolute -right-16 -top-14 z-0 w-48 rotate-6 drop-shadow-xl sm:-right-28 sm:-top-20 sm:w-64"
             />
             <div className="panel relative z-10 space-y-3 p-5">
               <textarea

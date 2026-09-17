@@ -344,7 +344,7 @@ function DockIcon({ icon: Icon, from, to }: { icon: LucideIcon; from: string; to
   )
 }
 
-// A real phone-shaped object standing on the rug in the background photo -
+// A real iPad-shaped object standing on the rug in the background photo -
 // small, upright, barely tilted (not the big floating card-style mockup),
 // with a nudge-left/nudge-right wobble when you tap its edges instead of
 // a continuous idle float, since a standing object shouldn't drift.
@@ -377,11 +377,11 @@ function StandingPhone({
   )
 
   return (
-    <div className="absolute bottom-3 left-1/2 -translate-x-1/2" style={{ width: 300 }}>
-      {/* contact shadow blending the phone onto the rug */}
+    <div className="absolute bottom-3 left-1/2 -translate-x-1/2" style={{ width: 340 }}>
+      {/* contact shadow blending the tablet onto the rug */}
       <div
         aria-hidden="true"
-        className="absolute -bottom-2 left-1/2 h-8 w-52 -translate-x-1/2 rounded-full opacity-60 blur-md"
+        className="absolute -bottom-2 left-1/2 h-8 w-60 -translate-x-1/2 rounded-full opacity-60 blur-md"
         style={{ background: 'radial-gradient(ellipse, rgba(0,0,0,0.65), transparent 72%)' }}
       />
       <motion.div
@@ -401,7 +401,7 @@ function StandingPhone({
         <button aria-label="Nudge phone right" onClick={() => nudge('right')} className="absolute -right-6 top-14 bottom-14 z-30 w-6" />
 
         <div
-          className="relative overflow-hidden rounded-[30px] border-[5px]"
+          className="relative overflow-hidden rounded-[20px] border-[12px]"
           style={{
             borderColor: '#e4e7ec',
             background: 'linear-gradient(155deg, #f5f6f8 0%, #b9c0ca 100%)',
@@ -414,16 +414,16 @@ function StandingPhone({
             className="pointer-events-none absolute inset-y-0 left-0 z-30 w-1"
             style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.1))' }}
           />
-          <div className="relative overflow-hidden rounded-[24px]" style={{ height: 560, background: 'linear-gradient(160deg, #1c1c26 0%, #0a0a10 100%)' }}>
+          <div className="relative overflow-hidden rounded-[8px]" style={{ height: 420, background: 'linear-gradient(160deg, #1c1c26 0%, #0a0a10 100%)' }}>
             {/* glass glare for a bit more "3d" realism */}
             <div
               aria-hidden="true"
               className="pointer-events-none absolute inset-0 z-20"
               style={{ background: 'linear-gradient(115deg, rgba(255,255,255,0.16) 0%, transparent 18%, transparent 82%, rgba(255,255,255,0.07) 100%)' }}
             />
-            <div className="absolute left-1/2 top-3 z-20 h-5 w-24 -translate-x-1/2 rounded-full bg-black/70" />
+            <div className="absolute left-1/2 top-2.5 z-20 h-2.5 w-2.5 -translate-x-1/2 rounded-full bg-black/70" />
 
-            <div className="relative z-10 flex h-full flex-col px-4 pb-4 pt-9">
+            <div className="relative z-10 flex h-full flex-col px-4 pb-4 pt-6">
               {screen === null && (
                 <div className="grid flex-1 grid-cols-3 content-start gap-x-3 gap-y-6 pt-3">
                   {DOCK_APPS.map((app) => (

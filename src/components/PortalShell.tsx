@@ -40,7 +40,7 @@ export default function PortalShell({ eyebrow }: { eyebrow: string }) {
       <main className="relative z-10 mx-auto max-w-5xl px-4 py-8">
         <Outlet />
       </main>
-      <footer className="relative z-10 mx-auto max-w-5xl px-4 pb-8 pt-4 text-center">
+      <footer className="relative mx-auto max-w-5xl px-4 pb-8 pt-4 text-center">
         <Link to="/" className="text-xs text-[var(--lp-faint)] transition hover:text-[var(--lp-muted)]">
           &larr; MFM Children&apos;s Ministry
         </Link>

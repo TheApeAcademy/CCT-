@@ -42,6 +42,8 @@ export function DigitalBankSection() {
   const [adding, setAdding] = useState(false)
   const [noteTitle, setNoteTitle] = useState('')
   const [noteBody, setNoteBody] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
   const load = () => listMyVaultItems().then(setItems).finally(() => setLoading(false))
   useEffect(() => {
@@ -51,12 +53,15 @@ export function DigitalBankSection() {
   const onPick = async (file: File | undefined) => {
     if (!file) return
     setUploading(true)
+    setError('')
     try {
       const category: VaultCategory = file.type.startsWith('image/') ? 'photo' : file.type.startsWith('audio/') ? 'audio' : 'other'
       await uploadVaultFile(file, category, file.name)
       playClick()
       haptics.success()
       load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not upload that file.')
     } finally {
       setUploading(false)
     }
@@ -64,12 +69,20 @@ export function DigitalBankSection() {
 
   const saveNote = async () => {
     if (!noteBody.trim()) return
-    await addVaultNote(noteTitle || 'Note', noteBody)
-    setNoteTitle('')
-    setNoteBody('')
-    setAdding(false)
-    playClick()
-    load()
+    setSaving(true)
+    setError('')
+    try {
+      await addVaultNote(noteTitle || 'Note', noteBody)
+      setNoteTitle('')
+      setNoteBody('')
+      setAdding(false)
+      playClick()
+      load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not save that note.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const openItem = async (item: VaultItemRow) => {
@@ -79,9 +92,13 @@ export function DigitalBankSection() {
   }
 
   const remove = async (item: VaultItemRow) => {
-    await deleteVaultItem(item)
-    haptics.success()
-    load()
+    try {
+      await deleteVaultItem(item)
+      haptics.success()
+      load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not delete that item.')
+    }
   }
 
   return (
@@ -94,7 +111,11 @@ export function DigitalBankSection() {
             <input type="file" className="hidden" disabled={uploading} onChange={(e) => onPick(e.target.files?.[0])} />
           </label>
           <button
-            onClick={() => setAdding((v) => !v)}
+            type="button"
+            onClick={() => {
+              setError('')
+              setAdding((v) => !v)
+            }}
             className="flex items-center gap-1 rounded-full border border-[var(--hairline-strong)] px-2.5 py-1 text-xs font-bold text-[var(--ink-muted)] transition hover:text-[var(--fg)]"
           >
             <Plus className="h-3 w-3" /> Note
@@ -106,11 +127,13 @@ export function DigitalBankSection() {
         <div className="mt-2 space-y-2 rounded-2xl border border-[var(--hairline)] bg-[var(--ink-panel)] p-4">
           <input value={noteTitle} onChange={(e) => setNoteTitle(e.target.value)} placeholder="Title (optional)" className={inputClass} />
           <textarea value={noteBody} onChange={(e) => setNoteBody(e.target.value)} placeholder="Write it down…" rows={3} className={inputClass} />
-          <button onClick={saveNote} className="btn-solid w-full py-2 text-sm">
-            Save to Bank
+          {error && <p className="text-sm text-red-500">{error}</p>}
+          <button type="button" onClick={saveNote} disabled={saving} className="btn-solid w-full py-2 text-sm">
+            {saving ? 'Saving…' : 'Save to Bank'}
           </button>
         </div>
       )}
+      {error && !adding && <p className="mt-2 text-sm text-red-500">{error}</p>}
 
       <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
         {!loading && items.length === 0 && !adding && (
@@ -121,14 +144,16 @@ export function DigitalBankSection() {
         {items.map((item) => {
           const Icon = VAULT_CATEGORY_ICON[item.category]
           return (
-            <div key={item.id} className="group relative rounded-2xl border border-[var(--hairline)] bg-[var(--ink-panel)] p-4">
+            <div key={item.id} className="relative rounded-2xl border border-[var(--hairline)] bg-[var(--ink-panel)] p-4">
               <button
+                type="button"
                 onClick={() => remove(item)}
-                className="absolute right-2 top-2 hidden h-6 w-6 items-center justify-center rounded-full bg-black/40 text-white/70 transition hover:text-white group-hover:flex"
+                aria-label="Delete item"
+                className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/40 text-white/70 transition hover:text-white"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
-              <button onClick={() => (item.file_path ? openItem(item) : undefined)} className="flex w-full flex-col items-start gap-2 text-left">
+              <button type="button" onClick={() => (item.file_path ? openItem(item) : undefined)} className="flex w-full flex-col items-start gap-2 text-left">
                 <span
                   className="flex h-9 w-9 items-center justify-center rounded-xl"
                   style={{ background: 'color-mix(in srgb, var(--gold) 18%, transparent)', color: 'var(--gold)' }}
@@ -169,6 +194,8 @@ export function NotesSection({
   const [adding, setAdding] = useState(false)
   const [draftTitle, setDraftTitle] = useState('')
   const [draftBody, setDraftBody] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
   const load = () =>
     listMyNotes(kind)
@@ -181,17 +208,29 @@ export function NotesSection({
 
   const save = async () => {
     if (!draftBody.trim()) return
-    await createNote(kind, draftTitle, draftBody)
-    setDraftTitle('')
-    setDraftBody('')
-    setAdding(false)
-    playClick()
-    load()
+    setSaving(true)
+    setError('')
+    try {
+      await createNote(kind, draftTitle, draftBody)
+      setDraftTitle('')
+      setDraftBody('')
+      setAdding(false)
+      playClick()
+      load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not save that entry.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const remove = async (id: string) => {
-    await deleteNote(id)
-    load()
+    try {
+      await deleteNote(id)
+      load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not delete that entry.')
+    }
   }
 
   return (
@@ -201,7 +240,11 @@ export function NotesSection({
           <Icon className="h-3.5 w-3.5" style={{ color: accent }} /> {title}
         </p>
         <button
-          onClick={() => setAdding((v) => !v)}
+          type="button"
+          onClick={() => {
+            setError('')
+            setAdding((v) => !v)
+          }}
           className="flex items-center gap-1 rounded-full border border-[var(--hairline-strong)] px-2.5 py-1 text-xs font-bold text-[var(--ink-muted)] transition hover:text-[var(--fg)]"
         >
           {adding ? <X className="h-3 w-3" /> : <Plus className="h-3 w-3" />} {adding ? 'Cancel' : 'New'}
@@ -212,8 +255,9 @@ export function NotesSection({
         <div className="mt-2 space-y-2 rounded-2xl border border-[var(--hairline)] bg-[var(--ink-panel)] p-4">
           <input value={draftTitle} onChange={(e) => setDraftTitle(e.target.value)} placeholder="Title (optional)" className={inputClass} />
           <textarea value={draftBody} onChange={(e) => setDraftBody(e.target.value)} placeholder={placeholder} rows={4} className={inputClass} />
-          <button onClick={save} className="btn-solid w-full py-2 text-sm">
-            Save Entry
+          {error && <p className="text-sm text-red-500">{error}</p>}
+          <button type="button" onClick={save} disabled={saving} className="btn-solid w-full py-2 text-sm">
+            {saving ? 'Saving…' : 'Save Entry'}
           </button>
         </div>
       )}
@@ -221,8 +265,13 @@ export function NotesSection({
       <div className="mt-3 space-y-2">
         {!loading && notes.length === 0 && !adding && <p className="text-sm text-[var(--ink-muted)]">Nothing written yet.</p>}
         {notes.map((n) => (
-          <div key={n.id} className="group relative rounded-2xl border border-[var(--hairline)] bg-[var(--ink-panel)] p-4">
-            <button onClick={() => remove(n.id)} className="absolute right-3 top-3 hidden text-[var(--ink-faint)] transition hover:text-red-400 group-hover:block">
+          <div key={n.id} className="relative rounded-2xl border border-[var(--hairline)] bg-[var(--ink-panel)] p-4">
+            <button
+              type="button"
+              onClick={() => remove(n.id)}
+              aria-label="Delete entry"
+              className="absolute right-3 top-3 text-[var(--ink-faint)] transition hover:text-red-400"
+            >
               <Trash2 className="h-3.5 w-3.5" />
             </button>
             {n.title && <p className="pr-6 font-bold">{n.title}</p>}

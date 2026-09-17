@@ -41,6 +41,7 @@ import {
   X,
   Users,
   ClipboardList,
+  ChevronDown,
   type LucideIcon,
 } from 'lucide-react'
 import { supabase, signOut } from '../lib/supabase'
@@ -232,7 +233,16 @@ function Dashboard() {
             >
               <ArrowLeft className="h-4 w-4" strokeWidth={2.25} />
             </button>
-            <div className={tab === 'bible' || tab === 'game' || tab === 'home' || tab === 'class' || tab === 'ears' || tab === 'messages' ? 'pb-12' : 'mx-auto max-w-2xl p-4 pt-14 pb-12'}>
+            {(tab === 'leaderboard' || tab === 'profile') && (
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 z-0"
+                style={{ backgroundImage: 'radial-gradient(var(--lp-hairline-strong) 1px, transparent 1px)', backgroundSize: '22px 22px' }}
+              />
+            )}
+            <div
+              className={`relative z-10 ${tab === 'bible' || tab === 'game' || tab === 'home' || tab === 'class' || tab === 'ears' || tab === 'messages' ? 'pb-12' : 'mx-auto max-w-2xl p-4 pt-14 pb-12'}`}
+            >
               {tab === 'home' && <HomeTab student={student} klass={klass} achievements={achievements} onNavigate={enterTab} />}
               {tab === 'class' && <ClassTab klass={klass} student={student} />}
               {tab === 'bible' && <SundaySchoolTab klass={klass} />}
@@ -1067,9 +1077,10 @@ function ClassFeaturePanel({
         overflowY: 'auto',
       }}
     >
-      <div className="mb-3 flex items-center justify-between">
+      <div className="relative z-10 mb-3 flex items-center justify-between">
         <p className="font-display text-lg font-extrabold text-white">{titles[feature]}</p>
         <button
+          type="button"
           onClick={onClose}
           className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
           aria-label="Back to the dial"
@@ -1089,11 +1100,7 @@ function ClassFeaturePanel({
         <div className="space-y-2">
           {loading && <p className="text-sm text-white/60">Loading…</p>}
           {!loading && lessons.length === 0 && <p className="text-sm text-white/60">No lessons posted yet.</p>}
-          {!loading && lessons.map((l) => (
-            <div key={l.id} className="rounded-xl bg-white/8 p-3">
-              <p className="font-bold text-white">{l.title}</p>
-            </div>
-          ))}
+          {!loading && lessons.map((l) => <LessonCard key={l.id} lecture={l} />)}
         </div>
       )}
 
@@ -1123,6 +1130,30 @@ function ClassFeaturePanel({
         <NotesSection kind="notebook" title="Notebook" icon={FileText} accent="var(--lp-accent-class)" placeholder="Jot down what you're learning…" />
       )}
     </div>
+  )
+}
+
+function LessonCard({ lecture }: { lecture: LectureRow }) {
+  const [expanded, setExpanded] = useState(false)
+  const hasDetails = Boolean(lecture.description || lecture.body)
+
+  return (
+    <button
+      type="button"
+      onClick={() => hasDetails && setExpanded((v) => !v)}
+      className="w-full rounded-xl bg-white/8 p-3 text-left transition hover:bg-white/12"
+    >
+      <div className="flex items-center justify-between gap-2">
+        <p className="font-bold text-white">{lecture.title}</p>
+        {hasDetails && <ChevronDown className={`h-4 w-4 shrink-0 text-white/60 transition ${expanded ? 'rotate-180' : ''}`} />}
+      </div>
+      {expanded && (
+        <div className="mt-2 space-y-1.5">
+          {lecture.description && <p className="text-sm text-white/80">{lecture.description}</p>}
+          {lecture.body && <p className="whitespace-pre-wrap text-sm text-white/70">{lecture.body}</p>}
+        </div>
+      )}
+    </button>
   )
 }
 

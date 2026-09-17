@@ -862,17 +862,25 @@ function HugeHeroIcon({
   return (
     <button
       onClick={onClick}
-      className="absolute flex flex-col items-center gap-1.5 transition hover:scale-[1.06] active:scale-[0.96]"
+      className="absolute flex flex-col items-center gap-2 transition hover:scale-[1.06] active:scale-[0.96]"
       style={{ left, top, transform: `translateX(-50%) rotate(${rotate}deg)` }}
     >
       <span
-        className="overflow-hidden rounded-full border-[3px] border-white"
-        style={{ height: size, width: size, boxShadow: '0 10px 24px -8px rgba(0,0,0,0.5)' }}
+        className="flex items-center justify-center rounded-full"
+        style={{
+          height: size,
+          width: size,
+          background: 'rgba(255,255,255,0.14)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          border: '1px solid rgba(255,255,255,0.38)',
+          boxShadow: '0 14px 32px -10px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.35)',
+        }}
       >
-        <img src={image} alt="" className="h-full w-full object-cover" />
+        <img src={image} alt="" className="h-[66%] w-[66%] object-contain drop-shadow-xl" />
       </span>
-      {value && <span className="font-display text-base font-extrabold text-white drop-shadow-md">{value}</span>}
-      <span className="max-w-[6.5rem] text-center text-[11px] font-bold leading-tight text-white drop-shadow-md">{label}</span>
+      {value && <span className="font-display text-xl font-extrabold text-white drop-shadow-md">{value}</span>}
+      <span className="max-w-[8rem] text-center text-xs font-bold leading-tight text-white drop-shadow-md">{label}</span>
     </button>
   )
 }
@@ -937,7 +945,7 @@ function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string 
             'linear-gradient(180deg, rgba(11,46,26,0.3) 0%, rgba(11,46,26,0.72) 100%), url(/icons/sunday-school-cover.jpg)',
           backgroundSize: 'cover',
           backgroundPosition: 'center 65%',
-          minHeight: 320,
+          minHeight: 440,
         }}
       >
         <div className="px-5 pt-5">
@@ -948,34 +956,34 @@ function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string 
         </div>
 
         <HugeHeroIcon
-          image="/icons/streak-flame.jpg"
+          image="/icons/streak-flame.png"
           label="Bible Reading Plan"
           value={String(streak)}
-          size={88}
-          left="16%"
-          top={130}
-          rotate={-8}
+          size={150}
+          left="12%"
+          top={160}
+          rotate={-9}
           onClick={() => readingSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
         />
         <HugeHeroIcon
-          image="/icons/bible-journey-book.jpg"
+          image="/icons/bible-journey-book.png"
           label="Bible Journey"
-          size={108}
+          size={180}
           left="50%"
-          top={110}
-          rotate={6}
+          top={100}
+          rotate={5}
           onClick={() => {
             playClick()
             setJourneyOpen(true)
           }}
         />
         <HugeHeroIcon
-          image="/icons/sunday-school-church.jpg"
+          image="/icons/sunday-school-church.png"
           label="Sunday School Lessons"
-          size={88}
-          left="83%"
-          top={140}
-          rotate={-4}
+          size={150}
+          left="88%"
+          top={170}
+          rotate={8}
           onClick={() => lessonsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
         />
       </div>
@@ -1006,18 +1014,6 @@ function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string 
 
       <div ref={readingSectionRef} className="mx-auto max-w-2xl space-y-3 px-4">
         <p className="eyebrow">Bible Reading Plan</p>
-        <div className="flex items-center justify-between gap-4 rounded-[28px] border border-[var(--hairline)] bg-[var(--ink-panel)] px-5 py-3">
-          <div className="flex items-center gap-2">
-            <Flame className="h-5 w-5 text-[var(--gold)]" />
-            <span className="font-display text-lg font-extrabold">{streak}</span>
-            <span className="text-xs font-bold uppercase tracking-wide text-[var(--ink-faint)]">Day Streak</span>
-          </div>
-          <div className="h-6 w-px bg-[var(--hairline)]" />
-          <div className="flex items-center gap-2">
-            <span className="text-base">{completed ? '✅' : '⭕'}</span>
-            <span className="text-xs font-bold uppercase tracking-wide text-[var(--ink-faint)]">Today</span>
-          </div>
-        </div>
 
         <ExternalLinkCard
           href="https://www.bible.com/reading-plans"

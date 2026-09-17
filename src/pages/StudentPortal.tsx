@@ -77,6 +77,7 @@ import {
   listMyAchievements,
   listUnlockedSundays,
   listBibleCharacters,
+  getOrCreateParentLinkCode,
   type BibleCharacterRow,
   type EarnedAchievement,
   type StudentRow,
@@ -1754,6 +1755,12 @@ function ProfileTab({ student, klass, onSaved }: { student: StudentRow; klass: (
   const [cardUrl, setCardUrl] = useState<string | null>(null)
   const [rendering, setRendering] = useState(false)
   const [codeCopied, setCodeCopied] = useState(false)
+  const [parentCode, setParentCode] = useState<string | null>(null)
+  const [parentCodeCopied, setParentCodeCopied] = useState(false)
+
+  useEffect(() => {
+    getOrCreateParentLinkCode().then(setParentCode)
+  }, [])
 
   const pickPhoto = async (file: File | undefined) => {
     if (!file) return
@@ -1767,6 +1774,18 @@ function ProfileTab({ student, klass, onSaved }: { student: StudentRow; klass: (
       setCodeCopied(true)
       playClick()
       window.setTimeout(() => setCodeCopied(false), 2000)
+    } catch {
+      // clipboard unavailable — the code is already visible on screen
+    }
+  }
+
+  const copyParentCode = async () => {
+    if (!parentCode) return
+    try {
+      await navigator.clipboard.writeText(parentCode)
+      setParentCodeCopied(true)
+      playClick()
+      window.setTimeout(() => setParentCodeCopied(false), 2000)
     } catch {
       // clipboard unavailable — the code is already visible on screen
     }
@@ -1854,6 +1873,23 @@ function ProfileTab({ student, klass, onSaved }: { student: StudentRow; klass: (
           </div>
         )}
         <p className="text-xs text-[var(--ink-faint)]">Give this to your teacher so they can add you to your class.</p>
+
+        {parentCode && (
+          <div className="flex items-center justify-between gap-3 rounded-md border border-[var(--hairline-strong)] px-4 py-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-[var(--ink-muted)]">Parent Link Code</p>
+              <p className="font-display text-lg font-extrabold tracking-widest">{parentCode}</p>
+            </div>
+            <button
+              onClick={copyParentCode}
+              className="flex shrink-0 items-center gap-1.5 rounded-md border border-[var(--hairline-strong)] px-3 py-1.5 text-xs font-bold transition hover:bg-[var(--ink-panel)]"
+            >
+              {parentCodeCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+              {parentCodeCopied ? 'Copied' : 'Copy'}
+            </button>
+          </div>
+        )}
+        <p className="text-xs text-[var(--ink-faint)]">Give this to a parent so they can follow your progress on their own dashboard.</p>
 
         <textarea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="A little about me…" rows={2} className={inputClass} />
         <input value={verse} onChange={(e) => setVerse(e.target.value)} placeholder="Favorite Bible verse" className={inputClass} />

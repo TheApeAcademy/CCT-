@@ -303,6 +303,9 @@ export default function Home() {
             <Link to="/teacher" onClick={() => playClick()} className="hero-btn-outline !px-7 !py-3.5 !text-base uppercase">
               Apply to Teach
             </Link>
+            <Link to="/parent" onClick={() => playClick()} className="hero-btn-outline !px-7 !py-3.5 !text-base uppercase">
+              Parent Dashboard
+            </Link>
           </div>
         </Reveal>
       </div>

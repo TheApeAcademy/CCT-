@@ -24,6 +24,7 @@ import Training from './pages/Training'
 const AdminPortal = lazy(() => import('./pages/AdminPortal'))
 const TeacherPortal = lazy(() => import('./pages/TeacherPortal'))
 const StudentPortal = lazy(() => import('./pages/StudentPortal'))
+const ParentPortal = lazy(() => import('./pages/ParentPortal'))
 const JoinClass = lazy(() => import('./pages/JoinClass'))
 
 // The landing page carries its own motion libraries (framer-motion, gsap)
@@ -167,6 +168,16 @@ function App() {
               element={
                 <Suspense fallback={<LazyFallback />}>
                   <StudentPortal />
+                </Suspense>
+              }
+            />
+          </Route>
+          <Route path="parent" element={<PortalShell eyebrow="Parent Dashboard" />}>
+            <Route
+              index
+              element={
+                <Suspense fallback={<LazyFallback />}>
+                  <ParentPortal />
                 </Suspense>
               }
             />

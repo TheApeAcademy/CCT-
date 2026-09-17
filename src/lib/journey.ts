@@ -19,6 +19,13 @@ export async function getMyJourneyProgress(): Promise<JourneyProgressRow[]> {
   return (data ?? []) as JourneyProgressRow[]
 }
 
+/** Same as above, but for a parent viewing a linked child's progress - relies on the journey_progress_select_parent RLS policy. */
+export async function getJourneyProgressForStudent(studentId: string): Promise<JourneyProgressRow[]> {
+  const { data, error } = await supabase.from('journey_progress').select('lesson_key, book, score, completed_at').eq('student_id', studentId)
+  if (error) throw error
+  return (data ?? []) as JourneyProgressRow[]
+}
+
 /** Marks a micro-lesson complete. Safe to call more than once - it no-ops on a replay, so points/achievements never double-fire. */
 export async function completeJourneyLesson(book: string, lessonKey: string, score?: number) {
   const { error } = await supabase.rpc('complete_journey_lesson', { p_book: book, p_lesson_key: lessonKey, p_score: score ?? null })

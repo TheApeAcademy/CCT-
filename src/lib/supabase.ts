@@ -26,7 +26,7 @@ export const JOIN_CLASS_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/join-class`
 // Student Code. Class enrollment happens later, separately, via a teacher.
 export const STUDENT_REGISTER_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/student-register`
 
-export type UserRole = 'admin' | 'teacher' | 'student'
+export type UserRole = 'admin' | 'teacher' | 'student' | 'parent'
 
 export interface Profile {
   id: string

@@ -1164,3 +1164,90 @@ export async function deleteMinistryEvent(id: string) {
   const { error } = await supabase.from('ministry_events').delete().eq('id', id)
   if (error) throw error
 }
+
+// ---------- parent dashboard ----------
+// Parents sign up on their own (normal email/password, no admin approval)
+// and link to a child with a short code the child already has - see
+// claim_parent_role()/link_child_by_code() in Supabase. Everything below
+// reads through RLS scoped to is_parent_of_student(), so a parent only
+// ever sees their own linked children's data.
+
+export interface ChildRow extends StudentRow {
+  class_name: string | null
+}
+
+/** Sets role="parent" for the signed-in account - a no-op if the role is already set, so an existing student/teacher/admin can't relabel itself. */
+export async function claimParentRole() {
+  const { error } = await supabase.rpc('claim_parent_role')
+  if (error) throw error
+}
+
+/** Called by a STUDENT to get (or generate, first time) their own parent-link code, shown on their profile. */
+export async function getOrCreateParentLinkCode(): Promise<string> {
+  const { data, error } = await supabase.rpc('get_or_create_parent_link_code')
+  if (error) throw error
+  return data as string
+}
+
+/** Called by a PARENT to link a child using the code above. */
+export async function linkChildByCode(code: string): Promise<{ student_id: string; full_name: string }> {
+  const { data, error } = await supabase.rpc('link_child_by_code', { p_code: code.trim() })
+  if (error) throw error
+  return data as { student_id: string; full_name: string }
+}
+
+export async function listMyChildren(): Promise<ChildRow[]> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) return []
+  const { data: links, error: linksError } = await supabase.from('parent_links').select('student_id').eq('parent_id', auth.user.id)
+  if (linksError) throw linksError
+  const ids = (links ?? []).map((l) => l.student_id)
+  if (ids.length === 0) return []
+
+  const { data, error } = await supabase
+    .from('students')
+    .select(
+      'id, class_id, username, student_code, date_of_birth, favorite_verse, favorite_quote, bio, total_points, created_at, profiles!inner(full_name, avatar_url), classes(name)',
+    )
+    .in('id', ids)
+  if (error) throw error
+  return (data ?? []).map((row: any) => ({
+    ...row,
+    full_name: row.profiles?.full_name ?? '',
+    avatar_url: row.profiles?.avatar_url ?? null,
+    class_name: row.classes?.name ?? null,
+  })) as ChildRow[]
+}
+
+export async function getChildBibleStreak(studentId: string): Promise<number> {
+  const { data, error } = await supabase.rpc('compute_bible_streak', { p_student_id: studentId })
+  if (error) throw error
+  return (data as number) ?? 0
+}
+
+export async function listChildAchievements(studentId: string): Promise<EarnedAchievement[]> {
+  const { data, error } = await supabase
+    .from('student_achievements')
+    .select('earned_at, achievements!inner(id, code, name, description, icon)')
+    .eq('student_id', studentId)
+    .order('earned_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []).map((row: any) => ({ ...row.achievements, earned_at: row.earned_at })) as EarnedAchievement[]
+}
+
+export async function listChildAttendance(studentId: string, limit = 30): Promise<AttendanceRow[]> {
+  const { data, error } = await supabase
+    .from('attendance')
+    .select('student_id, date, present')
+    .eq('student_id', studentId)
+    .order('date', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  return (data ?? []) as AttendanceRow[]
+}
+
+export async function listChildQuizAttempts(studentId: string, sinceIso: string): Promise<{ created_at: string }[]> {
+  const { data, error } = await supabase.from('quiz_attempts').select('created_at').eq('student_id', studentId).gte('created_at', sinceIso)
+  if (error) throw error
+  return (data ?? []) as { created_at: string }[]
+}

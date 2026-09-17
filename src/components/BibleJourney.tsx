@@ -85,17 +85,31 @@ function bookProgressCount(book: JourneyBook, completedKeys: Set<string>): numbe
   return lessonKeysInOrder(book).filter((k) => completedKeys.has(k)).length
 }
 
-// A slight organic "blob" outline plus a small alternating rotation/indent
-// per tile - reads as scattered stones rather than a strict list, while
-// staying a normal scrollable column (no real overlap, so it's still easy
-// to tap and to read for a kid).
+// An organic "blob" outline, scattered onto two axes (rotate + a vertical
+// bob) - used for a loose flex-wrap pile of tiles rather than a tidy
+// grid/column, so nothing lines up into rows.
 const ROCK_RADIUS = ['52% 48% 45% 55% / 55% 45% 58% 42%', '45% 55% 58% 42% / 48% 52% 45% 55%', '58% 42% 48% 52% / 42% 58% 52% 48%']
-
-function rockStyle(idx: number): React.CSSProperties {
-  const rotate = [-2, 1.5, -1, 2][idx % 4]
-  const indent = [0, 14, -10, 6][idx % 4]
-  return { borderRadius: ROCK_RADIUS[idx % ROCK_RADIUS.length], transform: `rotate(${rotate}deg) translateX(${indent}px)` }
+const SCATTER_ROTATE = [-8, 6, -4, 9, -6, 5, -9, 4, -5, 7, -7, 3]
+const SCATTER_LIFT = [0, 22, -16, 30, -10, 14, -26, 8, -18, 24, 4, -12]
+function scatterStyle(idx: number): React.CSSProperties {
+  return {
+    borderRadius: ROCK_RADIUS[idx % ROCK_RADIUS.length],
+    transform: `rotate(${SCATTER_ROTATE[idx % SCATTER_ROTATE.length]}deg) translateY(${SCATTER_LIFT[idx % SCATTER_LIFT.length]}px)`,
+  }
 }
+
+// Every real Bible-scene photo currently on hand - used to fill in any
+// character tile whose lesson has no dedicated image of its own.
+const CHARACTER_FALLBACK_IMAGES = [
+  '/journey/adam-eve-garden-home.jpg',
+  '/journey/adam-eve-first-sin.jpg',
+  '/journey/cain-abel-offerings.jpg',
+  '/journey/noah-building-ark.jpg',
+  '/journey/noah-dove-olive-branch.jpg',
+  '/journey/tower-of-babel.jpg',
+  '/journey/abraham-isaac-ram-provided.jpg',
+  '/journey/jacob-ladder-dream.jpg',
+]
 
 // No dedicated cover exists per book (only Genesis has real content so far) -
 // cycles through the app's existing Bible-scene art so every tile still
@@ -269,13 +283,18 @@ function CharacterBrowse({
   const characters = JOURNEY_BOOKS.flatMap((book) =>
     book.units.filter((unit) => unit.kind === 'story' && unit.lessons[0]).map((unit) => ({ book, unit, lesson: unit.lessons[0] })),
   )
+  // Only a handful of lessons have their own dedicated scene photo - every
+  // other one still gets a real picture (never a bare emoji) by cycling
+  // through the same art so no tile is left empty.
+  let fallbackCursor = 0
 
   return (
     <div className="space-y-3">
       <p className="text-sm text-[var(--ink-muted)]">Pick any Bible character to learn about them right away - no order required.</p>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="flex flex-wrap justify-center gap-x-3 gap-y-8 py-4">
         {characters.map(({ book, unit, lesson }, i) => {
           const isDone = completedKeys.has(lesson.key)
+          const image = lesson.image ?? CHARACTER_FALLBACK_IMAGES[fallbackCursor++ % CHARACTER_FALLBACK_IMAGES.length]
           return (
             <button
               key={lesson.key}
@@ -283,29 +302,18 @@ function CharacterBrowse({
                 playClick()
                 onOpenLesson(book.key, lesson.key)
               }}
-              className="relative flex aspect-square flex-col items-center justify-end overflow-hidden p-3 text-center transition hover:scale-[1.02]"
-              style={rockStyle(i)}
+              className="relative flex aspect-square w-28 shrink-0 flex-col items-center justify-end overflow-hidden p-2.5 text-center transition hover:scale-[1.06] sm:w-32"
+              style={scatterStyle(i)}
             >
-              {lesson.image ? (
-                <>
-                  <img src={lesson.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
-                </>
-              ) : (
-                <div
-                  className="absolute inset-0 flex items-center justify-center text-5xl"
-                  style={{ background: `color-mix(in srgb, ${ACCENT} 18%, transparent)` }}
-                >
-                  {unit.emoji}
-                </div>
-              )}
-              <p className="font-display relative z-10 text-lg font-extrabold uppercase leading-tight tracking-wide text-white drop-shadow-lg">
+              <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+              <p className="font-display relative z-10 text-sm font-extrabold uppercase leading-tight tracking-wide text-white drop-shadow-lg">
                 {unit.title}
               </p>
-              <p className="relative z-10 text-[10px] font-semibold text-white/80">{book.title}</p>
+              <p className="relative z-10 text-[9px] font-semibold text-white/80">{book.title}</p>
               {isDone && (
-                <span className="absolute right-2.5 top-2.5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-white/90">
-                  <Check className="h-3.5 w-3.5" style={{ color: ACCENT }} />
+                <span className="absolute right-2 top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-white/90">
+                  <Check className="h-3 w-3" style={{ color: ACCENT }} />
                 </span>
               )}
             </button>

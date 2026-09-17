@@ -866,7 +866,7 @@ function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string 
             'linear-gradient(180deg, rgba(11,46,26,0.3) 0%, rgba(11,46,26,0.72) 100%), url(/icons/sunday-school-cover.jpg)',
           backgroundSize: 'cover',
           backgroundPosition: 'center 65%',
-          minHeight: 440,
+          minHeight: 380,
         }}
       >
         <div className="px-5 pt-5">
@@ -881,31 +881,25 @@ function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string 
           label="Bible Reading Plan"
           value={String(streak)}
           size={150}
-          left="12%"
-          top={160}
-          rotate={-9}
-          onClick={() => playClick()}
+          left="32%"
+          top={140}
+          rotate={-8}
+          onClick={() => {
+            playClick()
+            window.open('https://www.bible.com/reading-plans', '_blank', 'noopener,noreferrer')
+          }}
         />
         <HugeHeroIcon
           image="/icons/bible-journey-book.png"
           label="Bible Journey"
           size={180}
-          left="50%"
-          top={100}
+          left="68%"
+          top={110}
           rotate={5}
           onClick={() => {
             playClick()
             setJourneyOpen(true)
           }}
-        />
-        <HugeHeroIcon
-          image="/icons/sunday-school-church.png"
-          label="Sunday School Lessons"
-          size={150}
-          left="88%"
-          top={170}
-          rotate={8}
-          onClick={() => lessonsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
         />
       </div>
 

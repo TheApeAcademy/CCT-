@@ -1362,7 +1362,7 @@ function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string;
       </div>
 
       <div ref={lessonsSectionRef} className="mx-auto max-w-2xl space-y-3 px-4">
-        <p className="eyebrow">Sunday School Lessons</p>
+        <p className="eyebrow">Lessons</p>
         {klass && lessonsLoading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
         {klass && !lessonsLoading && lessons.length > 0 && (
           <div className="space-y-2">
@@ -1378,7 +1378,7 @@ function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string;
       </div>
 
       <div className="mx-auto max-w-2xl space-y-3 px-4">
-        <p className="eyebrow">Sunday School Calendar</p>
+        <p className="eyebrow">Calendar</p>
         <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' }}>
           {SUNDAYS_2026.map((date, i) => {
             const theme = SUNDAY_LESSON_THEMES[i % SUNDAY_LESSON_THEMES.length]

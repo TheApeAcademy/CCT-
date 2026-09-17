@@ -866,7 +866,7 @@ function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string 
             'linear-gradient(180deg, rgba(11,46,26,0.3) 0%, rgba(11,46,26,0.72) 100%), url(/icons/sunday-school-cover.jpg)',
           backgroundSize: 'cover',
           backgroundPosition: 'center 65%',
-          minHeight: 380,
+          minHeight: 400,
         }}
       >
         <div className="px-5 pt-5">
@@ -880,9 +880,9 @@ function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string 
           image="/icons/streak-flame.png"
           label="Bible Reading Plan"
           value={String(streak)}
-          size={150}
-          left="32%"
-          top={140}
+          size={170}
+          left="40%"
+          top={130}
           rotate={-8}
           onClick={() => {
             playClick()
@@ -892,9 +892,9 @@ function SundaySchoolTab({ klass }: { klass: (ClassRow & { teacher_name: string 
         <HugeHeroIcon
           image="/icons/bible-journey-book.png"
           label="Bible Journey"
-          size={180}
-          left="68%"
-          top={110}
+          size={200}
+          left="60%"
+          top={105}
           rotate={5}
           onClick={() => {
             playClick()

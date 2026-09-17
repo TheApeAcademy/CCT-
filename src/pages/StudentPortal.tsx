@@ -54,6 +54,7 @@ import { NotesSection, DigitalBankSection } from '../components/PersonalVault'
 import MinistryCalendarReadOnly from '../components/MinistryCalendarView'
 import { SUNDAY_LESSON_THEMES, SUNDAYS_2026, sundayDateKey } from '../content/sundaySchoolCalendar'
 import { bibleComUrl } from '../lib/bibleLink'
+import { getMyJourneyProgress } from '../lib/journey'
 import { useAutoHideNav } from '../lib/useAutoHideNav'
 import {
   getMyStudentProfile,
@@ -149,6 +150,55 @@ function loadDashboardState(): { tab: Tab; view: 'map' | 'tab' } | null {
     // sessionStorage can throw in private/locked-down browsing - just skip restoring.
   }
   return null
+}
+
+// Today's Loop - no new table, no new reward, just today's activity across
+// features that already exist, rolled into one glance on the village map.
+// Nothing here is a forced order; a kid can do these in any order or skip
+// straight past it.
+function isToday(iso: string) {
+  const d = new Date(iso)
+  const now = new Date()
+  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate()
+}
+
+function TodayLoopBanner({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
+  const [streak, setStreak] = useState(0)
+  const [journeyToday, setJourneyToday] = useState(false)
+  const [earsToday, setEarsToday] = useState(false)
+
+  useEffect(() => {
+    getMyBibleStreak().then(setStreak)
+    getMyJourneyProgress().then((rows) => setJourneyToday(rows.some((r) => isToday(r.completed_at))))
+    listMyEarsMessages().then((rows) => setEarsToday(rows.some((m) => isToday(m.created_at))))
+  }, [])
+
+  const pill = (done: boolean, label: string, tab: Tab) => (
+    <button
+      key={label}
+      onClick={() => onNavigate(tab)}
+      className="flex items-center gap-1.5 rounded-full bg-white/90 px-3 py-1.5 text-xs font-bold text-[var(--lp-heading)] shadow-lg backdrop-blur transition hover:scale-105"
+    >
+      <span
+        className="flex h-4 w-4 items-center justify-center rounded-full"
+        style={{ background: done ? 'var(--hero-accent)' : 'var(--lp-hairline-strong)' }}
+      >
+        {done && <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />}
+      </span>
+      {label}
+    </button>
+  )
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 px-3 pb-1">
+      <span className="flex items-center gap-1 rounded-full bg-white/90 px-3 py-1.5 text-xs font-bold text-[var(--lp-heading)] shadow-lg backdrop-blur">
+        <Flame className="h-3.5 w-3.5" style={{ color: 'var(--gold)' }} strokeWidth={2.25} />
+        {streak} day{streak === 1 ? '' : 's'}
+      </span>
+      {pill(journeyToday, 'Bible Journey', 'bible')}
+      {pill(earsToday, 'Ears for You', 'ears')}
+    </div>
+  )
 }
 
 function Dashboard() {
@@ -247,6 +297,7 @@ function Dashboard() {
                 Sign Out
               </button>
             </div>
+            <TodayLoopBanner onNavigate={enterTab} />
             <VillageMap active={tab} onNavigate={enterTab} avatarUrl={student?.avatar_url} />
           </motion.div>
         ) : (

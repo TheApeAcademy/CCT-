@@ -31,8 +31,12 @@ export default function KidsShell({ eyebrow }: { eyebrow: string }) {
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 z-0"
         style={{
-          backgroundImage: 'radial-gradient(var(--lp-hairline-strong) 1px, transparent 1px)',
-          backgroundSize: '22px 22px',
+          // Texture, not pattern. At the stronger hairline and 22px spacing
+          // the dots read as a surface of their own competing with the cards
+          // on top of them; at the quieter hairline and 28px they do what
+          // paper grain does, which is be felt rather than seen.
+          backgroundImage: 'radial-gradient(var(--lp-hairline) 1px, transparent 1px)',
+          backgroundSize: '28px 28px',
         }}
       />
       <header

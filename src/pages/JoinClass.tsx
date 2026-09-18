@@ -8,9 +8,8 @@ import { setRememberMe } from '../lib/supabase'
 import { getRememberedStudent, saveRememberedStudent, clearRememberedStudent } from '../lib/rememberedStudent'
 import FloatingArt from '../components/FloatingArt'
 import ColorSprinkles from '../components/ColorSprinkles'
-// Landing page's playful display face for the big student code / step
-// numbers - safe to pull in here since /join is already its own lazy
-// route, never loaded by the offline quiz.
+import Confetti from '../components/Confetti'
+import SegmentedControl from '../components/ui/SegmentedControl'
 
 type Mode = 'new' | 'returning'
 
@@ -41,24 +40,14 @@ export default function JoinClass() {
         </h1>
       </div>
 
-      <div className="flex gap-1 rounded-2xl border border-[var(--lp-hairline-strong)] bg-[var(--lp-bg-panel)] p-1">
-        <button
-          onClick={() => setMode('new')}
-          className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-bold transition ${
-            mode === 'new' ? 'bg-[var(--hero-accent)] text-white shadow-md' : 'text-[var(--lp-muted)] hover:text-[var(--lp-heading)]'
-          }`}
-        >
-          I&apos;m new here
-        </button>
-        <button
-          onClick={() => setMode('returning')}
-          className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-bold transition ${
-            mode === 'returning' ? 'bg-[var(--hero-accent)] text-white shadow-md' : 'text-[var(--lp-muted)] hover:text-[var(--lp-heading)]'
-          }`}
-        >
-          I&apos;ve signed up before
-        </button>
-      </div>
+      <SegmentedControl
+        value={mode}
+        onChange={setMode}
+        items={[
+          { value: 'new' as const, label: "I'm new here" },
+          { value: 'returning' as const, label: "I've signed up before" },
+        ]}
+      />
 
       {mode === 'new' ? <NewStudentFlow /> : <ReturningStudentFlow />}
 
@@ -112,6 +101,7 @@ function NewStudentFlow() {
   const [confirmPasscode, setConfirmPasscode] = useState('')
   const [passcodeCopied, setPasscodeCopied] = useState(false)
   const [error, setError] = useState('')
+  const [celebrating, setCelebrating] = useState(false)
 
   const progress = ((STEP_ORDER.indexOf(step) + 1) / STEP_ORDER.length) * 100
 
@@ -143,6 +133,8 @@ function NewStudentFlow() {
       await registerStudent({ full_name: fullName, guardian_phone: guardianPhone || undefined, passcode })
       haptics.success()
       setStep('done')
+      setCelebrating(true)
+      window.setTimeout(() => setCelebrating(false), 2600)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not create your account. Try again.')
       haptics.error()
@@ -289,6 +281,10 @@ function NewStudentFlow() {
 
       {step === 'done' && (
         <div className="animate-page-in space-y-4">
+          {/* Confetti recycles its particles forever while active, so it is
+              the caller's job to stop it. A couple of seconds is a
+              celebration; left running it is weather. */}
+          <Confetti active={celebrating} />
           <div className="lp-panel lp-panel-accented space-y-3 p-6 text-center" style={{ ['--card-accent' as string]: STEP_ACCENT.done }}>
             <PartyPopper className="mx-auto h-10 w-10" style={{ color: STEP_ACCENT.done }} strokeWidth={1.75} />
             <p className="lp-heading font-display text-xl font-bold">You&apos;re all set, {fullName.trim().split(/\s+/)[0]}!</p>
@@ -402,7 +398,7 @@ function ReturningStudentFlow() {
         autoCapitalize="off"
         autoCorrect="off"
         spellCheck={false}
-        placeholder="e.g. joshmfm7"
+        placeholder="e.g. joshmfm472"
         className={`${inputClass} text-center text-xl tracking-wide`}
         onKeyDown={(e) => e.key === 'Enter' && submit()}
       />

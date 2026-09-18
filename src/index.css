@@ -288,7 +288,11 @@ body::before {
 /* ---------- shared micro-interactions ---------- */
 
 button, a {
-  transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.15s ease, opacity 0.15s ease;
+  transition:
+    transform var(--dur-tap) var(--ease-calm),
+    box-shadow var(--dur-tap) var(--ease-calm),
+    background-color var(--dur-control) var(--ease-calm),
+    opacity var(--dur-control) var(--ease-calm);
 }
 button:active, a:active {
   transform: scale(0.95);
@@ -309,7 +313,7 @@ button:active, a:active {
   100% { opacity: 1; transform: translateY(0); }
 }
 .animate-page-in {
-  animation: page-fade-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: page-fade-in var(--dur-page) var(--ease-calm) both;
 }
 
 /* ---------- glow / pulse ---------- */
@@ -590,13 +594,24 @@ button:active, a:active {
   background: var(--ink-panel);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-panel);
+  box-shadow: var(--elev-1);
 }
 .panel-interactive {
-  transition: border-color 0.15s ease, background-color 0.15s ease;
+  transition:
+    border-color var(--dur-control) var(--ease-calm),
+    background-color var(--dur-control) var(--ease-calm),
+    box-shadow var(--dur-control) var(--ease-calm),
+    transform var(--dur-control) var(--ease-calm);
 }
 .panel-interactive:hover {
   border-color: var(--hairline-strong);
   background: color-mix(in srgb, var(--ink-panel), var(--fg) 8%);
+  /* One step up the elevation scale and one pixel of lift. A card that only
+     changes colour on hover reads as a coloured rectangle; a card that rises
+     reads as a thing you can pick up, which is the whole point of having an
+     elevation scale at all. */
+  box-shadow: var(--elev-2);
+  transform: translateY(-1px);
 }
 
 .eyebrow {
@@ -854,8 +869,8 @@ button:active, a:active {
      page and a wide soft one that gives it height. A single large blur is
      what makes a card look like it is floating in front of the page rather
      than resting on it. */
-  --lp-shadow-card: 0 1px 2px rgba(20, 8, 40, 0.06), 0 12px 32px -18px rgba(20, 8, 40, 0.3);
-  --lp-shadow-card-raised: 0 2px 4px rgba(20, 8, 40, 0.07), 0 22px 48px -24px rgba(20, 8, 40, 0.4);
+  --lp-shadow-card: var(--elev-1);
+  --lp-shadow-card-raised: var(--elev-2);
   --lp-accent-fill: var(--hero-accent);
   --lp-accent-fill-hover: var(--hero-accent-hover);
   --lp-accent-fill-ink: #ffffff;
@@ -875,7 +890,14 @@ button:active, a:active {
   transition: background-color 0.35s ease, color 0.35s ease;
 }
 
+/* --elev-* is defined on :root (dark) and redefined on .site-light-theme,
+   but a landing band can be dark inside a light-themed shell and the other
+   way round, so each landing theme states its own elevation rather than
+   inheriting whichever happened to be in scope. */
 [data-landing-theme='dark'] {
+  --elev-1: 0 1px 2px rgba(8, 3, 18, 0.28), 0 8px 20px -14px rgba(8, 3, 18, 0.5);
+  --elev-2: 0 2px 4px rgba(8, 3, 18, 0.32), 0 18px 40px -22px rgba(8, 3, 18, 0.62);
+  --elev-3: 0 4px 8px rgba(8, 3, 18, 0.36), 0 32px 64px -28px rgba(8, 3, 18, 0.72);
   color-scheme: dark;
   --lp-bg: #120a1f;
   --lp-bg-raised: #1b1030;
@@ -894,6 +916,9 @@ button:active, a:active {
 }
 
 [data-landing-theme='light'] {
+  --elev-1: 0 1px 2px rgba(20, 8, 40, 0.06), 0 8px 20px -14px rgba(20, 8, 40, 0.24);
+  --elev-2: 0 2px 4px rgba(20, 8, 40, 0.07), 0 18px 40px -22px rgba(20, 8, 40, 0.32);
+  --elev-3: 0 4px 8px rgba(20, 8, 40, 0.09), 0 32px 64px -28px rgba(20, 8, 40, 0.4);
   color-scheme: light;
   --lp-bg: #ffffff;
   --lp-bg-raised: #faf8ff;

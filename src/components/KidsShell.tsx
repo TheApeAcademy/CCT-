@@ -29,12 +29,16 @@ export default function KidsShell({ eyebrow }: { eyebrow: string }) {
         }}
       />
       <header
-        className={`sticky top-0 z-30 border-b border-[var(--lp-hairline)] bg-[var(--lp-bg)] transition-transform duration-300 ${
+        className={`sticky top-0 z-40 border-b border-[var(--lp-hairline)] bg-[var(--lp-bg)] transition-transform duration-300 ${
           autoHidden ? '-translate-y-full' : 'translate-y-0'
         }`}
       >
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3">
           <div className="flex min-w-0 shrink-0 items-center gap-2">
+            {/* In the header's own row, not floating over it. Pinned at
+                left-3 top-3 it landed squarely on top of the logo at phone
+                width, which is the first thing a child sees here. */}
+            <BackButton />
             <Link to="/" className="flex min-w-0 shrink-0 items-center">
               <img src="/children-ministry-logo-splash.png" alt="MFM Children's Ministry" className="h-14 w-auto object-contain sm:h-16" />
             </Link>
@@ -42,8 +46,7 @@ export default function KidsShell({ eyebrow }: { eyebrow: string }) {
           <span className="lp-eyebrow">{eyebrow}</span>
         </div>
       </header>
-      <BackButton className="fixed left-3 top-3 z-40" />
-      <main className="relative z-50 mx-auto max-w-3xl px-4 py-10 sm:py-14">
+      <main className="relative z-10 mx-auto max-w-3xl px-4 py-10 sm:py-14">
         <Outlet />
       </main>
       <footer className="relative mx-auto max-w-3xl px-4 pb-8 pt-4 text-center">

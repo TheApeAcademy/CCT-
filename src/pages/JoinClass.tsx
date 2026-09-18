@@ -25,8 +25,11 @@ export default function JoinClass() {
     <div className="relative mx-auto max-w-md space-y-8">
       <ColorSprinkles />
       <div className="text-center">
+        {/* The shell's header already carries the ministry logo a hundred
+            pixels above this, so repeating it here said nothing twice. The
+            quiz artwork is what the heading underneath is actually about. */}
         <FloatingArt className="mx-auto w-28 sm:w-32">
-          <img src="/children-ministry-logo-splash.png" alt="MFM Children's Ministry" className="w-full drop-shadow-xl" />
+          <img src="/feature-quiz.png" alt="" className="w-full drop-shadow-xl" />
         </FloatingArt>
         <p className="lp-eyebrow mt-4 justify-center" style={{ ['--card-accent' as string]: 'var(--lp-accent-compete)' }}>
           The Ultimate Bible Quiz Adventure
@@ -38,10 +41,10 @@ export default function JoinClass() {
         </h1>
       </div>
 
-      <div className="flex gap-1 rounded-xl border-2 border-[var(--lp-hairline-strong)] bg-[var(--lp-bg-panel)] p-1">
+      <div className="flex gap-1 rounded-2xl border border-[var(--lp-hairline-strong)] bg-[var(--lp-bg-panel)] p-1">
         <button
           onClick={() => setMode('new')}
-          className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-bold transition ${
+          className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-bold transition ${
             mode === 'new' ? 'bg-[var(--hero-accent)] text-white shadow-md' : 'text-[var(--lp-muted)] hover:text-[var(--lp-heading)]'
           }`}
         >
@@ -49,7 +52,7 @@ export default function JoinClass() {
         </button>
         <button
           onClick={() => setMode('returning')}
-          className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-bold transition ${
+          className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-bold transition ${
             mode === 'returning' ? 'bg-[var(--hero-accent)] text-white shadow-md' : 'text-[var(--lp-muted)] hover:text-[var(--lp-heading)]'
           }`}
         >

@@ -81,7 +81,7 @@ export default function AdminPortal() {
         signUpLabel="Create Account"
         afterSignUp={(email) => (
           <>
-            <p>Admin access isn't self-service &mdash; an existing admin (or the senior pastor) needs to promote your account.</p>
+            <p>Admin access isn't self-service. An existing admin (or the senior pastor) needs to promote your account.</p>
             <p className="mt-2 text-[var(--fg)]/70">
               Tell them the email you signed up with: <span className="font-bold text-[var(--gold)]">{email}</span>
             </p>
@@ -311,7 +311,7 @@ function DigitalBankTab() {
       <div className="panel space-y-3 p-5">
         <p className="eyebrow">Upload a File</p>
         <p className="text-xs text-[var(--ink-muted)]">
-          Songs, videos, docs — anything related to the ministry. Stored locally on this device/browser for now, not shared across devices yet.
+          Songs, videos, docs, anything related to the ministry. Stored locally on this device or browser for now, not shared across devices yet.
         </p>
         <label className="btn-solid inline-flex w-fit cursor-pointer items-center gap-2 px-4 py-2 text-sm">
           <Upload className="h-4 w-4" />
@@ -852,7 +852,7 @@ function AdminsTab() {
 const SAFETY_GUARANTEES: { icon: LucideIcon; title: string; body: string }[] = [
   { icon: Lock, title: 'No public profiles, no random messaging', body: 'Children never appear on a public leaderboard, and cannot message each other directly - only their own assigned teacher.' },
   { icon: Eye, title: 'Role separation enforced at the database', body: 'Teachers see only their own class, admins see across the ministry - enforced by row-level security, not just hidden UI.' },
-  { icon: Heart, title: 'Ears for You hides identity for real', body: 'An anonymous message’s real student_id is removed from the data itself before it reaches a teacher or admin - not just hidden on screen.' },
+  { icon: Heart, title: 'Ears for You hides identity for real', body: "An anonymous message's real sender is removed from the data itself before it reaches a teacher or admin, not just hidden on screen." },
   { icon: Users, title: 'Parents opt in - nothing auto-created', body: 'A parent account is never created without a parent explicitly signing up and linking with a code the child controls.' },
 ]
 

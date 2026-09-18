@@ -50,7 +50,7 @@ export default function AchievementsFeatureIntro() {
               Unlock your next achievement.
             </h2>
             <p className="mt-5 max-w-lg text-base leading-relaxed text-[var(--lp-body)] sm:text-lg">
-              Badges for streaks, match wins, and milestones — collected right on your profile for everyone to see.
+              Badges for streaks, match wins, and milestones, collected right on your profile for everyone to see.
             </p>
 
             <div className="mt-7 grid grid-cols-4 gap-3 sm:max-w-md">

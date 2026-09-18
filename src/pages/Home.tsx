@@ -39,21 +39,21 @@ const slides: HeroSlide[] = [
   },
   {
     title: 'Know the Word. Play the Quiz.',
-    body: 'Live trivia on the shared screen, team lifelines, seasons and a leaderboard that means something — every question is a chance to know Scripture a little better.',
+    body: 'Live trivia on the shared screen, team lifelines, seasons and a leaderboard that means something. Every question is a chance to know Scripture a little better.',
     primaryCta: { label: 'Host a Match', to: '/setup' },
     secondaryCta: { label: 'Practice Mode', to: '/training' },
     image: '/hero-quiz.jpg',
   },
   {
     title: 'Nourish Your Soul. Read Daily.',
-    body: 'A short Bible reading and a streak that keeps count — come back tomorrow and it grows, right there on your own dashboard.',
+    body: 'A short Bible reading and a streak that keeps count. Come back tomorrow and it grows, right there on your own dashboard.',
     primaryCta: { label: 'Apply as a Child', to: '/join' },
     quote: { text: 'Thy word have I hid in mine heart, that I might not sin against thee', source: 'Psalm 119:11' },
     image: '/hero-bible.jpg',
   },
   {
     title: 'Our Sunday School Teachers',
-    body: 'Real classrooms, real teachers — approved by the ministry and ready to walk with your child through the Word, every single week.',
+    body: 'Real classrooms, real teachers, approved by the ministry and ready to walk with your child through the Word, every single week.',
     primaryCta: { label: 'Apply to Teach', to: '/teacher' },
     secondaryCta: { label: 'Apply as a Child', to: '/join' },
     image: '/hero-teachers.jpg',
@@ -84,7 +84,7 @@ export default function Home() {
               </h2>
               <p className="mt-5 max-w-lg text-base leading-relaxed text-[var(--lp-body)] sm:text-lg">
                 A live question appears, an answer gets picked, the reveal lands, the score moves. That&apos;s the whole
-                match &mdash; on a shared screen, in teams, with lifelines &mdash; run entirely from the Question Bank a
+                match, on a shared screen, in teams, with lifelines, run entirely from the Question Bank a
                 teacher builds.
               </p>
               <div className="mt-7 flex flex-wrap items-center gap-3">
@@ -176,7 +176,7 @@ export default function Home() {
               A dashboard that&apos;s actually theirs
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-base leading-relaxed sm:text-lg" style={{ color: 'var(--lp-band-deep-body)' }}>
-              Every child gets their own home base the moment they sign up &mdash; no class code needed. Here&apos;s a
+              Every child gets their own home base the moment they sign up, no class code needed. Here&apos;s a
               look at what&apos;s waiting inside.
             </p>
           </Reveal>
@@ -211,7 +211,7 @@ export default function Home() {
               </h2>
               <p className="mt-3 text-sm leading-relaxed text-[var(--lp-body)] sm:text-base">
                 A full-gospel ministry devoted to revival, holiness, prayer, and deliverance, founded and led by
-                Dr.&nbsp;Daniel Kolawole Olukoya as General Overseer &mdash; grown into a worldwide ministry with
+                Dr.&nbsp;Daniel Kolawole Olukoya as General Overseer, grown into a worldwide ministry with
                 branches across nations, all carrying the same call to prayer and holy living.
               </p>
             </div>
@@ -254,7 +254,7 @@ export default function Home() {
                 eyebrowAccent="var(--lp-accent-history)"
                 title="The Children's Ministry"
               >
-                Head of Children&apos;s Department &mdash; Olusanu Olukunle. This platform exists to serve the
+                Head of Children&apos;s Department: Olusanu Olukunle. This platform exists to serve the
                 ministry directly.
               </ProfileCard>
             </RevealItem>
@@ -271,14 +271,14 @@ export default function Home() {
             </p>
             <h2 className="lp-heading mt-2 font-display text-2xl font-extrabold sm:text-4xl">Get In Touch</h2>
             <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-[var(--lp-body)] sm:text-base">
-              A direct line to MFM Wuye Children&apos;s Ministry &mdash; a branch phone number, email, and service
-              times &mdash; is being finalized with the ministry and will appear here soon.
+              A branch phone number, email, and service times for MFM Wuye Children&apos;s Ministry are being
+              finalised with the ministry and will appear here soon.
             </p>
             <div className="mt-5 flex items-center gap-3">
               <span className="flex h-10 w-10 items-center justify-center rounded-md border border-[var(--lp-hairline-strong)] text-[var(--lp-accent-text)]">
                 <Mail className="h-5 w-5" strokeWidth={1.75} />
               </span>
-              <p className="text-sm font-semibold text-[var(--lp-muted)]">Details coming soon &mdash; check back shortly.</p>
+              <p className="text-sm font-semibold text-[var(--lp-muted)]">Details coming soon. Check back shortly.</p>
             </div>
           </Reveal>
         </div>

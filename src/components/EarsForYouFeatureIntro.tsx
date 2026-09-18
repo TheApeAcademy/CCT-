@@ -28,7 +28,7 @@ export default function EarsForYouFeatureIntro() {
               You can talk to us.
             </h2>
             <p className="mt-4 text-base leading-relaxed text-[var(--lp-body)] sm:text-lg">
-              A safe, private line to your class teacher — for whenever something&apos;s on your mind. No pressure,
+              A safe, private line to your class teacher, for whenever something&apos;s on your mind. No pressure,
               no judgement, just a place to be heard.
             </p>
             <div className="mt-6 flex justify-center">

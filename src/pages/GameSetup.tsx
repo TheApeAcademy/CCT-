@@ -350,13 +350,13 @@ export default function GameSetup() {
             {linkChecking && <p className="text-sm text-[var(--ink-muted)]">Checking…</p>}
             {!linkChecking && linkAuthorized === false && (
               <p className="text-sm text-[var(--ink-muted)]">
-                Sign in as a teacher or admin to link teams to the leaderboard — matches still work fine without it.
+                Sign in as a teacher or admin to link teams to the leaderboard. Matches still work fine without it.
               </p>
             )}
             {!linkChecking && linkAuthorized === true && (
               <>
                 <p className="text-xs text-[var(--ink-faint)]">
-                  Match each team to their Student Code. Results save locally either way — this just makes them count toward the leaderboard.
+                  Match each team to their Student Code. Results save locally either way; this just makes them count toward the leaderboard.
                 </p>
                 {teamNames.map(
                   (name, i) =>

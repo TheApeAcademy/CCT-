@@ -202,7 +202,7 @@ export default function History() {
                       <p className="font-medium">{a.questionText}</p>
                       <p className={`mt-1 ${a.correct ? 'text-green-600' : 'text-red-600'}`}>
                         {a.correct ? '✓ Correct' : a.timedOut ? '⏰ Timed out' : '✗ Wrong'}
-                        {a.selectedIndex !== null && ` — answered: ${a.options[a.selectedIndex]}`}
+                        {a.selectedIndex !== null && ` - answered: ${a.options[a.selectedIndex]}`}
                       </p>
                       {!a.correct && (
                         <p className="mt-1 text-green-600/90">

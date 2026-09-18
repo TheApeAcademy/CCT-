@@ -1500,7 +1500,7 @@ function EarsDetail({ message, onBack }: { message: EarsMessageRow; onBack: () =
       </div>
 
       <div className="space-y-2">
-        <p className="eyebrow">Internal Notes &mdash; not visible to the student</p>
+        <p className="eyebrow">Internal Notes, not visible to the student</p>
         {notes.map((n) => (
           <div key={n.id} className="rounded-md border border-[var(--fg)]/10 bg-[var(--fg)]/5 p-3 text-sm text-[var(--fg)]/70">
             {n.body}

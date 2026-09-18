@@ -180,7 +180,7 @@ function NewStudentFlow() {
       )}
 
       {step === 'phone' && (
-        <StepPanel icon={Phone} accent={STEP_ACCENT.phone} question="Parent or guardian's phone number?" hint="Optional — in case we ever need to reach home.">
+        <StepPanel icon={Phone} accent={STEP_ACCENT.phone} question="Parent or guardian's phone number?" hint="Optional, in case we ever need to reach home.">
           <input
             autoFocus
             value={guardianPhone}
@@ -216,7 +216,7 @@ function NewStudentFlow() {
             {passcodeCopied ? 'Copied' : 'Copy passcode'}
           </button>
           <p className="text-sm text-[var(--lp-muted)]">
-            Copy it or write it down somewhere safe. You&apos;ll need it, with your name, to sign in next time —
+            Copy it or write it down somewhere safe. You&apos;ll need it, with your name, to sign in next time, and
             even though it&apos;s easy to remember!
           </p>
           {error && <p className="text-sm text-red-500">{error}</p>}
@@ -277,7 +277,7 @@ function NewStudentFlow() {
             <PartyPopper className="mx-auto h-10 w-10" style={{ color: STEP_ACCENT.done }} strokeWidth={1.75} />
             <p className="lp-heading font-display text-xl font-bold">You&apos;re all set, {fullName.trim().split(/\s+/)[0]}!</p>
             <p className="text-sm text-[var(--lp-muted)]">
-              Your Student Code is waiting on your profile once you&apos;re in — that&apos;s what you&apos;ll give
+              Your Student Code is waiting on your profile once you&apos;re in, and that&apos;s what you&apos;ll give
               your teacher to get added to your class.
             </p>
           </div>

@@ -121,7 +121,7 @@ export default function Layout() {
   }
 
   return (
-    <div data-landing-theme={isLandingStyle ? theme : undefined} className="relative min-h-screen text-white">
+    <div data-landing-theme={isLandingStyle ? theme : undefined} className="relative flex min-h-screen flex-col text-white">
       <StageBackground />
       <header
         className={`fixed inset-x-0 top-0 z-40 transition-all duration-300 ${
@@ -281,9 +281,9 @@ export default function Layout() {
       </header>
       {showBack && isFullscreenQuiz && <BackButton dark className="fixed left-3 top-3 z-50" />}
       <main
-        className={`relative z-10 ${
+        className={`relative z-10 w-full flex-1 ${
           isFullscreenQuiz
-            ? 'flex min-h-[100dvh] w-full flex-col px-0 pb-0 pt-0'
+            ? 'flex min-h-[100dvh] flex-col px-0 pb-0 pt-0'
             : `mx-auto max-w-6xl px-4 pb-6 ${isLandingStyle ? 'pt-0' : 'pt-24 sm:pt-28'}`
         }`}
       >

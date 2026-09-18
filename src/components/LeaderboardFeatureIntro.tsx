@@ -90,11 +90,18 @@ export default function LeaderboardFeatureIntro() {
                         background:
                           p.rank === 1
                             ? 'linear-gradient(180deg, var(--lp-accent-leaderboard), color-mix(in srgb, var(--lp-accent-leaderboard) 60%, transparent))'
-                            : 'var(--lp-bg-panel)',
+                            // Runner-up bars were the panel colour, which in
+                            // light mode is barely a shade off the band they
+                            // sit on, so the podium read as one lit bar and
+                            // two ghosts.
+                            : 'color-mix(in srgb, var(--lp-heading) 9%, var(--lp-bg-panel))',
                         border: '1px solid var(--lp-hairline)',
                       }}
                     />
-                    <span className="rounded-b-lg bg-[var(--lp-bg-raised)] px-3 py-1 text-sm font-display font-extrabold text-[var(--lp-heading)]">
+                    {/* Full width, so the bar and its number read as one
+                        podium block. As a narrower pill it looked like a tab
+                        hanging off the bottom of a separate shape. */}
+                    <span className="w-full rounded-b-lg border border-t-0 border-[var(--lp-hairline)] bg-[var(--lp-bg-raised)] py-1 text-center font-display text-sm font-extrabold text-[var(--lp-heading)]">
                       {p.rank}
                     </span>
                   </div>

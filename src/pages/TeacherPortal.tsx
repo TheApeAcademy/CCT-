@@ -27,6 +27,8 @@ import {
   EyeOff,
   Copy,
   RotateCcw,
+  History as HistoryIcon,
+  AlertTriangle,
   type LucideIcon,
 } from 'lucide-react'
 import { supabase, signOut, type Profile } from '../lib/supabase'
@@ -76,7 +78,9 @@ import {
   getLeaderboard,
   aggregateClassLeaderboard,
   listAttendanceForDate,
+  listAttendanceHistory,
   saveAttendance,
+  type AttendanceHistory,
   listBibleBuddyTeacherLog,
   type AiCompanionTeacherLogRow,
   type TeacherApplication,
@@ -587,6 +591,35 @@ function todayDateKey(): string {
 }
 
 function AttendanceManager({ classId, students }: { classId: string; students: StudentRow[] }) {
+  const [view, setView] = useState<'register' | 'history'>('register')
+
+  return (
+    <div className="space-y-4">
+      <div className="flex w-fit gap-1 rounded-md border border-[var(--hairline-strong)] p-1">
+        <button
+          onClick={() => setView('register')}
+          className={`flex items-center gap-1.5 rounded px-3 py-1.5 text-sm font-bold transition ${view === 'register' ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'text-[var(--fg)]/60 hover:text-[var(--fg)]'}`}
+        >
+          <ClipboardCheck className="h-3.5 w-3.5" /> Take the register
+        </button>
+        <button
+          onClick={() => setView('history')}
+          className={`flex items-center gap-1.5 rounded px-3 py-1.5 text-sm font-bold transition ${view === 'history' ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'text-[var(--fg)]/60 hover:text-[var(--fg)]'}`}
+        >
+          <HistoryIcon className="h-3.5 w-3.5" /> Over the weeks
+        </button>
+      </div>
+
+      {view === 'register' ? (
+        <AttendanceRegister classId={classId} students={students} />
+      ) : (
+        <AttendanceOverWeeks classId={classId} students={students} />
+      )}
+    </div>
+  )
+}
+
+function AttendanceRegister({ classId, students }: { classId: string; students: StudentRow[] }) {
   const [date, setDate] = useState(todayDateKey())
   const [present, setPresent] = useState<Record<string, boolean>>({})
   const [loading, setLoading] = useState(true)
@@ -670,6 +703,161 @@ function AttendanceManager({ classId, students }: { classId: string; students: S
           {saving ? 'Saving…' : saved ? 'Saved ✓' : 'Save Attendance'}
         </button>
       )}
+    </div>
+  )
+}
+
+/** "14 Sep" - short enough to head a narrow column. */
+function shortDate(key: string): string {
+  return new Date(`${key}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+}
+
+interface AttendanceSummary {
+  student: StudentRow
+  /** present / marked, over every register in the window. */
+  presentCount: number
+  markedCount: number
+  /** How many registers in a row, counting back from the latest, they were marked absent. */
+  missedRun: number
+}
+
+function summarise(students: StudentRow[], history: AttendanceHistory): AttendanceSummary[] {
+  return students.map((student) => {
+    const marks = history.byStudent[student.id] ?? {}
+    let presentCount = 0
+    let markedCount = 0
+    let missedRun = 0
+    let runOpen = true
+
+    // dates are newest first, so walking them in order counts back from the
+    // most recent Sunday. A date the child was never marked on at all (they
+    // joined later, the register was taken before they enrolled) neither
+    // breaks the run nor counts toward it.
+    for (const date of history.dates) {
+      const mark = marks[date]
+      if (mark === undefined) continue
+      markedCount += 1
+      if (mark) {
+        presentCount += 1
+        runOpen = false
+      } else if (runOpen) {
+        missedRun += 1
+      }
+    }
+
+    return { student, presentCount, markedCount, missedRun }
+  })
+}
+
+/**
+ * Attendance across weeks, rather than one Sunday at a time.
+ *
+ * The register answers "who is here today". The question that actually needs
+ * answering is the one it cannot: which child has quietly stopped coming. So
+ * the run of missed Sundays leads, and the grid of every register sits under
+ * it as the working.
+ */
+function AttendanceOverWeeks({ classId, students }: { classId: string; students: StudentRow[] }) {
+  const [history, setHistory] = useState<AttendanceHistory | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setLoading(true)
+    listAttendanceHistory(classId)
+      .then(setHistory)
+      .catch(() => setHistory(null))
+      .finally(() => setLoading(false))
+  }, [classId])
+
+  const summaries = useMemo(() => (history ? summarise(students, history) : []), [students, history])
+  const concerns = useMemo(
+    () => summaries.filter((s) => s.missedRun >= 2).sort((a, b) => b.missedRun - a.missedRun),
+    [summaries],
+  )
+
+  if (loading) return <p className="text-sm text-[var(--ink-muted)]">Loading…</p>
+  if (!history || history.dates.length === 0) {
+    return (
+      <p className="panel p-5 text-sm text-[var(--ink-muted)]">
+        No registers taken yet. Once you have marked a couple of Sundays, this is where the pattern shows up.
+      </p>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      {concerns.length > 0 && (
+        <div className="panel space-y-3 p-5">
+          <p className="flex items-center gap-2 font-display font-bold">
+            <AlertTriangle className="h-4 w-4 text-[var(--gold)]" />
+            Worth a phone call
+          </p>
+          <div className="space-y-2">
+            {concerns.map((c) => (
+              <div key={c.student.id} className="flex items-center justify-between gap-3 border-b border-[var(--hairline)] pb-2 last:border-b-0 last:pb-0">
+                <p className="font-semibold">{c.student.full_name}</p>
+                <span
+                  className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${c.missedRun >= 3 ? 'bg-red-500/15 text-red-700' : 'bg-[var(--gold)]/15 text-[var(--gold)]'}`}
+                >
+                  Missed the last {c.missedRun}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="panel overflow-hidden p-0">
+        {/* Wide on purpose - one column per register. The table scrolls
+            sideways inside this box so the page itself never does. */}
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-[var(--hairline-strong)]">
+                <th className="sticky left-0 z-10 bg-[var(--ink-panel)] px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-[var(--ink-muted)]">
+                  Child
+                </th>
+                {history.dates.map((d) => (
+                  <th key={d} className="whitespace-nowrap px-3 py-3 text-center text-xs font-semibold text-[var(--ink-muted)]">
+                    {shortDate(d)}
+                  </th>
+                ))}
+                <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-[var(--ink-muted)]">
+                  Came
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {summaries.map((s) => (
+                <tr key={s.student.id} className="border-b border-[var(--hairline)] last:border-b-0">
+                  <td className="sticky left-0 z-10 whitespace-nowrap bg-[var(--ink-panel)] px-4 py-2.5 font-semibold">{s.student.full_name}</td>
+                  {history.dates.map((d) => {
+                    const mark = history.byStudent[s.student.id]?.[d]
+                    return (
+                      <td key={d} className="px-3 py-2.5 text-center">
+                        <span
+                          aria-label={mark === undefined ? 'Not marked' : mark ? 'Present' : 'Absent'}
+                          title={mark === undefined ? 'Not marked' : mark ? 'Present' : 'Absent'}
+                          className={`inline-block h-2.5 w-2.5 rounded-full ${
+                            mark === undefined ? 'bg-[var(--hairline-strong)]' : mark ? 'bg-emerald-500' : 'bg-red-500'
+                          }`}
+                        />
+                      </td>
+                    )
+                  })}
+                  <td className="whitespace-nowrap px-4 py-2.5 text-right tabular-nums text-[var(--ink-muted)]">
+                    {s.presentCount} of {s.markedCount}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <p className="text-xs text-[var(--ink-faint)]">
+        Green is present, red is absent, grey means no register was taken for that child that day. Last {history.dates.length} registers.
+      </p>
     </div>
   )
 }

@@ -220,6 +220,52 @@ export async function listAttendanceForDate(classId: string, date: string): Prom
   return (data ?? []) as AttendanceRow[]
 }
 
+export interface AttendanceHistory {
+  /** Every date this class has a register for, most recent first. */
+  dates: string[]
+  /** student_id -> date -> present. Absent from the map means never marked. */
+  byStudent: Record<string, Record<string, boolean>>
+}
+
+/**
+ * Every register this class has taken inside the window, in one query.
+ *
+ * Attendance was only ever readable one date at a time, which answers "who is
+ * here today" and nothing else. The question a teacher actually has is the one
+ * that needs weeks side by side: who has stopped coming. The shaping into runs
+ * and totals happens on the client - it is a handful of rows per class and no
+ * teacher needs it to be a database's problem.
+ */
+export async function listAttendanceHistory(classId: string, weeks = 16): Promise<AttendanceHistory> {
+  const since = new Date()
+  since.setDate(since.getDate() - weeks * 7)
+  const sinceKey = since.toISOString().slice(0, 10)
+
+  const { data, error } = await supabase
+    .from('attendance')
+    .select('student_id, date, present')
+    .eq('class_id', classId)
+    .gte('date', sinceKey)
+    .order('date', { ascending: false })
+  if (error) throw error
+
+  const rows = (data ?? []) as AttendanceRow[]
+  const dates: string[] = []
+  const seen = new Set<string>()
+  const byStudent: Record<string, Record<string, boolean>> = {}
+
+  for (const r of rows) {
+    if (!seen.has(r.date)) {
+      seen.add(r.date)
+      dates.push(r.date)
+    }
+    byStudent[r.student_id] ??= {}
+    byStudent[r.student_id][r.date] = r.present
+  }
+
+  return { dates, byStudent }
+}
+
 export async function saveAttendance(classId: string, date: string, records: { student_id: string; present: boolean }[]) {
   const { data: auth } = await supabase.auth.getUser()
   const { error } = await supabase.from('attendance').upsert(

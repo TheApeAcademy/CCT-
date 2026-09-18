@@ -28,6 +28,10 @@ const StudentPortal = lazy(() => import('./pages/StudentPortal'))
 const ParentPortal = lazy(() => import('./pages/ParentPortal'))
 const JoinClass = lazy(() => import('./pages/JoinClass'))
 
+// Only ever reached from a link in a password reset email, and it talks to
+// Supabase, so it stays out of the entry chunk like the portals do.
+const ResetPassword = lazy(() => import('./pages/ResetPassword'))
+
 // The landing page carries its own motion libraries (framer-motion, gsap)
 // for its cinematic hero/scroll choreography. Lazy load it too so that
 // weight never lands in the shared entry chunk kids on the offline quiz
@@ -166,6 +170,14 @@ function App() {
             <Route path="anthem" element={<Anthem />} />
             <Route path="training" element={<Training />} />
             <Route path="safety" element={<Safety />} />
+            <Route
+              path="reset-password"
+              element={
+                <Suspense fallback={<LazyFallback />}>
+                  <ResetPassword />
+                </Suspense>
+              }
+            />
             <Route
               path="features"
               element={

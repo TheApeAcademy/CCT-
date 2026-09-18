@@ -1,7 +1,13 @@
 // Data layer for the Children's Ministry platform: teacher applications,
 // classes/roster, student profiles, leaderboard, messaging, and Ears for You.
 // Thin wrappers over Supabase so the pages stay focused on UI.
-import { supabase, JOIN_CLASS_FUNCTION_URL, STUDENT_REGISTER_FUNCTION_URL, AI_COMPANION_FUNCTION_URL } from './supabase'
+import {
+  supabase,
+  JOIN_CLASS_FUNCTION_URL,
+  STUDENT_REGISTER_FUNCTION_URL,
+  AI_COMPANION_FUNCTION_URL,
+  RESET_PASSCODE_FUNCTION_URL,
+} from './supabase'
 import type { AnswerRecord } from '../db/types'
 
 // ---------- shared types ----------
@@ -302,6 +308,29 @@ export async function studentSignInByName(params: { full_name: string; passcode:
   if (!email) throw new Error("We couldn't find that account. Double check your name and passcode.")
   const { error: signInError } = await supabase.auth.signInWithPassword({ email, password: params.passcode })
   if (signInError) throw new Error('Wrong passcode. Try again, or ask your teacher to help.')
+}
+
+/**
+ * Gives a child a new passcode when they have forgotten theirs. Called by a
+ * teacher (or an admin) from the class roster, because a student account has
+ * no email and so no reset link can ever be sent to it.
+ *
+ * The new passcode comes back exactly once, here, for the adult to hand over.
+ * It is not stored anywhere readable afterwards.
+ */
+export async function resetStudentPasscode(studentId: string): Promise<{ passcode: string; full_name: string }> {
+  const { data: session } = await supabase.auth.getSession()
+  const token = session.session?.access_token
+  if (!token) throw new Error('Not signed in.')
+
+  const res = await fetch(RESET_PASSCODE_FUNCTION_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ student_id: studentId }),
+  })
+  const body = await res.json()
+  if (!res.ok) throw new Error(body.error ?? 'Could not reset that passcode.')
+  return body as { passcode: string; full_name: string }
 }
 
 // ---------- student self-service ----------

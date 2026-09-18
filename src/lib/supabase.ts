@@ -10,13 +10,41 @@ const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_-fgDSztaoa-JWaHBCfYK3g__Y-MQsLe
 // Kids (and admins/teachers) stay signed in on a device until they explicitly
 // sign out - persistSession + autoRefreshToken keep the session alive across
 // reloads and browser restarts via the refresh token in localStorage.
-// detectSessionInUrl is off on purpose: every sign-in here goes through
-// signInWithPassword (never a magic-link/OAuth redirect), and the app uses
-// HashRouter, so leaving it on would mean every route change gets scanned as
-// a possible auth redirect for no reason.
+//
+// detectSessionInUrl is off on purpose: the app uses HashRouter, so leaving it
+// on would mean every route change gets scanned as a possible auth redirect.
+// The one link that does come back from Supabase is the password reset email,
+// and that is handled explicitly in main.tsx before the router ever mounts.
+//
+// flowType 'pkce' is what makes that possible. The default implicit flow puts
+// the recovery token in the URL fragment (#access_token=...), which is exactly
+// where HashRouter keeps the current route - the two would overwrite each
+// other. PKCE hands back "?code=..." as an ordinary query string instead, well
+// clear of the hash, and it never puts a usable token in a URL that could end
+// up in a browser history or a shared link.
 export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
+  auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, flowType: 'pkce' },
 })
+
+// Where Supabase sends someone back to after they tap the link in a password
+// reset email. Deliberately the origin root and not a hash route: the reset
+// code arrives as a query string, main.tsx trades it for a session, and only
+// then does the router take over and show /reset-password.
+export function passwordResetRedirectUrl(): string {
+  return `${window.location.origin}${import.meta.env.BASE_URL}`
+}
+
+/**
+ * Sends the reset email. Every adult login in the app (teacher, admin,
+ * parent) goes through this one function, so there is a single place where
+ * the redirect target and the wording of a failure are decided.
+ */
+export async function sendPasswordReset(email: string): Promise<void> {
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+    redirectTo: passwordResetRedirectUrl(),
+  })
+  if (error) throw error
+}
 
 // The Edge Function that creates a student's account (name + PIN, no email
 // needed). Runs with the service role key server-side, never in the browser.
@@ -30,6 +58,12 @@ export const STUDENT_REGISTER_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/stude
 // Authorization header (a real session JWT) goes with every call, not a
 // bare fetch, so verify_jwt stays ON for this function.
 export const AI_COMPANION_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/ai-companion`
+
+// Gives a child who has forgotten their passcode a new one. There is no email
+// on a student account, so the reset link every adult gets cannot exist for
+// them - their teacher does it instead. verify_jwt is ON, and the function
+// checks the caller is a teacher of that child's class, or an admin.
+export const RESET_PASSCODE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/reset-passcode`
 
 export type UserRole = 'admin' | 'teacher' | 'student' | 'parent'
 

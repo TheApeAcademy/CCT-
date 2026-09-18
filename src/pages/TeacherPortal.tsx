@@ -25,6 +25,8 @@ import {
   Award,
   Sparkles,
   EyeOff,
+  Copy,
+  RotateCcw,
   type LucideIcon,
 } from 'lucide-react'
 import { supabase, signOut, type Profile } from '../lib/supabase'
@@ -45,6 +47,7 @@ import {
   listStudentsInClass,
   moveStudent,
   enrollStudentByCode,
+  resetStudentPasscode,
   listLectures,
   createLecture,
   setLectureStatus,
@@ -417,6 +420,7 @@ function ClassDetail({ klass, teacherName, onBack }: { klass: ClassRow; teacherN
   const [enrollSuccess, setEnrollSuccess] = useState('')
   const [enrolling, setEnrolling] = useState(false)
   const [certificateFor, setCertificateFor] = useState<StudentRow | null>(null)
+  const [passcodeFor, setPasscodeFor] = useState<StudentRow | null>(null)
 
   const load = () => {
     listStudentsInClass(klass.id).then((s) => {
@@ -537,12 +541,22 @@ function ClassDetail({ klass, teacherName, onBack }: { klass: ClassRow; teacherN
                       <p className="text-xs text-[var(--ink-faint)]">{s.total_points.toLocaleString()} points</p>
                     </div>
                   </div>
-                  <div className="flex shrink-0 gap-2">
+                  <div className="flex shrink-0 flex-wrap justify-end gap-2">
                     <button
                       onClick={() => setCertificateFor(s)}
                       className="flex items-center gap-1.5 rounded-md bg-[var(--gold)]/15 px-3 py-1.5 text-xs font-bold text-[var(--gold)] hover:bg-[var(--gold)]/25"
                     >
                       <Award className="h-3.5 w-3.5" /> Certificate
+                    </button>
+                    {/* A child has no email, so no reset link can ever reach
+                        them. Forgetting a passcode used to mean losing the
+                        account for good; this is the way back, and it sits
+                        with the teacher because that is who a child asks. */}
+                    <button
+                      onClick={() => setPasscodeFor(s)}
+                      className="flex items-center gap-1.5 rounded-md bg-[var(--gold)]/10 px-3 py-1.5 text-xs font-bold text-[var(--fg)]/80 hover:bg-[var(--gold)]/20"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" /> New passcode
                     </button>
                     <button onClick={() => removeStudent(s.id)} className="rounded-md bg-red-500/15 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-500/25">
                       Remove
@@ -561,6 +575,8 @@ function ClassDetail({ klass, teacherName, onBack }: { klass: ClassRow; teacherN
       {certificateFor && (
         <CertificateModal student={certificateFor} className={klass.name} teacherName={teacherName} onClose={() => setCertificateFor(null)} />
       )}
+
+      {passcodeFor && <PasscodeResetModal student={passcodeFor} onClose={() => setPasscodeFor(null)} />}
     </div>
   )
 }
@@ -654,6 +670,94 @@ function AttendanceManager({ classId, students }: { classId: string; students: S
           {saving ? 'Saving…' : saved ? 'Saved ✓' : 'Save Attendance'}
         </button>
       )}
+    </div>
+  )
+}
+
+/**
+ * Gives a child a brand new passcode when they have forgotten the old one.
+ *
+ * Confirms first, because the old passcode stops working the moment this
+ * runs, and a child signed in on a tablet somewhere gets logged out of an
+ * account they can no longer get back into unless the teacher actually hands
+ * the new one over. Shown once, here, then gone.
+ */
+function PasscodeResetModal({ student, onClose }: { student: StudentRow; onClose: () => void }) {
+  const [working, setWorking] = useState(false)
+  const [passcode, setPasscode] = useState('')
+  const [error, setError] = useState('')
+  const [copied, setCopied] = useState(false)
+
+  const run = async () => {
+    setWorking(true)
+    setError('')
+    try {
+      const result = await resetStudentPasscode(student.id)
+      setPasscode(result.passcode)
+      haptics.success()
+      playClick()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not reset that passcode.')
+      haptics.error()
+    } finally {
+      setWorking(false)
+    }
+  }
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(passcode)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Clipboard blocked. The passcode is already on screen to read out.
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
+      <div className="w-full max-w-md rounded-2xl bg-[var(--ink-panel)] p-5" onClick={(e) => e.stopPropagation()}>
+        <div className="mb-3 flex items-center justify-between">
+          <p className="font-display text-lg font-bold">{passcode ? 'New passcode' : `Reset ${student.full_name}'s passcode?`}</p>
+          <button onClick={onClose} aria-label="Close" className="text-[var(--ink-muted)] hover:text-[var(--fg)]">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {passcode ? (
+          <div className="space-y-3">
+            <p className="text-sm text-[var(--ink-muted)]">
+              Read this out to {student.full_name.split(' ')[0]} now. You will not be able to see it again.
+            </p>
+            <p
+              className="rounded-lg border border-[var(--hairline-strong)] bg-[var(--gold)]/10 py-4 text-center font-display text-2xl font-extrabold tracking-wide text-[var(--gold)]"
+            >
+              {passcode}
+            </p>
+            <button onClick={copy} className="btn-outline flex w-full items-center justify-center gap-1.5 py-2 text-sm">
+              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              {copied ? 'Copied' : 'Copy passcode'}
+            </button>
+            <button onClick={onClose} className="btn-solid w-full py-3 text-sm">
+              Done
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-sm text-[var(--ink-muted)]">
+              Their old passcode stops working straight away, and they will be signed out on any device. Only do this with {student.full_name.split(' ')[0]} there
+              with you, so you can give them the new one.
+            </p>
+            {error && <p className="text-sm text-red-700">{error}</p>}
+            <button onClick={run} disabled={working} className="btn-solid w-full py-3 text-sm">
+              {working ? 'Resetting…' : 'Give them a new passcode'}
+            </button>
+            <button onClick={onClose} className="btn-outline w-full py-2 text-sm">
+              Cancel
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

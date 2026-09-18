@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { LucideIcon } from 'lucide-react'
-import { supabase, setRememberMe } from '../../lib/supabase'
+import { supabase, setRememberMe, sendPasswordReset } from '../../lib/supabase'
 import { playClick } from '../../lib/sound'
 import { haptics } from '../../lib/haptics'
 
@@ -26,6 +26,11 @@ export default function AuthCard({
   const [loading, setLoading] = useState(false)
   const [signedUp, setSignedUp] = useState(false)
   const [rememberMe, setRememberMeChecked] = useState(true)
+  // Every adult login in the app renders this card, so putting password
+  // recovery here is what makes it system wide: teacher, admin and parent all
+  // get it from one change, and all three get exactly the same wording.
+  const [forgot, setForgot] = useState(false)
+  const [resetSent, setResetSent] = useState(false)
 
   const handleSignIn = async () => {
     if (!email.trim() || !password) return setError('Enter your email and password.')
@@ -53,6 +58,27 @@ export default function AuthCard({
     setSignedUp(true)
   }
 
+  const handleReset = async () => {
+    if (!email.trim()) return setError('Enter the email address you sign in with.')
+    setLoading(true)
+    setError('')
+    try {
+      await sendPasswordReset(email)
+      playClick()
+      setResetSent(true)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not send the reset email. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const leaveForgot = () => {
+    setForgot(false)
+    setResetSent(false)
+    setError('')
+  }
+
   if (signedUp && afterSignUp) {
     return (
       <div className="mx-auto max-w-md space-y-4 text-center">
@@ -61,6 +87,52 @@ export default function AuthCard({
         <button onClick={() => setSignedUp(false)} className="btn-outline w-full py-3">
           Back to Sign In
         </button>
+      </div>
+    )
+  }
+
+  if (forgot) {
+    return (
+      <div className="mx-auto max-w-md space-y-6">
+        <Header icon={Icon} title="Reset Your Password" subtitle={resetSent ? '' : 'We will email you a link to set a new one.'} />
+        <div className="panel space-y-3 p-5">
+          {resetSent ? (
+            <>
+              {/* Says "if there is an account" rather than confirming one
+                  exists. Anybody can type an email into this box, and telling
+                  them whether it belongs to a teacher here would hand out the
+                  staff list one guess at a time. */}
+              <p className="text-sm text-[var(--fg)]/80">
+                If there is an account for <span className="font-bold">{email.trim()}</span>, a reset link is on its way. It works
+                once and expires in an hour.
+              </p>
+              <p className="text-sm text-[var(--ink-muted)]">
+                Nothing after a few minutes? Check the spam folder, then try again.
+              </p>
+              <button onClick={leaveForgot} className="btn-solid w-full py-3 text-base">
+                Back to Sign In
+              </button>
+            </>
+          ) : (
+            <>
+              <input
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Email"
+                type="email"
+                className={inputClass}
+                onKeyDown={(e) => e.key === 'Enter' && handleReset()}
+              />
+              {error && <p className="text-sm text-red-700">{error}</p>}
+              <button onClick={handleReset} disabled={loading} className="btn-solid w-full py-3 text-base">
+                {loading ? 'Sending…' : 'Send Reset Link'}
+              </button>
+              <button onClick={leaveForgot} className="btn-outline w-full py-3">
+                Back to Sign In
+              </button>
+            </>
+          )}
+        </div>
       </div>
     )
   }
@@ -100,6 +172,17 @@ export default function AuthCard({
         <button onClick={tab === 'signin' ? handleSignIn : handleSignUp} disabled={loading} className="btn-solid w-full py-3 text-base">
           {loading ? 'Please wait…' : tab === 'signin' ? 'Sign In' : signUpLabel}
         </button>
+        {tab === 'signin' && (
+          <button
+            onClick={() => {
+              setForgot(true)
+              setError('')
+            }}
+            className="w-full pt-1 text-center text-sm font-bold text-[var(--gold)] underline underline-offset-2"
+          >
+            Forgot your password?
+          </button>
+        )}
       </div>
     </div>
   )

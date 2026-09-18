@@ -696,7 +696,7 @@ function CertificateModal({
       <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-[var(--ink-panel)] p-5" onClick={(e) => e.stopPropagation()}>
         <div className="mb-3 flex items-center justify-between">
           <p className="font-display text-lg font-bold">Certificate for {student.full_name}</p>
-          <button onClick={onClose} className="text-[var(--ink-muted)] hover:text-[var(--fg)]">
+          <button onClick={onClose} aria-label="Close" className="text-[var(--ink-muted)] hover:text-[var(--fg)]">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -1294,7 +1294,7 @@ function PhoneThread({ conversationId, onBack }: { conversationId: string; onBac
           onKeyDown={(e) => e.key === 'Enter' && send()}
           className="flex-1 rounded-full bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40"
         />
-        <button onClick={send} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--gold)] text-black">
+        <button onClick={send} aria-label="Send message" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--gold)] text-black">
           <Send className="h-4 w-4" />
         </button>
       </div>

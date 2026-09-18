@@ -780,7 +780,7 @@ function ChatScreen({ teacherId, teacherName }: { teacherId: string; teacherName
           onKeyDown={(e) => e.key === 'Enter' && send()}
           className="flex-1 rounded-full bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40"
         />
-        <button onClick={send} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--gold)] text-black">
+        <button onClick={send} aria-label="Send message" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--gold)] text-black">
           <Send className="h-4 w-4" />
         </button>
       </div>

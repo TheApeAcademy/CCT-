@@ -398,23 +398,9 @@ function UnitPath({
   )
   const stats_ = <StatsPanel stats={stats} lesson={stops[firstIncompleteIdx]?.lesson} big />
 
-  return (
-    <div className="space-y-3">
-      <p className="eyebrow">{book.title}</p>
-
-      {/* Phones: the same two cards stacked above the path, since there's no room to flank it there. */}
-      <div className="space-y-3 sm:hidden">
-        {preview}
-        {stats_}
-      </div>
-
-      <div className="hidden w-full items-start justify-between gap-4 sm:flex">
-        <div className="shrink-0" style={{ width: 360 }}>
-          {preview}
-        </div>
-
-        <div className="min-w-0 flex-1 overflow-y-auto" style={{ maxHeight: '75vh' }}>
-          <div className="relative mx-auto" style={{ width: TRACK_WIDTH, height: trackHeight }}>
+  const track = (
+        <div className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden sm:max-h-[75vh]">
+          <div className="relative mx-auto" style={{ width: TRACK_WIDTH, height: trackHeight, maxWidth: '100%' }}>
             <svg className="absolute inset-0" width={TRACK_WIDTH} height={trackHeight} viewBox={`0 0 ${TRACK_WIDTH} ${trackHeight}`}>
               <path d={pathD} fill="none" stroke="var(--lp-hairline-strong)" strokeWidth={6} strokeLinecap="round" strokeDasharray="2 14" />
             </svg>
@@ -479,6 +465,25 @@ function UnitPath({
             })}
           </div>
         </div>
+  )
+
+  return (
+    <div className="space-y-3">
+      <p className="eyebrow">{book.title}</p>
+
+      {/* Phones: the same two cards stacked above the path, since there's no room to flank it there. */}
+      <div className="space-y-3 sm:hidden">
+        {preview}
+        {stats_}
+        {track}
+      </div>
+
+      <div className="hidden w-full items-start justify-between gap-4 sm:flex">
+        <div className="shrink-0" style={{ width: 360 }}>
+          {preview}
+        </div>
+
+        {track}
 
         <div className="shrink-0" style={{ width: 360 }}>
           {stats_}
@@ -520,6 +525,7 @@ function LessonPreviewCard({
         <button
           onClick={onPrev}
           disabled={idx === 0}
+          aria-label="Previous lesson"
           className="flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur transition disabled:opacity-30"
         >
           <ChevronLeft className="h-4 w-4" />
@@ -530,6 +536,7 @@ function LessonPreviewCard({
         <button
           onClick={onNext}
           disabled={idx === total - 1}
+          aria-label="Next lesson"
           className="flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur transition disabled:opacity-30"
         >
           <ChevronRight className="h-4 w-4" />
@@ -667,12 +674,18 @@ function LessonRunner({ bookKey, lessonKey, onDone }: { bookKey: string; lessonK
     else haptics.error()
   }
 
-  const advanceLearn = () => {
+  const advanceLearn = async () => {
     playClick()
     setSelected(null)
     setShowResult(false)
     if (stepIndex + 1 < learnSteps.length) {
       setStepIndex(stepIndex + 1)
+      return
+    }
+    if (totalMastery === 0) {
+      haptics.success()
+      await completeJourneyLesson(bookKey, lesson.key, 0)
+      setPhase('celebrate')
       return
     }
     setQueue(lesson.masteryQuestions.map((_, i) => i))
@@ -726,7 +739,7 @@ function LessonRunner({ bookKey, lessonKey, onDone }: { bookKey: string; lessonK
   }
 
   const progressPct =
-    phase === 'learn' ? ((stepIndex + 1) / learnSteps.length) * 60 : 60 + (masteredCount / totalMastery) * 40
+    phase === 'learn' ? ((stepIndex + 1) / learnSteps.length) * 60 : 60 + (totalMastery ? masteredCount / totalMastery : 1) * 40
 
   return (
     <div className="space-y-4">

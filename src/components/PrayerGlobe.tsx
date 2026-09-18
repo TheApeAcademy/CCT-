@@ -30,7 +30,7 @@ function Globe({ rotation, onDrag }: { rotation: number; onDrag: (deltaDeg: numb
       onPointerDown={(e) => {
         dragging.current = true
         lastX.current = e.clientX
-        ;(e.target as HTMLElement).setPointerCapture(e.pointerId)
+        e.currentTarget.setPointerCapture(e.pointerId)
       }}
       onPointerMove={(e) => {
         if (!dragging.current) return

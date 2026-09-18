@@ -136,9 +136,12 @@ export function flagEmoji(code: string): string {
 }
 
 function dayOfYear(date: Date): number {
-  const start = new Date(date.getFullYear(), 0, 0)
-  const diff = date.getTime() - start.getTime()
-  return Math.floor(diff / 86400000)
+  // Compared as UTC calendar days on purpose: subtracting two local
+  // timestamps slips by one across a DST boundary, which would shift the
+  // whole prayer calendar for half the year in any zone that observes it.
+  const start = Date.UTC(date.getFullYear(), 0, 0)
+  const here = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
+  return Math.round((here - start) / 86400000)
 }
 
 /** Deterministic - anyone opening this on the same calendar day sees the same country, which is the point (group prayer, not a personal pick). */

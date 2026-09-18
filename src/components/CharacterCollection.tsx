@@ -111,7 +111,7 @@ export function CharacterRevealModal({
           transition={{ type: 'spring', stiffness: 220, damping: 18 }}
           className="relative w-full max-w-sm overflow-hidden rounded-[28px] border border-white/10 bg-[#15101f] text-center shadow-2xl"
         >
-          <button onClick={onClose} className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white">
+          <button onClick={onClose} aria-label="Close" className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white">
             <X className="h-4 w-4" />
           </button>
           <div className="relative h-56 w-full overflow-hidden">

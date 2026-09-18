@@ -10,6 +10,22 @@ function shuffle<T>(arr: T[]): T[] {
   return copy
 }
 
+/**
+ * Every seeded question stores its correct answer at index 0, and the
+ * Question Bank's add form starts there too. Rendering them as stored means
+ * "A" is always right, which any child works out in one game. So the four
+ * options are re-ordered every time a question is drawn, and correctIndex is
+ * remapped to follow the answer to wherever it landed.
+ */
+export function shuffleOptions(q: Question): Question {
+  const order = shuffle([0, 1, 2, 3])
+  return {
+    ...q,
+    options: order.map((i) => q.options[i]) as [string, string, string, string],
+    correctIndex: order.indexOf(q.correctIndex) as 0 | 1 | 2 | 3,
+  }
+}
+
 /** Picks one question per ladder level, preferring the level's target difficulty. */
 export function selectQuestionsForGame(allQuestions: Question[]): Question[] {
   const remaining = shuffle(allQuestions)

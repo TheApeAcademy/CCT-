@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { db, getOrCreatePlayer, completeMatch, getMatchSessions } from '../db/db'
 import { LADDER, pointsForLevel, difficultyForLevel } from '../lib/ladder'
+import { shuffleOptions } from '../lib/selectQuestions'
 import * as sound from '../lib/sound'
 import { haptics } from '../lib/haptics'
 import Confetti from '../components/Confetti'
@@ -76,7 +77,10 @@ export default function Gameplay() {
         return
       }
       const qs = await db.questions.bulkGet(match.questionIds)
-      setQuestions(qs.filter((q): q is NonNullable<typeof q> => !!q))
+      // Shuffled once here, when the match's questions are loaded, so the
+      // board, the 50/50 lifeline, the recorded answer and the recap all
+      // agree on where the correct option sits.
+      setQuestions(qs.filter((q): q is NonNullable<typeof q> => !!q).map(shuffleOptions))
       setTimeLeft(timerSeconds)
       setPhase('intro')
     })

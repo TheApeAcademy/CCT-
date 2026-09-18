@@ -7,6 +7,7 @@ import Confetti from '../components/Confetti'
 import CountUp from '../components/CountUp'
 import { useKidProfile, KidSignupCard, KidProfileBar } from '../components/KidProfile'
 import type { Question } from '../db/types'
+import { shuffleOptions } from '../lib/selectQuestions'
 
 type Phase = 'setup' | 'question' | 'feedback' | 'summary'
 
@@ -65,7 +66,7 @@ export default function Training() {
 
   const handleStart = async () => {
     if (!setId || !profile) return
-    const qs = await db.questions.where('setId').equals(setId).toArray()
+    const qs = (await db.questions.where('setId').equals(setId).toArray()).map(shuffleOptions)
     if (qs.length < 4) return
     await getOrCreatePlayer(profile.name, profile.className)
     sound.playNav()

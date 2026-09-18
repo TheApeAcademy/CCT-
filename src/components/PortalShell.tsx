@@ -1,6 +1,13 @@
+import { lazy, Suspense } from 'react'
 import { Link, Outlet } from 'react-router-dom'
 import BackButton from './BackButton'
 import { useAutoHideNav } from '../lib/useAutoHideNav'
+
+// Lazy on purpose. This shell is the route element itself, so it is imported
+// eagerly and anything it pulls in lands in the shared entry chunk that the
+// offline quiz also has to download. The bell needs the Supabase client and a
+// handful of icons; behind a lazy boundary none of that is in the entry.
+const NotificationBell = lazy(() => import('./NotificationBell'))
 
 /**
  * Chrome for Admin and Teacher - built from the same light, colourful design
@@ -37,7 +44,12 @@ export default function PortalShell({ eyebrow }: { eyebrow: string }) {
               <img src="/children-ministry-logo-splash.png" alt="MFM Children's Ministry" className="h-14 w-auto object-contain sm:h-16" />
             </Link>
           </div>
-          <span className="lp-eyebrow">{eyebrow}</span>
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="lp-eyebrow truncate">{eyebrow}</span>
+            <Suspense fallback={null}>
+              <NotificationBell />
+            </Suspense>
+          </div>
         </div>
       </header>
       <main className="relative z-10 mx-auto max-w-5xl px-4 py-8">

@@ -23,13 +23,11 @@ export default function SplashScreen({ ready, onDone }: { ready: boolean; onDone
         fading ? 'pointer-events-none opacity-0' : 'opacity-100'
       }`}
     >
-      <span className="brand-plate animate-number-pop !p-5 shadow-[0_24px_64px_-28px_rgba(0,0,0,0.9)]">
-        <img
-          src="/children-ministry-logo-splash.png"
-          alt="MFM Children's Ministry"
-          className="h-52 w-52 object-contain sm:h-60 sm:w-60"
-        />
-      </span>
+      <img
+        src="/children-ministry-logo-splash.png"
+        alt="MFM Children's Ministry"
+        className="animate-number-pop h-64 w-64 object-contain drop-shadow-[0_12px_32px_rgba(0,0,0,0.5)] sm:h-72 sm:w-72"
+      />
       <p className="font-display text-xl font-bold tracking-wide text-[var(--gold)] sm:text-2xl">MFM Children's Ministry Bible Quiz</p>
       <div className="flex gap-2">
         {[0, 1, 2].map((i) => (

@@ -20,7 +20,7 @@ const NotificationBell = lazy(() => import('./NotificationBell'))
 export default function PortalShell({ eyebrow }: { eyebrow: string }) {
   const autoHidden = useAutoHideNav()
   return (
-    <div data-landing-theme="light" className="site-light-theme lp-page relative isolate flex min-h-screen flex-col">
+    <div data-landing-theme="light" className="site-light-theme lp-page relative isolate min-h-screen">
       <div
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 z-0"
@@ -52,7 +52,7 @@ export default function PortalShell({ eyebrow }: { eyebrow: string }) {
           </div>
         </div>
       </header>
-      <main className="relative z-10 mx-auto w-full max-w-5xl flex-1 px-4 py-8">
+      <main className="relative z-10 mx-auto max-w-5xl px-4 py-8">
         <Outlet />
       </main>
       <footer className="relative mx-auto max-w-5xl px-4 pb-8 pt-4 text-center">

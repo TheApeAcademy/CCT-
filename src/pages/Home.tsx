@@ -22,6 +22,9 @@ import ScrollProgressBar from '../components/ScrollProgressBar'
 import ColorSprinkles from '../components/ColorSprinkles'
 import Reveal, { RevealStagger, RevealItem } from '../components/Reveal'
 import { playClick } from '../lib/sound'
+// A third, deliberately bouncier display face (distinct from the hero's
+// clean Poppins and the body's Nunito) for tags/badges/numbers - part of
+// the landing page's own lazy chunk, never loaded by the offline quiz.
 
 const slides: HeroSlide[] = [
   {

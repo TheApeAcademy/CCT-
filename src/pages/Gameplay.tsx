@@ -812,9 +812,7 @@ function IntroCountdown({
       {teamPhoto ? (
         <img src={teamPhoto} alt="" className="h-24 w-24 rounded-full object-cover shadow-xl shadow-black/40 ring-4 ring-amber-400/60" />
       ) : (
-        <span className="brand-plate">
-          <img src="/children-ministry-logo-splash.png" alt="" className="h-28 w-auto object-contain" />
-        </span>
+        <img src="/children-ministry-logo-splash.png" alt="" className="h-32 w-auto object-contain drop-shadow-xl" />
       )}
       {totalTeams > 1 && (
         <p className="text-sm uppercase tracking-wide text-white/50">

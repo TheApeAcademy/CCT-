@@ -82,8 +82,7 @@ export default function Layout() {
   // and reachable without scrolling back to top. Every other route keeps the
   // header solid immediately since there's no hero photo to float over.
   const solidHeader = scrolled || !isHome
-  // The bar cannot slide out from under a menu that is anchored to it.
-  const autoHidden = useAutoHideNav(undefined, menuOpen || openDropdown !== null)
+  const autoHidden = useAutoHideNav()
 
   useEffect(() => {
     setMenuOpen(false)
@@ -132,11 +131,11 @@ export default function Layout() {
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <div className="flex min-w-0 shrink-0 items-center gap-2">
             {showBack && !isFullscreenQuiz && <BackButton dark />}
-            <NavLink to="/" className="brand-plate min-w-0 shrink-0">
+            <NavLink to="/" className="flex min-w-0 shrink-0 items-center">
               <img
                 src="/children-ministry-logo-splash.png"
                 alt="MFM Children's Ministry"
-                className="h-14 w-auto shrink-0 object-contain sm:h-16"
+                className="h-16 w-auto shrink-0 object-contain sm:h-20"
               />
             </NavLink>
           </div>

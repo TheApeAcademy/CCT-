@@ -257,14 +257,12 @@ export default function Training() {
         </div>
 
         <div className="mt-6 flex justify-center">
-          <span className="brand-plate relative z-10">
-            <img
-              src="/children-ministry-logo-splash.png"
-              alt=""
-              aria-hidden="true"
-              className="h-20 w-auto object-contain"
-            />
-          </span>
+          <img
+            src="/children-ministry-logo-splash.png"
+            alt=""
+            aria-hidden="true"
+            className="relative z-10 h-24 w-auto object-contain drop-shadow-lg"
+          />
         </div>
         <div className="hex-frame mx-auto w-full">
           <div className="hex-fill flex min-h-[100px] flex-col items-center justify-center gap-2 px-10 py-6 text-center">

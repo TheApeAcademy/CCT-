@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { motion, useReducedMotion } from 'framer-motion'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { Check, Scissors, Hand, Phone } from 'lucide-react'
 
 type Phase = 'question' | 'selected' | 'revealed'
@@ -96,80 +96,73 @@ export default function QuizFeatureIntro() {
         </span>
       </div>
 
-      {/* The whole block used to be keyed on the question index inside a
-          presence wrapper set to wait for the exit before the entrance,
-          which by definition empties the container in between: for about a
-          third of a second the card showed no question, no answers and a
-          score of nought, which reads as broken rather than as a
-          transition. Nothing unmounts now. The question line is the only
-          thing keyed, so it slides in over a card whose answers are already
-          in place. */}
-      <div className="mt-4">
-        <motion.p
+      <AnimatePresence mode="wait">
+        <motion.div
           key={qIndex}
-          initial={reduced ? undefined : { opacity: 0, y: 10 }}
+          initial={reduced ? undefined : { opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-          className="lp-heading text-lg font-bold leading-snug sm:text-xl"
+          exit={reduced ? undefined : { opacity: 0, y: -12 }}
+          transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+          className="mt-4"
         >
-          {current.q}
-        </motion.p>
-        {phase === 'question' && (
-          <p className="mt-1 text-xs font-semibold text-[var(--lp-faint)]">Tap an answer</p>
-        )}
+          <p className="lp-heading text-lg font-bold leading-snug sm:text-xl">{current.q}</p>
+          {phase === 'question' && (
+            <p className="mt-1 text-xs font-semibold text-[var(--lp-faint)]">Tap an answer</p>
+          )}
 
-        <div className="mt-4 grid grid-cols-2 gap-2.5">
-          {current.options.map((option, i) => {
-            const isCorrect = i === current.correct
-            const isPicked = i === picked
-            const showReveal = phase === 'revealed' && isCorrect
-            const showWrongPick = phase !== 'question' && isPicked && !isCorrect
-            // 50/50 keeps the answer and the first wrong option it meets.
-            const keptWrong = current.options.findIndex((_, j) => j !== current.correct)
-            const cutByHalf = halved && !isCorrect && i !== keptWrong
-            return (
-              <motion.button
-                key={option}
-                type="button"
-                onClick={() => answer(i)}
-                disabled={phase !== 'question' || cutByHalf}
-                whileTap={reduced || phase !== 'question' ? undefined : { scale: 0.96 }}
-                animate={
-                  reduced
-                    ? undefined
-                    : {
-                        scale: isPicked && phase === 'selected' ? 1.03 : 1,
-                      }
-                }
-                transition={{ duration: 0.25 }}
-                className={`flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
-                  phase === 'question' ? 'cursor-pointer hover:border-[var(--lp-accent-compete)]' : 'cursor-default'
-                } ${cutByHalf ? 'pointer-events-none opacity-30' : ''} ${
-                  showReveal
-                    ? 'border-[var(--lp-accent-training)] bg-[color-mix(in_srgb,var(--lp-accent-training)_14%,transparent)] text-[var(--lp-heading)]'
-                    : showWrongPick
-                      ? 'border-[#e0576b] bg-[color-mix(in_srgb,#e0576b_12%,transparent)] text-[var(--lp-heading)]'
-                      : isPicked
-                        ? 'border-[var(--lp-accent-compete)] text-[var(--lp-heading)]'
-                        : 'border-[var(--lp-hairline)] text-[var(--lp-body)]'
-                }`}
-              >
-                {option}
-                {showReveal && (
-                  <motion.span
-                    initial={reduced ? undefined : { scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ duration: 0.2 }}
-                    className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--lp-accent-training)] text-white"
-                  >
-                    <Check className="h-3 w-3" strokeWidth={3} />
-                  </motion.span>
-                )}
-              </motion.button>
-            )
-          })}
+          <div className="mt-4 grid grid-cols-2 gap-2.5">
+            {current.options.map((option, i) => {
+              const isCorrect = i === current.correct
+              const isPicked = i === picked
+              const showReveal = phase === 'revealed' && isCorrect
+              const showWrongPick = phase !== 'question' && isPicked && !isCorrect
+              // 50/50 keeps the answer and the first wrong option it meets.
+              const keptWrong = current.options.findIndex((_, j) => j !== current.correct)
+              const cutByHalf = halved && !isCorrect && i !== keptWrong
+              return (
+                <motion.button
+                  key={option}
+                  type="button"
+                  onClick={() => answer(i)}
+                  disabled={phase !== 'question' || cutByHalf}
+                  whileTap={reduced || phase !== 'question' ? undefined : { scale: 0.96 }}
+                  animate={
+                    reduced
+                      ? undefined
+                      : {
+                          scale: isPicked && phase === 'selected' ? 1.03 : 1,
+                        }
+                  }
+                  transition={{ duration: 0.25 }}
+                  className={`flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
+                    phase === 'question' ? 'cursor-pointer hover:border-[var(--lp-accent-compete)]' : 'cursor-default'
+                  } ${cutByHalf ? 'pointer-events-none opacity-30' : ''} ${
+                    showReveal
+                      ? 'border-[var(--lp-accent-training)] bg-[color-mix(in_srgb,var(--lp-accent-training)_14%,transparent)] text-[var(--lp-heading)]'
+                      : showWrongPick
+                        ? 'border-[#e0576b] bg-[color-mix(in_srgb,#e0576b_12%,transparent)] text-[var(--lp-heading)]'
+                        : isPicked
+                          ? 'border-[var(--lp-accent-compete)] text-[var(--lp-heading)]'
+                          : 'border-[var(--lp-hairline)] text-[var(--lp-body)]'
+                  }`}
+                >
+                  {option}
+                  {showReveal && (
+                    <motion.span
+                      initial={reduced ? undefined : { scale: 0, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-[var(--lp-accent-training)] text-white"
+                    >
+                      <Check className="h-3 w-3" strokeWidth={3} />
+                    </motion.span>
+                  )}
+                </motion.button>
+              )
+            })}
           </div>
-      </div>
+        </motion.div>
+      </AnimatePresence>
 
       <div className="mt-4 flex flex-wrap gap-2">
         <button

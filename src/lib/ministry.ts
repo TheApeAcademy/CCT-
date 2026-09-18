@@ -32,6 +32,8 @@ export interface RosterEntry {
   created_at: string
 }
 
+export type AvatarStatus = 'none' | 'pending' | 'approved' | 'rejected'
+
 export interface StudentRow {
   id: string
   class_id: string | null
@@ -45,6 +47,11 @@ export interface StudentRow {
   created_at: string
   full_name: string
   avatar_url: string | null
+  /** Only populated for a child looking at their own profile - see
+   * getMyStudentProfile. A picture waiting on a teacher is never returned to
+   * anybody else. */
+  pending_avatar_url?: string | null
+  avatar_status?: AvatarStatus
 }
 
 export interface TeacherApplication {
@@ -386,13 +393,52 @@ export async function getMyStudentProfile(): Promise<StudentRow | null> {
   if (!auth.user) return null
   const { data, error } = await supabase
     .from('students')
-    .select('id, class_id, username, student_code, date_of_birth, favorite_verse, favorite_quote, bio, total_points, created_at, profiles!inner(full_name, avatar_url)')
+    .select(
+      'id, class_id, username, student_code, date_of_birth, favorite_verse, favorite_quote, bio, total_points, created_at, profiles!inner(full_name, avatar_url, pending_avatar_url, avatar_status)',
+    )
     .eq('id', auth.user.id)
     .maybeSingle()
   if (error) throw error
   if (!data) return null
   const row = data as any
-  return { ...row, full_name: row.profiles?.full_name ?? '', avatar_url: row.profiles?.avatar_url ?? null } as StudentRow
+  return {
+    ...row,
+    full_name: row.profiles?.full_name ?? '',
+    avatar_url: row.profiles?.avatar_url ?? null,
+    // Only a child's own profile carries these. A picture waiting on a
+    // teacher is shown back to the child who uploaded it, and to nobody else.
+    pending_avatar_url: row.profiles?.pending_avatar_url ?? null,
+    avatar_status: (row.profiles?.avatar_status ?? 'none') as AvatarStatus,
+  } as StudentRow
+}
+
+// ---------- checking what children upload ----------
+
+export interface PendingAvatar {
+  student_id: string
+  full_name: string
+  class_id: string | null
+  class_name: string | null
+  pending_avatar_url: string
+  current_avatar_url: string | null
+}
+
+/**
+ * Profile pictures waiting to be looked at. A teacher sees only children in
+ * their own classes; an admin sees all of them. The filtering is in the
+ * database function, not here.
+ */
+export async function listPendingAvatars(): Promise<PendingAvatar[]> {
+  const { data, error } = await supabase.rpc('list_pending_avatars')
+  if (error) throw error
+  return (data ?? []) as PendingAvatar[]
+}
+
+/** Approve puts the picture live for the class. Reject clears it and leaves
+ * whatever was approved before in place. */
+export async function reviewChildAvatar(studentId: string, approve: boolean): Promise<void> {
+  const { error } = await supabase.rpc('review_child_avatar', { p_student: studentId, p_approve: approve })
+  if (error) throw error
 }
 
 export async function updateMyStudentProfile(params: {

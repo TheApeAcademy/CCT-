@@ -38,6 +38,7 @@ import TabBar from '../components/ui/TabBar'
 import IsometricPhone from '../components/IsometricPhone'
 import { NotesSection, DigitalBankSection } from '../components/PersonalVault'
 import MinistryCalendarReadOnly from '../components/MinistryCalendarView'
+import AvatarReviewQueue from '../components/AvatarReviewQueue'
 import { renderCertificatePng } from '../lib/certificate'
 import { SUNDAY_LESSON_THEMES, SUNDAYS_2026, sundayDateKey } from '../content/sundaySchoolCalendar'
 import {
@@ -1380,6 +1381,12 @@ function TeacherHomeTab({ profile }: { profile: Profile | null }) {
         <p className="eyebrow">Teacher</p>
         <h2 className="font-display text-2xl font-extrabold">Welcome back, {(profile?.full_name ?? 'Teacher').split(' ')[0]}!</h2>
       </div>
+
+      {/* Sits above everything else and disappears the moment the queue is
+          empty. A picture a child has uploaded is not visible to their class
+          until this is dealt with, so it should not be somewhere a teacher
+          has to remember to go and look. */}
+      <AvatarReviewQueue />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <DashboardCard icon={GraduationCap} label="Your Classes" value={String(classes.length)} accent="var(--lp-accent-class, #4caf6d)">

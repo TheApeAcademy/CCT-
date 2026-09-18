@@ -1768,9 +1768,13 @@ function ProfileTab({ student, klass, onSaved }: { student: StudentRow; klass: (
   const [bio, setBio] = useState(student.bio ?? '')
   const [verse, setVerse] = useState(student.favorite_verse ?? '')
   const [quote, setQuote] = useState(student.favorite_quote ?? '')
-  const [avatar, setAvatar] = useState(student.avatar_url)
+  // Their own newest picture, approved or not - a child should see what they
+  // uploaded, even while it is waiting on their teacher. Everybody else keeps
+  // seeing the last approved one.
+  const [avatar, setAvatar] = useState(student.pending_avatar_url ?? student.avatar_url)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [error, setError] = useState('')
   const [cardUrl, setCardUrl] = useState<string | null>(null)
   const [rendering, setRendering] = useState(false)
   const [codeCopied, setCodeCopied] = useState(false)
@@ -1812,6 +1816,7 @@ function ProfileTab({ student, klass, onSaved }: { student: StudentRow; klass: (
 
   const save = async () => {
     setSaving(true)
+    setError('')
     try {
       await updateMyStudentProfile({ bio, favorite_verse: verse, favorite_quote: quote, avatar_url: avatar ?? undefined })
       playClick()
@@ -1819,6 +1824,13 @@ function ProfileTab({ student, klass, onSaved }: { student: StudentRow; klass: (
       setSaved(true)
       onSaved()
       window.setTimeout(() => setSaved(false), 1800)
+    } catch (e) {
+      // The database screens this text before it saves anything, and the
+      // message it sends back already says what to take out, in words a child
+      // can act on. Show it as it is rather than replacing it with "something
+      // went wrong", which would leave them guessing.
+      setError(e instanceof Error ? e.message : 'That did not save. Please try again.')
+      haptics.error()
     } finally {
       setSaving(false)
     }
@@ -1873,7 +1885,19 @@ function ProfileTab({ student, klass, onSaved }: { student: StudentRow; klass: (
             )}
             <input type="file" accept="image/*" className="hidden" onChange={(e) => pickPhoto(e.target.files?.[0])} />
           </label>
-          <p className="text-sm text-[var(--ink-muted)]">Tap your photo to change it</p>
+          <div>
+            <p className="text-sm text-[var(--ink-muted)]">Tap your photo to change it</p>
+            {student.avatar_status === 'pending' && (
+              <p className="mt-1 text-xs font-bold text-[var(--gold)]">
+                Your teacher is having a look at this one. Your class will see it once they say yes.
+              </p>
+            )}
+            {student.avatar_status === 'rejected' && (
+              <p className="mt-1 text-xs font-bold text-[var(--gold)]">
+                Your teacher asked for a different picture. Tap to pick another one.
+              </p>
+            )}
+          </div>
         </div>
 
         {student.student_code && (
@@ -1924,6 +1948,7 @@ function ProfileTab({ student, klass, onSaved }: { student: StudentRow; klass: (
             <Check className="h-4 w-4" /> Saved
           </p>
         )}
+        {error && <p className="rounded-md bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-700">{error}</p>}
         <button onClick={save} disabled={saving} className="btn-solid w-full py-3">
           {saving ? 'Saving…' : 'Save My Profile'}
         </button>

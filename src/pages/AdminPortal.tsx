@@ -33,6 +33,7 @@ import type { DigitalBankFile } from '../db/types'
 import { useMinistryAuth } from '../lib/useMinistryAuth'
 import AuthCard from '../components/ui/AuthCard'
 import TabBar from '../components/ui/TabBar'
+import AvatarReviewQueue from '../components/AvatarReviewQueue'
 import {
   listTeacherApplications,
   approveTeacher,
@@ -125,6 +126,11 @@ function AdminDashboard() {
           Sign Out
         </button>
       </div>
+
+      {/* Above the tabs, and it draws nothing unless something is waiting.
+          An admin is the only one who can clear a picture from a child who
+          has not been put in a class yet, since no teacher can reach them. */}
+      <AvatarReviewQueue />
 
       <TabBar
         value={tab}

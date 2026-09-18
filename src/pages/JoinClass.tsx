@@ -85,7 +85,11 @@ const STEP_ACCENT: Record<Step, string> = {
 }
 
 // Kids don't pick a passcode - it's built from their own first name so it's
-// easy to remember: first name + "mfm" + one random digit (e.g. "joshmfm7").
+// easy to remember: first name + "mfm" + three random digits (e.g.
+// "joshmfm472"). The passcode IS the account password, so the random part
+// has to be long enough that knowing a child's name isn't enough to guess
+// their way into their messages and their Ears for You entries. One digit
+// meant ten tries; three means a thousand.
 /** The stable part of a passcode: the child's first name, lowercased. */
 function passcodeBase(fullName: string): string {
   const firstName = fullName.trim().split(/\s+/)[0] ?? ''
@@ -93,7 +97,7 @@ function passcodeBase(fullName: string): string {
 }
 
 function generatePasscode(fullName: string): string {
-  return `${passcodeBase(fullName)}${Math.floor(Math.random() * 10)}`
+  return `${passcodeBase(fullName)}${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`
 }
 
 function NewStudentFlow() {

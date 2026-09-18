@@ -125,7 +125,7 @@ function ParentDashboard() {
           <input
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
-            placeholder="FAM4827"
+            placeholder="FAM482703"
             className={`${inputClass} py-2 text-center font-mono text-sm tracking-widest`}
             onKeyDown={(e) => e.key === 'Enter' && link()}
           />

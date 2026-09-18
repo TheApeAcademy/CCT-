@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Users, KeyRound, Flame, BookOpen, ClipboardCheck, Star, User, ChevronDown, type LucideIcon } from 'lucide-react'
+import { Users, KeyRound, Flame, BookOpen, ClipboardCheck, Star, User, ChevronDown, Sparkles, type LucideIcon } from 'lucide-react'
 import { signOut } from '../lib/supabase'
 import { useMinistryAuth } from '../lib/useMinistryAuth'
 import AuthCard from '../components/ui/AuthCard'
@@ -11,8 +11,10 @@ import {
   listChildAchievements,
   listChildAttendance,
   listChildQuizAttempts,
+  listChildBibleBuddy,
   type ChildRow,
   type EarnedAchievement,
+  type AiCompanionMessageRow,
 } from '../lib/ministry'
 import { getJourneyProgressForStudent, type JourneyProgressRow } from '../lib/journey'
 import { achievementIcon } from '../lib/achievementIcons'
@@ -182,6 +184,7 @@ function ChildDetail({ child }: { child: ChildRow }) {
   const [attendance, setAttendance] = useState<{ present: number; total: number }>({ present: 0, total: 0 })
   const [journey, setJourney] = useState<JourneyProgressRow[]>([])
   const [monthlyStars, setMonthlyStars] = useState(0)
+  const [buddy, setBuddy] = useState<AiCompanionMessageRow[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -196,11 +199,15 @@ function ChildDetail({ child }: { child: ChildRow }) {
       listChildAttendance(child.id, 30),
       getJourneyProgressForStudent(child.id),
       listChildQuizAttempts(child.id, monthIso),
-    ]).then(([s, ach, att, jp, quizzes]) => {
+      // Never rejects the whole load: a parent should still get the rest of
+      // the page if this one query fails.
+      listChildBibleBuddy(child.id).catch(() => [] as AiCompanionMessageRow[]),
+    ]).then(([s, ach, att, jp, quizzes, buddyLog]) => {
       setStreak(s)
       setAchievements(ach)
       setAttendance({ present: att.filter((a) => a.present).length, total: att.length })
       setJourney(jp)
+      setBuddy(buddyLog)
 
       // A simple, transparent monthly rating - not a hidden formula: one
       // star for every 3 things done this month (lessons, quizzes, days
@@ -241,6 +248,27 @@ function ChildDetail({ child }: { child: ChildRow }) {
         <p className="mt-1 text-xs text-[var(--ink-muted)]">
           {monthlyStars === 0 ? 'No activity recorded yet this month.' : 'Based on lessons, quizzes, and days present this month.'}
         </p>
+      </div>
+
+      <div>
+        <p className="eyebrow mb-2">Bible Buddy</p>
+        <p className="mb-2 text-xs text-[var(--ink-muted)]">
+          What {child.full_name.split(' ')[0]} asked the Bible helper, and what it said back. Questions they chose to ask privately are
+          not shown here, to anyone.
+        </p>
+        {buddy.length === 0 && <p className="text-sm text-[var(--ink-muted)]">Nothing asked yet.</p>}
+        <div className="space-y-2">
+          {buddy.map((m) => (
+            <div key={m.id} className="rounded-md bg-[var(--ink-panel)] p-3">
+              <p className="flex items-start gap-2 text-sm font-bold">
+                <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--gold)]" strokeWidth={2} />
+                {m.question}
+              </p>
+              <p className="mt-1.5 text-sm text-[var(--ink-muted)]">{m.answer}</p>
+              <p className="mt-1.5 text-[10px] text-[var(--ink-faint)]">{new Date(m.created_at).toLocaleDateString()}</p>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div>

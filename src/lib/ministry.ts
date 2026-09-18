@@ -1440,6 +1440,26 @@ export async function listMyBibleBuddyHistory(): Promise<AiCompanionMessageRow[]
   return (data ?? []) as AiCompanionMessageRow[]
 }
 
+/**
+ * What Bible Buddy said to one child, for that child's parent.
+ *
+ * Questions the child chose to ask privately are not here. The policy on the
+ * table drops them before this ever sees a row, so no filter is needed on
+ * this side, and none could be removed to get at them either. A parent gets
+ * exactly what a teacher gets, and a privately asked question stays the
+ * child's own.
+ */
+export async function listChildBibleBuddy(studentId: string, limit = 50): Promise<AiCompanionMessageRow[]> {
+  const { data, error } = await supabase
+    .from('ai_companion_messages')
+    .select('id, question, answer, is_anonymous, created_at')
+    .eq('student_id', studentId)
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  return (data ?? []) as AiCompanionMessageRow[]
+}
+
 export async function listBibleBuddyTeacherLog(limit = 50): Promise<AiCompanionTeacherLogRow[]> {
   const { data, error } = await supabase
     .from('ai_companion_teacher_log')

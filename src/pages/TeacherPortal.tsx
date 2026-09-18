@@ -39,6 +39,7 @@ import IsometricPhone from '../components/IsometricPhone'
 import { NotesSection, DigitalBankSection } from '../components/PersonalVault'
 import MinistryCalendarReadOnly from '../components/MinistryCalendarView'
 import AvatarReviewQueue from '../components/AvatarReviewQueue'
+import PortalSearch from '../components/PortalSearch'
 import { renderCertificatePng } from '../lib/certificate'
 import { SUNDAY_LESSON_THEMES, SUNDAYS_2026, sundayDateKey } from '../content/sundaySchoolCalendar'
 import {
@@ -81,6 +82,7 @@ import {
   listAttendanceForDate,
   listAttendanceHistory,
   saveAttendance,
+  type SearchResult,
   type AttendanceHistory,
   listBibleBuddyTeacherLog,
   type AiCompanionTeacherLogRow,
@@ -226,6 +228,21 @@ type Tab = 'home' | 'chat' | 'classes' | 'quiz' | 'ears' | 'buddy' | 'calendar' 
 function TeacherDashboard({ profile }: { profile: Profile | null }) {
   const [tab, setTab] = useState<Tab>('home')
   const [openClass, setOpenClass] = useState<ClassRow | null>(null)
+  // Which tab of the class screen to land on. A search for a lesson should
+  // open on Class Work, not drop the teacher on the roster to find it again.
+  const [openClassTab, setOpenClassTab] = useState<DetailTab>('students')
+
+  // A result is only worth showing if tapping it goes somewhere, so every
+  // kind this portal can return is handled here. Everything the teacher can
+  // find belongs to one of their classes, so all of it opens that class.
+  const goToResult = async (r: SearchResult) => {
+    if (!r.class_id) return
+    const klass = (await listMyClasses()).find((c) => c.id === r.class_id)
+    if (!klass) return
+    setOpenClassTab(r.kind === 'assignment' || r.kind === 'lecture' ? 'work' : 'students')
+    setOpenClass(klass)
+    setTab('classes')
+  }
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -238,6 +255,8 @@ function TeacherDashboard({ profile }: { profile: Profile | null }) {
           Sign Out
         </button>
       </div>
+
+      <PortalSearch placeholder="Find a child, a class, a lesson…" onPick={goToResult} />
 
       <TabBar
         value={tab}
@@ -260,7 +279,21 @@ function TeacherDashboard({ profile }: { profile: Profile | null }) {
       {tab === 'home' && <TeacherHomeTab profile={profile} />}
       {tab === 'chat' && <TeacherChatTab profile={profile} />}
       {tab === 'classes' &&
-        (openClass ? <ClassDetail klass={openClass} teacherName={profile?.full_name ?? 'Your Teacher'} onBack={() => setOpenClass(null)} /> : <ClassesTab onOpen={setOpenClass} />)}
+        (openClass ? (
+          <ClassDetail
+            klass={openClass}
+            teacherName={profile?.full_name ?? 'Your Teacher'}
+            initialTab={openClassTab}
+            onBack={() => setOpenClass(null)}
+          />
+        ) : (
+          <ClassesTab
+            onOpen={(c) => {
+              setOpenClassTab('students')
+              setOpenClass(c)
+            }}
+          />
+        ))}
       {tab === 'quiz' && <QuizTab />}
       {tab === 'ears' && <EarsInboxTab />}
       {tab === 'buddy' && <BibleBuddyLogTab />}
@@ -416,8 +449,18 @@ function ClassesTab({ onOpen }: { onOpen: (c: ClassRow) => void }) {
 
 type DetailTab = 'students' | 'work' | 'attendance'
 
-function ClassDetail({ klass, teacherName, onBack }: { klass: ClassRow; teacherName: string; onBack: () => void }) {
-  const [detailTab, setDetailTab] = useState<DetailTab>('students')
+function ClassDetail({
+  klass,
+  teacherName,
+  onBack,
+  initialTab = 'students',
+}: {
+  klass: ClassRow
+  teacherName: string
+  onBack: () => void
+  initialTab?: DetailTab
+}) {
+  const [detailTab, setDetailTab] = useState<DetailTab>(initialTab)
   const [students, setStudents] = useState<StudentRow[]>([])
   const [loading, setLoading] = useState(true)
   const [enrollCode, setEnrollCode] = useState('')

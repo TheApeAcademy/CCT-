@@ -34,6 +34,7 @@ import { useMinistryAuth } from '../lib/useMinistryAuth'
 import AuthCard from '../components/ui/AuthCard'
 import TabBar from '../components/ui/TabBar'
 import AvatarReviewQueue from '../components/AvatarReviewQueue'
+import PortalSearch from '../components/PortalSearch'
 import {
   listTeacherApplications,
   approveTeacher,
@@ -65,6 +66,7 @@ import {
   type BiblePlanRow,
   type BibleReadingRow,
   type LeaderboardRow,
+  type SearchResult,
 } from '../lib/ministry'
 import { playClick } from '../lib/sound'
 import { haptics } from '../lib/haptics'
@@ -114,6 +116,20 @@ type Tab = 'applications' | 'classes' | 'seasons' | 'quiz' | 'bible' | 'calendar
 
 function AdminDashboard() {
   const [tab, setTab] = useState<Tab>('applications')
+  // The class a search result pointed at, so the list can say which row was
+  // meant. An admin here has eleven classes and rising; landing on a list of
+  // them with nothing marked is barely better than not searching.
+  const [highlightClass, setHighlightClass] = useState<string | null>(null)
+
+  const goToResult = (r: SearchResult) => {
+    if (r.kind === 'teacher') {
+      setHighlightClass(null)
+      setTab('applications')
+      return
+    }
+    setHighlightClass(r.kind === 'class' ? r.id : r.class_id)
+    setTab('classes')
+  }
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -132,6 +148,8 @@ function AdminDashboard() {
           has not been put in a class yet, since no teacher can reach them. */}
       <AvatarReviewQueue />
 
+      <PortalSearch placeholder="Find a child, a class, a teacher…" onPick={goToResult} />
+
       <TabBar
         value={tab}
         onChange={setTab}
@@ -149,7 +167,7 @@ function AdminDashboard() {
       />
 
       {tab === 'applications' && <ApplicationsTab />}
-      {tab === 'classes' && <ClassesTab />}
+      {tab === 'classes' && <ClassesTab highlightId={highlightClass} />}
       {tab === 'seasons' && <SeasonsTab />}
       {tab === 'quiz' && <QuizTab />}
       {tab === 'bible' && <BiblePlansTab />}
@@ -462,7 +480,7 @@ function ApplicationsTab() {
   )
 }
 
-function ClassesTab() {
+function ClassesTab({ highlightId }: { highlightId?: string | null }) {
   const [classes, setClasses] = useState<(ClassRow & { teacher_name: string })[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -476,7 +494,11 @@ function ClassesTab() {
   return (
     <div className="space-y-2">
       {classes.map((c) => (
-        <div key={c.id} className="panel flex flex-wrap items-center justify-between gap-2 p-4">
+        <div
+          key={c.id}
+          ref={c.id === highlightId ? (el) => el?.scrollIntoView({ block: 'center', behavior: 'smooth' }) : undefined}
+          className={`panel flex flex-wrap items-center justify-between gap-2 p-4 ${c.id === highlightId ? 'ring-2 ring-[var(--gold)]' : ''}`}
+        >
           <div>
             <p className="font-bold">{c.name}</p>
             <p className="text-sm text-[var(--ink-muted)]">Taught by {c.teacher_name || 'Unknown'}</p>

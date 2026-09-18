@@ -412,6 +412,35 @@ export async function getMyStudentProfile(): Promise<StudentRow | null> {
   } as StudentRow
 }
 
+// ---------- search ----------
+
+export type SearchKind = 'student' | 'class' | 'assignment' | 'lecture' | 'teacher'
+
+export interface SearchResult {
+  kind: SearchKind
+  id: string
+  title: string
+  subtitle: string
+  class_id: string | null
+}
+
+/**
+ * One search across everything the person signed in is allowed to find.
+ *
+ * What each role can reach is decided inside ministry_search, not here, and
+ * not by which portal happens to be calling it: a teacher gets their own
+ * classes, an admin gets the ministry, a parent gets their own children. Ears
+ * for You threads and private conversations are not searchable at all - those
+ * belong in the screen built for reading them, where opening one is recorded.
+ */
+export async function ministrySearch(query: string): Promise<SearchResult[]> {
+  const q = query.trim()
+  if (q.length < 2) return []
+  const { data, error } = await supabase.rpc('ministry_search', { p_query: q })
+  if (error) throw error
+  return (data ?? []) as SearchResult[]
+}
+
 // ---------- checking what children upload ----------
 
 export interface PendingAvatar {

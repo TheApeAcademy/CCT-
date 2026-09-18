@@ -42,11 +42,9 @@ export default function MatchResults() {
       <Fireworks active={showFireworks} />
 
       <div>
-        <img
-          src="/children-ministry-logo-splash.png"
-          alt=""
-          className="mx-auto mb-3 h-28 w-auto object-contain drop-shadow-lg"
-        />
+        <span className="brand-plate mx-auto mb-3">
+          <img src="/children-ministry-logo-splash.png" alt="" className="h-24 w-auto object-contain" />
+        </span>
         <h1 className="font-display text-4xl font-extrabold sm:text-5xl">
           <span className="bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-200 bg-clip-text text-transparent animate-shimmer">
             Match Complete!

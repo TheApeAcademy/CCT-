@@ -41,7 +41,9 @@ export default function SiteFooter() {
       <div className="mx-auto max-w-6xl px-4 py-14 sm:py-16">
         <div className="grid gap-10 lg:grid-cols-[1.3fr_1fr_1fr_1fr]">
           <div>
-            <img src="/children-ministry-logo-splash.png" alt="MFM Children's Ministry" className="h-16 w-auto object-contain" />
+            <span className="brand-plate-themed">
+              <img src="/children-ministry-logo-splash.png" alt="MFM Children's Ministry" className="h-14 w-auto object-contain" />
+            </span>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-[var(--ink-muted)]">
               MFM Wuye&apos;s digital home for children: classes, the Bible Quiz, and a place every child in this
               church can call theirs.

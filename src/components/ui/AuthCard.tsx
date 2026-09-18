@@ -3,6 +3,7 @@ import type { LucideIcon } from 'lucide-react'
 import { supabase, setRememberMe, sendPasswordReset } from '../../lib/supabase'
 import { playClick } from '../../lib/sound'
 import { haptics } from '../../lib/haptics'
+import SegmentedControl from './SegmentedControl'
 
 const inputClass = 'w-full rounded-md border border-[var(--hairline-strong)] bg-transparent px-4 py-3 outline-none focus:border-[var(--gold)]'
 
@@ -140,20 +141,14 @@ export default function AuthCard({
   return (
     <div className="mx-auto max-w-md space-y-6">
       <Header icon={Icon} title={title} subtitle={subtitle} />
-      <div className="flex gap-1 rounded-md border border-[var(--hairline-strong)] p-1">
-        <button
-          onClick={() => setTab('signin')}
-          className={`flex-1 rounded px-4 py-2 text-sm font-bold transition ${tab === 'signin' ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'text-[var(--fg)]/70 hover:text-[var(--fg)]'}`}
-        >
-          Sign In
-        </button>
-        <button
-          onClick={() => setTab('signup')}
-          className={`flex-1 rounded px-4 py-2 text-sm font-bold transition ${tab === 'signup' ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'text-[var(--fg)]/70 hover:text-[var(--fg)]'}`}
-        >
-          {signUpLabel}
-        </button>
-      </div>
+      <SegmentedControl
+        value={tab}
+        onChange={setTab}
+        items={[
+          { value: 'signin' as const, label: 'Sign In' },
+          { value: 'signup' as const, label: signUpLabel },
+        ]}
+      />
       <div className="panel space-y-3 p-5">
         <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" type="email" className={inputClass} />
         <input

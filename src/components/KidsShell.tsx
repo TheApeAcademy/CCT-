@@ -26,7 +26,7 @@ const NotificationBell = lazy(() => import('./NotificationBell'))
 export default function KidsShell({ eyebrow }: { eyebrow: string }) {
   const autoHidden = useAutoHideNav()
   return (
-    <div data-landing-theme="light" className="site-light-theme lp-page relative isolate min-h-screen">
+    <div data-landing-theme="light" className="site-light-theme lp-page relative isolate flex min-h-screen flex-col">
       <div
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 z-0"
@@ -58,7 +58,7 @@ export default function KidsShell({ eyebrow }: { eyebrow: string }) {
           </div>
         </div>
       </header>
-      <main className="relative z-10 mx-auto max-w-3xl px-4 py-10 sm:py-14">
+      <main className="relative z-10 mx-auto w-full max-w-3xl flex-1 px-4 py-10 sm:py-14">
         <Outlet />
       </main>
       <footer className="relative mx-auto max-w-3xl px-4 pb-8 pt-4 text-center">

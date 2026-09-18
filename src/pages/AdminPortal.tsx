@@ -33,6 +33,7 @@ import type { DigitalBankFile } from '../db/types'
 import { useMinistryAuth } from '../lib/useMinistryAuth'
 import AuthCard from '../components/ui/AuthCard'
 import TabBar from '../components/ui/TabBar'
+import SegmentedControl from '../components/ui/SegmentedControl'
 import AvatarReviewQueue from '../components/AvatarReviewQueue'
 import PortalSearch from '../components/PortalSearch'
 import {
@@ -203,21 +204,15 @@ function QuizTab() {
       <div className="panel p-5">
         <div className="mb-3 flex items-center justify-between">
           <p className="eyebrow">Ministry Leaderboard</p>
-          <div className="flex gap-1.5">
-            {(['students', 'classes'] as const).map((b) => (
-              <button
-                key={b}
-                onClick={() => setBoard(b)}
-                className="rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide transition"
-                style={{
-                  background: board === b ? 'var(--gold)' : 'var(--ink-panel)',
-                  color: board === b ? '#000' : 'var(--ink-muted)',
-                }}
-              >
-                {b === 'students' ? 'Students' : 'Class vs Class'}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl
+            value={board}
+            onChange={setBoard}
+            className="shrink-0"
+            items={[
+              { value: 'students' as const, label: 'Students' },
+              { value: 'classes' as const, label: 'Class vs Class' },
+            ]}
+          />
         </div>
         {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
         {!loading && rows.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No quiz results recorded yet.</p>}

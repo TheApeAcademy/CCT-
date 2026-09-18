@@ -51,13 +51,59 @@
   --hairline-strong: rgba(255, 255, 255, 0.16);
   --ink-muted: rgba(237, 233, 246, 0.62);
   --ink-faint: rgba(237, 233, 246, 0.4);
-  --gold: #e8b923;
+  /* One accent, one hue, both themes. This used to be gold here and purple
+     under .site-light-theme, which meant every button, focus ring and
+     highlight changed hue when a visitor flipped the theme while nothing
+     else on the page moved with it. Same purple family now, light enough on
+     a dark ground to stay 8:1 as text and to carry --gold-ink on a fill.
+     Gold has not left the app: it stays the reward colour on the quiz-show
+     shapes above, where being rare is the point. */
+  --gold: #d98fe8;
   --gold-ink: #1b1030;
   /* Primary text colour for the shared chrome system - defaults to white
      (the app's implicit colour up to now), given a name so .site-light-theme
      below can flip it without redefining every component that used to
      assume white. */
   --fg: #ffffff;
+
+  /* ---------- one spacing scale ----------
+     Everything vertical comes off a 4px grid, and only these nine values are
+     allowed. Before this the bands ran on 14 different paddings that were
+     each defensible alone and read as drift together: the eye cannot see
+     4px of difference as a decision, only as a mistake. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-24: 96px;
+
+  /* ---------- four levels of elevation ----------
+     Two layers each: a tight contact shadow that seats the thing on the page
+     and a wide soft one that gives it height. One large blur on its own is
+     what makes a card look like it is floating in front of the page rather
+     than resting on it. Light comes from above and slightly left, the same
+     direction as the isometric artwork, so the UI and the art agree. */
+  --elev-0: none;
+  --elev-1: 0 1px 2px rgba(8, 3, 18, 0.28), 0 8px 20px -14px rgba(8, 3, 18, 0.5);
+  --elev-2: 0 2px 4px rgba(8, 3, 18, 0.32), 0 18px 40px -22px rgba(8, 3, 18, 0.62);
+  --elev-3: 0 4px 8px rgba(8, 3, 18, 0.36), 0 32px 64px -28px rgba(8, 3, 18, 0.72);
+
+  /* ---------- one motion scale ----------
+     Duration says what kind of thing moved: a control answering a tap is
+     instant, a panel arriving takes long enough to be followed, a page takes
+     longer still. The overshoot curve is for things that should feel alive
+     (a child's tap target, a badge landing); the calm curve is for anything
+     an adult is reading. */
+  --dur-tap: 120ms;
+  --dur-control: 180ms;
+  --dur-panel: 260ms;
+  --dur-page: 420ms;
+  --ease-calm: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
 
   /* Purple accent matching mountainoffire.org's own carousel + nav CTAs -
      scoped to .hero- and .nav-cta- classes only; the rest of the app keeps
@@ -85,6 +131,9 @@
   --gold: #9c2bb0;
   --gold-ink: #ffffff;
   --fg: #1c1030;
+  --elev-1: 0 1px 2px rgba(20, 8, 40, 0.06), 0 8px 20px -14px rgba(20, 8, 40, 0.24);
+  --elev-2: 0 2px 4px rgba(20, 8, 40, 0.07), 0 18px 40px -22px rgba(20, 8, 40, 0.32);
+  --elev-3: 0 4px 8px rgba(20, 8, 40, 0.09), 0 32px 64px -28px rgba(20, 8, 40, 0.4);
 }
 
 html, body, #root {
@@ -105,6 +154,51 @@ body {
 
 html {
   scroll-behavior: smooth;
+}
+
+/* Anchor links land under the fixed header without this: the browser scrolls
+   the target to y=0, the header covers it, and the section you asked for
+   appears to be the one below. 88px is the header's own height plus a little
+   air, so the heading you jumped to arrives just under the bar rather than
+   flush against it. */
+:target,
+[id]:not(body):not(#root) {
+  scroll-margin-top: 88px;
+}
+
+/* The ministry mark is black serif type under a rainbow wordmark, which is
+   a light-ground lockup: on a dark surface the word MINISTRY disappears and
+   only its antialiasing shows. The mark itself is not ours to restyle, so on
+   dark grounds it sits on a light plate instead, the way a club crest does
+   on an away shirt. Clear space is a fixed proportion of the mark, per the
+   matting rule in the design language. */
+.brand-plate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: var(--radius-panel);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--elev-1);
+}
+/* Most places the mark appears sit on dark chrome whatever the visitor has
+   the landing page set to - the site header, the splash, the quiz screens -
+   so .brand-plate is unconditional. The footer is the exception: it follows
+   the landing theme, so it uses this variant, which gets out of the way on a
+   light ground rather than becoming a white box on white. */
+.brand-plate-themed {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: var(--radius-panel);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--elev-1);
+}
+[data-landing-theme='light'] .brand-plate-themed {
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 h1, h2, h3, .font-display {
@@ -653,11 +747,15 @@ button:active, a:active {
   transform: scale(1.12);
 }
 
-/* Hero-only accent + typeface, scoped to HeroCarousel so the rest of the
-   app keeps its plain gold/Baloo 2 identity untouched - this is a
-   deliberate one-off match of mountainoffire.org's own hero styling. */
+/* The hero headline. This used to call for a whole third family, bought for
+   one component and two feature intros, which is the kind of thing that
+   reads as assembled rather than designed however good each face is alone.
+   Two families now, each with one job: the display face carries every
+   headline, the body face carries everything read in sentences. The display
+   face is also the warmer call for a children's ministry. */
 .hero-title-font {
-  font-family: 'Poppins', var(--font-body);
+  font-family: var(--font-display);
+  font-weight: 800;
 }
 .hero-btn-solid {
   display: inline-flex;
@@ -1053,16 +1151,16 @@ button:active, a:active {
   background: radial-gradient(ellipse 70% 60% at 50% 0%, color-mix(in srgb, var(--card-accent, var(--lp-accent-fill)) 18%, transparent), transparent 68%), var(--lp-bg);
 }
 
-/* A second display voice for the calmer sections (Bible, Ears For You) -
-   the clean geometric grotesk already used for the hero, standing in
-   deliberate contrast to Baloo 2's bounce on the higher-energy sections
-   (Quiz, Class, Leaderboard, Achievements). Same pairing logic as the
-   hero: distinct typefaces marking distinct emotional registers, not
-   variety for its own sake. */
+/* A calmer voice for the calmer sections (Bible, Ears For You), standing
+   against the display face's bounce on the higher-energy ones (Quiz, Class,
+   Leaderboard, Achievements). That contrast is real and worth keeping; it
+   just does not need a third family to carry it. The body face at its
+   heaviest weight says "quieter" perfectly well, and says it with a face
+   the page has already downloaded. */
 .lp-heading-calm {
-  font-family: 'Poppins', var(--font-body);
-  font-weight: 700;
-  letter-spacing: -0.01em;
+  font-family: var(--font-body);
+  font-weight: 900;
+  letter-spacing: -0.014em;
 }
 
 /* Small colourful dots scattered across a feature-intro section's empty

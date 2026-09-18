@@ -7,8 +7,6 @@ import { playClick, playNav } from '../lib/sound'
 // grotesk) - scoped to this component's own chunk (Home is lazy-loaded) so
 // the offline quiz routes never download it, same reasoning as main.tsx's
 // Baloo 2 / Nunito imports for the rest of the app.
-import '@fontsource/poppins/800.css'
-import '@fontsource/poppins/900.css'
 
 export interface HeroSlide {
   title: string
@@ -20,6 +18,9 @@ export interface HeroSlide {
 }
 
 const AUTOPLAY_MS = 6500
+
+const HERO_TITLE_CLASS =
+  'hero-title-font max-w-5xl text-balance text-4xl font-extrabold uppercase leading-[1.05] tracking-tight text-white sm:text-6xl lg:text-7xl'
 
 export default function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
   const [index, setIndex] = useState(0)
@@ -109,12 +110,20 @@ export default function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
             }}
             className="relative z-10 flex h-full flex-col items-center justify-center px-4 pb-16 pt-24 text-center sm:pt-28"
           >
-            <h1
-              data-hero-el="title"
-              className="hero-title-font max-w-5xl text-balance text-4xl font-extrabold uppercase leading-[1.05] tracking-tight text-white sm:text-6xl lg:text-7xl"
-            >
-              {slide.title}
-            </h1>
+            {/* Every slide is in the DOM at once so they can cross-fade, so
+                marking each title as an h1 gave the page four of them. A
+                crawler reads all four; a person reads one. The first slide
+                carries the page's real h1 and the rest are h2s, which is
+                stable regardless of which slide happens to be showing. */}
+            {i === 0 ? (
+              <h1 data-hero-el="title" className={HERO_TITLE_CLASS}>
+                {slide.title}
+              </h1>
+            ) : (
+              <h2 data-hero-el="title" className={HERO_TITLE_CLASS}>
+                {slide.title}
+              </h2>
+            )}
             <p data-hero-el="body" className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-white/70 sm:text-lg">
               {slide.body}
             </p>

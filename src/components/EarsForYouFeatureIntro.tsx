@@ -5,7 +5,6 @@ import Reveal from './Reveal'
 import { playClick } from '../lib/sound'
 // Same clean grotesk as the hero, reused here (not Baloo 2) to mark this
 // as one of the page's calmer, more meaningful sections - see .lp-heading-calm.
-import '@fontsource/poppins/700.css'
 
 /**
  * Deliberately the calmest section on the page - trust over excitement.

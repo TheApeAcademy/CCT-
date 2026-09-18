@@ -86,11 +86,14 @@ const STEP_ACCENT: Record<Step, string> = {
 
 // Kids don't pick a passcode - it's built from their own first name so it's
 // easy to remember: first name + "mfm" + one random digit (e.g. "joshmfm7").
-function generatePasscode(fullName: string): string {
+/** The stable part of a passcode: the child's first name, lowercased. */
+function passcodeBase(fullName: string): string {
   const firstName = fullName.trim().split(/\s+/)[0] ?? ''
-  const base = firstName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'kid'
-  const digit = Math.floor(Math.random() * 10)
-  return `${base}mfm${digit}`
+  return `${firstName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'kid'}mfm`
+}
+
+function generatePasscode(fullName: string): string {
+  return `${passcodeBase(fullName)}${Math.floor(Math.random() * 10)}`
 }
 
 function NewStudentFlow() {
@@ -112,8 +115,14 @@ function NewStudentFlow() {
   }
 
   const goToPasscode = () => {
-    setPasscode(generatePasscode(fullName))
-    setConfirmPasscode('')
+    // Only mint a new one if there isn't one yet, or the name it's built
+    // from has changed. Regenerating here would hand the child a different
+    // passcode from the one they just wrote down, purely because they
+    // stepped back a question.
+    if (!passcode || !passcode.startsWith(passcodeBase(fullName))) {
+      setPasscode(generatePasscode(fullName))
+      setConfirmPasscode('')
+    }
     advance('passcode')
   }
 
@@ -216,8 +225,8 @@ function NewStudentFlow() {
             {passcodeCopied ? 'Copied' : 'Copy passcode'}
           </button>
           <p className="text-sm text-[var(--lp-muted)]">
-            Copy it or write it down somewhere safe. You&apos;ll need it, with your name, to sign in next time, and
-            even though it&apos;s easy to remember!
+            Copy it or write it down somewhere safe. Even though it&apos;s easy to remember, you&apos;ll need it,
+            with your name, to sign in next time.
           </p>
           {error && <p className="text-sm text-red-500">{error}</p>}
           <div className="flex gap-2">

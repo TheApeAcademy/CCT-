@@ -226,7 +226,7 @@ export default function QuestionBank() {
   }
 
   return (
-    <div data-landing-theme="light" className={`site-light-theme lp-page full-bleed px-4 py-6 ${builderItems.length > 0 ? 'pb-24' : ''}`}>
+    <div data-landing-theme="light" className={`site-light-theme lp-page full-bleed -mb-6 flex-1 px-4 py-6 ${builderItems.length > 0 ? 'pb-24' : ''}`}>
       <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[280px_1fr]">
       <aside className="space-y-3">
         <h2 className="font-display text-lg font-bold">Question Sets</h2>

@@ -284,10 +284,14 @@ export default function Layout() {
         className={`relative z-10 w-full flex-1 ${
           isFullscreenQuiz
             ? 'flex min-h-[100dvh] flex-col px-0 pb-0 pt-0'
-            : `mx-auto max-w-6xl px-4 pb-6 ${isLandingStyle ? 'pt-0' : 'pt-24 sm:pt-28'}`
+            : `mx-auto flex max-w-6xl flex-col px-4 pb-6 ${isLandingStyle ? 'pt-0' : 'pt-24 sm:pt-28'}`
         }`}
       >
-        <div key={location.pathname} className={isFullscreenQuiz ? 'animate-page-in flex flex-1 flex-col' : 'animate-page-in'}>
+        {/* Always a stretching column, so a page that sets flex-1 on its own
+            wrapper (the light-themed quiz admin pages) runs its background all
+            the way down to the footer instead of leaving a dark orphan strip
+            above it on a tall screen. */}
+        <div key={location.pathname} className="animate-page-in flex flex-1 flex-col">
           <Outlet />
         </div>
       </main>

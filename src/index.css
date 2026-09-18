@@ -20,10 +20,23 @@
   height: 100%;
 }
 
+/* One radius scale for the whole app. Before this there were six
+   near-identical values in play (6px buttons, 8px landing buttons, 10px
+   panels, 14px icon chips, 16px and 20px cards), which is the kind of thing
+   that reads as "assembled" rather than "designed" even when no single
+   value looks wrong. Three steps, each about 1.4x the last, plus a pill. */
+@theme {
+  --radius-md: 10px;
+  --radius-lg: 14px;
+}
+
 :root {
   color-scheme: dark;
   --font-display: 'Baloo 2', system-ui, sans-serif;
   --font-body: 'Nunito', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --radius-control: 10px;
+  --radius-panel: 14px;
+  --radius-surface: 20px;
 
   /* ---------- site chrome design system ----------
      Distinct from the "quiz-show" tokens above (hex-pill, shimmer, pulse-glow),
@@ -96,7 +109,42 @@ html {
 
 h1, h2, h3, .font-display {
   font-family: var(--font-display);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.012em;
+}
+
+/* Optical sizing. Tracking is not linear with size: the -0.01em that suits
+   an 18px subhead leaves a 72px headline visibly gappy, because the gaps
+   scale with the type while the eye's tolerance for them does not. Big type
+   wants to be tighter, small type wants more air. Keyed off the size classes
+   the headings already carry, so nothing in the markup has to change. */
+:is(h1, h2, h3, .font-display):is(.text-2xl, .text-3xl) {
+  letter-spacing: -0.019em;
+}
+:is(h1, h2, h3, .font-display):is(.text-4xl, .text-5xl) {
+  letter-spacing: -0.026em;
+}
+:is(h1, h2, h3, .font-display):is(.text-6xl, .text-7xl) {
+  letter-spacing: -0.032em;
+}
+
+@media (min-width: 640px) {
+  :is(h1, h2, h3, .font-display):is(.sm\:text-3xl) {
+    letter-spacing: -0.019em;
+  }
+  :is(h1, h2, h3, .font-display):is(.sm\:text-4xl, .sm\:text-5xl) {
+    letter-spacing: -0.026em;
+  }
+  :is(h1, h2, h3, .font-display):is(.sm\:text-6xl) {
+    letter-spacing: -0.032em;
+  }
+}
+
+/* The counterpart at the small end: an all-caps eyebrow at 11px needs its
+   letters pushed apart to stay readable, which the eyebrow classes already
+   do, but small bold labels elsewhere were inheriting display tracking they
+   are too small to carry. */
+:is(h1, h2, h3, .font-display):is(.text-xs, .text-\[11px\], .text-\[10px\]) {
+  letter-spacing: 0;
 }
 
 button {
@@ -411,7 +459,7 @@ button:active, a:active {
   background: var(--gold);
   color: var(--gold-ink);
   font-weight: 800;
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   padding: 0.7rem 1.35rem;
   transition: background-color 0.15s ease, transform 0.1s ease;
 }
@@ -434,7 +482,7 @@ button:active, a:active {
   background: transparent;
   color: var(--fg);
   font-weight: 700;
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   border: 1px solid var(--hairline-strong);
   padding: 0.68rem 1.3rem;
   transition: border-color 0.15s ease, background-color 0.15s ease;
@@ -447,7 +495,7 @@ button:active, a:active {
 .panel {
   background: var(--ink-panel);
   border: 1px solid var(--hairline);
-  border-radius: 10px;
+  border-radius: var(--radius-panel);
 }
 .panel-interactive {
   transition: border-color 0.15s ease, background-color 0.15s ease;
@@ -704,7 +752,12 @@ button:active, a:active {
   --lp-radius-card: 20px;
   --lp-radius-feature: 24px;
   --lp-radius-pill: 999px;
-  --lp-shadow-card: 0 16px 40px -20px rgba(20, 8, 40, 0.35);
+  /* Two layers, not one: a tight contact shadow that seats the card on the
+     page and a wide soft one that gives it height. A single large blur is
+     what makes a card look like it is floating in front of the page rather
+     than resting on it. */
+  --lp-shadow-card: 0 1px 2px rgba(20, 8, 40, 0.06), 0 12px 32px -18px rgba(20, 8, 40, 0.3);
+  --lp-shadow-card-raised: 0 2px 4px rgba(20, 8, 40, 0.07), 0 22px 48px -24px rgba(20, 8, 40, 0.4);
   --lp-accent-fill: var(--hero-accent);
   --lp-accent-fill-hover: var(--hero-accent-hover);
   --lp-accent-fill-ink: #ffffff;
@@ -808,11 +861,16 @@ button:active, a:active {
 .lp-band-raised {
   background: var(--lp-bg-raised);
 }
+/* Deep bands used to run a four-stop diagonal from near-black to magenta
+   across the full width, which is the single most template-looking thing a
+   page can do. The field is now close to one colour, with the light coming
+   from soft atmospheric pools behind the content instead of from a sweep,
+   so the band reads as a lit room rather than a gradient. */
 .lp-band-deep {
   background:
-    radial-gradient(ellipse 70% 100% at 85% 0%, rgba(255, 105, 210, 0.22), transparent 60%),
-    radial-gradient(ellipse 60% 90% at 8% 100%, rgba(156, 43, 176, 0.3), transparent 65%),
-    linear-gradient(155deg, #1b0930 0%, #3d1259 45%, #6d1b8f 80%, #8f2496 100%);
+    radial-gradient(ellipse 85% 130% at 50% -15%, rgba(176, 62, 196, 0.26), transparent 62%),
+    radial-gradient(ellipse 65% 95% at 10% 115%, rgba(104, 30, 148, 0.24), transparent 66%),
+    linear-gradient(170deg, #1d0b33 0%, #2a1147 100%);
   color: var(--lp-band-deep-body);
 }
 .lp-band-deep .lp-heading {
@@ -833,9 +891,13 @@ button:active, a:active {
 /* A colour-coded top edge instead of a plain neutral card, so a grid of
    cards reads as a row of distinct, colourful tiles rather than identical
    grey boxes with only a small icon differing. */
+/* The accent used to be a 4px coloured rail across the top of every card.
+   On a grid where a whole row shares one accent that reads as a dated
+   dashboard template, so the colour now lives in the icon chip, the border
+   and a barely-there wash instead. Same information, quieter delivery. */
 .lp-panel-accented {
-  border-top: 4px solid var(--card-accent, var(--lp-accent-fill));
-  background: linear-gradient(180deg, color-mix(in srgb, var(--card-accent, var(--lp-accent-fill)) 8%, var(--lp-bg-panel)), var(--lp-bg-panel) 65%);
+  border-color: color-mix(in srgb, var(--card-accent, var(--lp-accent-fill)) 22%, var(--lp-hairline));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--card-accent, var(--lp-accent-fill)) 5%, var(--lp-bg-panel)), var(--lp-bg-panel) 55%);
 }
 /* A profile card's photo dissolves into the card body instead of ending
    in a hard edge - the fade only eats into the photo itself, never the
@@ -859,12 +921,15 @@ button:active, a:active {
 .lp-panel-interactive {
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.18s ease, background-color 0.18s ease;
 }
+/* A lift, not a tilt. The rotation read as novelty on a grid of a dozen
+   cards, and novelty is the first thing that makes a page look cheap. */
 .lp-panel-interactive:hover {
-  transform: translateY(-5px) rotate(-0.75deg) scale(1.015);
-  border-color: var(--card-accent, var(--lp-hairline-strong));
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--card-accent, var(--lp-accent-fill)) 55%, transparent);
+  box-shadow: var(--lp-shadow-card-raised);
 }
 .lp-panel-interactive:active {
-  transform: translateY(-1px) scale(0.98);
+  transform: translateY(-1px) scale(0.995);
 }
 
 .lp-stat-strip {
@@ -1013,7 +1078,7 @@ button:active, a:active {
   background: var(--lp-accent-fill);
   color: var(--lp-accent-fill-ink);
   font-weight: 800;
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   padding: 0.7rem 1.35rem;
   transition: background-color 0.15s ease, transform 0.1s ease;
 }
@@ -1050,7 +1115,7 @@ button:active, a:active {
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  border-radius: 14px;
+  border-radius: 12px;
   color: var(--card-accent, var(--lp-accent-fill));
   background: color-mix(in srgb, var(--card-accent, var(--lp-accent-fill)) 16%, transparent);
   border: 1.5px solid color-mix(in srgb, var(--card-accent, var(--lp-accent-fill)) 35%, transparent);

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import {
   GraduationCap,
@@ -202,7 +202,7 @@ function ApplyForm({ onSubmitted }: { onSubmitted: () => void }) {
           rows={4}
           className={inputClass}
         />
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && <p className="text-sm text-red-700">{error}</p>}
         <button onClick={handleSubmit} disabled={submitting} className="btn-solid w-full py-3 text-base">
           {submitting ? 'Submitting…' : 'Submit Application'}
         </button>
@@ -510,9 +510,9 @@ function ClassDetail({ klass, teacherName, onBack }: { klass: ClassRow; teacherN
                 {enrolling ? 'Adding…' : 'Add'}
               </button>
             </div>
-            {enrollError && <p className="text-sm text-red-400">{enrollError}</p>}
+            {enrollError && <p className="text-sm text-red-700">{enrollError}</p>}
             {enrollSuccess && (
-              <p className="flex items-center gap-1.5 text-sm text-emerald-400">
+              <p className="flex items-center gap-1.5 text-sm text-emerald-700">
                 <Check className="h-4 w-4" /> {enrollSuccess}
               </p>
             )}
@@ -544,7 +544,7 @@ function ClassDetail({ klass, teacherName, onBack }: { klass: ClassRow; teacherN
                     >
                       <Award className="h-3.5 w-3.5" /> Certificate
                     </button>
-                    <button onClick={() => removeStudent(s.id)} className="rounded-md bg-red-500/15 px-3 py-1.5 text-xs font-bold text-red-400 hover:bg-red-500/25">
+                    <button onClick={() => removeStudent(s.id)} className="rounded-md bg-red-500/15 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-500/25">
                       Remove
                     </button>
                   </div>
@@ -624,7 +624,7 @@ function AttendanceManager({ classId, students }: { classId: string; students: S
       {!loading && students.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No students in this class yet.</p>}
 
       <div className="space-y-2">
-        {students.map((s) => (
+        {!loading && students.map((s) => (
           <button
             key={s.id}
             onClick={() => setPresent((p) => ({ ...p, [s.id]: !p[s.id] }))}
@@ -641,7 +641,7 @@ function AttendanceManager({ classId, students }: { classId: string; students: S
               <p className="font-semibold">{s.full_name}</p>
             </div>
             <span
-              className={`rounded-full px-3 py-1 text-xs font-bold ${present[s.id] ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/15 text-red-400'}`}
+              className={`rounded-full px-3 py-1 text-xs font-bold ${present[s.id] ? 'bg-emerald-500/20 text-emerald-700' : 'bg-red-500/15 text-red-700'}`}
             >
               {present[s.id] ? 'Present' : 'Absent'}
             </span>
@@ -649,7 +649,7 @@ function AttendanceManager({ classId, students }: { classId: string; students: S
         ))}
       </div>
 
-      {students.length > 0 && (
+      {!loading && students.length > 0 && (
         <button onClick={save} disabled={saving} className="btn-solid w-full py-3 text-sm">
           {saving ? 'Saving…' : saved ? 'Saved ✓' : 'Save Attendance'}
         </button>
@@ -812,7 +812,7 @@ function LecturesManager({ classId }: { classId: string }) {
               </div>
               <span
                 className={`shrink-0 rounded px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${
-                  l.status === 'published' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-[var(--fg)]/10 text-[var(--fg)]/60'
+                  l.status === 'published' ? 'bg-emerald-500/15 text-emerald-700' : 'bg-[var(--fg)]/10 text-[var(--fg)]/60'
                 }`}
               >
                 {l.status}
@@ -956,7 +956,7 @@ function AssignmentsManager({ classId }: { classId: string }) {
               </div>
               <span
                 className={`shrink-0 rounded px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${
-                  a.status === 'published' ? 'bg-emerald-500/15 text-emerald-400' : a.status === 'closed' ? 'bg-[var(--fg)]/10 text-[var(--fg)]/60' : 'bg-[var(--gold)]/15 text-[var(--gold)]'
+                  a.status === 'published' ? 'bg-emerald-500/15 text-emerald-700' : a.status === 'closed' ? 'bg-[var(--fg)]/10 text-[var(--fg)]/60' : 'bg-[var(--gold)]/15 text-[var(--gold)]'
                 }`}
               >
                 {a.status}
@@ -1011,7 +1011,7 @@ function SubmissionsView({ assignment, onBack }: { assignment: AssignmentRow; on
             {s.body && <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--fg)]/80">{s.body}</p>}
             <p className="mt-1 text-xs text-[var(--ink-faint)]">Submitted {new Date(s.submitted_at).toLocaleString()}</p>
             {s.grade !== null ? (
-              <p className="mt-2 text-sm font-bold text-emerald-400">
+              <p className="mt-2 text-sm font-bold text-emerald-700">
                 Graded: {s.grade}
                 {assignment.max_score ? ` / ${assignment.max_score}` : ''}
               </p>
@@ -1125,6 +1125,7 @@ function TeacherHomeTab({ profile }: { profile: Profile | null }) {
 
         <DashboardCard icon={Calendar} label="Upcoming" accent="var(--gold)">
           <div className="mt-2 space-y-2">
+            {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
             {!loading && upcoming.length === 0 && <p className="text-sm text-[var(--ink-muted)]">Nothing due soon.</p>}
             {upcoming.map((a, i) => (
               <div key={i} className="text-sm">
@@ -1246,6 +1247,7 @@ function PhoneThread({ conversationId, onBack }: { conversationId: string; onBac
   const [messages, setMessages] = useState<MessageRow[]>([])
   const [draft, setDraft] = useState('')
   const [myId, setMyId] = useState<string | null>(null)
+  const bottomRef = useRef<HTMLDivElement>(null)
 
   const load = () => listMessages(conversationId).then(setMessages)
   useEffect(() => {
@@ -1253,6 +1255,11 @@ function PhoneThread({ conversationId, onBack }: { conversationId: string; onBac
     supabase.auth.getUser().then(({ data }) => setMyId(data.user?.id ?? null))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId])
+
+  // Land on the newest message, not the oldest one.
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ block: 'end' })
+  }, [messages.length])
 
   const send = async () => {
     if (!draft.trim()) return
@@ -1277,6 +1284,7 @@ function PhoneThread({ conversationId, onBack }: { conversationId: string; onBac
           </div>
         ))}
         {messages.length === 0 && <p className="pt-6 text-center text-xs text-white/40">No messages yet.</p>}
+        <div ref={bottomRef} />
       </div>
       <div className="flex gap-2 pt-2">
         <input
@@ -1297,9 +1305,9 @@ function PhoneThread({ conversationId, onBack }: { conversationId: string; onBac
 const EARS_STATUS_STYLE: Record<EarsStatus, string> = {
   new: 'bg-[var(--gold)]/15 text-[var(--gold)]',
   acknowledged: 'bg-[var(--fg)]/10 text-[var(--fg)]/60',
-  in_progress: 'bg-sky-500/15 text-sky-400',
-  escalated: 'bg-red-500/15 text-red-400',
-  resolved: 'bg-emerald-500/15 text-emerald-400',
+  in_progress: 'bg-sky-500/15 text-sky-700',
+  escalated: 'bg-red-500/15 text-red-700',
+  resolved: 'bg-emerald-500/15 text-emerald-700',
 }
 
 function EarsInboxTab() {
@@ -1415,6 +1423,7 @@ function EarsDetail({ message, onBack }: { message: EarsMessageRow; onBack: () =
     await setEarsStatus(message.id, s)
     setStatus(s)
     haptics.tap()
+    load()
   }
 
   const escalate = async () => {
@@ -1424,6 +1433,7 @@ function EarsDetail({ message, onBack }: { message: EarsMessageRow; onBack: () =
     setEscalating(false)
     setEscalateReason('')
     haptics.success()
+    load()
   }
 
   return (
@@ -1447,7 +1457,7 @@ function EarsDetail({ message, onBack }: { message: EarsMessageRow; onBack: () =
           </button>
         ))}
         {!escalating ? (
-          <button onClick={() => setEscalating(true)} className="rounded-md bg-red-500/15 px-3 py-1.5 text-xs font-bold text-red-400 hover:bg-red-500/25">
+          <button onClick={() => setEscalating(true)} className="rounded-md bg-red-500/15 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-500/25">
             Escalate to Admin
           </button>
         ) : null}
@@ -1455,10 +1465,10 @@ function EarsDetail({ message, onBack }: { message: EarsMessageRow; onBack: () =
 
       {escalating && (
         <div className="panel space-y-2 p-4">
-          <p className="text-sm font-bold text-red-400">Why does this need admin attention?</p>
+          <p className="text-sm font-bold text-red-700">Why does this need admin attention?</p>
           <input value={escalateReason} onChange={(e) => setEscalateReason(e.target.value)} placeholder="Reason" className={`${inputClass} py-2 text-sm`} />
           <div className="flex gap-2">
-            <button onClick={escalate} className="rounded-md bg-red-500/15 px-4 py-2 text-sm font-bold text-red-400 hover:bg-red-500/25">
+            <button onClick={escalate} className="rounded-md bg-red-500/15 px-4 py-2 text-sm font-bold text-red-700 hover:bg-red-500/25">
               Confirm Escalation
             </button>
             <button onClick={() => setEscalating(false)} className="btn-outline px-4 py-2 text-sm">
@@ -1560,7 +1570,7 @@ function ProfileTab() {
       </div>
       <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name" className={inputClass} />
       {saved && (
-        <p className="flex items-center gap-1.5 text-sm text-emerald-400">
+        <p className="flex items-center gap-1.5 text-sm text-emerald-700">
           <Check className="h-4 w-4" /> Saved
         </p>
       )}

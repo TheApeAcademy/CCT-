@@ -16,8 +16,6 @@ import {
   BookOpen,
   Clock,
   Flame,
-  Swords,
-  Star,
   Award,
   Grid3x3,
   Layers,
@@ -29,10 +27,8 @@ import {
   Mic2,
   Dice5,
   Brain,
-  Map,
-  Compass,
+  Bot,
   Globe,
-  GraduationCap,
   ArrowRight,
   Lock,
   Wallet,
@@ -92,6 +88,7 @@ import {
   type LectureRow,
   type AssignmentRow,
 } from '../lib/ministry'
+import { achievementIcon } from '../lib/achievementIcons'
 import { fileToResizedDataUrl } from '../lib/image'
 import { renderIdCardPng } from '../lib/idCard'
 import { playClick, playNav } from '../lib/sound'
@@ -417,19 +414,6 @@ function Dashboard() {
   )
 }
 
-const ACHIEVEMENT_ICONS: Record<string, LucideIcon> = {
-  swords: Swords,
-  trophy: Trophy,
-  star: Star,
-  'book-open': BookOpen,
-  flame: Flame,
-  award: Award,
-  map: Map,
-  compass: Compass,
-  'graduation-cap': GraduationCap,
-  sparkles: Sparkles,
-}
-
 function HomeTab({
   student,
   klass,
@@ -468,9 +452,9 @@ const DOCK_APPS = [
   { key: 'prayer' as const, label: 'Prayer', icon: Heart, from: '#f9a8d4', to: '#be185d' },
   { key: 'diary' as const, label: 'Diary', icon: PenLine, from: '#5eead4', to: '#0f766e' },
   { key: 'calendar' as const, label: 'Calendar', icon: CalendarDays, from: '#fca5a5', to: '#b91c1c' },
-  { key: 'collection' as const, label: 'Collection', icon: Sparkles, from: '#fbcfe8', to: '#9d174d' },
+  { key: 'collection' as const, label: 'Collection', icon: Layers, from: '#fbcfe8', to: '#9d174d' },
   { key: 'world' as const, label: 'Pray for World', icon: Globe, from: '#93c5fd', to: '#1e3a8a' },
-  { key: 'buddy' as const, label: 'Bible Buddy', icon: Sparkles, from: '#a5b4fc', to: '#4338ca' },
+  { key: 'buddy' as const, label: 'Bible Buddy', icon: Bot, from: '#a5b4fc', to: '#4338ca' },
 ]
 type DockApp = (typeof DOCK_APPS)[number]['key']
 
@@ -612,7 +596,7 @@ function StandingPhone({
                   <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
                     {achievements.length === 0 && <p className="pt-8 text-center text-xs text-white/40">No badges yet - keep going!</p>}
                     {achievements.map((a) => {
-                      const Icon = ACHIEVEMENT_ICONS[a.icon] ?? Award
+                      const Icon = achievementIcon(a.icon)
                       return (
                         <div key={a.id} className="flex items-center gap-2.5 rounded-2xl bg-white/5 p-2.5">
                           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full" style={{ background: '#f2c94c' }}>
@@ -746,10 +730,16 @@ function ChatScreen({ teacherId, teacherName }: { teacherId: string; teacherName
   const [messages, setMessages] = useState<MessageRow[]>([])
   const [draft, setDraft] = useState('')
   const [myId, setMyId] = useState<string | null>(null)
+  const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setMyId(data.user?.id ?? null))
   }, [])
+
+  // Land on the newest message, not the oldest one.
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ block: 'end' })
+  }, [messages.length])
 
   useEffect(() => {
     if (!myId) return
@@ -780,6 +770,7 @@ function ChatScreen({ teacherId, teacherName }: { teacherId: string; teacherName
           </div>
         ))}
         {messages.length === 0 && <p className="pt-8 text-center text-sm text-white/40">Say hi to your teacher!</p>}
+        <div ref={bottomRef} />
       </div>
       <div className="flex gap-2 pt-2">
         <input
@@ -975,11 +966,12 @@ function GameTab() {
           row="2 / 3"
         />
         <BentoTile
-          title="Bible Word Search"
-          icon={Grid3x3}
-          accent="var(--ink-faint)"
-          dark="#101014"
+          title="Question Bank"
+          icon={BookOpen}
+          accent="var(--lp-accent-questions)"
+          dark="#0a1a2e"
           photo="/village/game-rocket.png"
+          to="/questions"
           col="5 / 6"
           row="2 / 3"
         />
@@ -1389,12 +1381,12 @@ function AssignmentCard({ assignment }: { assignment: AssignmentRow }) {
   }
 
   return (
-    <div className="panel p-4">
+    <div className="rounded-xl bg-white/8 p-3">
       <button onClick={() => setExpanded((v) => !v)} className="flex w-full items-start justify-between gap-2 text-left">
         <div>
-          <p className="font-bold">{assignment.title}</p>
+          <p className="font-bold text-white">{assignment.title}</p>
           {assignment.due_date && (
-            <p className="mt-1 flex items-center gap-1 text-xs text-[var(--ink-faint)]">
+            <p className="mt-1 flex items-center gap-1 text-xs text-white/50">
               <Clock className="h-3 w-3" /> Due {new Date(assignment.due_date).toLocaleDateString()}
             </p>
           )}
@@ -1402,12 +1394,12 @@ function AssignmentCard({ assignment }: { assignment: AssignmentRow }) {
         <span
           className={`shrink-0 rounded px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${
             submitted?.grade !== null && submitted?.grade !== undefined
-              ? 'bg-emerald-500/15 text-emerald-400'
+              ? 'bg-emerald-500/20 text-emerald-300'
               : submitted
-                ? 'bg-[var(--ink-panel)] text-[var(--ink-muted)]'
+                ? 'bg-white/10 text-white/60'
                 : overdue
-                  ? 'bg-red-500/15 text-red-400'
-                  : 'bg-[var(--gold)]/15 text-[var(--gold)]'
+                  ? 'bg-red-500/20 text-red-300'
+                  : 'bg-[var(--gold)]/20 text-[var(--gold)]'
           }`}
         >
           {submitted?.grade !== null && submitted?.grade !== undefined ? 'Graded' : submitted ? 'Submitted' : overdue ? 'Overdue' : 'Open'}
@@ -1416,14 +1408,14 @@ function AssignmentCard({ assignment }: { assignment: AssignmentRow }) {
 
       {expanded && loaded && (
         <div className="mt-3 space-y-2">
-          {assignment.instructions && <p className="whitespace-pre-wrap text-sm text-[var(--ink-muted)]">{assignment.instructions}</p>}
+          {assignment.instructions && <p className="whitespace-pre-wrap text-sm text-white/70">{assignment.instructions}</p>}
           {submitted?.grade !== null && submitted?.grade !== undefined ? (
-            <div className="rounded-md bg-emerald-500/10 p-3 text-sm">
-              <p className="font-bold text-emerald-400">
+            <div className="rounded-md bg-emerald-500/15 p-3 text-sm">
+              <p className="font-bold text-emerald-300">
                 Grade: {submitted.grade}
                 {assignment.max_score ? ` / ${assignment.max_score}` : ''}
               </p>
-              {submitted.feedback && <p className="mt-1 text-[var(--ink-muted)]">{submitted.feedback}</p>}
+              {submitted.feedback && <p className="mt-1 text-white/70">{submitted.feedback}</p>}
             </div>
           ) : (
             <>
@@ -1432,7 +1424,7 @@ function AssignmentCard({ assignment }: { assignment: AssignmentRow }) {
                 onChange={(e) => setBody(e.target.value)}
                 placeholder="Type your answer…"
                 rows={3}
-                className="w-full rounded-md border border-[var(--hairline-strong)] bg-transparent px-4 py-3 text-sm outline-none focus:border-[var(--gold)]"
+                className="w-full rounded-md border border-white/15 bg-white/5 px-4 py-3 text-sm text-white outline-none placeholder:text-white/40 focus:border-white/40"
               />
               <button onClick={submit} disabled={submitting} className="btn-solid px-4 py-2 text-sm">
                 {submitting ? 'Submitting…' : submitted ? 'Update Submission' : 'Submit'}
@@ -1464,7 +1456,8 @@ function HugeHeroIcon({
   image: string
   label: string
   value?: string
-  size: number
+  /** Any CSS length, so it can scale with the viewport instead of a fixed pixel size. */
+  size: string
   left: string
   rotate: number
   top: number
@@ -1550,8 +1543,8 @@ function SundaySchoolTab({
           image="/icons/streak-flame.png"
           label="Bible Reading Plan"
           value={String(streak)}
-          size={170}
-          left="40%"
+          size="min(38vw, 170px)"
+          left="27%"
           top={130}
           rotate={-8}
           onClick={() => {
@@ -1562,8 +1555,8 @@ function SundaySchoolTab({
         <HugeHeroIcon
           image="/icons/bible-journey-book.png"
           label="Bible Journey"
-          size={200}
-          left="60%"
+          size="min(44vw, 200px)"
+          left="72%"
           top={105}
           rotate={5}
           onClick={() => {
@@ -1898,7 +1891,9 @@ function ProfileTab({ student, klass, onSaved }: { student: StudentRow; klass: (
             </button>
           </div>
         )}
-        <p className="text-xs text-[var(--ink-faint)]">Give this to your teacher so they can add you to your class.</p>
+        {student.student_code && (
+          <p className="text-xs text-[var(--ink-faint)]">Give this to your teacher so they can add you to your class.</p>
+        )}
 
         {parentCode && (
           <div className="flex items-center justify-between gap-3 rounded-md border border-[var(--hairline-strong)] px-4 py-3">
@@ -1915,13 +1910,17 @@ function ProfileTab({ student, klass, onSaved }: { student: StudentRow; klass: (
             </button>
           </div>
         )}
-        <p className="text-xs text-[var(--ink-faint)]">Give this to a parent so they can follow your progress on their own dashboard.</p>
+        {parentCode && (
+          <p className="text-xs text-[var(--ink-faint)]">
+            Give this to a parent so they can follow your progress on their own dashboard.
+          </p>
+        )}
 
         <textarea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="A little about me…" rows={2} className={inputClass} />
         <input value={verse} onChange={(e) => setVerse(e.target.value)} placeholder="Favorite Bible verse" className={inputClass} />
         <input value={quote} onChange={(e) => setQuote(e.target.value)} placeholder="Favorite quote" className={inputClass} />
         {saved && (
-          <p className="flex items-center gap-1.5 text-sm text-emerald-400">
+          <p className="flex items-center gap-1.5 text-sm text-emerald-700">
             <Check className="h-4 w-4" /> Saved
           </p>
         )}
@@ -1964,10 +1963,16 @@ function MessagesTab({ teacherId, teacherName, teacherAvatar }: { teacherId: str
   const [messages, setMessages] = useState<MessageRow[]>([])
   const [draft, setDraft] = useState('')
   const [myId, setMyId] = useState<string | null>(null)
+  const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setMyId(data.user?.id ?? null))
   }, [])
+
+  // Land on the newest message, not the oldest one.
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ block: 'end' })
+  }, [messages.length])
 
   useEffect(() => {
     if (!myId) return
@@ -2015,6 +2020,7 @@ function MessagesTab({ teacherId, teacherName, teacherAvatar }: { teacherId: str
                 </div>
               ))}
               {messages.length === 0 && <p className="pt-8 text-center text-sm text-white/40">Say hi to your teacher!</p>}
+              <div ref={bottomRef} />
             </div>
 
             <div className="mt-3 flex gap-2">
@@ -2119,6 +2125,12 @@ function EarsTab({ klass }: { klass: (ClassRow & { teacher_name: string; teacher
               <button type="button" onClick={submit} disabled={submitting || !klass} className="btn-solid w-full py-3">
                 {submitting ? 'Sending…' : 'Send'}
               </button>
+              {!klass && (
+                <p className="text-center text-xs text-[var(--ink-muted)]">
+                  You need to be in a class first, so this goes to your own teacher. Give your Student Code to your
+                  Sunday school teacher and they will add you.
+                </p>
+              )}
             </div>
           </div>
 

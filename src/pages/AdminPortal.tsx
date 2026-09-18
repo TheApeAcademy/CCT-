@@ -371,7 +371,7 @@ function DigitalBankTab() {
                 </button>
                 <button
                   onClick={() => handleDelete(f.id!)}
-                  className="flex items-center gap-1.5 rounded-lg bg-red-500/10 px-3 py-1.5 text-sm text-red-600 transition hover:scale-105 hover:bg-red-500/20"
+                  className="flex items-center gap-1.5 rounded-lg bg-red-500/10 px-3 py-1.5 text-sm text-red-700 transition hover:scale-105 hover:bg-red-500/20"
                 >
                   <Trash2 className="h-3.5 w-3.5" /> Delete
                 </button>
@@ -432,7 +432,7 @@ function ApplicationsTab() {
               </div>
               <span
                 className={`rounded px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${
-                  a.status === 'approved' ? 'bg-emerald-500/15 text-emerald-400' : a.status === 'rejected' ? 'bg-red-500/15 text-red-400' : 'bg-[var(--gold)]/15 text-[var(--gold)]'
+                  a.status === 'approved' ? 'bg-emerald-500/15 text-emerald-700' : a.status === 'rejected' ? 'bg-red-500/15 text-red-700' : 'bg-[var(--gold)]/15 text-[var(--gold)]'
                 }`}
               >
                 {a.status}
@@ -441,10 +441,10 @@ function ApplicationsTab() {
             {a.message && <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--fg)]/80">{a.message}</p>}
             {a.status === 'pending' && (
               <div className="mt-3 flex gap-2">
-                <button onClick={() => handle(a.id, true)} className="flex items-center gap-1.5 rounded-md bg-emerald-500/15 px-4 py-2 text-sm font-bold text-emerald-400 transition hover:bg-emerald-500/25">
+                <button onClick={() => handle(a.id, true)} className="flex items-center gap-1.5 rounded-md bg-emerald-500/15 px-4 py-2 text-sm font-bold text-emerald-700 transition hover:bg-emerald-500/25">
                   <Check className="h-4 w-4" /> Approve
                 </button>
-                <button onClick={() => handle(a.id, false)} className="flex items-center gap-1.5 rounded-md bg-red-500/15 px-4 py-2 text-sm font-bold text-red-400 transition hover:bg-red-500/25">
+                <button onClick={() => handle(a.id, false)} className="flex items-center gap-1.5 rounded-md bg-red-500/15 px-4 py-2 text-sm font-bold text-red-700 transition hover:bg-red-500/25">
                   <X className="h-4 w-4" /> Reject
                 </button>
               </div>
@@ -647,7 +647,7 @@ function MinistryCalendarTab() {
               <button onClick={() => startEdit(event)} className="btn-outline px-3 py-1.5 text-xs">
                 Edit
               </button>
-              <button onClick={() => remove(event.id)} className="rounded-md bg-red-500/15 px-3 py-1.5 text-xs font-bold text-red-400 hover:bg-red-500/25">
+              <button onClick={() => remove(event.id)} className="rounded-md bg-red-500/15 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-500/25">
                 Delete
               </button>
             </div>

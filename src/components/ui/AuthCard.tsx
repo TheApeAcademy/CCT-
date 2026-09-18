@@ -96,7 +96,7 @@ export default function AuthCard({
           <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMeChecked(e.target.checked)} className="h-4 w-4" />
           Remember me on this device
         </label>
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && <p className="text-sm text-red-700">{error}</p>}
         <button onClick={tab === 'signin' ? handleSignIn : handleSignUp} disabled={loading} className="btn-solid w-full py-3 text-base">
           {loading ? 'Please wait…' : tab === 'signin' ? 'Sign In' : signUpLabel}
         </button>

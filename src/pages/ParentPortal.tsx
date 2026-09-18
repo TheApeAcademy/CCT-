@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Users, KeyRound, Check, Flame, BookOpen, ClipboardCheck, Star, User, ChevronDown, type LucideIcon } from 'lucide-react'
+import { Users, KeyRound, Flame, BookOpen, ClipboardCheck, Star, User, ChevronDown, type LucideIcon } from 'lucide-react'
 import { signOut } from '../lib/supabase'
 import { useMinistryAuth } from '../lib/useMinistryAuth'
 import AuthCard from '../components/ui/AuthCard'
@@ -15,17 +15,11 @@ import {
   type EarnedAchievement,
 } from '../lib/ministry'
 import { getJourneyProgressForStudent, type JourneyProgressRow } from '../lib/journey'
+import { achievementIcon } from '../lib/achievementIcons'
 import { playClick } from '../lib/sound'
 import { haptics } from '../lib/haptics'
 
 const inputClass = 'w-full rounded-md border border-[var(--hairline-strong)] bg-transparent px-4 py-3 outline-none focus:border-[var(--gold)]'
-
-const ACHIEVEMENT_ICONS: Record<string, LucideIcon> = {
-  flame: Flame,
-  'book-open': BookOpen,
-  sparkles: Star,
-  star: Star,
-}
 
 export default function ParentPortal() {
   const { session, profile, loading, refreshProfile } = useMinistryAuth()
@@ -139,7 +133,7 @@ function ParentDashboard() {
             {linking ? 'Linking…' : 'Link'}
           </button>
         </div>
-        {linkError && <p className="text-sm text-red-400">{linkError}</p>}
+        {linkError && <p className="text-sm text-red-700">{linkError}</p>}
       </div>
 
       {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
@@ -188,6 +182,7 @@ function ChildDetail({ child }: { child: ChildRow }) {
   const [attendance, setAttendance] = useState<{ present: number; total: number }>({ present: 0, total: 0 })
   const [journey, setJourney] = useState<JourneyProgressRow[]>([])
   const [monthlyStars, setMonthlyStars] = useState(0)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const startOfMonth = new Date()
@@ -215,13 +210,22 @@ function ChildDetail({ child }: { child: ChildRow }) {
       const attendanceThisMonth = att.filter((a) => a.present && a.date >= monthIso.slice(0, 10)).length
       const activity = lessonsThisMonth + quizzes.length + attendanceThisMonth
       setMonthlyStars(Math.min(5, Math.ceil(activity / 3)))
+      setLoading(false)
     })
   }, [child.id])
+
+  if (loading) {
+    return (
+      <div className="border-t border-[var(--hairline)] p-6 text-center text-sm text-[var(--ink-muted)]">
+        Loading {child.full_name.split(' ')[0]}&apos;s progress…
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4 border-t border-[var(--hairline)] p-4">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Stat icon={Flame} label="Bible Streak" value={streak === null ? '…' : `${streak} day${streak === 1 ? '' : 's'}`} />
+        <Stat icon={Flame} label="Bible Streak" value={`${streak ?? 0} day${streak === 1 ? '' : 's'}`} />
         <Stat icon={BookOpen} label="Lessons Done" value={String(journey.length)} />
         <Stat icon={ClipboardCheck} label="Attendance" value={attendance.total ? `${attendance.present}/${attendance.total}` : 'No data yet'} />
         <Stat icon={Star} label="Badges" value={String(achievements.length)} />
@@ -244,7 +248,7 @@ function ChildDetail({ child }: { child: ChildRow }) {
         {achievements.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No badges earned yet.</p>}
         <div className="grid gap-2 sm:grid-cols-2">
           {achievements.map((a) => {
-            const Icon = ACHIEVEMENT_ICONS[a.icon] ?? Check
+            const Icon = achievementIcon(a.icon)
             return (
               <div key={a.id} className="flex items-center gap-2.5 rounded-md bg-[var(--ink-panel)] p-2.5">
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full" style={{ background: 'var(--gold)' }}>

@@ -31,7 +31,7 @@ export default function ClassFeatureIntro() {
 
   return (
     <div
-      className="lp-band-tinted full-bleed relative isolate px-4 py-16 sm:py-24"
+      className="lp-band-tinted full-bleed relative isolate px-4 lp-rhythm"
       style={{ ['--card-accent' as string]: 'var(--lp-accent-class)' }}
     >
       <ColorSprinkles />

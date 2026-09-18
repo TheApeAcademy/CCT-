@@ -43,8 +43,6 @@ import { SHOWCASE_GROUPS, COMING_SOON, type ShowcaseFeature } from '../content/f
 import { playClick } from '../lib/sound'
 // The landing page's third display face, for the eyebrows and the big
 // numbers in the stat strip - same as Home, loaded with this page's chunk.
-import '@fontsource/fredoka/500.css'
-import '@fontsource/fredoka/700.css'
 
 // Only the icons the showcase content actually names. Anything unmatched
 // falls back to Sparkle rather than crashing the page.
@@ -131,7 +129,7 @@ export default function Features() {
       {SHOWCASE_GROUPS.map((group, i) => (
         <div
           key={group.key}
-          className={`${i % 2 === 0 ? 'lp-band-alt' : 'lp-band'} full-bleed px-4 py-14 sm:py-20`}
+          className={`${i % 2 === 0 ? 'lp-band-alt' : 'lp-band'} full-bleed px-4 lp-rhythm`}
         >
           <div className="mx-auto max-w-6xl">
             <Reveal>
@@ -164,7 +162,7 @@ export default function Features() {
       ))}
 
       {/* ---------- honest about what is not built yet ---------- */}
-      <div className="lp-band-deep full-bleed px-4 py-14 sm:py-16">
+      <div className="lp-band-deep full-bleed px-4 lp-rhythm-compact">
         <div className="mx-auto max-w-6xl">
           <Reveal className="text-center">
             <p className="lp-eyebrow justify-center" style={{ ['--card-accent' as string]: 'var(--lp-accent-compete)' }}>
@@ -199,7 +197,7 @@ export default function Features() {
       </div>
 
       {/* ---------- final CTA: the four doors, together ---------- */}
-      <div className="stage-glow full-bleed border-t border-[var(--hairline)] px-4 py-16 text-center sm:py-20">
+      <div className="stage-glow full-bleed border-t border-[var(--hairline)] px-4 lp-rhythm text-center">
         <Reveal>
           <p className="eyebrow justify-center">Pick Your Door</p>
           <h2 className="mt-2 font-display text-3xl font-extrabold text-white sm:text-4xl">Which one are you?</h2>

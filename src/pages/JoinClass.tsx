@@ -11,7 +11,6 @@ import ColorSprinkles from '../components/ColorSprinkles'
 // Landing page's playful display face for the big student code / step
 // numbers - safe to pull in here since /join is already its own lazy
 // route, never loaded by the offline quiz.
-import '@fontsource/fredoka/700.css'
 
 type Mode = 'new' | 'returning'
 
@@ -25,11 +24,12 @@ export default function JoinClass() {
     <div className="relative mx-auto max-w-md space-y-8">
       <ColorSprinkles />
       <div className="text-center">
-        {/* The shell's header already carries the ministry logo a hundred
-            pixels above this, so repeating it here said nothing twice. The
-            quiz artwork is what the heading underneath is actually about. */}
+        {/* The full ministry logo, deliberately. It also sits in the header
+            above, and that repetition is wanted here: this is the screen
+            where a child arrives from outside, and the ministry's own mark
+            is what should greet them. */}
         <FloatingArt className="mx-auto w-28 sm:w-32">
-          <img src="/feature-quiz.png" alt="" className="w-full drop-shadow-xl" />
+          <img src="/children-ministry-logo-splash.png" alt="MFM Children's Ministry" className="w-full drop-shadow-xl" />
         </FloatingArt>
         <p className="lp-eyebrow mt-4 justify-center" style={{ ['--card-accent' as string]: 'var(--lp-accent-compete)' }}>
           The Ultimate Bible Quiz Adventure
@@ -222,7 +222,7 @@ function NewStudentFlow() {
           <div className="rounded-xl border-2 border-[var(--lp-hairline-strong)] bg-[var(--lp-bg)] py-5 text-center">
             <p
               className="font-display text-3xl font-extrabold tracking-widest"
-              style={{ fontFamily: 'Fredoka, var(--font-display)', color: STEP_ACCENT.passcode }}
+              style={{ fontFamily: 'var(--font-display)', color: STEP_ACCENT.passcode }}
             >
               {passcode}
             </p>

@@ -32,7 +32,7 @@ export default function AchievementsFeatureIntro() {
   }, [unlocked, reduced])
 
   return (
-    <div className="lp-band-tinted full-bleed relative isolate px-4 py-16 sm:py-24" style={{ ['--card-accent' as string]: 'var(--lp-accent-achievements)' }}>
+    <div className="lp-band-tinted full-bleed relative isolate px-4 lp-rhythm" style={{ ['--card-accent' as string]: 'var(--lp-accent-achievements)' }}>
       <ColorSprinkles />
       <div className="mx-auto max-w-6xl">
         <div className="grid items-center gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">

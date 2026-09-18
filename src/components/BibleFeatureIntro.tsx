@@ -41,7 +41,7 @@ function StreakCount({ to }: { to: number }) {
 /** Calm, meaningful contrast to the Quiz section - a verse reveal and a streak, not a game. */
 export default function BibleFeatureIntro() {
   return (
-    <div className="lp-band-tinted-soft full-bleed relative isolate px-4 py-16 sm:py-24" style={{ ['--card-accent' as string]: 'var(--lp-accent-bible)' }}>
+    <div className="lp-band-tinted-soft full-bleed relative isolate px-4 lp-rhythm" style={{ ['--card-accent' as string]: 'var(--lp-accent-bible)' }}>
       <ColorSprinkles />
       <div className="mx-auto max-w-6xl">
         <div className="grid items-center gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">

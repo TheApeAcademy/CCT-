@@ -35,7 +35,7 @@ const JoinClass = lazy(() => import('./pages/JoinClass'))
 const Home = lazy(() => import('./pages/Home'))
 
 // The "Everything Inside" showcase shares Home's motion/scroll-reveal
-// libraries and its own Fredoka weights, so it gets its own lazy chunk for
+// libraries and display font weights, so it gets its own lazy chunk for
 // the same reason Home does.
 const Features = lazy(() => import('./pages/Features'))
 

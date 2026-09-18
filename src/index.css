@@ -813,23 +813,47 @@ button:active, a:active {
   --lp-band-deep-body: rgba(237, 233, 246, 0.82);
 }
 
+/* Two band rhythms, and only two. Vertical padding on the full-bleed bands
+   used to run 56, 64, 80 and 96px in five different combinations with no
+   rule about which went where, which is invisible on any single band and
+   obvious the moment you scroll the page. A section with its own content
+   gets the standard rhythm; an interstitial that exists to introduce the
+   next one gets the compact one. */
+.lp-rhythm {
+  padding-block: 4rem;
+}
+.lp-rhythm-compact {
+  padding-block: 3rem;
+}
+@media (min-width: 640px) {
+  .lp-rhythm {
+    padding-block: 6rem;
+  }
+  .lp-rhythm-compact {
+    padding-block: 4rem;
+  }
+}
+
 .lp-page {
   background: var(--lp-bg);
   color: var(--lp-body);
 }
 
-/* A playful pill-shaped tag, not plain label text - Fredoka (bouncier than
-   Poppins/Baloo2/Nunito everywhere else) on a soft tinted chip, colour
-   defaulting to the purple-pink accent but overridable per section via
-   --card-accent so each part of the page can wear its own colour. */
+/* A playful pill-shaped tag, not plain label text, on a soft tinted chip,
+   colour defaulting to the purple-pink accent but overridable per section
+   via --card-accent so each part of the page can wear its own colour.
+   This used to be set in Fredoka, a fourth typeface bought purely for the
+   eyebrows. Baloo 2 is already the display face and carries the same bounce
+   at this size once the tracking is opened up, so the page now runs on three
+   faces instead of four and a phone downloads two fewer font files. */
 .lp-eyebrow {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-family: 'Fredoka', var(--font-body);
+  font-family: var(--font-display);
   font-size: 0.74rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--card-accent, var(--lp-accent-text));
   background: color-mix(in srgb, var(--card-accent, var(--lp-accent-text)) 14%, transparent);

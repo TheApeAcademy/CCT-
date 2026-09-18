@@ -25,8 +25,6 @@ import { playClick } from '../lib/sound'
 // A third, deliberately bouncier display face (distinct from the hero's
 // clean Poppins and the body's Nunito) for tags/badges/numbers - part of
 // the landing page's own lazy chunk, never loaded by the offline quiz.
-import '@fontsource/fredoka/500.css'
-import '@fontsource/fredoka/700.css'
 
 const slides: HeroSlide[] = [
   {
@@ -68,7 +66,7 @@ export default function Home() {
       <HeroCarousel slides={slides} />
 
       {/* ---------- flagship feature: the quiz, demonstrated ---------- */}
-      <div className="lp-band lp-blob-bg full-bleed isolate px-4 py-16 sm:py-24">
+      <div className="lp-band lp-blob-bg full-bleed isolate px-4 lp-rhythm">
         <ColorSprinkles />
         <div className="mx-auto max-w-6xl">
           <div className="grid items-center gap-10 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
@@ -108,7 +106,7 @@ export default function Home() {
       </div>
 
       {/* ---------- what we do ---------- */}
-      <div className="lp-band-alt lp-blob-bg full-bleed px-4 py-16 sm:py-20" style={{ ['--lp-blob-accent-2' as string]: 'var(--lp-accent-seasons)' }}>
+      <div className="lp-band-alt lp-blob-bg full-bleed px-4 lp-rhythm" style={{ ['--lp-blob-accent-2' as string]: 'var(--lp-accent-seasons)' }}>
         <div className="mx-auto max-w-6xl">
           <Reveal>
             <p className="lp-eyebrow" style={{ ['--card-accent' as string]: 'var(--lp-accent-training)' }}>
@@ -166,7 +164,7 @@ export default function Home() {
       </div>
 
       {/* ---------- bridge: sets up the dashboard-only features below ---------- */}
-      <div className="lp-band-deep full-bleed px-4 py-14 sm:py-16">
+      <div className="lp-band-deep full-bleed px-4 lp-rhythm-compact">
         <div className="mx-auto max-w-6xl">
           <Reveal className="text-center">
             <p className="lp-eyebrow justify-center" style={{ ['--card-accent' as string]: 'var(--lp-accent-leaderboard)' }}>
@@ -199,7 +197,7 @@ export default function Home() {
       <EarsForYouFeatureIntro />
 
       {/* ---------- about: ministry, branch, and leadership in one continuous view ---------- */}
-      <div id="about" className="lp-band-alt full-bleed scroll-mt-20 px-4 py-14 sm:py-16">
+      <div id="about" className="lp-band-alt full-bleed scroll-mt-20 px-4 lp-rhythm-compact">
         <div className="mx-auto max-w-6xl">
           <Reveal className="relative flex flex-col-reverse items-center gap-2 sm:flex-row sm:items-end sm:justify-start">
             <div className="relative z-10 max-w-xl shrink-0">
@@ -263,7 +261,7 @@ export default function Home() {
       </div>
 
       {/* ---------- contact us ---------- */}
-      <div id="contact" className="lp-band full-bleed scroll-mt-20 px-4 py-16 sm:py-20">
+      <div id="contact" className="lp-band full-bleed scroll-mt-20 px-4 lp-rhythm">
         <div className="mx-auto max-w-6xl">
           <Reveal>
             <p className="lp-eyebrow" style={{ ['--card-accent' as string]: 'var(--lp-accent-ears)' }}>
@@ -285,7 +283,7 @@ export default function Home() {
       </div>
 
       {/* ---------- final CTA: brings the whole ecosystem together ---------- */}
-      <div className="stage-glow full-bleed border-t border-[var(--hairline)] px-4 py-16 text-center sm:py-20">
+      <div className="stage-glow full-bleed border-t border-[var(--hairline)] px-4 lp-rhythm text-center">
         <Reveal>
           <FloatingArt className="mx-auto w-36 sm:w-44">
             <img src="/feature-rocket.png" alt="" className="w-full drop-shadow-2xl" />

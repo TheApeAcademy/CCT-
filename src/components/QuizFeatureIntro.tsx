@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { Check } from 'lucide-react'
+import { Check, Scissors, Hand, Phone } from 'lucide-react'
 
 type Phase = 'question' | 'selected' | 'revealed'
 
@@ -28,6 +28,11 @@ export default function QuizFeatureIntro() {
   const [phase, setPhase] = useState<Phase>('question')
   const [picked, setPicked] = useState<number | null>(null)
   const [score, setScore] = useState(0)
+  // The copy beside this card promises lifelines, so the demo shows them
+  // rather than asking a visitor to take that on trust. 50/50 really works
+  // here; the other two are named so the row is honest about what a match
+  // actually offers.
+  const [halved, setHalved] = useState(false)
 
   const current = SAMPLE_QUESTIONS[qIndex]
 
@@ -66,6 +71,7 @@ export default function QuizFeatureIntro() {
       if (next === 0) setScore(0)
       setQIndex(next)
       setPicked(null)
+      setHalved(false)
       setPhase('question')
     }, REVEAL_MS)
     return () => window.clearTimeout(t)
@@ -83,7 +89,7 @@ export default function QuizFeatureIntro() {
             animate={{ scale: 1 }}
             transition={{ duration: 0.25 }}
             className="text-sm"
-            style={{ fontFamily: 'Fredoka, var(--font-body)' }}
+            style={{ fontFamily: 'var(--font-display)' }}
           >
             {score}
           </motion.span>
@@ -110,12 +116,15 @@ export default function QuizFeatureIntro() {
               const isPicked = i === picked
               const showReveal = phase === 'revealed' && isCorrect
               const showWrongPick = phase !== 'question' && isPicked && !isCorrect
+              // 50/50 keeps the answer and the first wrong option it meets.
+              const keptWrong = current.options.findIndex((_, j) => j !== current.correct)
+              const cutByHalf = halved && !isCorrect && i !== keptWrong
               return (
                 <motion.button
                   key={option}
                   type="button"
                   onClick={() => answer(i)}
-                  disabled={phase !== 'question'}
+                  disabled={phase !== 'question' || cutByHalf}
                   whileTap={reduced || phase !== 'question' ? undefined : { scale: 0.96 }}
                   animate={
                     reduced
@@ -127,7 +136,7 @@ export default function QuizFeatureIntro() {
                   transition={{ duration: 0.25 }}
                   className={`flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
                     phase === 'question' ? 'cursor-pointer hover:border-[var(--lp-accent-compete)]' : 'cursor-default'
-                  } ${
+                  } ${cutByHalf ? 'pointer-events-none opacity-30' : ''} ${
                     showReveal
                       ? 'border-[var(--lp-accent-training)] bg-[color-mix(in_srgb,var(--lp-accent-training)_14%,transparent)] text-[var(--lp-heading)]'
                       : showWrongPick
@@ -154,6 +163,26 @@ export default function QuizFeatureIntro() {
           </div>
         </motion.div>
       </AnimatePresence>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setHalved(true)}
+          disabled={halved || phase !== 'question'}
+          className="inline-flex items-center gap-1.5 rounded-full border border-[var(--lp-hairline-strong)] px-3 py-1.5 text-xs font-bold text-[var(--lp-body)] transition enabled:hover:border-[var(--lp-accent-compete)] enabled:hover:text-[var(--lp-heading)] disabled:opacity-40"
+        >
+          <Scissors className="h-3.5 w-3.5" strokeWidth={2.25} />
+          50/50
+        </button>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--lp-hairline)] px-3 py-1.5 text-xs font-bold text-[var(--lp-faint)]">
+          <Hand className="h-3.5 w-3.5" strokeWidth={2.25} />
+          Ask the Church
+        </span>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--lp-hairline)] px-3 py-1.5 text-xs font-bold text-[var(--lp-faint)]">
+          <Phone className="h-3.5 w-3.5" strokeWidth={2.25} />
+          Ask a Friend
+        </span>
+      </div>
 
       <div className="mt-4 flex items-center gap-1.5">
         {SAMPLE_QUESTIONS.map((_, i) => (

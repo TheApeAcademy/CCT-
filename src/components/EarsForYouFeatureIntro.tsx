@@ -14,7 +14,7 @@ import '@fontsource/poppins/700.css'
  */
 export default function EarsForYouFeatureIntro() {
   return (
-    <div className="lp-band-tinted-soft full-bleed px-4 py-16 sm:py-20" style={{ ['--card-accent' as string]: 'var(--lp-accent-ears)' }}>
+    <div className="lp-band-tinted-soft full-bleed px-4 lp-rhythm" style={{ ['--card-accent' as string]: 'var(--lp-accent-ears)' }}>
       <div className="mx-auto max-w-6xl">
         <Reveal className="mx-auto flex max-w-md flex-col items-center gap-5 text-center">
           <FloatingArt className="w-24 sm:w-32">

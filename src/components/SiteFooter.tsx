@@ -17,6 +17,7 @@ const columns = [
   {
     title: 'What We Do',
     links: [
+      { to: '/features', label: 'Everything Inside' },
       { to: '/setup', label: 'New Match' },
       { to: '/training', label: 'Training Mode' },
       { to: '/seasons', label: 'Seasons' },
@@ -28,6 +29,7 @@ const columns = [
       { to: '/questions', label: 'Question Bank' },
       { to: '/history', label: 'History' },
       { to: '/anthem', label: 'Anthem' },
+      { to: '/safety', label: 'Safety & Privacy' },
       { to: '/#contact', label: 'Contact Us' },
     ],
   },

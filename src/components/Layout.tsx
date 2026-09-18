@@ -31,6 +31,7 @@ const dropdowns = [
     key: 'what',
     label: 'What We Do',
     items: [
+      { to: '/features', label: 'Everything Inside' },
       { to: '/setup', label: 'New Match' },
       { to: '/training', label: 'Training Mode' },
       { to: '/seasons', label: 'Seasons' },
@@ -55,6 +56,11 @@ export default function Layout() {
   const navRef = useRef<HTMLDivElement>(null)
   const location = useLocation()
   const isHome = location.pathname === '/'
+  // The "Everything Inside" showcase is the landing page's companion: same
+  // full-bleed bands, same --lp-* tokens, same light/dark toggle. Every
+  // other route stays on the app's plain dark tokens.
+  const isFeatures = location.pathname === '/features'
+  const isLandingStyle = isHome || isFeatures
   // The live quiz experience (ground rules -> gameplay -> results) wants the
   // full viewport, not the site's padded max-w-6xl column, and the header
   // should stay out of the way until the player actually scrolls instead of
@@ -115,7 +121,7 @@ export default function Layout() {
   }
 
   return (
-    <div data-landing-theme={isHome ? theme : undefined} className="relative min-h-screen text-white">
+    <div data-landing-theme={isLandingStyle ? theme : undefined} className="relative min-h-screen text-white">
       <StageBackground />
       <header
         className={`fixed inset-x-0 top-0 z-40 transition-all duration-300 ${
@@ -124,6 +130,7 @@ export default function Layout() {
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <div className="flex min-w-0 shrink-0 items-center gap-2">
+            {showBack && !isFullscreenQuiz && <BackButton dark />}
             <NavLink to="/" className="flex min-w-0 shrink-0 items-center">
               <img
                 src="/children-ministry-logo-splash.png"
@@ -204,7 +211,7 @@ export default function Layout() {
               Join
             </NavLink>
 
-            {isHome && <ThemeToggle theme={theme} onToggle={toggleTheme} />}
+            {isLandingStyle && <ThemeToggle theme={theme} onToggle={toggleTheme} />}
 
             <button
               onClick={toggleMute}
@@ -272,12 +279,12 @@ export default function Layout() {
           </div>
         </nav>
       </header>
-      {showBack && <BackButton dark className="fixed left-3 top-3 z-50" />}
+      {showBack && isFullscreenQuiz && <BackButton dark className="fixed left-3 top-3 z-50" />}
       <main
         className={`relative z-10 ${
           isFullscreenQuiz
             ? 'flex min-h-[100dvh] w-full flex-col px-0 pb-0 pt-0'
-            : `mx-auto max-w-6xl px-4 pb-6 ${isHome ? 'pt-0' : 'pt-24 sm:pt-28'}`
+            : `mx-auto max-w-6xl px-4 pb-6 ${isLandingStyle ? 'pt-0' : 'pt-24 sm:pt-28'}`
         }`}
       >
         <div key={location.pathname} className={isFullscreenQuiz ? 'animate-page-in flex flex-1 flex-col' : 'animate-page-in'}>

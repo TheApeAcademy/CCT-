@@ -293,8 +293,8 @@ export default function Home() {
           <p className="eyebrow mt-2 justify-center">You&apos;ve Seen the World</p>
           <h2 className="mt-2 font-display text-3xl font-extrabold text-white sm:text-4xl">Now step inside.</h2>
           <p className="mx-auto mt-3 max-w-md text-sm text-[var(--ink-muted)] sm:text-base">
-            The Quiz, the Bible streak, the leaderboard, achievements, a teacher who listens &mdash; children join a
-            class in under a minute, and teachers apply straight to the Control Centre.
+            The Quiz, the Bible streak, the leaderboard, achievements, a teacher who listens. Children join a class in
+            under a minute, and teachers apply straight to the Control Centre.
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
             <Link to="/join" onClick={() => playClick()} className="hero-btn-solid !px-7 !py-3.5 !text-base uppercase">
@@ -307,6 +307,13 @@ export default function Home() {
               Parent Dashboard
             </Link>
           </div>
+          <Link
+            to="/features"
+            onClick={() => playClick()}
+            className="mt-7 inline-flex items-center gap-1.5 text-sm font-bold text-white/80 underline decoration-[var(--gold)] decoration-2 underline-offset-4 transition hover:text-white"
+          >
+            See everything inside, feature by feature <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
+          </Link>
         </Reveal>
       </div>
     </div>

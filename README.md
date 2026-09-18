@@ -41,16 +41,20 @@ After that, that admin can promote anyone else straight from the Admins tab in t
 
 ## Supabase Edge Functions
 
-Three functions live in `supabase/functions/`. They hold secrets that must never reach a browser.
+Four functions live in `supabase/functions/`. They hold secrets that must never reach a browser.
 
 ```bash
 supabase functions deploy join-class       --project-ref zdgbatkxjxiecqshnmwh --no-verify-jwt
 supabase functions deploy student-register --project-ref zdgbatkxjxiecqshnmwh --no-verify-jwt
 supabase functions deploy ai-companion     --project-ref zdgbatkxjxiecqshnmwh
+supabase functions deploy reset-passcode   --project-ref zdgbatkxjxiecqshnmwh
 ```
 
 - `student-register` and `join-class` create a child's account and claim their roster spot. They need the
   service role key, so they can't run client-side. Until they're deployed, children can't finish signing up.
+- `reset-passcode` gives a child who has forgotten their passcode a new one. A student account has no email
+  on it, so no reset link can ever be sent to it; their teacher does this instead, from the class roster.
+  `verify_jwt` stays on, and the function checks the caller teaches that child's class, or is an admin.
 - `ai-companion` is Bible Buddy. It keeps `verify_jwt` on, so only a signed-in child can call it, and it is the
   only thing that ever sees the Anthropic key. **It needs a secret set before it will answer anything:**
 
@@ -59,6 +63,21 @@ supabase functions deploy ai-companion     --project-ref zdgbatkxjxiecqshnmwh
   ```
 
   Without it, Bible Buddy is deployed and reachable but replies that it isn't set up yet.
+
+## Password resets
+
+Teacher, admin and parent sign-in all carry "Forgot your password?". Supabase emails the link, so the site's
+own address has to be on the allow list or every link in those emails will send people to localhost:
+
+> Supabase dashboard, Authentication, URL Configuration: set **Site URL** to the live site and add it to
+> **Redirect URLs** as well.
+
+The link comes back to the site root as `?code=...` rather than a URL fragment, because this app uses
+`HashRouter` and the fragment is already the current route. `src/main.tsx` trades that code for a session
+before the router mounts, then sends the person to `#/reset-password`.
+
+Children are the exception and always will be: a student account has no email address on it, so no link can
+reach them. Their teacher issues a new passcode from the class roster instead.
 
 ## The Bible Quiz
 

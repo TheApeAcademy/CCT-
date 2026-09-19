@@ -404,8 +404,12 @@ function Dashboard() {
                 style={{ backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px)', backgroundSize: '22px 22px' }}
               />
             )}
+            {/* Leaderboard and My Card were the only two stops capped at a
+                narrow column. On a phone that is invisible; on a laptop it
+                left the list as a thin strip with most of the screen empty
+                either side while every other stop ran edge to edge. */}
             <div
-              className={`relative z-10 ${tab === 'bible' || tab === 'game' || tab === 'home' || tab === 'class' || tab === 'ears' || tab === 'messages' ? 'pb-12' : 'mx-auto max-w-2xl p-4 pt-14 pb-12'}`}
+              className={`relative z-10 ${tab === 'bible' || tab === 'game' || tab === 'home' || tab === 'class' || tab === 'ears' || tab === 'messages' ? 'pb-12' : 'mx-auto w-full max-w-6xl px-4 pt-14 pb-12'}`}
             >
               {tab === 'home' && <HomeTab student={student} klass={klass} achievements={achievements} onNavigate={enterTab} />}
               {tab === 'class' && <ClassTab klass={klass} student={student} onNestedViewChange={setHideMapBack} />}

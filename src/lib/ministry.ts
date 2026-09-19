@@ -625,9 +625,15 @@ export async function recordQuizSession(params: {
   finishedAt: number
   answers: AnswerRecord[]
 }): Promise<string> {
-  const { data, error } = await supabase
+  // The id is minted here rather than read back from the insert. A match can
+  // be hosted on a screen nobody is signed in on, and a signed-out insert
+  // cannot use RETURNING once quiz_sessions stops being readable to the
+  // world - see 20260919120000_close_public_child_data.sql.
+  const id = crypto.randomUUID()
+  const { error } = await supabase
     .from('quiz_sessions')
     .insert({
+      id,
       student_id: params.studentId ?? null,
       player_name: params.playerName,
       set_name: params.setName,
@@ -641,10 +647,8 @@ export async function recordQuizSession(params: {
       finished_at: new Date(params.finishedAt).toISOString(),
       answers: params.answers,
     })
-    .select('id')
-    .single()
   if (error) throw error
-  return data.id as string
+  return id
 }
 
 export interface QuizHistoryRow {

@@ -23,48 +23,70 @@ const NotificationBell = lazy(() => import('./NotificationBell'))
  * dependency here would land in the shared entry chunk the offline quiz
  * has to download too.
  *
- * data-kid-surface marks this as a screen a child taps, which is what the
- * D1 (one button shape) and D4 (bigger, rounder headings) rules in
- * index.css key off. PortalShell deliberately does not set it: Admin,
- * Teacher and Parent share this light shell but keep the grown-up
- * treatment.
+ * Two of those screens, one marker each, because they answer to different
+ * references:
+ *
+ * - The dashboard is Duolingo's, so it carries data-kid-surface: the one
+ *   button shape (D1) and the bigger, rounder headings (D4) in index.css
+ *   key off it. PortalShell deliberately does not set it - Admin, Teacher
+ *   and Parent share this light shell but keep the grown-up treatment.
+ * - The sign-in page is Apple's, so it is `bare`: no chrome competing with
+ *   the page, and data-apple-chrome instead (one elevation, three radii,
+ *   controls quiet until hover).
  */
-export default function KidsShell({ eyebrow }: { eyebrow: string }) {
+export default function KidsShell({ eyebrow, bare = false }: { eyebrow: string; bare?: boolean }) {
   const autoHidden = useAutoHideNav()
+  const surface = bare ? { 'data-apple-chrome': '' } : { 'data-kid-surface': '' }
   return (
-    <div data-kid-surface="" data-landing-theme="light" className="site-light-theme lp-page relative isolate min-h-screen">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none fixed inset-0 z-0"
-        style={{
-          backgroundImage: 'radial-gradient(var(--lp-hairline-strong) 1px, transparent 1px)',
-          backgroundSize: '22px 22px',
-        }}
-      />
-      <header
-        className={`sticky top-0 z-40 border-b border-[var(--lp-hairline)] bg-[var(--lp-bg)] transition-transform duration-300 ${
-          autoHidden ? '-translate-y-full' : 'translate-y-0'
-        }`}
-      >
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3">
-          <div className="flex min-w-0 shrink-0 items-center gap-2">
-            {/* In the header's own row, not floating over it. Pinned at
-                left-3 top-3 it landed squarely on top of the logo at phone
-                width, which is the first thing a child sees here. */}
+    <div {...surface} data-landing-theme="light" className="site-light-theme lp-page relative isolate min-h-screen">
+      {/* The dot texture is the kid screens' ground. The sign-in page has a
+          plain one: on Apple's own sign-in there is nothing behind the card
+          at all, and that emptiness is the whole effect. */}
+      {!bare && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none fixed inset-0 z-0"
+          style={{
+            backgroundImage: 'radial-gradient(var(--lp-hairline-strong) 1px, transparent 1px)',
+            backgroundSize: '22px 22px',
+          }}
+        />
+      )}
+      {bare ? (
+        // Back and nothing else. The page below carries the ministry's mark
+        // itself, and a header logo directly above it meant the same logo
+        // twice on one screen.
+        <header className="relative z-40">
+          <div className="mx-auto flex max-w-3xl items-center px-4 py-4">
             <BackButton />
-            <Link to="/" className="flex min-w-0 shrink-0 items-center">
-              <img src="/children-ministry-logo-splash.png" alt="MFM Children's Ministry" className="h-14 w-auto object-contain sm:h-16" />
-            </Link>
           </div>
-          <div className="flex min-w-0 items-center gap-3">
-            <span className="lp-eyebrow truncate">{eyebrow}</span>
-            <Suspense fallback={null}>
-              <NotificationBell />
-            </Suspense>
+        </header>
+      ) : (
+        <header
+          className={`sticky top-0 z-40 border-b border-[var(--lp-hairline)] bg-[var(--lp-bg)] transition-transform duration-300 ${
+            autoHidden ? '-translate-y-full' : 'translate-y-0'
+          }`}
+        >
+          <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3">
+            <div className="flex min-w-0 shrink-0 items-center gap-2">
+              {/* In the header's own row, not floating over it. Pinned at
+                  left-3 top-3 it landed squarely on top of the logo at phone
+                  width, which is the first thing a child sees here. */}
+              <BackButton />
+              <Link to="/" className="flex min-w-0 shrink-0 items-center">
+                <img src="/children-ministry-logo-splash.png" alt="MFM Children's Ministry" className="h-14 w-auto object-contain sm:h-16" />
+              </Link>
+            </div>
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="lp-eyebrow truncate">{eyebrow}</span>
+              <Suspense fallback={null}>
+                <NotificationBell />
+              </Suspense>
+            </div>
           </div>
-        </div>
-      </header>
-      <main className="relative z-10 mx-auto max-w-3xl px-4 py-10 sm:py-14">
+        </header>
+      )}
+      <main className={`relative z-10 mx-auto max-w-3xl px-4 ${bare ? 'pb-16 pt-2' : 'py-10 sm:py-14'}`}>
         <Outlet />
       </main>
       <footer className="relative mx-auto max-w-3xl px-4 pb-8 pt-4 text-center">

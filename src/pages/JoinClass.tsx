@@ -7,54 +7,45 @@ import { haptics } from '../lib/haptics'
 import { setRememberMe } from '../lib/supabase'
 import { getRememberedStudent, saveRememberedStudent, clearRememberedStudent } from '../lib/rememberedStudent'
 import FloatingArt from '../components/FloatingArt'
-import ColorSprinkles from '../components/ColorSprinkles'
 // Landing page's playful display face for the big student code / step
 // numbers - safe to pull in here since /join is already its own lazy
 // route, never loaded by the offline quiz.
 
 type Mode = 'new' | 'returning'
 
-const inputClass =
-  'w-full rounded-xl border-2 border-[var(--lp-hairline-strong)] bg-[var(--lp-bg)] px-4 py-3 text-[var(--lp-heading)] outline-none transition-colors focus:border-[var(--hero-accent)]'
+// One field shape for the whole page (C2). The ring on focus belongs to
+// .apple-field in index.css, so a field does not change size when it is
+// tapped the way a 2px border swap does.
+const inputClass = 'apple-field'
 
 export default function JoinClass() {
   const [mode, setMode] = useState<Mode>('new')
 
   return (
     <div className="relative mx-auto max-w-md space-y-8">
-      <ColorSprinkles />
+      {/* The mark, one line of type, and nothing else - which is the whole
+          of Apple's own sign-in page. The shell above renders no logo on
+          this route, so this is the only one on the screen. */}
       <div className="text-center">
-        {/* The full ministry logo, deliberately. It also sits in the header
-            above, and that repetition is wanted here: this is the screen
-            where a child arrives from outside, and the ministry's own mark
-            is what should greet them. */}
         <FloatingArt className="mx-auto w-28 sm:w-32">
-          <img src="/children-ministry-logo-splash.png" alt="MFM Children's Ministry" className="w-full drop-shadow-xl" />
+          <img src="/children-ministry-logo-splash.png" alt="MFM Children's Ministry" className="w-full" />
         </FloatingArt>
-        <p className="lp-eyebrow mt-4 justify-center" style={{ ['--card-accent' as string]: 'var(--lp-accent-compete)' }}>
-          The Ultimate Bible Quiz Adventure
-        </p>
-        <h1 className="lp-heading mt-2 font-display text-2xl font-extrabold leading-tight sm:text-3xl">
-          Know the Word. Play the Quiz.
-          <br />
-          Grow in Faith.
+        <h1 className="lp-heading mt-5 font-display text-2xl font-extrabold leading-tight sm:text-3xl">
+          Know the Word. Play the Quiz. Grow in Faith.
         </h1>
+        <p className="mt-2 text-sm text-[var(--lp-muted)]">The Ultimate Bible Quiz Adventure</p>
       </div>
 
-      <div className="flex gap-1 rounded-2xl border border-[var(--lp-hairline-strong)] bg-[var(--lp-bg-panel)] p-1">
-        <button
-          onClick={() => setMode('new')}
-          className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-bold transition ${
-            mode === 'new' ? 'bg-[var(--hero-accent)] text-white shadow-md' : 'text-[var(--lp-muted)] hover:text-[var(--lp-heading)]'
-          }`}
-        >
+      <div className="apple-segmented" role="tablist">
+        <button type="button" role="tab" aria-selected={mode === 'new'} onClick={() => setMode('new')} className="apple-segment">
           I&apos;m new here
         </button>
         <button
+          type="button"
+          role="tab"
+          aria-selected={mode === 'returning'}
           onClick={() => setMode('returning')}
-          className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-bold transition ${
-            mode === 'returning' ? 'bg-[var(--hero-accent)] text-white shadow-md' : 'text-[var(--lp-muted)] hover:text-[var(--lp-heading)]'
-          }`}
+          className="apple-segment"
         >
           I&apos;ve signed up before
         </button>
@@ -78,14 +69,9 @@ type Step = 'name' | 'phone' | 'passcode' | 'confirm' | 'generating' | 'done'
 
 const STEP_ORDER: Step[] = ['name', 'phone', 'passcode', 'confirm', 'generating', 'done']
 
-const STEP_ACCENT: Record<Step, string> = {
-  name: 'var(--lp-accent-compete)',
-  phone: 'var(--lp-accent-training)',
-  passcode: 'var(--lp-accent-achievements)',
-  confirm: 'var(--lp-accent-leaderboard)',
-  generating: 'var(--hero-accent)',
-  done: 'var(--lp-accent-class)',
-}
+// One accent for the whole sign-up, not a different colour at every step.
+// Six accents down one flow made each panel look like a different product.
+const ACCENT = 'var(--hero-accent)'
 
 // Kids don't pick a passcode - it's built from their own first name so it's
 // easy to remember: first name + "mfm" + three random digits (e.g.
@@ -167,13 +153,13 @@ function NewStudentFlow() {
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--lp-bg-panel)]">
           <div
             className="h-full rounded-full transition-all duration-500"
-            style={{ width: `${progress}%`, background: STEP_ACCENT[step] }}
+            style={{ width: `${progress}%`, background: ACCENT }}
           />
         </div>
       )}
 
       {step === 'name' && (
-        <StepPanel icon={User} accent={STEP_ACCENT.name} question="What's your name?">
+        <StepPanel icon={User} accent={ACCENT} question="What's your name?">
           <input
             autoFocus
             value={fullName}
@@ -196,7 +182,7 @@ function NewStudentFlow() {
       )}
 
       {step === 'phone' && (
-        <StepPanel icon={Phone} accent={STEP_ACCENT.phone} question="Parent or guardian's phone number?" hint="Optional, in case we ever need to reach home.">
+        <StepPanel icon={Phone} accent={ACCENT} question="Parent or guardian's phone number?" hint="Optional, in case we ever need to reach home.">
           <input
             autoFocus
             value={guardianPhone}
@@ -218,11 +204,11 @@ function NewStudentFlow() {
       )}
 
       {step === 'passcode' && (
-        <StepPanel icon={KeyRound} accent={STEP_ACCENT.passcode} question="Here's your passcode" hint="We made it from your name so it's easy to remember.">
-          <div className="rounded-xl border-2 border-[var(--lp-hairline-strong)] bg-[var(--lp-bg)] py-5 text-center">
+        <StepPanel icon={KeyRound} accent={ACCENT} question="Here's your passcode" hint="We made it from your name so it's easy to remember.">
+          <div className="apple-field py-5 text-center">
             <p
               className="font-display text-3xl font-extrabold tracking-widest"
-              style={{ fontFamily: 'var(--font-display)', color: STEP_ACCENT.passcode }}
+              style={{ fontFamily: 'var(--font-display)', color: ACCENT }}
             >
               {passcode}
             </p>
@@ -248,7 +234,7 @@ function NewStudentFlow() {
       )}
 
       {step === 'confirm' && (
-        <StepPanel icon={KeyRound} accent={STEP_ACCENT.confirm} question="Type your passcode again" hint="Just to make sure you saved it right.">
+        <StepPanel icon={KeyRound} accent={ACCENT} question="Type your passcode again" hint="Just to make sure you saved it right.">
           <input
             autoFocus
             value={confirmPasscode}
@@ -289,8 +275,8 @@ function NewStudentFlow() {
 
       {step === 'done' && (
         <div className="animate-page-in space-y-4">
-          <div className="lp-panel lp-panel-accented space-y-3 p-6 text-center" style={{ ['--card-accent' as string]: STEP_ACCENT.done }}>
-            <PartyPopper className="mx-auto h-10 w-10" style={{ color: STEP_ACCENT.done }} strokeWidth={1.75} />
+          <div className="lp-panel lp-panel-accented space-y-3 p-6 text-center" style={{ ['--card-accent' as string]: ACCENT }}>
+            <PartyPopper className="mx-auto h-10 w-10" style={{ color: ACCENT }} strokeWidth={1.75} />
             <p className="lp-heading font-display text-xl font-bold">You&apos;re all set, {fullName.trim().split(/\s+/)[0]}!</p>
             <p className="text-sm text-[var(--lp-muted)]">
               Your Student Code is waiting on your profile once you&apos;re in, and that&apos;s what you&apos;ll give

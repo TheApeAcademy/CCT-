@@ -235,7 +235,7 @@ function App() {
               }
             />
           </Route>
-          <Route path="join" element={<KidsShell eyebrow="Create Your Account" />}>
+          <Route path="join" element={<KidsShell eyebrow="Create Your Account" bare />}>
             <Route
               index
               element={

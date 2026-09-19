@@ -470,16 +470,29 @@ function UnitPath({
         {track}
       </div>
 
-      <div className="hidden w-full items-start justify-between gap-4 sm:flex">
-        <div className="shrink-0" style={{ width: 360 }}>
+      {/* This used to be one flex row from 640px up: two fixed 360px rails
+          pushed to the far edges with justify-between and the path squeezed
+          between them. Two rails plus the 380px track need ~1130px, so
+          between 640 and 1130 they crushed each other, and past that the
+          rails drifted to opposite ends of a very wide screen with the path
+          stranded in the middle. Two honest layouts instead, each with a
+          max width and a real grid. */}
+
+      {/* Tablet and small laptop: both cards side by side, equal height, path
+          centred underneath. */}
+      <div className="mx-auto hidden w-full max-w-4xl space-y-4 sm:block xl:hidden">
+        <div className="grid grid-cols-2 gap-4">
           {preview}
-        </div>
-
-        {track}
-
-        <div className="shrink-0" style={{ width: 360 }}>
           {stats_}
         </div>
+        <div className="flex justify-center">{track}</div>
+      </div>
+
+      {/* Wide screens only, where all three genuinely fit. */}
+      <div className="mx-auto hidden w-full max-w-[1320px] grid-cols-[minmax(0,360px)_minmax(0,1fr)_minmax(0,360px)] items-start gap-6 xl:grid">
+        {preview}
+        <div className="flex justify-center">{track}</div>
+        {stats_}
       </div>
     </div>
   )

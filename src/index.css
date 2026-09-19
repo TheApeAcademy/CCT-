@@ -87,6 +87,30 @@
   --fg: #1c1030;
 }
 
+/* The signed-in kids dashboard is a full-viewport dark game screen, but it
+   renders inside KidsShell, which is .site-light-theme because the sign-up
+   screens genuinely are light. .site-light-theme redefines --ink to #ffffff,
+   and the dashboard paints its own background from --ink, so every screen
+   built for a dark ground was coming out on white: the village map art, the
+   leaderboard slab mixed into #180a2e, and the 76 places in StudentPortal
+   that set white text. This puts the app tokens back to their :root dark
+   values for that subtree only. It deliberately leaves the --lp-* tokens
+   alone, because the header pills over the map are white cards that still
+   need their dark text. */
+.kids-dark-surface {
+  color-scheme: dark;
+  --ink: #120a1f;
+  --ink-raised: #1b1030;
+  --ink-panel: #1f1436;
+  --hairline: rgba(255, 255, 255, 0.09);
+  --hairline-strong: rgba(255, 255, 255, 0.16);
+  --ink-muted: rgba(237, 233, 246, 0.62);
+  --ink-faint: rgba(237, 233, 246, 0.4);
+  --gold: #e8b923;
+  --gold-ink: #1b1030;
+  --fg: #ffffff;
+}
+
 html, body, #root {
   height: 100%;
   margin: 0;

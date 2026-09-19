@@ -49,7 +49,7 @@ export default function BibleJourneyPanel({ onExit }: { onExit: () => void }) {
           else if (view.screen === 'path') setView({ screen: 'books' })
           else setView({ screen: 'path', bookKey: view.bookKey })
         }}
-        className="flex items-center gap-1.5 text-sm font-bold text-[var(--ink-muted)] transition hover:text-[var(--lp-heading)]"
+        className="flex items-center gap-1.5 text-sm font-bold text-[var(--ink-muted)] transition hover:text-[var(--fg)]"
       >
         <ArrowLeft className="h-4 w-4" /> Back
       </button>
@@ -211,7 +211,7 @@ function BookMap({
   return (
     <div className={dark ? '-mx-4 space-y-3 px-4 pb-6' : 'space-y-3'} style={dark ? { background: '#120a1f' } : undefined}>
       <p className="eyebrow pt-3">Bible Journey</p>
-      <div className={`inline-flex rounded-full border p-1 text-xs font-bold ${dark ? 'border-white/20' : 'border-[var(--lp-hairline)]'}`}>
+      <div className={`inline-flex rounded-full border p-1 text-xs font-bold ${dark ? 'border-white/20' : 'border-[var(--hairline)]'}`}>
         <button
           onClick={() => {
             playClick()
@@ -402,13 +402,13 @@ function UnitPath({
         <div className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden sm:max-h-[75vh]">
           <div className="relative mx-auto" style={{ width: TRACK_WIDTH, height: trackHeight, maxWidth: '100%' }}>
             <svg className="absolute inset-0" width={TRACK_WIDTH} height={trackHeight} viewBox={`0 0 ${TRACK_WIDTH} ${trackHeight}`}>
-              <path d={pathD} fill="none" stroke="var(--lp-hairline-strong)" strokeWidth={6} strokeLinecap="round" strokeDasharray="2 14" />
+              <path d={pathD} fill="none" stroke="var(--hairline-strong)" strokeWidth={6} strokeLinecap="round" strokeDasharray="2 14" />
             </svg>
             {stops.map(({ unit, lesson }, i) => {
               const isDone = completedKeys.has(lesson.key)
               const isNext = i === firstIncompleteIdx
               const isLocked = !isDone && !isNext
-              const fill = isLocked ? 'var(--lp-hairline-strong)' : ACCENT
+              const fill = isLocked ? 'var(--hairline-strong)' : ACCENT
               const badgeImage = lesson.image ?? CHARACTER_FALLBACK_IMAGES[i % CHARACTER_FALLBACK_IMAGES.length]
               return (
                 <div
@@ -743,7 +743,7 @@ function LessonRunner({ bookKey, lessonKey, onDone }: { bookKey: string; lessonK
 
   return (
     <div className="space-y-4">
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--lp-hairline)]">
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--hairline)]">
         <div className="h-full rounded-full transition-all" style={{ width: `${progressPct}%`, background: ACCENT }} />
       </div>
       {phase === 'mastery' && (
@@ -804,7 +804,7 @@ function LearnStepView({
             href={bibleComUrl(step.ref)}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1 rounded-full border border-[var(--lp-hairline)] px-3 py-1 text-xs font-bold text-[var(--ink-muted)] transition hover:text-[var(--lp-heading)]"
+            className="inline-flex items-center gap-1 rounded-full border border-[var(--hairline)] px-3 py-1 text-xs font-bold text-[var(--ink-muted)] transition hover:text-[var(--fg)]"
           >
             <BookOpen className="h-3 w-3" /> {step.ref}
           </a>
@@ -879,7 +879,7 @@ function CheckCard({
               disabled={showResult}
               className="w-full rounded-md border-2 p-3 text-left text-sm font-bold transition"
               style={{
-                borderColor: showResult && isCorrect ? '#4caf6d' : showResult && isPicked ? '#e05f5f' : 'var(--lp-hairline-strong)',
+                borderColor: showResult && isCorrect ? '#4caf6d' : showResult && isPicked ? '#e05f5f' : 'var(--hairline-strong)',
                 background: showResult && isCorrect ? 'color-mix(in srgb, #4caf6d 14%, transparent)' : showResult && isPicked ? 'color-mix(in srgb, #e05f5f 14%, transparent)' : 'transparent',
               }}
             >
@@ -889,7 +889,7 @@ function CheckCard({
         })}
       </div>
       {isWrong && check.explanation && (
-        <p className="rounded-md bg-[var(--lp-hairline)] p-3 text-sm text-[var(--ink-muted)]">{check.explanation}</p>
+        <p className="rounded-md bg-[var(--hairline)] p-3 text-sm text-[var(--ink-muted)]">{check.explanation}</p>
       )}
       {isWrong && (
         <p className="text-center text-xs font-bold text-[var(--ink-muted)]">Not quite - this one will come back around.</p>

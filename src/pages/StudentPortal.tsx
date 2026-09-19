@@ -580,7 +580,15 @@ function StandingPhone({
             className="pointer-events-none absolute inset-y-0 left-0 z-30 w-1"
             style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,255,255,0.1))' }}
           />
-          <div className="relative overflow-hidden rounded-[8px]" style={{ height: 420, background: 'linear-gradient(160deg, #1c1c26 0%, #0a0a10 100%)' }}>
+          {/* dark-island: this is a black phone screen sitting inside a light
+              page, so the shared tokens have to go back to their dark values
+              for anything nested in here. Without it a token-built component
+              (the vault widget) paints a near-white card in the middle of the
+              screen. */}
+          <div
+            className="dark-island relative overflow-hidden rounded-[8px]"
+            style={{ height: 420, background: 'linear-gradient(160deg, #1c1c26 0%, #0a0a10 100%)' }}
+          >
             {/* glass glare for a bit more "3d" realism */}
             <div
               aria-hidden="true"

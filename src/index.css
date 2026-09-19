@@ -1558,3 +1558,77 @@ button:active, a:active {
   color: var(--lp-heading);
   box-shadow: 0 1px 3px rgba(20, 8, 40, 0.14);
 }
+
+/* ---------- the vault widget ----------
+   Notes and Digital Bank used to own a hardcoded near-black card, on the
+   reasoning that they get dropped onto all sorts of backdrops and the theme
+   tokens only suited light pages. That stopped being true when
+   .site-light-theme arrived: the tokens now re-point per surface, so the
+   widget reads correctly on a dark quiz screen and a light portal alike by
+   simply using them. Two black slabs in the middle of a teacher's dashboard
+   were the cost of the old approach. */
+.vault-card {
+  border-radius: var(--apple-r-card, 16px);
+  background: var(--ink-raised);
+  color: var(--fg);
+  padding: 1rem;
+}
+.vault-inner {
+  border-radius: var(--apple-r-card, 16px);
+  border: 1px solid var(--hairline);
+  background: color-mix(in srgb, var(--fg) 4%, transparent);
+  padding: 1rem;
+}
+.vault-field {
+  width: 100%;
+  border-radius: var(--apple-r-control, 10px);
+  border: 1px solid var(--hairline-strong);
+  background: color-mix(in srgb, var(--fg) 4%, transparent);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: var(--fg);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.vault-field::placeholder {
+  color: var(--ink-faint);
+}
+.vault-field:focus {
+  border-color: var(--gold);
+}
+.vault-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 999px;
+  border: 1px solid var(--hairline-strong);
+  background: color-mix(in srgb, var(--fg) 4%, transparent);
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--ink-muted);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.vault-chip:hover {
+  background: color-mix(in srgb, var(--fg) 10%, transparent);
+  color: var(--fg);
+}
+
+/* A dark surface sitting inside a light one - the phone mock on the kids'
+   home screen is the only one today. Anything nested here needs the app's
+   dark token values back, and needs `color` set as well as the backgrounds:
+   colour inherits as an already-resolved value, so re-pointing --fg alone
+   leaves text that was inheriting from further up still painted in the
+   light theme's near-black. That exact mistake is why the last attempt at
+   a dark kid surface produced unreadable screens. */
+.dark-island {
+  --ink: #120a1f;
+  --ink-raised: #1b1030;
+  --ink-panel: #1f1436;
+  --hairline: rgba(255, 255, 255, 0.09);
+  --hairline-strong: rgba(255, 255, 255, 0.16);
+  --ink-muted: rgba(237, 233, 246, 0.62);
+  --ink-faint: rgba(237, 233, 246, 0.4);
+  --fg: #ffffff;
+  color: var(--fg);
+}

@@ -1,15 +1,6 @@
 import { Link } from 'react-router-dom'
 import { type ReactNode } from 'react'
-import {
-  Dumbbell,
-  BookOpen,
-  Trophy,
-  Music,
-  CalendarRange,
-  Mail,
-  ArrowRight,
-  type LucideIcon,
-} from 'lucide-react'
+import { Mail, ArrowRight } from 'lucide-react'
 import HeroCarousel, { type HeroSlide } from '../components/HeroCarousel'
 import QuizFeatureIntro from '../components/QuizFeatureIntro'
 import BibleFeatureIntro from '../components/BibleFeatureIntro'
@@ -21,6 +12,8 @@ import FloatingArt from '../components/FloatingArt'
 import ScrollProgressBar from '../components/ScrollProgressBar'
 import ColorSprinkles from '../components/ColorSprinkles'
 import Reveal, { RevealStagger, RevealItem } from '../components/Reveal'
+import { SHOWCASE_GROUPS, type ShowcaseFeature } from '../content/featureShowcase'
+import { showcaseIcon } from '../content/showcaseIcons'
 import { playClick } from '../lib/sound'
 // A third, deliberately bouncier display face (distinct from the hero's
 // clean Poppins and the body's Nunito) for tags/badges/numbers - part of
@@ -57,6 +50,37 @@ const slides: HeroSlide[] = [
     image: '/hero-teachers.jpg',
   },
 ]
+
+const TOTAL_FEATURES = SHOWCASE_GROUPS.reduce((sum, group) => sum + group.features.length, 0)
+
+/**
+ * One feature, one line. No card, no description: at this density the list
+ * itself is the argument, and the Everything Inside page is one click away
+ * for anyone who wants the detail. Only features a signed-out visitor can
+ * actually open carry a link - the rest say nothing rather than bounce
+ * someone into a sign-in wall.
+ */
+function FeatureLine({ feature, accent }: { feature: ShowcaseFeature; accent: string }) {
+  const Icon = showcaseIcon(feature.icon)
+  const inner = (
+    <>
+      <Icon className="h-4 w-4 shrink-0" style={{ color: accent }} strokeWidth={1.75} />
+      <span className="min-w-0">{feature.title}</span>
+    </>
+  )
+  const base = 'flex items-center gap-2.5 rounded-lg py-1.5 text-sm font-semibold text-[var(--lp-heading)]'
+  return (
+    <li>
+      {feature.to ? (
+        <Link to={feature.to} onClick={() => playClick()} className={`${base} transition hover:opacity-70`}>
+          {inner}
+        </Link>
+      ) : (
+        <span className={base}>{inner}</span>
+      )}
+    </li>
+  )
+}
 
 export default function Home() {
   return (
@@ -105,63 +129,50 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ---------- what we do ---------- */}
-      <div className="lp-band-alt lp-blob-bg full-bleed px-4 lp-rhythm" style={{ ['--lp-blob-accent-2' as string]: 'var(--lp-accent-seasons)' }}>
+      {/* ---------- everything inside: the whole app, on one screen ----------
+           This used to be five hand-written cards, which named five of the
+           thirty-two things the app actually does. It is now drawn from
+           SHOWCASE_GROUPS, the same list the Everything Inside page uses, so
+           a feature cannot exist in the app and be missing from here. Dense
+           on purpose: the point of the section is the length of the list. */}
+      <div className="lp-band-alt full-bleed px-4 lp-rhythm">
         <div className="mx-auto max-w-6xl">
           <Reveal>
             <p className="lp-eyebrow" style={{ ['--card-accent' as string]: 'var(--lp-accent-training)' }}>
-              A Children&apos;s Ministry Feature
+              Everything Inside
             </p>
-            <h2 className="lp-heading mt-1 font-display text-2xl font-extrabold sm:text-3xl">What Else You Can Do</h2>
+            <h2 className="lp-heading mt-1 font-display text-2xl font-extrabold sm:text-3xl">
+              {TOTAL_FEATURES} things this already does
+            </h2>
+            <p className="mt-3 max-w-2xl text-base leading-relaxed text-[var(--lp-body)]">
+              Not a roadmap. Every one of these is built and running today, across the four places people
+              sign in.
+            </p>
           </Reveal>
-          <RevealStagger className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <SectionCard
-              to="/training"
-              icon={Dumbbell}
-              accent="var(--lp-accent-training)"
-              title="Training Mode"
-              description="Unlimited solo practice. No teams, no timer, no pressure."
-            />
-            <SectionCard
-              to="/seasons"
-              icon={CalendarRange}
-              accent="var(--lp-accent-seasons)"
-              title="Seasons"
-              description="Every competition season, past and present, in one place."
-            />
-          </RevealStagger>
 
-          <Reveal delay={0.05}>
-            <p className="lp-eyebrow mt-10" style={{ ['--card-accent' as string]: 'var(--lp-accent-questions)' }}>
-              For Teachers &amp; Children
-            </p>
-            <h2 className="lp-heading mt-1 font-display text-2xl font-extrabold sm:text-3xl">Resources</h2>
+          <div className="mt-8 grid gap-x-8 gap-y-9 sm:grid-cols-2 lg:grid-cols-4">
+            {SHOWCASE_GROUPS.map((group) => (
+              <div key={group.key}>
+                <p className="lp-eyebrow" style={{ ['--card-accent' as string]: group.accent }}>
+                  {group.eyebrow}
+                </p>
+                <ul className="mt-3 space-y-px">
+                  {group.features.map((feature) => (
+                    <FeatureLine key={feature.title} feature={feature} accent={group.accent} />
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+
+          <Reveal>
+            <Link to="/features" onClick={() => playClick()} className="lp-btn-outline mt-9 inline-flex">
+              See what each one does <ArrowRight className="h-4 w-4" />
+            </Link>
           </Reveal>
-          <RevealStagger className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <SectionCard
-              to="/questions"
-              icon={BookOpen}
-              accent="var(--lp-accent-questions)"
-              title="Question Bank"
-              description="Add, edit, import, and export trivia questions and sets."
-            />
-            <SectionCard
-              to="/history"
-              icon={Trophy}
-              accent="var(--lp-accent-history)"
-              title="History"
-              description="Every completed match, team score, and full recap."
-            />
-            <SectionCard
-              to="/anthem"
-              icon={Music}
-              accent="var(--lp-accent-anthem)"
-              title="Anthem"
-              description="Our children's ministry anthem, with lyrics and a read-aloud."
-            />
-          </RevealStagger>
         </div>
       </div>
+
 
       {/* ---------- bridge: sets up the dashboard-only features below ---------- */}
       <div className="lp-band-deep full-bleed px-4 lp-rhythm-compact">
@@ -360,35 +371,3 @@ function ProfileCard({
   )
 }
 
-function SectionCard({
-  to,
-  icon: Icon,
-  accent,
-  title,
-  description,
-}: {
-  to: string
-  icon: LucideIcon
-  accent: string
-  title: string
-  description: string
-}) {
-  return (
-    <RevealItem>
-      <Link
-        to={to}
-        onClick={() => playClick()}
-        className="lp-panel lp-panel-interactive lp-panel-accented flex h-full items-start gap-4 p-5"
-        style={{ ['--card-accent' as string]: accent }}
-      >
-        <span className="lp-icon-chip">
-          <Icon className="h-5 w-5" strokeWidth={1.75} />
-        </span>
-        <div>
-          <p className="lp-heading font-display text-lg font-bold">{title}</p>
-          <p className="mt-1 text-sm text-[var(--lp-muted)]">{description}</p>
-        </div>
-      </Link>
-    </RevealItem>
-  )
-}

@@ -1,83 +1,14 @@
 import { Link } from 'react-router-dom'
-import {
-  Map,
-  BookOpen,
-  Flame,
-  Sparkles,
-  Gamepad2,
-  Trophy,
-  Globe,
-  MessageCircleHeart,
-  Bot,
-  PenLine,
-  IdCard,
-  CalendarDays,
-  Music,
-  Users,
-  ClipboardCheck,
-  Award,
-  FileText,
-  HeartHandshake,
-  ShieldCheck,
-  Smartphone,
-  FileCheck,
-  School,
-  CalendarRange,
-  BookMarked,
-  Database,
-  KeyRound,
-  TrendingUp,
-  Star,
-  Grid3x3,
-  Phone,
-  Lock,
-  ArrowRight,
-  Sparkle,
-  type LucideIcon,
-} from 'lucide-react'
+import { ArrowRight, Sparkles, Users, HeartHandshake, ShieldCheck, Lock, type LucideIcon } from 'lucide-react'
 import Reveal, { RevealStagger, RevealItem } from '../components/Reveal'
 import ScrollProgressBar from '../components/ScrollProgressBar'
 import ColorSprinkles from '../components/ColorSprinkles'
 import FloatingArt from '../components/FloatingArt'
 import { SHOWCASE_GROUPS, COMING_SOON, type ShowcaseFeature } from '../content/featureShowcase'
+import { showcaseIcon } from '../content/showcaseIcons'
 import { playClick } from '../lib/sound'
 // The landing page's third display face, for the eyebrows and the big
 // numbers in the stat strip - same as Home, loaded with this page's chunk.
-
-// Only the icons the showcase content actually names. Anything unmatched
-// falls back to Sparkle rather than crashing the page.
-const ICONS: Record<string, LucideIcon> = {
-  Map,
-  BookOpen,
-  Flame,
-  Sparkles,
-  Gamepad2,
-  Trophy,
-  Globe,
-  MessageCircleHeart,
-  Bot,
-  PenLine,
-  IdCard,
-  CalendarDays,
-  Music,
-  Users,
-  ClipboardCheck,
-  Award,
-  FileText,
-  HeartHandshake,
-  ShieldCheck,
-  Smartphone,
-  FileCheck,
-  School,
-  CalendarRange,
-  BookMarked,
-  Database,
-  KeyRound,
-  TrendingUp,
-  Star,
-  Grid3x3,
-  Phone,
-}
 
 const TOTAL_FEATURES = SHOWCASE_GROUPS.reduce((sum, g) => sum + g.features.length, 0)
 
@@ -175,7 +106,7 @@ export default function Features() {
           </Reveal>
           <RevealStagger className="mt-7 grid grid-cols-1 gap-3 sm:grid-cols-3">
             {COMING_SOON.map((c) => {
-              const Icon = ICONS[c.icon] ?? Sparkle
+              const Icon = showcaseIcon(c.icon)
               return (
                 <RevealItem key={c.title} className="h-full">
                   <div className="flex h-full items-start gap-3 rounded-2xl border border-dashed border-white/25 bg-white/5 p-5">
@@ -218,7 +149,7 @@ export default function Features() {
 }
 
 function FeatureCard({ feature, accent }: { feature: ShowcaseFeature; accent: string }) {
-  const Icon = ICONS[feature.icon] ?? Sparkle
+  const Icon = showcaseIcon(feature.icon)
   const body = (
     <>
       <span className="lp-icon-chip shrink-0">

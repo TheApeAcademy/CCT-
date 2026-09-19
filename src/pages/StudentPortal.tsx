@@ -332,7 +332,7 @@ function Dashboard() {
   // deliberately breaks out of KidsShell's padded max-w-3xl column so the
   // village map and each section can go edge to edge, game-screen style.
   return (
-    <div className="kids-dark-surface fixed inset-0 z-[45] bg-[var(--ink)]">
+    <div className="fixed inset-0 z-[45] bg-[var(--ink)]">
       <AnimatePresence mode="wait" initial={false}>
         {view === 'map' ? (
           <motion.div
@@ -353,7 +353,7 @@ function Dashboard() {
                 {student?.avatar_url ? (
                   <img src={student.avatar_url} alt="" className="h-9 w-9 rounded-full object-cover ring-2 ring-[var(--gold)]/60" />
                 ) : (
-                  <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[rgba(42,27,71,0.18)] text-[var(--hero-accent)]">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--lp-hairline-strong)] text-[var(--gold)]">
                     <User className="h-4 w-4" strokeWidth={1.75} />
                   </span>
                 )}
@@ -402,7 +402,7 @@ function Dashboard() {
               <div
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-0 z-0"
-                style={{ backgroundImage: 'radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px)', backgroundSize: '22px 22px' }}
+                style={{ backgroundImage: 'radial-gradient(var(--lp-hairline-strong) 1px, transparent 1px)', backgroundSize: '22px 22px' }}
               />
             )}
             {/* Leaderboard and My Card were the only two stops capped at a

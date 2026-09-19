@@ -22,11 +22,17 @@ const NotificationBell = lazy(() => import('./NotificationBell'))
  * shell is imported eagerly (it's the route element itself), so any heavy
  * dependency here would land in the shared entry chunk the offline quiz
  * has to download too.
+ *
+ * data-kid-surface marks this as a screen a child taps, which is what the
+ * D1 (one button shape) and D4 (bigger, rounder headings) rules in
+ * index.css key off. PortalShell deliberately does not set it: Admin,
+ * Teacher and Parent share this light shell but keep the grown-up
+ * treatment.
  */
 export default function KidsShell({ eyebrow }: { eyebrow: string }) {
   const autoHidden = useAutoHideNav()
   return (
-    <div data-landing-theme="light" className="site-light-theme lp-page relative isolate min-h-screen">
+    <div data-kid-surface="" data-landing-theme="light" className="site-light-theme lp-page relative isolate min-h-screen">
       <div
         aria-hidden="true"
         className="pointer-events-none fixed inset-0 z-0"

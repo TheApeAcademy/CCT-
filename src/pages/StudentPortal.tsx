@@ -926,9 +926,13 @@ function BentoTile({
       <p className={`relative font-display font-extrabold text-white drop-shadow ${big ? 'mt-3 text-xl' : 'mt-2 text-sm'}`}>{title}</p>
       {description && <p className="relative mt-1 max-w-[85%] text-xs text-white/85 drop-shadow">{description}</p>}
       {cta && (to || href) && (
+        // The pill is white, and several of these accents (the gold one
+        // especially) are unreadable on white at their own brightness -
+        // "Practice Solo" measured 1.84:1 against it. Darkened enough to
+        // clear 4.5:1 while staying the tile's own hue.
         <span
           className="relative mt-3 inline-flex items-center gap-1 self-start rounded-full bg-white px-3 py-1.5 text-xs font-extrabold"
-          style={{ color: accent }}
+          style={{ color: `color-mix(in srgb, ${accent} 58%, #000)` }}
         >
           {cta} <ArrowRight className="h-3.5 w-3.5" />
         </span>

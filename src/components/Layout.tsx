@@ -1,6 +1,6 @@
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
-import { Radio } from 'lucide-react'
+import { Radio, Volume2, VolumeX } from 'lucide-react'
 import { setMuted, isMuted, playToggle, playNav, playClick } from '../lib/sound'
 import { haptics } from '../lib/haptics'
 import StageBackground from './StageBackground'
@@ -214,12 +214,13 @@ export default function Layout() {
             {isLandingStyle && <ThemeToggle theme={theme} onToggle={toggleTheme} />}
 
             <button
+              type="button"
               onClick={toggleMute}
-              className="btn-outline !border-0 !bg-transparent p-2 text-base"
+              className="nav-icon-btn"
               title={muted ? 'Unmute sounds' : 'Mute sounds'}
               aria-label={muted ? 'Unmute sounds' : 'Mute sounds'}
             >
-              {muted ? '🔇' : '🔊'}
+              {muted ? <VolumeX className="h-4 w-4" strokeWidth={2} /> : <Volume2 className="h-4 w-4" strokeWidth={2} />}
             </button>
 
             <button

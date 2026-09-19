@@ -1175,6 +1175,30 @@ button:active, a:active {
   transform: rotate(-8deg) scale(1.08);
 }
 
+/* The header's plain icon controls. Same 40px pill as .lp-theme-toggle next
+   to it, but built on the app tokens rather than the --lp-* landing ones,
+   because this button also renders on routes that never set a landing
+   theme. Sizes and radii are kept in step with .lp-theme-toggle by hand. */
+.nav-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.5rem;
+  width: 2.5rem;
+  border-radius: 9999px;
+  border: 1px solid var(--hairline-strong);
+  background: color-mix(in srgb, var(--ink-panel) 70%, transparent);
+  color: var(--fg);
+  backdrop-filter: blur(6px);
+  transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
+}
+.nav-icon-btn:hover {
+  border-color: var(--gold);
+}
+.nav-icon-btn:active {
+  transform: scale(0.93);
+}
+
 .lp-theme-toggle {
   display: inline-flex;
   align-items: center;

@@ -198,7 +198,7 @@ function BookMap({
             setMode('books')
           }}
           className="rounded-full px-3 py-1.5 transition"
-          style={{ background: mode === 'books' ? ACCENT : 'transparent', color: mode === 'books' ? '#fff' : dark ? 'rgba(255,255,255,0.7)' : undefined }}
+          style={{ background: mode === 'books' ? ACCENT : 'transparent', color: mode === 'books' ? '#fff' : dark ? 'rgba(255,255,255,0.72)' : 'var(--ink-muted)' }}
         >
           By Book
         </button>
@@ -208,7 +208,7 @@ function BookMap({
             setMode('characters')
           }}
           className="rounded-full px-3 py-1.5 transition"
-          style={{ background: mode === 'characters' ? ACCENT : 'transparent', color: mode === 'characters' ? '#fff' : dark ? 'rgba(255,255,255,0.7)' : undefined }}
+          style={{ background: mode === 'characters' ? ACCENT : 'transparent', color: mode === 'characters' ? '#fff' : dark ? 'rgba(255,255,255,0.72)' : 'var(--ink-muted)' }}
         >
           By Character
         </button>

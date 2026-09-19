@@ -191,6 +191,15 @@ body::before {
   background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.35) 100%);
 }
 
+/* Not on a light ground. This vignette was drawn for the quiz screens, where
+   a dark surround pulls the eye to the middle of a dark stage. Every light
+   surface in the app - the landing page, the kid screens, the portals, the
+   sign-in page - was inheriting 35% black in its corners, which is why they
+   all read slightly muddy and slightly cheap. */
+body:has([data-landing-theme='light'])::before {
+  content: none;
+}
+
 /* ---------- shared micro-interactions ---------- */
 
 button, a {

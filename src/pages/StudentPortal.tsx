@@ -229,6 +229,12 @@ function Dashboard() {
   const [tab, setTab] = useState<Tab>(() => loadDashboardState()?.tab ?? 'home')
   const [view, setView] = useState<'map' | 'tab'>(() => loadDashboardState()?.view ?? 'map')
   const [student, setStudent] = useState<StudentRow | null>(null)
+  // My Card used to render literally nothing whenever this was null -
+  // no spinner, no message, no error - so a child whose record had not
+  // arrived (or whose lookup failed) got a blank screen with a back
+  // button on it. Tracking why it is null is what lets every state draw
+  // something.
+  const [studentState, setStudentState] = useState<'loading' | 'ready' | 'error'>('loading')
   const [klass, setKlass] = useState<(ClassRow & { teacher_name: string; teacher_avatar: string | null }) | null>(null)
   const [achievements, setAchievements] = useState<EarnedAchievement[]>([])
   const [revealCharacter, setRevealCharacter] = useState<BibleCharacterRow | null>(null)
@@ -269,7 +275,13 @@ function Dashboard() {
   }
 
   const load = () => {
-    getMyStudentProfile().then(setStudent)
+    setStudentState('loading')
+    getMyStudentProfile()
+      .then((row) => {
+        setStudent(row)
+        setStudentState('ready')
+      })
+      .catch(() => setStudentState('error'))
     getMyClass().then(setKlass)
     Promise.all([listMyAchievements(), characterCatalog.length ? Promise.resolve(characterCatalog) : listBibleCharacters()]).then(
       ([earned, catalog]) => {
@@ -399,7 +411,7 @@ function Dashboard() {
               {tab === 'class' && <ClassTab klass={klass} student={student} onNestedViewChange={setHideMapBack} />}
               {tab === 'bible' && <SundaySchoolTab klass={klass} onNestedViewChange={setHideMapBack} />}
               {tab === 'leaderboard' && <LeaderboardTab myId={student?.id ?? null} myClassId={klass?.id ?? null} />}
-              {tab === 'profile' && student && <ProfileTab student={student} klass={klass} onSaved={load} />}
+              {tab === 'profile' && <CardTab student={student} state={studentState} klass={klass} onSaved={load} onRetry={load} />}
               {tab === 'messages' &&
                 (klass ? (
                   <MessagesTab teacherId={klass.teacher_id} teacherName={klass.teacher_name} teacherAvatar={klass.teacher_avatar} />
@@ -1779,6 +1791,52 @@ function LeaderboardTab({ myId, myClassId }: { myId: string | null; myClassId: s
               </div>
             ))}
       </div>
+    </div>
+  )
+}
+
+/**
+ * Every state My Card can be in. The tab used to render ProfileTab only when
+ * the student row was loaded and nothing at all otherwise, which is why a
+ * failed or slow lookup showed as an empty page rather than as a problem.
+ */
+function CardTab({
+  student,
+  state,
+  klass,
+  onSaved,
+  onRetry,
+}: {
+  student: StudentRow | null
+  state: 'loading' | 'ready' | 'error'
+  klass: (ClassRow & { teacher_name: string; teacher_avatar: string | null }) | null
+  onSaved: () => void
+  onRetry: () => void
+}) {
+  if (state === 'ready' && student) return <ProfileTab student={student} klass={klass} onSaved={onSaved} />
+
+  if (state === 'loading') {
+    return (
+      <div className="panel space-y-3 p-6 text-center">
+        <Sparkles className="mx-auto h-7 w-7 animate-pulse" style={{ color: 'var(--gold)' }} strokeWidth={1.75} />
+        <p className="font-display text-lg font-bold">Getting your card</p>
+        <p className="text-sm text-[var(--ink-muted)]">One second.</p>
+      </div>
+    )
+  }
+
+  // 'error', or 'ready' with no row at all - a signed-in child should always
+  // have one, so either way this is something gone wrong rather than an empty
+  // state a child can act on.
+  return (
+    <div className="panel space-y-3 p-6 text-center">
+      <p className="font-display text-lg font-bold">We couldn&apos;t load your card</p>
+      <p className="text-sm text-[var(--ink-muted)]">
+        Your card is still on its way, or the connection dropped. Tap to try again.
+      </p>
+      <button onClick={onRetry} className="btn-solid inline-flex">
+        Try again
+      </button>
     </div>
   )
 }

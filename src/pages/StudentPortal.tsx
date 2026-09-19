@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import type { CSSProperties } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -1708,6 +1709,23 @@ function SundayLessonCard({ date, title, image, locked }: { date: Date; title: s
   )
 }
 
+/**
+ * One row on the board. Gold is spent on first place only; "this is you" is
+ * a lighter fill and a hairline ring, so the two never compete.
+ */
+function rowStyle(isFirst: boolean, isMine: boolean): CSSProperties {
+  if (isFirst) {
+    return {
+      background: 'color-mix(in srgb, var(--gold) 16%, transparent)',
+      boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--gold) 45%, transparent)',
+    }
+  }
+  return {
+    background: isMine ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.05)',
+    boxShadow: isMine ? 'inset 0 0 0 1px rgba(255,255,255,0.3)' : undefined,
+  }
+}
+
 function LeaderboardTab({ myId, myClassId }: { myId: string | null; myClassId: string | null }) {
   const [rows, setRows] = useState<LeaderboardRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -1736,8 +1754,8 @@ function LeaderboardTab({ myId, myClassId }: { myId: string | null; myClassId: s
             }}
             className="rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-wide transition"
             style={{
-              background: mode === m ? 'var(--lp-accent-leaderboard)' : 'var(--ink-panel)',
-              color: mode === m ? '#fff' : 'var(--ink-muted)',
+              background: mode === m ? 'var(--gold)' : 'var(--ink-panel)',
+              color: mode === m ? 'var(--gold-ink)' : 'var(--ink-muted)',
             }}
           >
             {m === 'students' ? 'Students' : 'Class vs Class'}
@@ -1745,20 +1763,25 @@ function LeaderboardTab({ myId, myClassId }: { myId: string | null; myClassId: s
         ))}
       </div>
 
+      {/* This used to be a gold-into-purple gradient, and gold over purple
+          mixes to brown, which is not a colour this app uses anywhere. The
+          board is a quiet panel now and gold means one thing on it: first
+          place. */}
       <div
         className="space-y-2 rounded-2xl p-4"
-        style={{
-          background: 'linear-gradient(135deg, color-mix(in srgb, var(--lp-accent-leaderboard) 70%, #180a2e) 0%, color-mix(in srgb, var(--lp-accent-leaderboard) 15%, #180a2e) 100%)',
-        }}
+        style={{ background: 'var(--ink-panel)', border: '1px solid var(--hairline)' }}
       >
         {mode === 'students'
           ? rows.map((r, i) => (
               <div
                 key={r.student_id}
-                className={`flex items-center justify-between rounded-xl px-4 py-3 ${r.student_id === myId ? 'bg-white/15 ring-1 ring-white/30' : 'bg-white/5'}`}
+                className="flex items-center justify-between rounded-xl px-4 py-3"
+                style={rowStyle(i === 0, r.student_id === myId)}
               >
                 <div className="flex items-center gap-3">
-                  <span className="w-6 text-center font-display font-bold text-white/70">{i + 1}</span>
+                  <span className="w-6 text-center font-display font-bold" style={{ color: i === 0 ? 'var(--gold)' : 'rgba(255,255,255,0.7)' }}>
+                    {i + 1}
+                  </span>
                   {r.avatar_url ? (
                     <img src={r.avatar_url} alt="" className="h-9 w-9 rounded-full object-cover" />
                   ) : (
@@ -1777,11 +1800,17 @@ function LeaderboardTab({ myId, myClassId }: { myId: string | null; myClassId: s
           : classRows.map((c, i) => (
               <div
                 key={c.class_id}
-                className={`flex items-center justify-between rounded-xl px-4 py-3 ${c.class_id === myClassId ? 'bg-white/15 ring-1 ring-white/30' : 'bg-white/5'}`}
+                className="flex items-center justify-between rounded-xl px-4 py-3"
+                style={rowStyle(i === 0, c.class_id === myClassId)}
               >
                 <div className="flex items-center gap-3">
-                  <span className="w-6 text-center font-display font-bold text-white/70">{i + 1}</span>
-                  <span className="flex h-9 w-9 items-center justify-center rounded-full border border-white/25 text-white">
+                  <span className="w-6 text-center font-display font-bold" style={{ color: i === 0 ? 'var(--gold)' : 'rgba(255,255,255,0.7)' }}>
+                    {i + 1}
+                  </span>
+                  <span
+                    className="flex h-9 w-9 items-center justify-center rounded-full border"
+                    style={{ borderColor: i === 0 ? 'var(--gold)' : 'rgba(255,255,255,0.25)', color: i === 0 ? 'var(--gold)' : '#fff' }}
+                  >
                     <Trophy className="h-4 w-4" strokeWidth={1.75} />
                   </span>
                   <div>

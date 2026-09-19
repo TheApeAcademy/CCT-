@@ -8,6 +8,7 @@ import {
   AI_COMPANION_FUNCTION_URL,
   RESET_PASSCODE_FUNCTION_URL,
 } from './supabase'
+import { setRememberMe } from './rememberMe'
 import type { AnswerRecord } from '../db/types'
 
 // ---------- shared types ----------
@@ -341,6 +342,13 @@ export async function registerStudent(params: { full_name: string; guardian_phon
   })
   const body = await res.json()
   if (!res.ok) throw new Error(body.error ?? 'Could not create your account.')
+  // Every other sign-in path sets this; this one did not, so it inherited
+  // whatever the last person on this browser chose. If an adult had ever
+  // signed in here with "Remember me" unticked, the flag was still 0, and
+  // App.tsx signs a stored session straight back out on the next load - a
+  // child would make an account, get in, and be thrown out again. Somebody
+  // making a brand new account has not asked to be forgotten.
+  setRememberMe(true)
   const { error: signInError } = await supabase.auth.signInWithPassword({ email: body.email, password: params.passcode })
   if (signInError) throw signInError
   return body as { email: string; student_id: string; student_code: string }

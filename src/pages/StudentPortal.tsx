@@ -97,9 +97,28 @@ import { haptics } from '../lib/haptics'
 const inputClass = 'w-full rounded-md border border-[var(--hairline-strong)] bg-transparent px-4 py-3 outline-none focus:border-[var(--gold)]'
 
 export default function StudentPortal() {
-  const { session, profile, loading } = useMinistryAuth()
+  const { session, profile, loading, profileError, refreshProfile } = useMinistryAuth()
 
   if (loading) return <div className="py-20 text-center text-xl">Loading…</div>
+  // Signed in, but the account lookup itself failed. Showing the sign-up
+  // screen here would tell a child who has just made an account that they
+  // have not got one, so say what actually happened and offer the retry.
+  if (session && profileError) {
+    return (
+      <div className="mx-auto max-w-md space-y-4 text-center">
+        <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-md border border-[var(--hairline-strong)] text-[var(--gold)]">
+          <User className="h-6 w-6" strokeWidth={1.75} />
+        </span>
+        <h1 className="font-display text-2xl font-extrabold sm:text-3xl">We couldn&apos;t load your account</h1>
+        <p className="text-sm text-[var(--ink-muted)]">
+          You&apos;re signed in, but your details didn&apos;t come through. Check your connection and try again.
+        </p>
+        <button onClick={refreshProfile} className="btn-solid inline-flex">
+          Try again
+        </button>
+      </div>
+    )
+  }
   if (!session || profile?.role !== 'student') {
     return (
       <div className="mx-auto max-w-md space-y-4 text-center">

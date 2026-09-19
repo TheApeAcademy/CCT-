@@ -16,7 +16,21 @@ export function useMinistryAuth() {
   // fires once up front with the resolved initial session (or null), so
   // that single event is what should end this "still checking" state.
   const [initializing, setInitializing] = useState(true)
-  const [profileLoading, setProfileLoading] = useState(false)
+  // The user id `profile` was resolved for, or null if it has not been
+  // resolved for the current session yet. A plain "is a fetch in flight"
+  // boolean is not enough: it starts out false, so between the render where
+  // the session arrives and the effect that starts the fetch there was one
+  // committed frame reporting "signed in, not loading, no profile". Every
+  // portal reads that as "not my role" and shows its signed-out screen, so a
+  // child who had just signed up landed back on the sign-up page. Comparing
+  // ids instead means "signed in but not resolved yet" is never mistaken for
+  // "resolved to nobody".
+  const [profileFor, setProfileFor] = useState<string | null>(null)
+  // Set when the profile lookup itself failed (offline, RLS, a dropped
+  // request). Distinct from "resolved to null", which means the account
+  // genuinely has no profile row. Callers show a retry rather than a
+  // sign-in screen, because the visitor is signed in either way.
+  const [profileError, setProfileError] = useState(false)
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
@@ -28,24 +42,42 @@ export function useMinistryAuth() {
 
   useEffect(() => {
     if (initializing) return
-    if (!session) {
+    const uid = session?.user.id ?? null
+    if (!uid) {
       setProfile(null)
-      setProfileLoading(false)
+      setProfileFor(null)
+      setProfileError(false)
       return
     }
-    setProfileLoading(true)
+    let cancelled = false
+    setProfileError(false)
     getMyProfile()
-      .then(setProfile)
-      .catch(() => setProfile(null))
-      .finally(() => setProfileLoading(false))
+      .then((p) => {
+        if (cancelled) return
+        setProfile(p)
+        setProfileFor(uid)
+      })
+      .catch(() => {
+        if (cancelled) return
+        setProfile(null)
+        setProfileError(true)
+        setProfileFor(uid)
+      })
+    return () => {
+      cancelled = true
+    }
   }, [session, initializing])
 
-  const loading = initializing || profileLoading
+  const loading = initializing || (!!session && profileFor !== session.user.id)
 
   const refreshProfile = () => {
-    if (!session) return
-    getMyProfile().then(setProfile)
+    const uid = session?.user.id
+    if (!uid) return
+    setProfileError(false)
+    getMyProfile()
+      .then(setProfile)
+      .catch(() => setProfileError(true))
   }
 
-  return { session, profile, loading, refreshProfile }
+  return { session, profile, loading, profileError, refreshProfile }
 }

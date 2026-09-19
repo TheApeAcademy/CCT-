@@ -86,26 +86,6 @@ function bookProgressCount(book: JourneyBook, completedKeys: Set<string>): numbe
   return lessonKeysInOrder(book).filter((k) => completedKeys.has(k)).length
 }
 
-// Scattered onto two axes (rotate + a vertical bob) for a loose flex-wrap
-// pile of tiles rather than a tidy grid/column, so nothing lines up into
-// rows. The tile's actual outline comes from masking it with the real
-// stone-render photo below rather than a CSS-drawn approximation.
-const SCATTER_ROTATE = [-8, 6, -4, 9, -6, 5, -9, 4, -5, 7, -7, 3]
-const SCATTER_LIFT = [0, 22, -16, 30, -10, 14, -26, 8, -18, 24, 4, -12]
-function scatterStyle(idx: number): React.CSSProperties {
-  return {
-    transform: `rotate(${SCATTER_ROTATE[idx % SCATTER_ROTATE.length]}deg) translateY(${SCATTER_LIFT[idx % SCATTER_LIFT.length]}px)`,
-    WebkitMaskImage: 'url(/stone-render.png)',
-    maskImage: 'url(/stone-render.png)',
-    WebkitMaskSize: 'contain',
-    maskSize: 'contain',
-    WebkitMaskRepeat: 'no-repeat',
-    maskRepeat: 'no-repeat',
-    WebkitMaskPosition: 'center',
-    maskPosition: 'center',
-  }
-}
-
 // Every real Bible-scene photo currently on hand - used to fill in any
 // character tile whose lesson has no dedicated image of its own.
 const CHARACTER_FALLBACK_IMAGES = [
@@ -300,8 +280,14 @@ function CharacterBrowse({
   return (
     <div className="space-y-3">
       <p className="text-sm text-white/70">Pick any Bible character to learn about them right away - no order required.</p>
-      <div className="flex flex-wrap justify-center gap-x-5 gap-y-10 py-6">
-        {characters.map(({ book, unit, lesson }, i) => {
+      {/* These were a scattered pile: every tile rotated a few degrees, bobbed
+          up or down, cut to the outline of a stone photo, with the character's
+          name printed over the middle of the picture. Nothing lined up and no
+          name was easy to read. It is a plain grid now - one crop for every
+          picture, the name in its own block underneath, identical row
+          heights. */}
+      <div className="grid grid-cols-2 gap-4 py-4 sm:grid-cols-3 lg:grid-cols-4">
+        {characters.map(({ book, unit, lesson }) => {
           const isDone = completedKeys.has(lesson.key)
           const image = lesson.image ?? CHARACTER_FALLBACK_IMAGES[fallbackCursor++ % CHARACTER_FALLBACK_IMAGES.length]
           return (
@@ -311,20 +297,26 @@ function CharacterBrowse({
                 playClick()
                 onOpenLesson(book.key, lesson.key)
               }}
-              className="relative flex aspect-square w-40 shrink-0 flex-col items-center justify-center overflow-hidden px-5 text-center transition hover:scale-[1.06] sm:w-48"
-              style={scatterStyle(i)}
+              className="character-card group flex flex-col overflow-hidden rounded-2xl text-left"
             >
-              <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover" />
-              <div className="absolute inset-0 bg-black/45" />
-              <p className="font-display relative z-10 line-clamp-2 text-xs font-extrabold uppercase leading-tight tracking-wide text-white drop-shadow-lg sm:text-sm">
-                {unit.title}
-              </p>
-              <p className="relative z-10 mt-1 text-[10px] font-semibold text-white/80">{book.title}</p>
-              {isDone && (
-                <span className="absolute right-2.5 top-2.5 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-white/90">
-                  <Check className="h-4 w-4" style={{ color: ACCENT }} />
+              <span className="relative block aspect-[4/3] w-full overflow-hidden">
+                <img
+                  src={image}
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                />
+                {isDone && (
+                  <span className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/90">
+                    <Check className="h-4 w-4" style={{ color: ACCENT }} />
+                  </span>
+                )}
+              </span>
+              <span className="flex min-h-[64px] flex-col justify-center gap-0.5 px-3 py-2.5">
+                <span className="font-display line-clamp-2 text-sm font-extrabold uppercase leading-tight tracking-wide text-white">
+                  {unit.title}
                 </span>
-              )}
+                <span className="text-[11px] font-semibold text-white/55">{book.title}</span>
+              </span>
             </button>
           )
         })}

@@ -1179,6 +1179,22 @@ button:active, a:active {
    to it, but built on the app tokens rather than the --lp-* landing ones,
    because this button also renders on routes that never set a landing
    theme. Sizes and radii are kept in step with .lp-theme-toggle by hand. */
+/* One card for every Bible character: same frame, same crop, same caption
+   block, so the grid reads as rows rather than as a pile. */
+.character-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: border-color 0.2s ease, transform 0.2s ease, background-color 0.2s ease;
+}
+.character-card:hover {
+  border-color: var(--gold);
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-3px);
+}
+.character-card:active {
+  transform: translateY(0);
+}
+
 .nav-icon-btn {
   display: inline-flex;
   align-items: center;

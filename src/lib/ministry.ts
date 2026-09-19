@@ -517,6 +517,31 @@ export async function getLeaderboard(limit = 50): Promise<LeaderboardRow[]> {
   return (data ?? []) as LeaderboardRow[]
 }
 
+export type LeaderboardRange = 'week' | 'month' | 'year' | 'all'
+
+export interface RankedLeaderboardRow {
+  student_id: string
+  full_name: string
+  avatar_url: string | null
+  class_id: string | null
+  class_name: string | null
+  points: number
+  games: number
+  streak: number
+}
+
+/**
+ * One row per child for a given window, carrying everything the board shows:
+ * points earned in that window, games played and the current reading streak.
+ * The window is worked out in the database so every client agrees on where a
+ * week starts.
+ */
+export async function getRankedLeaderboard(range: LeaderboardRange): Promise<RankedLeaderboardRow[]> {
+  const { data, error } = await supabase.rpc('get_leaderboard_ranked', { p_range: range })
+  if (error) throw error
+  return (data ?? []) as RankedLeaderboardRow[]
+}
+
 export interface ClassLeaderboardRow {
   class_id: string
   class_name: string

@@ -62,7 +62,7 @@ import {
   updateMyStudentProfile,
   getMyClass,
   getLeaderboard,
-  aggregateClassLeaderboard,
+  getRankedLeaderboard,
   getOrCreateConversation,
   listMessages,
   sendMessage,
@@ -82,6 +82,8 @@ import {
   type EarnedAchievement,
   type StudentRow,
   type LeaderboardRow,
+  type LeaderboardRange,
+  type RankedLeaderboardRow,
   type MessageRow,
   type EarsMessageRow,
   type EarsReplyRow,
@@ -415,7 +417,7 @@ function Dashboard() {
               {tab === 'home' && <HomeTab student={student} klass={klass} achievements={achievements} onNavigate={enterTab} />}
               {tab === 'class' && <ClassTab klass={klass} student={student} onNestedViewChange={setHideMapBack} />}
               {tab === 'bible' && <SundaySchoolTab klass={klass} onNestedViewChange={setHideMapBack} />}
-              {tab === 'leaderboard' && <LeaderboardTab myId={student?.id ?? null} myClassId={klass?.id ?? null} />}
+              {tab === 'leaderboard' && <LeaderboardTab myId={student?.id ?? null} />}
               {tab === 'profile' && <CardTab student={student} state={studentState} klass={klass} onSaved={load} onRetry={load} />}
               {tab === 'messages' &&
                 (klass ? (
@@ -1782,120 +1784,265 @@ function SundayLessonCard({ date, title, image, locked }: { date: Date; title: s
   )
 }
 
-/**
- * One row on the board. Gold is spent on first place only; "this is you" is
- * a lighter fill and a hairline ring, so the two never compete.
- */
-function rowStyle(isFirst: boolean, isMine: boolean): CSSProperties {
-  if (isFirst) {
-    return {
-      background: 'color-mix(in srgb, var(--gold) 16%, transparent)',
-      boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--gold) 45%, transparent)',
-    }
-  }
-  return {
-    background: isMine ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.05)',
-    boxShadow: isMine ? 'inset 0 0 0 1px rgba(255,255,255,0.3)' : undefined,
-  }
+const RANGES: { key: LeaderboardRange; label: string }[] = [
+  { key: 'week', label: 'This week' },
+  { key: 'month', label: 'This month' },
+  { key: 'year', label: 'This year' },
+  { key: 'all', label: 'All time' },
+]
+
+type BoardKey = 'points' | 'streak'
+
+/** Gold, silver, bronze. Only the podium gets a plate; everyone else is a
+ *  plain numeral, so the top of the board reads first. */
+const MEDALS = ['#e8b923', '#c9ccd4', '#cd8b4f']
+
+/** Two initials, for a child who has no picture yet. Never an icon at a
+ *  different size to everybody else's photo: that is what made the old rows
+ *  different heights. */
+function initialsOf(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return '?'
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
 }
 
-function LeaderboardTab({ myId, myClassId }: { myId: string | null; myClassId: string | null }) {
-  const [rows, setRows] = useState<LeaderboardRow[]>([])
-  const [loading, setLoading] = useState(true)
-  const [mode, setMode] = useState<'students' | 'classes'>('students')
+/** A stable colour per child, so the same name always gets the same plate. */
+function plateFor(id: string): string {
+  const hues = [265, 292, 210, 24, 150, 340, 190, 45]
+  let h = 0
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0
+  return `hsl(${hues[h % hues.length]} 42% 42%)`
+}
 
-  useEffect(() => {
-    // High enough to be "everyone" for any realistic church - class totals
-    // below would silently undercount if this were capped at the default 50.
-    getLeaderboard(1000).then(setRows).finally(() => setLoading(false))
-  }, [])
+function Avatar({ row, size = 32 }: { row: RankedLeaderboardRow; size?: number }) {
+  const style: CSSProperties = { width: size, height: size }
+  if (row.avatar_url) {
+    return <img src={row.avatar_url} alt="" className="shrink-0 rounded-full object-cover" style={style} />
+  }
+  return (
+    <span
+      className="flex shrink-0 items-center justify-center rounded-full font-bold text-white"
+      style={{ ...style, background: plateFor(row.student_id), fontSize: size * 0.36 }}
+    >
+      {initialsOf(row.full_name)}
+    </span>
+  )
+}
 
-  const classRows = useMemo(() => aggregateClassLeaderboard(rows), [rows])
+function LeaderboardTab({ myId }: { myId: string | null }) {
+  const [range, setRange] = useState<LeaderboardRange>('week')
+  const [board, setBoard] = useState<BoardKey>('points')
+  // Every window is loaded once, because opening a child's card shows where
+  // they sit in all four of them and a second round trip per tap would make
+  // the sheet feel slow.
+  const [byRange, setByRange] = useState<Record<LeaderboardRange, RankedLeaderboardRow[]> | null>(null)
+  const [failed, setFailed] = useState(false)
+  const [openId, setOpenId] = useState<string | null>(null)
 
-  if (loading) return <p className="text-sm text-[var(--ink-muted)]">Loading…</p>
-  if (rows.length === 0) return <p className="text-sm text-[var(--ink-muted)]">No quiz points recorded yet. Be the first to play!</p>
+  const load = () => {
+    setFailed(false)
+    setByRange(null)
+    Promise.all(RANGES.map((r) => getRankedLeaderboard(r.key)))
+      .then(([week, month, year, all]) => setByRange({ week, month, year, all }))
+      .catch(() => setFailed(true))
+  }
+  useEffect(load, [])
+
+  const sorted = useMemo(() => {
+    if (!byRange) return []
+    const rows = [...byRange[range]]
+    rows.sort((a, b) =>
+      board === 'points' ? b.points - a.points || a.full_name.localeCompare(b.full_name) : b.streak - a.streak || b.points - a.points,
+    )
+    return rows
+  }, [byRange, range, board])
+
+  const open = openId && byRange ? byRange[range].find((r) => r.student_id === openId) : null
+
+  if (failed) {
+    return (
+      <div className="panel space-y-3 p-6 text-center">
+        <p className="font-display text-lg font-bold">We could not load the board</p>
+        <p className="text-sm text-[var(--ink-muted)]">The connection may have dropped.</p>
+        <button onClick={load} className="btn-solid">
+          Try again
+        </button>
+      </div>
+    )
+  }
+  if (!byRange) return <p className="p-4 text-sm text-[var(--ink-muted)]">Loading the board…</p>
 
   return (
-    <div className="space-y-3">
-      <div className="flex justify-center gap-2">
-        {(['students', 'classes'] as const).map((m) => (
-          <button
-            key={m}
-            onClick={() => {
-              playClick()
-              setMode(m)
-            }}
-            className="rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-wide transition"
-            style={{
-              background: mode === m ? 'var(--gold)' : 'var(--ink-panel)',
-              color: mode === m ? 'var(--gold-ink)' : 'var(--ink-muted)',
-            }}
-          >
-            {m === 'students' ? 'Students' : 'Class vs Class'}
-          </button>
-        ))}
+    <div className="space-y-4">
+      <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-1.5">
+          {RANGES.map((r) => (
+            <button
+              key={r.key}
+              onClick={() => {
+                playClick()
+                setRange(r.key)
+              }}
+              className="rounded-full px-3 py-1.5 text-xs font-bold transition"
+              style={{
+                background: range === r.key ? 'var(--gold)' : 'var(--ink-panel)',
+                color: range === r.key ? 'var(--gold-ink)' : 'var(--ink-muted)',
+              }}
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-1.5">
+          {(['points', 'streak'] as const).map((b) => (
+            <button
+              key={b}
+              onClick={() => {
+                playClick()
+                setBoard(b)
+              }}
+              className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition"
+              style={{
+                background: board === b ? 'var(--gold)' : 'var(--ink-panel)',
+                color: board === b ? 'var(--gold-ink)' : 'var(--ink-muted)',
+              }}
+            >
+              {b === 'points' ? <Trophy className="h-3.5 w-3.5" strokeWidth={2} /> : <Flame className="h-3.5 w-3.5" strokeWidth={2} />}
+              {b === 'points' ? 'Points' : 'Streak'}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* This used to be a gold-into-purple gradient, and gold over purple
-          mixes to brown, which is not a colour this app uses anywhere. The
-          board is a quiet panel now and gold means one thing on it: first
-          place. */}
-      <div
-        className="space-y-2 rounded-2xl p-4"
-        style={{ background: 'var(--ink-panel)', border: '1px solid var(--hairline)' }}
-      >
-        {mode === 'students'
-          ? rows.map((r, i) => (
-              <div
+      {sorted.length === 0 ? (
+        <p className="panel p-6 text-center text-sm text-[var(--ink-muted)]">Nobody has scored in this window yet. Be the first!</p>
+      ) : (
+        <div
+          className="mx-auto w-full max-w-3xl overflow-hidden rounded-2xl border border-[var(--hairline)]"
+          style={{ background: 'var(--ink-raised)' }}
+        >
+          {/* Every row is the same height and every face is cropped to the same
+              circle, so the eye can run straight down the list. Numbers are
+              tabular, so the column edge does not wobble. */}
+          <div className="lb-grid border-b border-[var(--hairline)] px-4 py-2 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--ink-faint)]">
+            <span>#</span>
+            <span>Player</span>
+            <span className="lb-games text-right">Games</span>
+            <span className="text-right">{board === 'points' ? 'Points' : 'Streak'}</span>
+          </div>
+          {sorted.map((r, i) => {
+            const mine = r.student_id === myId
+            return (
+              <button
                 key={r.student_id}
-                className="flex items-center justify-between rounded-xl px-4 py-3"
-                style={rowStyle(i === 0, r.student_id === myId)}
+                onClick={() => {
+                  playClick()
+                  setOpenId(r.student_id)
+                }}
+                className="lb-grid w-full border-b border-[var(--hairline)] px-4 text-left transition last:border-b-0 hover:bg-[var(--ink-panel)]"
+                style={{ height: 56, background: mine ? 'color-mix(in srgb, var(--gold) 12%, transparent)' : undefined }}
               >
-                <div className="flex items-center gap-3">
-                  <span className="w-6 text-center font-display font-bold" style={{ color: i === 0 ? 'var(--gold)' : 'rgba(255,255,255,0.7)' }}>
-                    {i + 1}
+                <span
+                  className="flex h-7 w-7 items-center justify-center rounded-full font-display text-xs font-bold tabular-nums"
+                  style={
+                    i < 3
+                      ? { background: MEDALS[i], color: '#3a2a08' }
+                      : { color: 'var(--ink-faint)' }
+                  }
+                >
+                  {i + 1}
+                </span>
+                <span className="flex min-w-0 items-center gap-3">
+                  <Avatar row={r} />
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-bold text-[var(--fg)]">{r.full_name}</span>
+                    <span className="block truncate text-xs text-[var(--ink-muted)]">{r.class_name ?? 'No class yet'}</span>
                   </span>
-                  {r.avatar_url ? (
-                    <img src={r.avatar_url} alt="" className="h-9 w-9 rounded-full object-cover" />
-                  ) : (
-                    <span className="flex h-9 w-9 items-center justify-center rounded-full border border-white/25 text-white">
-                      <User className="h-4 w-4" strokeWidth={1.75} />
-                    </span>
-                  )}
-                  <div>
-                    <p className="font-semibold text-white">{r.full_name}</p>
-                    <p className="text-xs text-white/60">{r.class_name}</p>
-                  </div>
-                </div>
-                <p className="font-bold text-white">{r.total_points.toLocaleString()}</p>
-              </div>
-            ))
-          : classRows.map((c, i) => (
+                </span>
+                <span className="lb-games text-right text-sm tabular-nums text-[var(--ink-muted)]">{r.games}</span>
+                <span className="text-right font-display text-sm font-bold tabular-nums text-[var(--fg)]">
+                  {board === 'points' ? r.points.toLocaleString() : r.streak}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      )}
+
+      {open && <PlayerSheet row={open} byRange={byRange} onClose={() => setOpenId(null)} />}
+    </div>
+  )
+}
+
+/**
+ * A child's card, opened from the board. It rises over the list rather than
+ * replacing the page, so you keep your place in the standings.
+ */
+function PlayerSheet({
+  row,
+  byRange,
+  onClose,
+}: {
+  row: RankedLeaderboardRow
+  byRange: Record<LeaderboardRange, RankedLeaderboardRow[]>
+  onClose: () => void
+}) {
+  const rankIn = (key: LeaderboardRange) => {
+    const rows = [...byRange[key]].sort((a, b) => b.points - a.points || a.full_name.localeCompare(b.full_name))
+    const idx = rows.findIndex((r) => r.student_id === row.student_id)
+    return idx < 0 ? null : idx + 1
+  }
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center">
+      <button aria-label="Close" onClick={onClose} className="absolute inset-0 cursor-default bg-black/45" />
+      <div className="relative w-full max-w-md rounded-t-3xl bg-[var(--ink-raised)] p-5 shadow-2xl sm:rounded-3xl">
+        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[var(--hairline-strong)] sm:hidden" />
+        <button
+          onClick={onClose}
+          aria-label="Close"
+          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-[var(--ink-panel)] text-[var(--ink-muted)]"
+        >
+          <X className="h-4 w-4" />
+        </button>
+
+        <div className="flex items-center gap-4">
+          <Avatar row={row} size={64} />
+          <div className="min-w-0">
+            <p className="truncate font-display text-xl font-extrabold text-[var(--fg)]">{row.full_name}</p>
+            <p className="truncate text-sm text-[var(--ink-muted)]">{row.class_name ?? 'No class yet'}</p>
+          </div>
+        </div>
+
+        <div className="mt-5 grid grid-cols-3 gap-2 text-center">
+          {[
+            { label: 'Points', value: row.points.toLocaleString() },
+            { label: 'Games', value: String(row.games) },
+            { label: 'Streak', value: `${row.streak}` },
+          ].map((s) => (
+            <div key={s.label} className="rounded-2xl bg-[var(--ink-panel)] px-2 py-3">
+              <p className="font-display text-xl font-extrabold tabular-nums text-[var(--fg)]">{s.value}</p>
+              <p className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--ink-faint)]">{s.label}</p>
+            </div>
+          ))}
+        </div>
+
+        <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--ink-faint)]">Where they rank</p>
+        <div className="mt-2 overflow-hidden rounded-2xl border border-[var(--hairline)]">
+          {RANGES.map((r) => {
+            const place = rankIn(r.key)
+            return (
               <div
-                key={c.class_id}
-                className="flex items-center justify-between rounded-xl px-4 py-3"
-                style={rowStyle(i === 0, c.class_id === myClassId)}
+                key={r.key}
+                className="flex items-center justify-between border-b border-[var(--hairline)] px-4 py-2.5 text-sm last:border-b-0"
               >
-                <div className="flex items-center gap-3">
-                  <span className="w-6 text-center font-display font-bold" style={{ color: i === 0 ? 'var(--gold)' : 'rgba(255,255,255,0.7)' }}>
-                    {i + 1}
-                  </span>
-                  <span
-                    className="flex h-9 w-9 items-center justify-center rounded-full border"
-                    style={{ borderColor: i === 0 ? 'var(--gold)' : 'rgba(255,255,255,0.25)', color: i === 0 ? 'var(--gold)' : '#fff' }}
-                  >
-                    <Trophy className="h-4 w-4" strokeWidth={1.75} />
-                  </span>
-                  <div>
-                    <p className="font-semibold text-white">{c.class_name}</p>
-                    <p className="text-xs text-white/60">
-                      {c.student_count} student{c.student_count === 1 ? '' : 's'}
-                    </p>
-                  </div>
-                </div>
-                <p className="font-bold text-white">{c.total_points.toLocaleString()}</p>
+                <span className="text-[var(--ink-muted)]">{r.label}</span>
+                <span className="font-display font-bold tabular-nums text-[var(--fg)]">{place === null ? '-' : `#${place}`}</span>
               </div>
-            ))}
+            )
+          })}
+        </div>
       </div>
     </div>
   )

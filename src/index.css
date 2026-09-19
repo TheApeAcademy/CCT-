@@ -1178,6 +1178,20 @@ button:active, a:active {
   transform: translateY(0);
 }
 
+/* The board's column track. On a phone the Games column is dropped so a
+   child's name has room to finish instead of truncating to "Divine Ok...". */
+.lb-grid {
+  display: grid;
+  align-items: center;
+  gap: 0.75rem;
+  grid-template-columns: 28px 1fr 72px;
+}
+.lb-games { display: none; }
+@media (min-width: 640px) {
+  .lb-grid { grid-template-columns: 28px 1fr 64px 72px; }
+  .lb-games { display: block; }
+}
+
 .nav-icon-btn {
   display: inline-flex;
   align-items: center;

@@ -1690,3 +1690,64 @@ button:active, a:active {
     animation: none;
   }
 }
+
+/* ---------- A1: the full-bleed feature bands ----------
+   See src/components/FeatureBand.tsx. The photograph runs to the edge of the
+   screen and the full height of the band; the copy sits beside it on the
+   page's own ground, with no wash behind it. On a phone there is no room for
+   two columns, so the photograph becomes a full-width strip above the copy,
+   cropped exactly as it is on a laptop. */
+.lp-feature-band {
+  display: grid;
+  background: var(--lp-bg);
+}
+.lp-feature-photo {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  aspect-ratio: 16 / 10;
+}
+.lp-feature-copy {
+  padding: 3rem 1rem;
+}
+.lp-feature-copy-inner {
+  margin: 0 auto;
+  max-width: 34rem;
+}
+
+@media (min-width: 1024px) {
+  .lp-feature-band {
+    grid-template-columns: 1fr 1fr;
+    align-items: stretch;
+  }
+  .lp-feature-photo {
+    aspect-ratio: auto;
+    min-height: 32rem;
+  }
+  /* The photograph on the right means it is the second column, and the copy
+     hugs the middle of the page from the other side. */
+  .lp-feature-band[data-side='right'] .lp-feature-photo {
+    order: 2;
+  }
+  .lp-feature-copy {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 5rem 2.5rem;
+  }
+  .lp-feature-copy-inner {
+    margin: 0;
+  }
+  .lp-feature-band[data-side='left'] .lp-feature-copy-inner {
+    margin-right: auto;
+  }
+  .lp-feature-band[data-side='right'] .lp-feature-copy-inner {
+    margin-left: auto;
+  }
+}
+
+@media (min-width: 1440px) {
+  .lp-feature-copy {
+    padding-inline: 4.5rem;
+  }
+}

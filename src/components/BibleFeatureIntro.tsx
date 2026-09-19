@@ -2,9 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, useInView } from 'framer-motion'
 import { Flame } from 'lucide-react'
-import ColorSprinkles from './ColorSprinkles'
-import FloatingArt from './FloatingArt'
-import Reveal from './Reveal'
+import FeatureBand from './FeatureBand'
 import { playClick } from '../lib/sound'
 // Same clean grotesk as the hero, reused here (not Baloo 2) to mark this
 // as one of the page's calmer, more meaningful sections - see .lp-heading-calm.
@@ -41,61 +39,53 @@ function StreakCount({ to }: { to: number }) {
 /** Calm, meaningful contrast to the Quiz section - a verse reveal and a streak, not a game. */
 export default function BibleFeatureIntro() {
   return (
-    <div className="lp-band-tinted-soft full-bleed relative isolate px-4 lp-rhythm" style={{ ['--card-accent' as string]: 'var(--lp-accent-bible)' }}>
-      <ColorSprinkles />
-      <div className="mx-auto max-w-6xl">
-        <div className="grid items-center gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:gap-16">
-          <Reveal direction="left">
-            <FloatingArt className="mx-auto w-48 sm:w-64 lg:w-full lg:max-w-sm">
-              <img src="/feature-bible.png" alt="" className="w-full drop-shadow-xl" />
-            </FloatingArt>
-          </Reveal>
+    <FeatureBand
+      photo="/hero-bible.jpg"
+      alt="An open Bible on a table"
+      side="left"
+      accent="var(--lp-accent-bible)"
+    >
+      <p className="lp-eyebrow" style={{ ['--card-accent' as string]: 'var(--lp-accent-bible)' }}>
+        Today&apos;s Reading
+      </p>
+      <h2 className="lp-heading lp-heading-calm mt-3 text-balance text-3xl leading-[1.05] sm:text-5xl">
+        Nourish your soul, one verse at a time.
+      </h2>
+      <p className="mt-5 max-w-lg text-base leading-relaxed text-[var(--lp-body)] sm:text-lg">
+        A short daily reading, right there on the dashboard. Come back tomorrow and the streak keeps growing.
+      </p>
 
-          <Reveal direction="right" delay={0.08}>
-            <p className="lp-eyebrow" style={{ ['--card-accent' as string]: 'var(--lp-accent-bible)' }}>
-              Today&apos;s Reading
-            </p>
-            <h2 className="lp-heading lp-heading-calm mt-3 text-balance text-3xl leading-[1.05] sm:text-5xl">
-              Nourish your soul, one verse at a time.
-            </h2>
-            <p className="mt-5 max-w-lg text-base leading-relaxed text-[var(--lp-body)] sm:text-lg">
-              A short daily reading, right there on the dashboard. Come back tomorrow and the streak keeps growing.
-            </p>
-
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-15% 0px' }}
-              transition={{ duration: 0.5 }}
-              className="lp-panel mt-6 max-w-md p-5"
-              style={{ ['--card-accent' as string]: 'var(--lp-accent-bible)' }}
-            >
-              <p className="font-display text-base italic leading-relaxed text-[var(--lp-heading)] sm:text-lg">
-                &ldquo;{VERSE.text}&rdquo;
-              </p>
-              <div className="mt-4 flex items-center justify-between border-t border-[var(--lp-hairline)] pt-3">
-                <span className="text-xs font-bold uppercase tracking-wide text-[var(--lp-faint)]">{VERSE.source}</span>
-                <span
-                  className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-bold"
-                  style={{
-                    color: 'var(--lp-accent-bible)',
-                    background: 'color-mix(in srgb, var(--lp-accent-bible) 16%, transparent)',
-                  }}
-                >
-                  <Flame className="h-3.5 w-3.5" strokeWidth={2.25} />
-                  <StreakCount to={7} /> days
-                </span>
-              </div>
-            </motion.div>
-
-            <div className="mt-7">
-              <Link to="/join" onClick={() => playClick()} className="lp-btn-solid !px-6 !py-3 !text-[15px]">
-                Start Today&apos;s Reading
-              </Link>
-            </div>
-          </Reveal>
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: '-15% 0px' }}
+        transition={{ duration: 0.5 }}
+        className="lp-panel mt-6 max-w-md p-5"
+        style={{ ['--card-accent' as string]: 'var(--lp-accent-bible)' }}
+      >
+        <p className="font-display text-base italic leading-relaxed text-[var(--lp-heading)] sm:text-lg">
+          &ldquo;{VERSE.text}&rdquo;
+        </p>
+        <div className="mt-4 flex items-center justify-between border-t border-[var(--lp-hairline)] pt-3">
+          <span className="text-xs font-bold uppercase tracking-wide text-[var(--lp-faint)]">{VERSE.source}</span>
+          <span
+            className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-bold"
+            style={{
+              color: 'var(--lp-accent-bible)',
+              background: 'color-mix(in srgb, var(--lp-accent-bible) 16%, transparent)',
+            }}
+          >
+            <Flame className="h-3.5 w-3.5" strokeWidth={2.25} />
+            <StreakCount to={7} /> days
+          </span>
         </div>
+      </motion.div>
+
+      <div className="mt-7">
+        <Link to="/join" onClick={() => playClick()} className="lp-btn-solid !px-6 !py-3 !text-[15px]">
+          Start Today&apos;s Reading
+        </Link>
       </div>
-    </div>
+    </FeatureBand>
   )
 }

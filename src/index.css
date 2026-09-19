@@ -861,6 +861,13 @@ button:active, a:active {
 .lp-page {
   background: var(--lp-bg);
   color: var(--lp-body);
+  /* Sections slide in from the right, so until one scrolls into view it sits
+     parked a few dozen pixels past the edge and the whole page could be
+     dragged sideways on a phone. Cards that deliberately hang past their
+     column (-right-2 and friends) added the rest. Clipped here rather than
+     hidden: clip does not make this a scroll container, so anything sticky
+     inside the page keeps working. */
+  overflow-x: clip;
 }
 
 /* A playful pill-shaped tag, not plain label text, on a soft tinted chip,

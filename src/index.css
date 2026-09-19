@@ -1373,3 +1373,67 @@ button:active, a:active {
     line-height: 1.12;
   }
 }
+
+/* D2 - the journey path's one repeated object. Same shape, same size, same
+   hard bottom edge for every stop; only the fill and the icon change with
+   the state, and the edge collapses on press so the stop travels down under
+   the thumb exactly like a kid button (D1). */
+.kid-node {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  transition: box-shadow 0.08s ease, transform 0.08s ease;
+}
+.kid-node:active {
+  transform: translateY(6px);
+  box-shadow: none !important;
+}
+
+/* The "Start" flag over the stop the child is on - Duolingo's one piece of
+   movement on this screen, and the only thing on the path that is not a
+   circle, which is what makes it findable. */
+.kid-node-bubble {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 12px);
+  transform: translateX(-50%);
+  z-index: 10;
+  padding: 0.3rem 0.75rem;
+  border-radius: 10px;
+  background: var(--lp-bg-panel, #fff);
+  border: 2px solid var(--lp-accent-bible);
+  color: var(--lp-accent-bible);
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  animation: kid-node-bob 1.4s ease-in-out infinite;
+}
+.kid-node-bubble::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  margin-top: -5px;
+  background: var(--lp-bg-panel, #fff);
+  border-right: 2px solid var(--lp-accent-bible);
+  border-bottom: 2px solid var(--lp-accent-bible);
+  transform: rotate(45deg);
+}
+
+@keyframes kid-node-bob {
+  0%, 100% { transform: translate(-50%, 0); }
+  50% { transform: translate(-50%, -5px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kid-node-bubble {
+    animation: none;
+  }
+}

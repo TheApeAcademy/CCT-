@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Lock, Check, ArrowLeft, ChevronLeft, ChevronRight, Sparkles, BookOpen, Flame, Coins } from 'lucide-react'
+import { Lock, Check, Star, ArrowLeft, ChevronLeft, ChevronRight, Sparkles, BookOpen, Flame, Coins } from 'lucide-react'
 import {
   BIBLE_BOOK_ORDER,
   JOURNEY_BOOKS,
@@ -325,19 +325,101 @@ function CharacterBrowse({
   )
 }
 
-// A flat-design, code-drawn path (no external art needed): stops zigzag
-// left-right down a fixed-width track, connected by a dashed line, each
-// rendered as a chunky flat "button" stone in the Duolingo mold rather
-// than a photoreal image - stays crisp at any size and scales to however
-// many stops a book actually has.
+// D2 - the path, drawn the way Duolingo draws it.
+//
+// It used to be: a photoreal stone behind every stop, a coloured disc on top
+// of the stone, a cropped scene photo hanging off the corner of that disc,
+// and the unit's name printed underneath. Four things per stop at four
+// different weights, and the eye had nowhere to land. Duolingo's path is one
+// repeated object: a single flat circle with a hard bottom edge, the same
+// size every time, in exactly three states - done, the one you are on, and
+// locked. The only thing that differs between them is the fill and the icon.
+//
+// The unit names did not disappear, they moved: a unit now opens with its own
+// banner across the track, which is also where Duolingo puts them.
 const TRACK_WIDTH = 380
-const TRACK_CENTER_X = TRACK_WIDTH / 2
-const WAVE_AMPLITUDE = 80
-const ROW_HEIGHT = 190
-const NODE_SIZE = 110
+const WAVE_AMPLITUDE = 78
+const NODE_SIZE = 72
+const NODE_GAP = 20
 
-function waveX(idx: number): number {
-  return TRACK_CENTER_X + Math.sin((idx * Math.PI) / 2) * WAVE_AMPLITUDE
+// A four-step sine, so the column snakes left and right instead of running
+// straight down. An offset from centre, not an absolute x: the stops sit in
+// normal document flow now rather than on an absolutely positioned canvas.
+function waveOffset(idx: number): number {
+  return Math.round(Math.sin((idx * Math.PI) / 2) * WAVE_AMPLITUDE)
+}
+
+type StopState = 'done' | 'current' | 'locked'
+
+function JourneyNode({
+  state,
+  selected,
+  label,
+  onClick,
+}: {
+  state: StopState
+  selected: boolean
+  label: string
+  onClick: () => void
+}) {
+  // Locked stops are mixed from the heading colour rather than set to a fixed
+  // grey, so they stay legible on whichever ground the shell is using.
+  const fill = state === 'locked' ? 'color-mix(in srgb, var(--lp-heading) 16%, var(--lp-bg))' : ACCENT
+  const edge =
+    state === 'locked'
+      ? 'color-mix(in srgb, var(--lp-heading) 30%, var(--lp-bg))'
+      : `color-mix(in srgb, ${ACCENT} 68%, #000)`
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={`${label}${state === 'locked' ? ' (locked)' : state === 'done' ? ' (done)' : ''}`}
+      aria-current={state === 'current' ? 'step' : undefined}
+      className="kid-node"
+      style={{
+        width: NODE_SIZE,
+        height: NODE_SIZE,
+        background: fill,
+        boxShadow: `0 6px 0 ${edge}${selected ? `, 0 0 0 4px color-mix(in srgb, ${ACCENT} 35%, transparent)` : ''}`,
+      }}
+    >
+      {state === 'done' ? (
+        <Check className="h-8 w-8 text-white" strokeWidth={3.5} />
+      ) : state === 'current' ? (
+        <Star className="h-8 w-8 text-white" strokeWidth={2.5} fill="currentColor" />
+      ) : (
+        <Lock className="h-6 w-6" style={{ color: 'color-mix(in srgb, var(--lp-heading) 58%, transparent)' }} />
+      )}
+    </button>
+  )
+}
+
+/**
+ * The banner Duolingo puts at the head of a section, and the reason the stops
+ * below it need no labels of their own.
+ *
+ * It is drawn per unit only when a unit actually holds more than one lesson.
+ * Every unit in Genesis currently holds exactly one, so a banner per unit
+ * would mean a banner between every pair of stops - a stack of headings with
+ * a circle wedged in each gap, which is the opposite of a path. Until the
+ * content grows, the book's own banner at the top of the track is the only
+ * one that appears.
+ */
+function JourneyBanner({ eyebrow, title, done, total }: { eyebrow: string; title: string; done: number; total: number }) {
+  return (
+    <div
+      className="flex items-center justify-between gap-3 rounded-2xl px-4 py-3"
+      style={{ background: ACCENT, boxShadow: `0 4px 0 color-mix(in srgb, ${ACCENT} 68%, #000)` }}
+    >
+      <div className="min-w-0">
+        <p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-white/70">{eyebrow}</p>
+        <p className="truncate font-display text-lg font-extrabold text-white">{title}</p>
+      </div>
+      <span className="shrink-0 rounded-full bg-white/20 px-2.5 py-1 text-xs font-extrabold tabular-nums text-white">
+        {done}/{total}
+      </span>
+    </div>
+  )
 }
 
 interface JourneyStats {
@@ -370,11 +452,8 @@ function UnitPath({
   const stops = book.units.flatMap((unit) => unit.lessons.map((lesson) => ({ unit, lesson })))
   let firstIncompleteIdx = stops.findIndex(({ lesson }) => !completedKeys.has(lesson.key))
   if (firstIncompleteIdx === -1) firstIncompleteIdx = stops.length - 1
-  const trackHeight = stops.length * ROW_HEIGHT
   const activeIdx = Math.min(previewIdx ?? firstIncompleteIdx, stops.length - 1)
   const activeStop = stops[activeIdx]
-
-  const pathD = stops.map((_, i) => `${i === 0 ? 'M' : 'L'} ${waveX(i)} ${i * ROW_HEIGHT + NODE_SIZE / 2}`).join(' ')
 
   const preview = activeStop && (
     <LessonPreviewCard
@@ -390,74 +469,63 @@ function UnitPath({
   )
   const stats_ = <StatsPanel stats={stats} lesson={stops[firstIncompleteIdx]?.lesson} big />
 
+  const doneCount = stops.filter(({ lesson }) => completedKeys.has(lesson.key)).length
+
   const track = (
-        <div className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden sm:max-h-[75vh]">
-          <div className="relative mx-auto" style={{ width: TRACK_WIDTH, height: trackHeight, maxWidth: '100%' }}>
-            <svg className="absolute inset-0" width={TRACK_WIDTH} height={trackHeight} viewBox={`0 0 ${TRACK_WIDTH} ${trackHeight}`}>
-              <path d={pathD} fill="none" stroke="var(--lp-hairline-strong)" strokeWidth={6} strokeLinecap="round" strokeDasharray="2 14" />
-            </svg>
-            {stops.map(({ unit, lesson }, i) => {
-              const isDone = completedKeys.has(lesson.key)
-              const isNext = i === firstIncompleteIdx
-              const isLocked = !isDone && !isNext
-              const fill = isLocked ? 'var(--lp-hairline-strong)' : ACCENT
-              const badgeImage = lesson.image ?? CHARACTER_FALLBACK_IMAGES[i % CHARACTER_FALLBACK_IMAGES.length]
-              return (
-                <div
-                  key={lesson.key}
-                  className="absolute flex flex-col items-center"
-                  style={{ left: waveX(i), top: i * ROW_HEIGHT + NODE_SIZE / 2, transform: 'translate(-50%, -50%)', width: 190 }}
-                >
-                  <button
+    <div className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden sm:max-h-[75vh]">
+      <div className="mx-auto flex w-full flex-col pb-2" style={{ maxWidth: TRACK_WIDTH }}>
+        <div className="sticky top-0 z-20 pb-4">
+          <JourneyBanner eyebrow="Book" title={book.title} done={doneCount} total={stops.length} />
+        </div>
+        {stops.map(({ unit, lesson }, i) => {
+          const state: StopState = completedKeys.has(lesson.key) ? 'done' : i === firstIncompleteIdx ? 'current' : 'locked'
+          const opensUnit = unit.lessons.length > 1 && (i === 0 || stops[i - 1].unit !== unit)
+          return (
+            <div key={lesson.key}>
+              {opensUnit && (
+                <div className={i === 0 ? 'pb-4' : 'pb-4 pt-8'}>
+                  <JourneyBanner
+                    eyebrow={unit.kind === 'topical' ? 'Big Truths' : 'Unit'}
+                    title={`${unit.emoji} ${unit.title}`}
+                    done={unit.lessons.filter((l) => completedKeys.has(l.key)).length}
+                    total={unit.lessons.length}
+                  />
+                </div>
+              )}
+              <div
+                className="flex justify-center"
+                style={{
+                  transform: `translateX(${waveOffset(i)}px)`,
+                  // The current stop carries a "Start" flag above its head, so
+                  // it needs the headroom or the flag slides under the sticky
+                  // banner and the one moving thing on the screen is invisible.
+                  marginTop: (opensUnit || i === 0 ? 0 : NODE_GAP) + (state === 'current' ? 30 : 0),
+                }}
+              >
+                <div className="relative">
+                  {state === 'current' && (
+                    <span className="kid-node-bubble" aria-hidden="true">
+                      Start
+                    </span>
+                  )}
+                  <JourneyNode
+                    state={state}
+                    selected={i === activeIdx}
+                    label={lesson.title}
                     onClick={() => {
                       playClick()
                       setPreviewIdx(i)
                     }}
-                    className="relative flex shrink-0 items-center justify-center text-2xl transition hover:scale-[1.08]"
-                    style={{ width: NODE_SIZE, height: NODE_SIZE }}
-                  >
-                    <img
-                      src="/stone-render.png"
-                      alt=""
-                      className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 object-contain"
-                      style={{
-                        width: NODE_SIZE * 1.8,
-                        height: NODE_SIZE * 1.8,
-                        filter: isLocked
-                          ? 'grayscale(0.85) brightness(0.55)'
-                          : isDone
-                            ? `drop-shadow(0 6px 8px color-mix(in srgb, ${ACCENT} 65%, transparent)) saturate(1.15)`
-                            : `drop-shadow(0 6px 10px color-mix(in srgb, ${ACCENT} 75%, transparent)) saturate(1.15)`,
-                      }}
-                    />
-                    <span
-                      className="relative z-10 flex h-14 w-14 items-center justify-center rounded-full"
-                      style={{ background: fill, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.4), 0 2px 6px rgba(0,0,0,0.35)' }}
-                    >
-                      {isDone ? (
-                        <Check className="h-7 w-7 text-white" strokeWidth={3} />
-                      ) : isLocked ? (
-                        <Lock className="h-6 w-6 text-white/80" />
-                      ) : (
-                        <span className="text-xl">{unit.emoji}</span>
-                      )}
-                    </span>
-                    <img
-                      src={badgeImage}
-                      alt=""
-                      className="absolute -bottom-1 -right-1 z-20 h-10 w-10 rounded-full border-2 border-[var(--ink)] object-cover"
-                    />
-                  </button>
-                  <p className={`mt-2 text-center text-sm font-bold leading-tight ${isLocked ? 'text-[var(--ink-muted)]' : ''}`}>
-                    {unit.title}
-                    {unit.kind === 'topical' && <span className="ml-1 text-[10px] uppercase text-[var(--ink-muted)]">Big Truths</span>}
-                  </p>
+                  />
                 </div>
-              )
-            })}
-          </div>
-        </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
   )
+
 
   return (
     <div className="space-y-3">

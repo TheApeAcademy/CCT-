@@ -1446,3 +1446,115 @@ button:active, a:active {
     animation: none;
   }
 }
+
+/* ---------- C1 C2 C3: the Apple chrome ----------
+   iCloud governs the signed-in furniture and the sign-in page (see the
+   design reference mapping). Structure only, never the palette: the app
+   keeps its own colours.
+
+   C1, one elevation instead of a border on everything. A border says "this
+   is a separate object" and this app was saying it about every block on the
+   page at once, so nothing stood out. Panels here drop the border and rest
+   on one soft shadow.
+
+   C2, three radii and no more. A control, a card, and a sheet - anything
+   else was an accident.
+
+   C3, sheets instead of page jumps, plus the quiet-until-hover rule: a
+   control shows its edge when you reach for it, not before. */
+[data-apple-chrome] {
+  --apple-r-control: 12px;
+  --apple-r-card: 18px;
+  --apple-r-sheet: 28px;
+  --apple-elev: 0 1px 2px rgba(20, 8, 40, 0.05), 0 8px 28px -14px rgba(20, 8, 40, 0.28);
+  --apple-elev-raised: 0 2px 6px rgba(20, 8, 40, 0.07), 0 18px 46px -20px rgba(20, 8, 40, 0.38);
+  /* C2 in practice: the shared chrome system has its own radius names, so
+     point them at the same three values rather than leaving a fourth and
+     fifth radius in play. */
+  --lp-radius-card: 18px;
+  --lp-radius-feature: 18px;
+  --radius-control: 12px;
+  --radius-panel: 18px;
+  --radius-surface: 28px;
+  --lp-shadow-card: var(--apple-elev);
+  --lp-shadow-card-raised: var(--apple-elev-raised);
+}
+
+[data-apple-chrome] :is(.lp-panel, .lp-stat-strip, .panel) {
+  border-color: transparent;
+  box-shadow: var(--apple-elev);
+  background: var(--lp-bg-panel);
+}
+/* The accent wash and tinted border are what a card looks like when it is
+   trying to be noticed. Under this chrome the colour lives in the icon and
+   nowhere else. */
+[data-apple-chrome] .lp-panel-accented {
+  background: var(--lp-bg-panel);
+  border-color: transparent;
+}
+[data-apple-chrome] .lp-panel-interactive:hover {
+  transform: none;
+  border-color: transparent;
+  box-shadow: var(--apple-elev-raised);
+}
+
+[data-apple-chrome] :is(.btn-solid, .lp-btn-solid, .btn-outline, .lp-btn-outline) {
+  border-radius: var(--apple-r-control);
+}
+/* Quiet until you reach for it. */
+[data-apple-chrome] :is(.btn-outline, .lp-btn-outline) {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--lp-heading) 6%, transparent);
+}
+[data-apple-chrome] :is(.btn-outline, .lp-btn-outline):hover {
+  border-color: var(--lp-hairline-strong);
+  background: color-mix(in srgb, var(--lp-heading) 10%, transparent);
+}
+
+/* The one field shape. Filled, hairline, and a ring rather than a colour
+   change on focus, so the field does not jump when you tap it. */
+.apple-field {
+  width: 100%;
+  border-radius: var(--apple-r-control, 12px);
+  border: 1px solid var(--lp-hairline-strong);
+  background: var(--lp-bg);
+  padding: 0.85rem 1rem;
+  font-size: 1rem;
+  color: var(--lp-heading);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.apple-field::placeholder {
+  color: var(--lp-faint);
+}
+.apple-field:focus {
+  border-color: var(--hero-accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--hero-accent) 18%, transparent);
+}
+
+/* Apple's segmented control: a recessed track, and the selected segment is
+   a raised plate rather than a block of colour. */
+.apple-segmented {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: var(--apple-r-control, 12px);
+  background: color-mix(in srgb, var(--lp-heading) 7%, transparent);
+}
+.apple-segment {
+  flex: 1;
+  border-radius: calc(var(--apple-r-control, 12px) - 4px);
+  padding: 0.55rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--lp-muted);
+  transition: color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+.apple-segment:hover {
+  color: var(--lp-heading);
+}
+.apple-segment[aria-selected='true'] {
+  background: var(--lp-bg);
+  color: var(--lp-heading);
+  box-shadow: 0 1px 3px rgba(20, 8, 40, 0.14);
+}

@@ -10,25 +10,24 @@ import { useAutoHideNav } from '../lib/useAutoHideNav'
 const NotificationBell = lazy(() => import('./NotificationBell'))
 
 /**
- * Chrome for Admin and Teacher - built from the same light, colourful design
+ * Chrome for Admin, Teacher and Parent - built from the same light design
  * language as the landing page and the kids' own KidsShell (see its comment
  * for how .site-light-theme/data-landing-theme work). Each portal still has
  * no shared nav bar with the others or with the public site: this just
  * means Admin, Teacher, and Kids now all speak the same visual language
  * instead of Admin/Teacher being stuck on the app's plain dark default.
+ *
+ * data-apple-chrome is the iCloud treatment (see the design reference
+ * mapping): one soft elevation instead of a border on every block, three
+ * radii, and controls that stay quiet until you reach for them. Structure
+ * only - the palette is still this app's own. Deliberately not
+ * data-kid-surface: the Duolingo button and heading rules belong to the
+ * screens a child taps, not to a teacher's register.
  */
 export default function PortalShell({ eyebrow }: { eyebrow: string }) {
   const autoHidden = useAutoHideNav()
   return (
-    <div data-landing-theme="light" className="site-light-theme lp-page relative isolate min-h-screen">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none fixed inset-0 z-0"
-        style={{
-          backgroundImage: 'radial-gradient(var(--lp-hairline-strong) 1px, transparent 1px)',
-          backgroundSize: '22px 22px',
-        }}
-      />
+    <div data-apple-chrome="" data-landing-theme="light" className="site-light-theme lp-page relative isolate min-h-screen">
       <header
         className={`sticky top-0 z-40 border-b border-[var(--lp-hairline)] bg-[var(--lp-bg)] transition-transform duration-300 ${
           autoHidden ? '-translate-y-full' : 'translate-y-0'

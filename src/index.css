@@ -1632,3 +1632,61 @@ button:active, a:active {
   --fg: #ffffff;
   color: var(--fg);
 }
+
+/* C3 - the one sheet shape. See src/components/ui/Sheet.tsx.
+   On a phone it rises from the bottom edge, rounded at the top only, the
+   way a system sheet does. From 640px up it is a centred panel. */
+.sheet-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(10, 4, 20, 0.55);
+  backdrop-filter: blur(2px);
+}
+.sheet-panel {
+  width: 100%;
+  max-width: 28rem;
+  max-height: 88vh;
+  overflow-y: auto;
+  background: var(--ink-panel);
+  color: var(--fg);
+  border-radius: var(--apple-r-sheet, 24px) var(--apple-r-sheet, 24px) 0 0;
+  padding: 1.25rem;
+  padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -8px 40px -12px rgba(10, 4, 20, 0.5);
+  animation: sheet-rise 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.sheet-panel-wide {
+  max-width: 34rem;
+}
+.sheet-panel:focus {
+  outline: none;
+}
+
+@keyframes sheet-rise {
+  from {
+    transform: translateY(14px);
+    opacity: 0.6;
+  }
+}
+
+@media (min-width: 640px) {
+  .sheet-scrim {
+    align-items: center;
+    padding: 1rem;
+  }
+  .sheet-panel {
+    border-radius: var(--apple-r-sheet, 24px);
+    padding-bottom: 1.25rem;
+    box-shadow: 0 24px 60px -20px rgba(10, 4, 20, 0.55);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet-panel {
+    animation: none;
+  }
+}

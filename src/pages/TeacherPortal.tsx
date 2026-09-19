@@ -38,6 +38,7 @@ import TabBar from '../components/ui/TabBar'
 import IsometricPhone from '../components/IsometricPhone'
 import { NotesSection, DigitalBankSection } from '../components/PersonalVault'
 import { DataList, DataRow, DataIdentity, DataNum, DataActions } from '../components/ui/DataList'
+import Sheet from '../components/ui/Sheet'
 import MinistryCalendarReadOnly from '../components/MinistryCalendarView'
 import AvatarReviewQueue from '../components/AvatarReviewQueue'
 import PortalSearch from '../components/PortalSearch'
@@ -944,50 +945,41 @@ function PasscodeResetModal({ student, onClose }: { student: StudentRow; onClose
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl bg-[var(--ink-panel)] p-5" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-3 flex items-center justify-between">
-          <p className="font-display text-lg font-bold">{passcode ? 'New passcode' : `Reset ${student.full_name}'s passcode?`}</p>
-          <button onClick={onClose} aria-label="Close" className="text-[var(--ink-muted)] hover:text-[var(--fg)]">
-            <X className="h-5 w-5" />
+    <Sheet title={passcode ? 'New passcode' : `Reset ${student.full_name}'s passcode?`} onClose={onClose}>
+      {passcode ? (
+        <div className="space-y-3">
+          <p className="text-sm text-[var(--ink-muted)]">
+            Read this out to {student.full_name.split(' ')[0]} now. You will not be able to see it again.
+          </p>
+          <p
+            className="rounded-lg border border-[var(--hairline-strong)] bg-[var(--gold)]/10 py-4 text-center font-display text-2xl font-extrabold tracking-wide text-[var(--gold)]"
+          >
+            {passcode}
+          </p>
+          <button onClick={copy} className="btn-outline flex w-full items-center justify-center gap-1.5 py-2 text-sm">
+            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            {copied ? 'Copied' : 'Copy passcode'}
+          </button>
+          <button onClick={onClose} className="btn-solid w-full py-3 text-sm">
+            Done
           </button>
         </div>
-
-        {passcode ? (
-          <div className="space-y-3">
-            <p className="text-sm text-[var(--ink-muted)]">
-              Read this out to {student.full_name.split(' ')[0]} now. You will not be able to see it again.
-            </p>
-            <p
-              className="rounded-lg border border-[var(--hairline-strong)] bg-[var(--gold)]/10 py-4 text-center font-display text-2xl font-extrabold tracking-wide text-[var(--gold)]"
-            >
-              {passcode}
-            </p>
-            <button onClick={copy} className="btn-outline flex w-full items-center justify-center gap-1.5 py-2 text-sm">
-              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-              {copied ? 'Copied' : 'Copy passcode'}
-            </button>
-            <button onClick={onClose} className="btn-solid w-full py-3 text-sm">
-              Done
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <p className="text-sm text-[var(--ink-muted)]">
-              Their old passcode stops working straight away, and they will be signed out on any device. Only do this with {student.full_name.split(' ')[0]} there
-              with you, so you can give them the new one.
-            </p>
-            {error && <p className="text-sm text-red-700">{error}</p>}
-            <button onClick={run} disabled={working} className="btn-solid w-full py-3 text-sm">
-              {working ? 'Resetting…' : 'Give them a new passcode'}
-            </button>
-            <button onClick={onClose} className="btn-outline w-full py-2 text-sm">
-              Cancel
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
+      ) : (
+        <div className="space-y-3">
+          <p className="text-sm text-[var(--ink-muted)]">
+            Their old passcode stops working straight away, and they will be signed out on any device. Only do this with {student.full_name.split(' ')[0]} there
+            with you, so you can give them the new one.
+          </p>
+          {error && <p className="text-sm text-red-700">{error}</p>}
+          <button onClick={run} disabled={working} className="btn-solid w-full py-3 text-sm">
+            {working ? 'Resetting…' : 'Give them a new passcode'}
+          </button>
+          <button onClick={onClose} className="btn-outline w-full py-2 text-sm">
+            Cancel
+          </button>
+        </div>
+      )}
+    </Sheet>
   )
 }
 
@@ -1025,36 +1017,27 @@ function CertificateModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-[var(--ink-panel)] p-5" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-3 flex items-center justify-between">
-          <p className="font-display text-lg font-bold">Certificate for {student.full_name}</p>
-          <button onClick={onClose} aria-label="Close" className="text-[var(--ink-muted)] hover:text-[var(--fg)]">
-            <X className="h-5 w-5" />
+    <Sheet title={`Certificate for ${student.full_name}`} onClose={onClose} wide>
+      {url ? (
+        <div className="space-y-3">
+          <img src={url} alt="Certificate preview" className="w-full rounded-lg border border-[var(--hairline-strong)]" />
+          <a href={url} download={`${student.full_name.replace(/\s+/g, '-')}-certificate.png`} className="btn-solid block w-full text-center text-sm">
+            Download Certificate
+          </a>
+          <button onClick={() => setUrl(null)} className="btn-outline w-full py-2 text-sm">
+            Edit Text
           </button>
         </div>
-
-        {url ? (
-          <div className="space-y-3">
-            <img src={url} alt="Certificate preview" className="w-full rounded-lg border border-[var(--hairline-strong)]" />
-            <a href={url} download={`${student.full_name.replace(/\s+/g, '-')}-certificate.png`} className="btn-solid block w-full text-center text-sm">
-              Download Certificate
-            </a>
-            <button onClick={() => setUrl(null)} className="btn-outline w-full py-2 text-sm">
-              Edit Text
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <label className="text-xs font-bold uppercase tracking-wide text-[var(--ink-muted)]">Achievement text</label>
-            <textarea value={achievement} onChange={(e) => setAchievement(e.target.value)} rows={3} className={`${inputClass} resize-none`} />
-            <button onClick={generate} disabled={rendering} className="btn-solid w-full py-3 text-sm">
-              {rendering ? 'Generating…' : 'Generate Certificate'}
-            </button>
-          </div>
-        )}
-      </div>
-    </div>
+      ) : (
+        <div className="space-y-3">
+          <label className="text-xs font-bold uppercase tracking-wide text-[var(--ink-muted)]">Achievement text</label>
+          <textarea value={achievement} onChange={(e) => setAchievement(e.target.value)} rows={3} className={`${inputClass} resize-none`} />
+          <button onClick={generate} disabled={rendering} className="btn-solid w-full py-3 text-sm">
+            {rendering ? 'Generating…' : 'Generate Certificate'}
+          </button>
+        </div>
+      )}
+    </Sheet>
   )
 }
 

@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import type { CSSProperties } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -421,14 +421,7 @@ function Dashboard() {
                 (klass ? (
                   <MessagesTab teacherId={klass.teacher_id} teacherName={klass.teacher_name} teacherAvatar={klass.teacher_avatar} />
                 ) : (
-                  <div className="mx-auto max-w-2xl p-4">
-                    <div className="panel p-6 text-center">
-                      <p className="font-display text-lg font-bold">No teacher yet</p>
-                      <p className="mt-1 text-sm text-[var(--ink-muted)]">
-                        Once your teacher adds you to their class, you&apos;ll be able to message them here.
-                      </p>
-                    </div>
-                  </div>
+                  <MessagesLockedTab code={student?.student_code ?? null} />
                 ))}
               {tab === 'ears' && <EarsTab klass={klass} />}
               {tab === 'game' && <GameTab />}
@@ -1143,19 +1136,12 @@ function ClassTab({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active])
 
-  if (!klass) {
-    return (
-      <div className="space-y-6">
-        <div className="panel p-6 text-center">
-          <p className="font-display text-lg font-bold">No class yet</p>
-          <p className="mt-1 text-sm text-[var(--ink-muted)]">
-            You&apos;re not in a class yet. Give your Student Code to your Sunday school teacher and they&apos;ll add you.
-          </p>
-        </div>
-        <NotesSection kind="notebook" title="Notebook" icon={FileText} accent="var(--lp-accent-class)" placeholder="Jot down what you're learning…" />
-      </div>
-    )
-  }
+  // Without a class this used to throw the whole classroom away and leave a
+  // bare white card on an empty page, which read as a broken screen rather
+  // than as something not unlocked yet. The room, the dial and the wedges all
+  // stay: four of them wear a padlock, the Notebook still opens because it
+  // never needed a class, and the code the teacher needs is right there.
+  const locked = !klass
 
   return (
     <div className="fixed inset-0 z-0 overflow-hidden">
@@ -1164,23 +1150,95 @@ function ClassTab({
       <div className="relative z-10 flex h-full flex-col items-center justify-center overflow-y-auto px-4 py-16">
         {active ? (
           <div key="panel" className="w-full max-w-md animate-page-in">
-            <ClassFeaturePanel
-              feature={active}
-              klass={klass}
-              student={student}
-              assignments={assignments}
-              lessons={lessons}
-              loading={loading}
-              onClose={() => setActive(null)}
-            />
+            {klass ? (
+              <ClassFeaturePanel
+                feature={active}
+                klass={klass}
+                student={student}
+                assignments={assignments}
+                lessons={lessons}
+                loading={loading}
+                onClose={() => setActive(null)}
+              />
+            ) : (
+              <ClassGlassPanel title="Notebook" onClose={() => setActive(null)}>
+                <NotesSection
+                  kind="notebook"
+                  title="Notebook"
+                  icon={FileText}
+                  accent="var(--lp-accent-class)"
+                  placeholder="Jot down what you're learning…"
+                />
+              </ClassGlassPanel>
+            )}
           </div>
         ) : (
           <div key="dial" className="flex flex-col items-center gap-4 animate-page-in">
-            <ClassDial onSelect={setActive} />
-            <p className="text-xs font-bold uppercase tracking-wide text-white/70">Tap an icon to open it</p>
+            <ClassDial onSelect={setActive} lockedExcept={locked ? 'notes' : null} />
+            {locked ? <JoinClassNotice code={student?.student_code ?? null} /> : (
+              <p className="text-xs font-bold uppercase tracking-wide text-white/70">Tap an icon to open it</p>
+            )}
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+/** The glass shell ClassFeaturePanel uses, on its own so the locked screen can
+ *  open the Notebook in exactly the same frame instead of a different card. */
+function ClassGlassPanel({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+  return (
+    <div
+      className="w-full rounded-[28px] p-5"
+      style={{
+        background: 'rgba(12,10,20,0.72)',
+        border: '1px solid rgba(255,255,255,0.16)',
+        backdropFilter: 'blur(22px)',
+        WebkitBackdropFilter: 'blur(22px)',
+        boxShadow: '0 30px 70px -20px rgba(0,0,0,0.65)',
+        maxHeight: '72vh',
+        overflowY: 'auto',
+      }}
+    >
+      <div className="relative z-10 mb-3 flex items-center justify-between">
+        <p className="font-display text-lg font-extrabold text-white">{title}</p>
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
+          aria-label="Back to the dial"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      {children}
+    </div>
+  )
+}
+
+/** What a child sees under the locked dial: what to do, and the code to do it
+ *  with. Shown in the room rather than in place of it. */
+function JoinClassNotice({ code }: { code: string | null }) {
+  return (
+    <div
+      className="w-full max-w-sm rounded-2xl px-5 py-4 text-center"
+      style={{
+        background: 'rgba(12,10,20,0.72)',
+        border: '1px solid rgba(255,255,255,0.16)',
+        backdropFilter: 'blur(22px)',
+        WebkitBackdropFilter: 'blur(22px)',
+      }}
+    >
+      <p className="font-display text-base font-extrabold text-white">Join a class to unlock these</p>
+      <p className="mt-1 text-sm text-white/70">Give this code to your Sunday school teacher and they will add you.</p>
+      {code ? (
+        <p className="mt-3 font-display text-2xl font-extrabold tracking-[0.2em]" style={{ color: 'var(--gold)' }}>
+          {code}
+        </p>
+      ) : (
+        <p className="mt-3 text-sm text-white/50">Your code is still being made.</p>
+      )}
     </div>
   )
 }
@@ -1190,7 +1248,7 @@ function ClassTab({
  * the class photo with the teacher figurine at its center and one wedge icon
  * per feature spaced evenly around the circle.
  */
-function ClassDial({ onSelect }: { onSelect: (key: ClassFeatureKey) => void }) {
+function ClassDial({ onSelect, lockedExcept }: { onSelect: (key: ClassFeatureKey) => void; lockedExcept: ClassFeatureKey | null }) {
   const n = CLASS_FEATURES.length
   return (
     <div className="relative" style={{ width: 'min(96vw, 750px)', height: 'min(105vw, 510px)' }}>
@@ -1226,26 +1284,37 @@ function ClassDial({ onSelect }: { onSelect: (key: ClassFeatureKey) => void }) {
         const x = 50 + R * Math.cos(angle)
         const y = 50 + R * Math.sin(angle)
         const Icon = f.icon
+        const isLocked = lockedExcept !== null && f.key !== lockedExcept
         return (
           <button
             key={f.key}
+            disabled={isLocked}
             onClick={() => {
+              if (isLocked) return
               playClick()
               onSelect(f.key)
             }}
-            className="absolute flex flex-col items-center gap-2 transition hover:scale-110 active:scale-95"
+            className={`absolute flex flex-col items-center gap-2 transition ${isLocked ? 'cursor-not-allowed' : 'hover:scale-110 active:scale-95'}`}
             style={{ left: `${x}%`, top: `${y}%`, transform: 'translate(-50%,-50%)' }}
           >
             <span
               className="relative flex h-[84px] w-[84px] items-center justify-center overflow-hidden rounded-full sm:h-24 sm:w-24"
               style={{
-                background: `linear-gradient(155deg, ${f.from} 0%, ${f.to} 100%)`,
+                background: isLocked ? 'rgba(255,255,255,0.07)' : `linear-gradient(155deg, ${f.from} 0%, ${f.to} 100%)`,
                 border: '1px solid rgba(255,255,255,0.45)',
-                boxShadow: '0 10px 24px -8px rgba(0,0,0,0.55), inset 0 1px 1px rgba(255,255,255,0.45), inset 0 -3px 6px rgba(0,0,0,0.3)',
+                boxShadow: isLocked
+                  ? 'inset 0 0 0 1px rgba(255,255,255,0.12)'
+                  : '0 10px 24px -8px rgba(0,0,0,0.55), inset 0 1px 1px rgba(255,255,255,0.45), inset 0 -3px 6px rgba(0,0,0,0.3)',
               }}
             >
-              <span className="absolute inset-0" style={{ background: 'radial-gradient(circle at 30% 20%, rgba(255,255,255,0.45), transparent 55%)' }} />
-              <Icon className="relative h-9 w-9 text-white drop-shadow" strokeWidth={2.1} />
+              {!isLocked && (
+                <span className="absolute inset-0" style={{ background: 'radial-gradient(circle at 30% 20%, rgba(255,255,255,0.45), transparent 55%)' }} />
+              )}
+              {isLocked ? (
+                <Lock className="relative h-8 w-8 text-white/55" strokeWidth={2} />
+              ) : (
+                <Icon className="relative h-9 w-9 text-white drop-shadow" strokeWidth={2.1} />
+              )}
             </span>
             <span className="whitespace-nowrap rounded-full bg-black/50 px-2.5 py-1 text-xs font-bold text-white backdrop-blur">{f.label}</span>
           </button>
@@ -2089,6 +2158,57 @@ function ProfileTab({ student, klass, onSaved }: { student: StudentRow; klass: (
       </div>
 
       <p className="text-center text-[10px] text-[var(--ink-faint)]">Built by Zebraish</p>
+    </div>
+  )
+}
+
+/**
+ * My Teacher before a teacher exists. Same room, same phone, same chat shape
+ * as the real thing - the conversation is simply locked, with the code that
+ * unlocks it on the screen. It used to throw all of that away for a white
+ * card on an empty page, which read as broken rather than as not-yet.
+ */
+function MessagesLockedTab({ code }: { code: string | null }) {
+  return (
+    <div className="fixed inset-0 z-0 overflow-hidden">
+      <img src="/teacher-home-bg.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />
+      <div className="relative z-10 flex h-full items-center justify-center px-4">
+        <IsometricPhone accent="var(--lp-accent-training)">
+          <div className="flex flex-1 flex-col overflow-hidden px-4 pb-5">
+            <div className="flex items-center gap-3 pb-4">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-white ring-2 ring-white/20">
+                <Lock className="h-4 w-4" strokeWidth={2} />
+              </span>
+              <div className="min-w-0">
+                <p className="truncate font-display text-base font-extrabold text-white">No teacher yet</p>
+                <p className="text-xs text-white/50">This chat unlocks when you join a class</p>
+              </div>
+            </div>
+
+            <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 text-center">
+              <p className="text-sm text-white/70">Give this code to your Sunday school teacher and they will add you.</p>
+              {code ? (
+                <p className="font-display text-2xl font-extrabold tracking-[0.2em]" style={{ color: 'var(--gold)' }}>
+                  {code}
+                </p>
+              ) : (
+                <p className="text-sm text-white/40">Your code is still being made.</p>
+              )}
+            </div>
+
+            <div className="mt-3 flex gap-2">
+              <input
+                disabled
+                placeholder="Write a message…"
+                className="flex-1 cursor-not-allowed rounded-full border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/40 outline-none placeholder:text-white/25"
+              />
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/8 text-white/35">
+                <Lock className="h-4 w-4" strokeWidth={2} />
+              </span>
+            </div>
+          </div>
+        </IsometricPhone>
+      </div>
     </div>
   )
 }

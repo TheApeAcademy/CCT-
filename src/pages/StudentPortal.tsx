@@ -410,7 +410,7 @@ function Dashboard() {
                 left the list as a thin strip with most of the screen empty
                 either side while every other stop ran edge to edge. */}
             <div
-              className={`relative z-10 ${tab === 'bible' || tab === 'game' || tab === 'home' || tab === 'class' || tab === 'ears' || tab === 'messages' ? 'pb-12' : 'mx-auto w-full max-w-6xl px-4 pt-14 pb-12'}`}
+              className={`relative z-10 ${tab === 'bible' || tab === 'game' || tab === 'home' || tab === 'class' || tab === 'ears' || tab === 'messages' ? 'pb-12' : 'mx-auto w-full max-w-6xl px-4 pt-24 pb-12 sm:pt-16'}`}
             >
               {tab === 'home' && <HomeTab student={student} klass={klass} achievements={achievements} onNavigate={enterTab} />}
               {tab === 'class' && <ClassTab klass={klass} student={student} onNestedViewChange={setHideMapBack} />}
@@ -460,7 +460,11 @@ function HomeTab({
           photo, full brightness, with the phone standing on the rug. */}
       <img src="/village-home-bg.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />
 
-      <p className="absolute left-4 top-5 max-w-[45%] font-display text-2xl font-extrabold leading-tight text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.65)] sm:text-3xl">
+      {/* The floating back button is fixed at left-3 top-3 and is 36px across,
+          so a greeting starting at left-4 top-5 sat directly underneath it and
+          the first word was unreadable. On a phone the greeting drops below
+          the button; from sm up there is room to sit beside it. */}
+      <p className="absolute left-4 top-16 max-w-[45%] font-display text-2xl font-extrabold leading-tight text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.65)] sm:left-16 sm:top-5 sm:text-3xl">
         Welcome back, {student?.full_name?.split(' ')[0] ?? 'friend'}!
       </p>
 

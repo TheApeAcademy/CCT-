@@ -68,6 +68,7 @@ import {
   type LeaderboardRow,
   type SearchResult,
 } from '../lib/ministry'
+import { DataList, DataRow, DataIdentity, DataActions, DataBadge } from '../components/ui/DataList'
 import { playClick } from '../lib/sound'
 import { haptics } from '../lib/haptics'
 
@@ -443,39 +444,27 @@ function ApplicationsTab() {
         ))}
       </div>
       {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
-      {!loading && apps.length === 0 && <p className="text-sm text-[var(--ink-muted)]">Nothing here.</p>}
-      <div className="space-y-2">
-        {apps.map((a) => (
-          <div key={a.id} className="panel p-5">
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <div>
-                <p className="font-bold">{a.full_name}</p>
-                <p className="text-sm text-[var(--ink-muted)]">
-                  {a.email} {a.phone && `· ${a.phone}`}
-                </p>
-              </div>
-              <span
-                className={`rounded px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${
-                  a.status === 'approved' ? 'bg-emerald-500/15 text-emerald-700' : a.status === 'rejected' ? 'bg-red-500/15 text-red-700' : 'bg-[var(--gold)]/15 text-[var(--gold)]'
-                }`}
-              >
-                {a.status}
-              </span>
-            </div>
-            {a.message && <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--fg)]/80">{a.message}</p>}
-            {a.status === 'pending' && (
-              <div className="mt-3 flex gap-2">
-                <button onClick={() => handle(a.id, true)} className="flex items-center gap-1.5 rounded-md bg-emerald-500/15 px-4 py-2 text-sm font-bold text-emerald-700 transition hover:bg-emerald-500/25">
-                  <Check className="h-4 w-4" /> Approve
-                </button>
-                <button onClick={() => handle(a.id, false)} className="flex items-center gap-1.5 rounded-md bg-red-500/15 px-4 py-2 text-sm font-bold text-red-700 transition hover:bg-red-500/25">
-                  <X className="h-4 w-4" /> Reject
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+      {!loading && (
+        <DataList count={apps.length} empty="Nothing here." head={<span className="flex-1">Applicant</span>}>
+          {apps.map((a) => (
+            <DataRow key={a.id}>
+              <DataIdentity title={a.full_name} subtitle={`${a.email}${a.phone ? ` · ${a.phone}` : ''}`} />
+              <DataBadge tone={a.status === 'approved' ? 'good' : a.status === 'rejected' ? 'bad' : 'wait'}>{a.status}</DataBadge>
+              {a.message && <p className="w-full whitespace-pre-wrap text-sm text-[var(--fg)]/80">{a.message}</p>}
+              {a.status === 'pending' && (
+                <DataActions>
+                  <button onClick={() => handle(a.id, true)} className="flex items-center gap-1.5 rounded-md bg-emerald-500/15 px-4 py-2 text-sm font-bold text-emerald-700 transition hover:bg-emerald-500/25">
+                    <Check className="h-4 w-4" /> Approve
+                  </button>
+                  <button onClick={() => handle(a.id, false)} className="flex items-center gap-1.5 rounded-md bg-red-500/15 px-4 py-2 text-sm font-bold text-red-700 transition hover:bg-red-500/25">
+                    <X className="h-4 w-4" /> Reject
+                  </button>
+                </DataActions>
+              )}
+            </DataRow>
+          ))}
+        </DataList>
+      )}
     </div>
   )
 }
@@ -489,27 +478,24 @@ function ClassesTab({ highlightId }: { highlightId?: string | null }) {
   }, [])
 
   if (loading) return <p className="text-sm text-[var(--ink-muted)]">Loading…</p>
-  if (classes.length === 0) return <p className="text-sm text-[var(--ink-muted)]">No classes created yet.</p>
-
   return (
-    <div className="space-y-2">
+    <DataList
+      count={classes.length}
+      empty="No classes created yet."
+      head={<span className="flex-1">Class</span>}
+    >
       {classes.map((c) => (
-        <div
+        <DataRow
           key={c.id}
-          ref={c.id === highlightId ? (el) => el?.scrollIntoView({ block: 'center', behavior: 'smooth' }) : undefined}
-          className={`panel flex flex-wrap items-center justify-between gap-2 p-4 ${c.id === highlightId ? 'ring-2 ring-[var(--gold)]' : ''}`}
+          highlight={c.id === highlightId}
+          innerRef={c.id === highlightId ? (el) => el?.scrollIntoView({ block: 'center', behavior: 'smooth' }) : undefined}
         >
-          <div>
-            <p className="font-bold">{c.name}</p>
-            <p className="text-sm text-[var(--ink-muted)]">Taught by {c.teacher_name || 'Unknown'}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="rounded border border-[var(--hairline-strong)] px-2.5 py-1 font-mono text-xs">{c.join_code}</span>
-            {c.archived && <span className="rounded bg-[var(--fg)]/10 px-2.5 py-1 text-xs">Archived</span>}
-          </div>
-        </div>
+          <DataIdentity title={c.name} subtitle={`Taught by ${c.teacher_name || 'Unknown'}`} />
+          <span className="shrink-0 rounded border border-[var(--hairline-strong)] px-2.5 py-1 font-mono text-xs">{c.join_code}</span>
+          {c.archived && <span className="shrink-0 rounded bg-[var(--fg)]/10 px-2.5 py-1 text-xs">Archived</span>}
+        </DataRow>
       ))}
-    </div>
+    </DataList>
   )
 }
 

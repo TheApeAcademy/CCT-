@@ -37,6 +37,7 @@ import AuthCard from '../components/ui/AuthCard'
 import TabBar from '../components/ui/TabBar'
 import IsometricPhone from '../components/IsometricPhone'
 import { NotesSection, DigitalBankSection } from '../components/PersonalVault'
+import { DataList, DataRow, DataIdentity, DataNum, DataActions } from '../components/ui/DataList'
 import MinistryCalendarReadOnly from '../components/MinistryCalendarView'
 import AvatarReviewQueue from '../components/AvatarReviewQueue'
 import PortalSearch from '../components/PortalSearch'
@@ -572,24 +573,20 @@ function ClassDetail({
 
           <div className="space-y-3">
             <p className="eyebrow">Students ({students.length})</p>
-            {students.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No one has joined yet.</p>}
-            <div className="space-y-2">
+            <DataList
+              count={students.length}
+              empty="No one has joined yet."
+              head={<span className="flex-1">Child</span>}
+            >
               {students.map((s) => (
-                <div key={s.id} className="panel flex items-center justify-between gap-3 p-4">
-                  <div className="flex items-center gap-3">
-                    {s.avatar_url ? (
-                      <img src={s.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover" />
-                    ) : (
-                      <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--hairline-strong)] text-[var(--gold)]">
-                        <User className="h-5 w-5" strokeWidth={1.75} />
-                      </span>
-                    )}
-                    <div>
-                      <p className="font-semibold">{s.full_name}</p>
-                      <p className="text-xs text-[var(--ink-faint)]">{s.total_points.toLocaleString()} points</p>
-                    </div>
-                  </div>
-                  <div className="flex shrink-0 flex-wrap justify-end gap-2">
+                <DataRow key={s.id}>
+                  <DataIdentity
+                    avatarUrl={s.avatar_url}
+                    fallback={<User className="h-5 w-5" strokeWidth={1.75} />}
+                    title={s.full_name}
+                  />
+                  <DataNum>{s.total_points.toLocaleString()}</DataNum>
+                  <DataActions>
                     <button
                       onClick={() => setCertificateFor(s)}
                       className="flex items-center gap-1.5 rounded-md bg-[var(--gold)]/15 px-3 py-1.5 text-xs font-bold text-[var(--gold)] hover:bg-[var(--gold)]/25"
@@ -609,10 +606,10 @@ function ClassDetail({
                     <button onClick={() => removeStudent(s.id)} className="rounded-md bg-red-500/15 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-500/25">
                       Remove
                     </button>
-                  </div>
-                </div>
+                  </DataActions>
+                </DataRow>
               ))}
-            </div>
+            </DataList>
           </div>
         </>
       )}

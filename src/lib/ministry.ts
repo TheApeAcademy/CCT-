@@ -204,7 +204,7 @@ export async function removeRosterEntry(id: string) {
 export async function listStudentsInClass(classId: string): Promise<StudentRow[]> {
   const { data, error } = await supabase
     .from('students')
-    .select('id, class_id, username, student_code, date_of_birth, favorite_verse, favorite_quote, bio, total_points, created_at, profiles!inner(full_name, avatar_url)')
+    .select('id, class_id, username, student_code, date_of_birth, favorite_verse, favorite_quote, bio, total_points, created_at, profiles!students_id_fkey(full_name, avatar_url)')
     .eq('class_id', classId)
   if (error) throw error
   return (data ?? []).map((row: any) => ({
@@ -402,7 +402,7 @@ export async function getMyStudentProfile(): Promise<StudentRow | null> {
   const { data, error } = await supabase
     .from('students')
     .select(
-      'id, class_id, username, student_code, date_of_birth, favorite_verse, favorite_quote, bio, total_points, created_at, profiles!inner(full_name, avatar_url, pending_avatar_url, avatar_status)',
+      'id, class_id, username, student_code, date_of_birth, favorite_verse, favorite_quote, bio, total_points, created_at, profiles!students_id_fkey(full_name, avatar_url, pending_avatar_url, avatar_status)',
     )
     .eq('id', auth.user.id)
     .maybeSingle()
@@ -693,7 +693,7 @@ export async function listMyConversations(): Promise<ConversationSummary[]> {
   if (!auth.user) return []
   const { data, error } = await supabase
     .from('conversations')
-    .select('id, teacher_id, student_id, teacher:profiles!conversations_teacher_id_fkey(full_name, avatar_url), student:students!inner(profiles!inner(full_name, avatar_url))')
+    .select('id, teacher_id, student_id, teacher:profiles!conversations_teacher_id_fkey(full_name, avatar_url), student:students!inner(profiles!students_id_fkey(full_name, avatar_url))')
     .or(`teacher_id.eq.${auth.user.id},student_id.eq.${auth.user.id}`)
   if (error) throw error
   return (data ?? []).map((row: any) => {
@@ -963,7 +963,7 @@ export async function setAssignmentStatus(id: string, status: AssignmentStatus) 
 export async function listSubmissionsForAssignment(assignmentId: string): Promise<SubmissionRow[]> {
   const { data, error } = await supabase
     .from('assignment_submissions')
-    .select('*, students!inner(profiles!inner(full_name))')
+    .select('*, students!inner(profiles!students_id_fkey(full_name))')
     .eq('assignment_id', assignmentId)
   if (error) throw error
   return (data ?? []).map((row: any) => ({ ...row, full_name: row.students?.profiles?.full_name ?? '' })) as SubmissionRow[]
@@ -1384,7 +1384,7 @@ export async function listMyChildren(): Promise<ChildRow[]> {
   const { data, error } = await supabase
     .from('students')
     .select(
-      'id, class_id, username, student_code, date_of_birth, favorite_verse, favorite_quote, bio, total_points, created_at, profiles!inner(full_name, avatar_url), classes(name)',
+      'id, class_id, username, student_code, date_of_birth, favorite_verse, favorite_quote, bio, total_points, created_at, profiles!students_id_fkey(full_name, avatar_url), classes(name)',
     )
     .in('id', ids)
   if (error) throw error

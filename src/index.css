@@ -1751,3 +1751,57 @@ button:active, a:active {
     padding-inline: 4.5rem;
   }
 }
+
+/* ---------- The Bible Journey's three columns ----------
+   Duolingo's web layout is the reference for this screen (see the design
+   reference mapping): a rail, the path, a rail, all three visible at once.
+   The rule that matters here is that the three columns never become one.
+   Below 640px they turn into a horizontal snap row instead of stacking,
+   so a child swipes sideways between the card, the path and the board
+   rather than scrolling past two of them to reach the third. */
+.journey-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 300px) minmax(0, 1fr) minmax(0, 320px);
+  align-items: start;
+  gap: 1.25rem;
+}
+
+@media (max-width: 999px) {
+  .journey-cols {
+    grid-template-columns: minmax(0, 232px) minmax(0, 1fr) minmax(0, 248px);
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 639px) {
+  .journey-cols {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: 82%;
+    gap: 0.6rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    /* The gutter is what lets the neighbouring columns peek in at both
+       edges, which is what tells a child there is something to swipe to. */
+    padding-inline: 9%;
+    margin-inline: -9%;
+    scrollbar-width: none;
+  }
+  .journey-cols::-webkit-scrollbar {
+    display: none;
+  }
+  .journey-col {
+    scroll-snap-align: center;
+  }
+}
+
+/* The rails hold still while the path scrolls, the way Duolingo's do. The
+   path itself owns its own scrolling, so the rails are only sticky on the
+   widths where the page scrolls behind them. */
+@media (min-width: 640px) {
+  .journey-cols > .journey-col:not(.journey-col-mid) {
+    position: sticky;
+    top: 0.5rem;
+  }
+}

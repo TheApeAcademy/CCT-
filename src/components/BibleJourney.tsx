@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Lock, Check, Star, ArrowLeft, ChevronLeft, ChevronRight, Sparkles, BookOpen, Flame, Coins } from 'lucide-react'
 import {
-  BIBLE_BOOK_ORDER,
   JOURNEY_BOOKS,
   getJourneyBook,
   lessonKeysInOrder,
@@ -12,12 +11,14 @@ import {
   type JourneyLesson,
   type JourneyCheckCard,
 } from '../content/bibleJourney'
+import { bookArt } from '../content/bibleBookArt'
 import { bibleComUrl } from '../lib/bibleLink'
 import { getMyJourneyProgress, completeJourneyLesson, type JourneyProgressRow } from '../lib/journey'
 import { getMyStudentProfile, getLeaderboard, getMyBibleStreak } from '../lib/ministry'
 import { playClick } from '../lib/sound'
 import { haptics } from '../lib/haptics'
 import Confetti from './Confetti'
+import JourneyShell from './JourneyShell'
 
 const ACCENT = 'var(--lp-accent-bible)'
 
@@ -99,80 +100,176 @@ const CHARACTER_FALLBACK_IMAGES = [
   '/journey/jacob-ladder-dream.jpg',
 ]
 
-// No dedicated cover exists per book (only Genesis has real content so far) -
-// cycles through the app's existing Bible-scene art so every tile still
-// looks like a real book cover, same trick as the Sunday School calendar.
-const BOOK_COVER_IMAGES = [
-  '/journey/adam-eve-garden-home.jpg',
-  '/journey/noah-building-ark.jpg',
-  '/journey/tower-of-babel.jpg',
-  '/journey/abraham-isaac-ram-provided.jpg',
-  '/journey/jacob-ladder-dream.jpg',
-  '/journey/cain-abel-offerings.jpg',
-  '/journey/noah-dove-olive-branch.jpg',
-  '/journey/adam-eve-first-sin.jpg',
-  '/feature-bible.png',
-  '/hero-bible.jpg',
-  '/mfm-wuye-building.jpg',
-]
+/**
+ * The Old Testament as one path of stepping stones, which is the layout
+ * Banks approved for this screen: the painting of the book you are on
+ * sitting in the left rail, the stones down the middle, the board on the
+ * right. Every stone is a book, every unit break names the run it opens.
+ *
+ * Each book carries its own painting (src/content/bibleBookArt.ts), one per
+ * book, showing the story that book is known for. Habakkuk has no painting
+ * yet, so it draws the placeholder rather than borrowing another book's.
+ *
+ * A book is playable only when its lessons exist in app content. Genesis is
+ * the only one so far, so the rest read as locked - the same way Duolingo
+ * shows the whole road ahead greyed out rather than hiding it.
+ */
+function BookPath({ completedKeys, onOpenBook }: { completedKeys: Set<string>; onOpenBook: (bookKey: string) => void }) {
+  const stats = useJourneyStats()
+  const [selected, setSelected] = useState<string | null>(null)
 
-function BookSquircle({
-  title,
-  image,
-  subtitle,
-  badge,
-  locked,
-  onClick,
-}: {
-  title: string
-  image: string
-  subtitle?: string
-  badge?: string
-  locked?: boolean
-  onClick?: () => void
-}) {
-  const isMascotPng = image.endsWith('.png')
-  const content = (
-    <>
-      {isMascotPng ? (
-        <div className="flex h-full w-full items-center justify-center" style={{ background: `color-mix(in srgb, ${ACCENT} 16%, var(--ink-panel))` }}>
-          <img src={image} alt="" className={`h-2/3 w-2/3 object-contain ${locked ? 'opacity-40' : ''}`} />
-        </div>
-      ) : (
-        <img src={image} alt="" className={`h-full w-full object-cover ${locked ? 'opacity-40' : ''}`} />
-      )}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
-      {locked ? (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-black/55">
-            <Lock className="h-4 w-4 text-white" />
-          </span>
-        </div>
-      ) : (
-        badge && (
-          <span
-            className="absolute right-2.5 top-2.5 flex h-8 w-8 items-center justify-center rounded-full text-base"
-            style={{ background: `color-mix(in srgb, ${ACCENT} 30%, black)` }}
-          >
-            {badge}
-          </span>
-        )
-      )}
-      <div className="absolute inset-x-0 bottom-0 p-3">
-        <p className="font-display text-sm font-extrabold leading-tight text-white drop-shadow">{title}</p>
-        {subtitle && <p className="text-[10px] font-semibold text-white/80">{subtitle}</p>}
-      </div>
-    </>
+  const stops = OT_UNITS.flatMap((unit) =>
+    unit.books.map((title) => {
+      const key = slugifyBookTitle(title)
+      const book = getJourneyBook(key)
+      const total = book ? lessonKeysInOrder(book).length : 0
+      const done = book ? bookProgressCount(book, completedKeys) : 0
+      return { unit, title, key, book, total, done }
+    }),
   )
-  const className = `relative aspect-square overflow-hidden rounded-[28px] bg-[var(--ink-panel)] text-left transition ${
-    locked ? 'opacity-70' : 'hover:scale-[1.02]'
-  }`
-  return onClick ? (
-    <button onClick={onClick} className={className}>
-      {content}
-    </button>
-  ) : (
-    <div className={className}>{content}</div>
+
+  // The current stop is the first playable book that is not finished. With
+  // only Genesis built that is always Genesis, but it stays correct as
+  // books are added rather than needing to be moved by hand.
+  let currentIdx = stops.findIndex((st) => st.book && st.done < st.total)
+  if (currentIdx === -1) currentIdx = stops.findIndex((st) => st.book)
+  if (currentIdx === -1) currentIdx = 0
+
+  const activeIdx = Math.max(
+    0,
+    selected ? stops.findIndex((st) => st.key === selected) : currentIdx,
+  )
+  const active = stops[activeIdx] ?? stops[currentIdx]
+
+  const stateOf = (i: number): StopState => {
+    const st = stops[i]
+    if (st.book && st.total > 0 && st.done === st.total) return 'done'
+    if (i === currentIdx) return 'current'
+    return 'locked'
+  }
+
+  const card = <BookRailCard stop={active} state={stateOf(activeIdx)} onOpenBook={onOpenBook} />
+
+  let drawn = -1
+  const track = (
+    <div className="min-w-0 overflow-y-auto overflow-x-hidden sm:max-h-[75vh]">
+      <div className="mx-auto flex w-full flex-col pb-2" style={{ maxWidth: TRACK_WIDTH }}>
+        <div className="sticky top-0 z-20 pb-4">
+          <JourneyBanner
+            eyebrow="Old Testament"
+            title={active.unit.title}
+            done={stops.filter((st) => st.book && st.total > 0 && st.done === st.total).length}
+            total={stops.length}
+          />
+        </div>
+        {OT_UNITS.map((unit, unitIdx) => (
+          <div key={unit.title}>
+            {unitIdx > 0 && (
+              <div className="my-5 flex items-center gap-3">
+                <span className="h-0.5 flex-1 rounded-full bg-[var(--lp-hairline-strong)]" />
+                <span className="font-display text-sm font-extrabold text-[var(--ink-muted)]">{unit.title}</span>
+                <span className="h-0.5 flex-1 rounded-full bg-[var(--lp-hairline-strong)]" />
+              </div>
+            )}
+            {unit.books.map((bookTitle) => {
+              drawn += 1
+              const i = drawn
+              const st = stops[i]
+              const state = stateOf(i)
+              return (
+                <div
+                  key={bookTitle}
+                  className="flex justify-center"
+                  style={{
+                    transform: `translateX(${waveOffset(i)}px)`,
+                    marginTop: (i === 0 ? 0 : NODE_GAP) + (state === 'current' ? 30 : 0),
+                  }}
+                >
+                  <div className="relative">
+                    {state === 'current' && (
+                      <span className="kid-node-bubble" aria-hidden="true">
+                        Start
+                      </span>
+                    )}
+                    <JourneyNode
+                      state={state}
+                      selected={i === activeIdx}
+                      label={st.title}
+                      onClick={() => {
+                        playClick()
+                        setSelected(st.key)
+                      }}
+                    />
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+
+  return (
+    <div className="mx-auto w-full max-w-[1320px]">
+      <JourneyShell left={card} middle={track} right={<StatsPanel stats={stats} big />} />
+    </div>
+  )
+}
+
+/** The left rail: the painting of whichever book is selected, and the way in. */
+function BookRailCard({
+  stop,
+  state,
+  onOpenBook,
+}: {
+  stop: { title: string; key: string; book: JourneyBook | undefined; total: number; done: number }
+  state: StopState
+  onOpenBook: (bookKey: string) => void
+}) {
+  const art = bookArt(stop.title)
+  return (
+    <div className="relative overflow-hidden rounded-[28px]" style={{ minHeight: 420 }}>
+      {art ? (
+        <img src={art.image} alt={art.scene} className="absolute inset-0 h-full w-full object-cover" />
+      ) : (
+        <div
+          className="absolute inset-0 grid place-items-center"
+          style={{ background: `color-mix(in srgb, ${ACCENT} 18%, var(--ink-panel))` }}
+        >
+          <BookOpen className="h-14 w-14 text-[var(--ink-muted)]" />
+        </div>
+      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/60 to-black/20" />
+
+      <div className="absolute inset-x-0 bottom-0 z-10 space-y-3 p-6 text-center">
+        <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-white/70">
+          {state === 'done' ? 'Finished' : state === 'current' ? 'You are here' : 'Coming soon'}
+        </p>
+        <p className="font-display text-2xl font-extrabold text-white drop-shadow-lg">{stop.title}</p>
+        <p className="text-sm text-white/85">{art ? art.scene : 'The painting for this book is still being made.'}</p>
+        {art?.character && (
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-white/60">{art.character}</p>
+        )}
+        {stop.book ? (
+          <button
+            onClick={() => {
+              playClick()
+              haptics.tap()
+              onOpenBook(stop.key)
+            }}
+            className="kid-btn w-full"
+            style={{ background: ACCENT, color: '#fff', boxShadow: `0 4px 0 color-mix(in srgb, ${ACCENT} 68%, #000)` }}
+          >
+            {stop.done > 0 ? `Continue · ${stop.done}/${stop.total}` : 'Start this book'}
+          </button>
+        ) : (
+          <p className="rounded-2xl bg-white/15 px-3 py-2.5 text-sm font-bold text-white/80 backdrop-blur">
+            Lessons are being written
+          </p>
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -215,43 +312,7 @@ function BookMap({
       </div>
 
       {mode === 'books' ? (
-        <>
-          <p className="text-sm text-[var(--ink-muted)]">
-            Walk through the Bible one book at a time, learning the stories, the people, and what they teach - at your own pace.
-          </p>
-          <div
-            className="-mx-4 grid gap-3 px-4 py-3"
-            style={{
-              gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
-              backgroundImage: 'radial-gradient(var(--ink-faint) 1px, transparent 1px)',
-              backgroundSize: '22px 22px',
-            }}
-          >
-            {BIBLE_BOOK_ORDER.map((title, i) => {
-              const key = slugifyBookTitle(title)
-              const book = getJourneyBook(key)
-              const cover = BOOK_COVER_IMAGES[i % BOOK_COVER_IMAGES.length]
-              if (!book) {
-                return <BookSquircle key={key} title={title} image={cover} locked />
-              }
-              const total = lessonKeysInOrder(book).length
-              const done = bookProgressCount(book, completedKeys)
-              return (
-                <BookSquircle
-                  key={key}
-                  title={book.title}
-                  image={cover}
-                  subtitle={`${done}/${total} lessons`}
-                  badge={done === total ? '👑' : '📖'}
-                  onClick={() => {
-                    playClick()
-                    onOpenBook(key)
-                  }}
-                />
-              )
-            })}
-          </div>
-        </>
+        <BookPath completedKeys={completedKeys} onOpenBook={onOpenBook} />
       ) : (
         <CharacterBrowse completedKeys={completedKeys} onOpenLesson={onOpenLessonDirect} />
       )}
@@ -428,6 +489,38 @@ interface JourneyStats {
   streak: number
 }
 
+/**
+ * Points, rank and streak for the right-hand rail. Both the book path and a
+ * book's own path show the same rail, so the fetch lives here rather than
+ * being written out twice.
+ */
+function useJourneyStats(): JourneyStats | null {
+  const [stats, setStats] = useState<JourneyStats | null>(null)
+  useEffect(() => {
+    Promise.all([getMyStudentProfile(), getLeaderboard(500), getMyBibleStreak()]).then(([student, board, streak]) => {
+      if (!student) return
+      const rankIdx = board.findIndex((r) => r.student_id === student.id)
+      setStats({ points: student.total_points, rank: rankIdx === -1 ? null : rankIdx + 1, streak })
+    })
+  }, [])
+  return stats
+}
+
+/**
+ * The Old Testament in seven runs, which is what the path's unit breaks are.
+ * Duolingo names its sections rather than numbering them, and a child picks
+ * "Kings and Kingdoms" out of a list far faster than "Unit 3".
+ */
+const OT_UNITS: { title: string; books: string[] }[] = [
+  { title: 'The Law', books: ['Genesis', 'Exodus', 'Leviticus', 'Numbers', 'Deuteronomy'] },
+  { title: 'Into the Land', books: ['Joshua', 'Judges', 'Ruth'] },
+  { title: 'Kings and Kingdoms', books: ['1 Samuel', '2 Samuel', '1 Kings', '2 Kings'] },
+  { title: 'Coming Home', books: ['1 Chronicles', '2 Chronicles', 'Ezra', 'Nehemiah', 'Esther'] },
+  { title: 'Songs and Wisdom', books: ['Job', 'Psalms', 'Proverbs', 'Ecclesiastes', 'Song of Solomon'] },
+  { title: 'The Big Prophets', books: ['Isaiah', 'Jeremiah', 'Lamentations', 'Ezekiel', 'Daniel'] },
+  { title: 'The Twelve', books: ['Hosea', 'Joel', 'Amos', 'Obadiah', 'Jonah', 'Micah', 'Nahum', 'Habakkuk', 'Zephaniah', 'Haggai', 'Zechariah', 'Malachi'] },
+]
+
 function UnitPath({
   bookKey,
   completedKeys,
@@ -437,15 +530,8 @@ function UnitPath({
   completedKeys: Set<string>
   onOpenLesson: (lessonKey: string) => void
 }) {
-  const [stats, setStats] = useState<JourneyStats | null>(null)
+  const stats = useJourneyStats()
   const [previewIdx, setPreviewIdx] = useState<number | null>(null)
-  useEffect(() => {
-    Promise.all([getMyStudentProfile(), getLeaderboard(500), getMyBibleStreak()]).then(([student, board, streak]) => {
-      if (!student) return
-      const rankIdx = board.findIndex((r) => r.student_id === student.id)
-      setStats({ points: student.total_points, rank: rankIdx === -1 ? null : rankIdx + 1, streak })
-    })
-  }, [])
 
   const book = getJourneyBook(bookKey)
   if (!book) return null
@@ -472,7 +558,7 @@ function UnitPath({
   const doneCount = stops.filter(({ lesson }) => completedKeys.has(lesson.key)).length
 
   const track = (
-    <div className="min-w-0 flex-1 overflow-y-auto overflow-x-hidden sm:max-h-[75vh]">
+    <div className="min-w-0 overflow-y-auto overflow-x-hidden sm:max-h-[75vh]">
       <div className="mx-auto flex w-full flex-col pb-2" style={{ maxWidth: TRACK_WIDTH }}>
         <div className="sticky top-0 z-20 pb-4">
           <JourneyBanner eyebrow="Book" title={book.title} done={doneCount} total={stops.length} />
@@ -527,40 +613,14 @@ function UnitPath({
   )
 
 
+  // One layout at every width. What the card, the path and the board are
+  // never changes with the screen - only how you move between them does,
+  // which is JourneyShell's job.
   return (
     <div className="space-y-3">
       <p className="eyebrow">{book.title}</p>
-
-      {/* Phones: the same two cards stacked above the path, since there's no room to flank it there. */}
-      <div className="space-y-3 sm:hidden">
-        {preview}
-        {stats_}
-        {track}
-      </div>
-
-      {/* This used to be one flex row from 640px up: two fixed 360px rails
-          pushed to the far edges with justify-between and the path squeezed
-          between them. Two rails plus the 380px track need ~1130px, so
-          between 640 and 1130 they crushed each other, and past that the
-          rails drifted to opposite ends of a very wide screen with the path
-          stranded in the middle. Two honest layouts instead, each with a
-          max width and a real grid. */}
-
-      {/* Tablet and small laptop: both cards side by side, equal height, path
-          centred underneath. */}
-      <div className="mx-auto hidden w-full max-w-4xl space-y-4 sm:block xl:hidden">
-        <div className="grid grid-cols-2 gap-4">
-          {preview}
-          {stats_}
-        </div>
-        <div className="flex justify-center">{track}</div>
-      </div>
-
-      {/* Wide screens only, where all three genuinely fit. */}
-      <div className="mx-auto hidden w-full max-w-[1320px] grid-cols-[minmax(0,360px)_minmax(0,1fr)_minmax(0,360px)] items-start gap-6 xl:grid">
-        {preview}
-        <div className="flex justify-center">{track}</div>
-        {stats_}
+      <div className="mx-auto w-full max-w-[1320px]">
+        <JourneyShell left={preview} middle={track} right={stats_} />
       </div>
     </div>
   )
@@ -592,7 +652,7 @@ function LessonPreviewCard({
   return (
     <div className="relative overflow-hidden rounded-[28px]" style={{ minHeight: big ? 420 : 280 }}>
       <img src={image} alt="" className="absolute inset-0 h-full w-full object-cover" />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/15 to-black/40" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/60 to-black/20" />
 
       <div className="relative z-10 flex items-center justify-between p-3">
         <button

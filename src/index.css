@@ -2551,3 +2551,364 @@ button:active, a:active {
     margin-inline: auto;
   }
 }
+
+/* ---------- Kids sign in ----------
+   The icloud.com signed-out landing page, with our own things in it: the
+   wordmark top left, the avatar in a lavender circle with the feature icons
+   orbiting it at their own sizes and depths, the calendar tile, the giant
+   wordmark, the pill, then the app grid and two columns under a rule. Purple
+   in light, gold in dark, where Apple has blue. */
+.ic-screen {
+  --ic-bg: #ffffff;
+  --ic-fg: #1d1d1f;
+  --ic-mute: #6e6e73;
+  --ic-line: rgba(0, 0, 0, 0.12);
+  --ic-link: #9c2bb0;
+  --ic-pill: #1d1d1f;
+  --ic-pill-ink: #ffffff;
+  --ic-face: #e7d8f7;
+  --ic-tile: #f5f5f7;
+
+  background: var(--ic-bg);
+  color: var(--ic-fg);
+  font-family: var(--font-body);
+}
+.ic-screen.is-dark {
+  --ic-bg: #000000;
+  --ic-fg: #f5f5f7;
+  --ic-mute: #a1a1a6;
+  --ic-line: rgba(255, 255, 255, 0.16);
+  --ic-link: #e8b923;
+  --ic-pill: #ffffff;
+  --ic-pill-ink: #1d1d1f;
+  --ic-face: #e7d8f7;
+  --ic-tile: #1c1c1e;
+}
+
+.ic-screen .ic-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 0;
+}
+.ic-screen .ic-mark {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 1.04rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.ic-screen .ic-mark img {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  object-fit: contain;
+}
+
+/* The cluster. Every slot is a share of the stage, so the whole thing scales
+   from a phone to a desktop without a single fixed pixel in it. */
+.ic-screen .ic-hero {
+  position: relative;
+  width: min(100%, 460px);
+  aspect-ratio: 460 / 300;
+  margin: 8px auto 0;
+}
+.ic-screen .ic-app,
+.ic-screen .ic-face,
+.ic-screen .ic-cal {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.ic-screen .ic-face {
+  left: 50%;
+  top: 14%;
+  transform: translateX(-50%);
+  width: 40%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--ic-face);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.42);
+  z-index: 3;
+}
+.ic-screen .ic-face img {
+  max-width: 84%;
+  max-height: 84%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.18));
+}
+.ic-screen .ic-app {
+  border-radius: 50%;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+}
+.ic-screen .ic-app img {
+  max-width: 68%;
+  max-height: 68%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+.ic-screen .ic-app.sq {
+  border-radius: 26%;
+}
+.ic-screen .ic-app.sq img {
+  max-width: 80%;
+  max-height: 80%;
+}
+/* A story circle is a painting, so it fills its circle instead of sitting
+   inside it the way a cut-out icon does. */
+.ic-screen .ic-app.is-story img {
+  max-width: 100%;
+  max-height: 100%;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ic-screen .ic-a1 {
+  left: 3%;
+  top: 25%;
+  width: 21%;
+  aspect-ratio: 1;
+  background: linear-gradient(160deg, #c78ae8, #7d2196);
+  z-index: 2;
+}
+.ic-screen .ic-a2 {
+  right: 1%;
+  top: 22%;
+  width: 22%;
+  aspect-ratio: 1;
+  background: linear-gradient(160deg, #ffd479, #e0a02a);
+  z-index: 2;
+}
+.ic-screen .ic-a3 {
+  right: 15%;
+  top: -7%;
+  width: 18%;
+  aspect-ratio: 1;
+  border-radius: 22%;
+  background: linear-gradient(160deg, #5b6b8a, #26334a);
+  z-index: 1;
+}
+.ic-screen .ic-a4 {
+  left: 19%;
+  bottom: 1%;
+  width: 15%;
+  aspect-ratio: 1;
+  background: linear-gradient(160deg, #ffb36b, #e0531a);
+  z-index: 4;
+}
+.ic-screen .ic-a5 {
+  left: 0;
+  bottom: 5%;
+  width: 17%;
+  aspect-ratio: 1;
+  background: #2a2a2c;
+  z-index: 4;
+}
+.ic-screen .ic-cal {
+  right: 16%;
+  bottom: -4%;
+  width: 20%;
+  aspect-ratio: 1;
+  border-radius: 24%;
+  background: #1c1c1e;
+  color: #fff;
+  z-index: 4;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+}
+.ic-screen .ic-cal em {
+  font-style: normal;
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #ff453a;
+}
+.ic-screen .ic-cal b {
+  font-size: 1.5rem;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.ic-screen .ic-word {
+  text-align: center;
+  font-size: clamp(2.7rem, 8.8vw, 5.6rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  margin: 6px 0 0;
+}
+.ic-screen .ic-sub {
+  text-align: center;
+  color: var(--ic-mute);
+  font-size: 0.94rem;
+  margin-top: 12px;
+}
+.ic-screen .ic-btn {
+  display: block;
+  width: fit-content;
+  margin: 22px auto 0;
+  border-radius: 999px;
+  background: var(--ic-pill);
+  color: var(--ic-pill-ink);
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 14px 44px;
+}
+.ic-screen .ic-btn:active {
+  transform: translateY(1px);
+}
+
+.ic-screen .ic-lower {
+  margin-top: 40px;
+  border-top: 1px solid var(--ic-line);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 32px;
+  padding: 34px 20px 48px;
+}
+@media (min-width: 760px) {
+  .ic-screen .ic-lower {
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    padding-inline: 0;
+  }
+  .ic-screen .ic-lower > div {
+    padding: 10px 34px;
+  }
+  .ic-screen .ic-lower > div + div {
+    border-left: 1px solid var(--ic-line);
+  }
+}
+.ic-screen .ic-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: clamp(8px, 1.6vw, 18px);
+  margin-bottom: 30px;
+  max-width: 400px;
+}
+.ic-screen .ic-tile {
+  aspect-ratio: 1;
+  border-radius: 26%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.24);
+}
+.ic-screen .ic-tile img {
+  max-width: 72%;
+  max-height: 72%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.22));
+}
+.ic-screen .ic-h2 {
+  font-size: clamp(1.4rem, 3.4vw, 1.95rem);
+  font-weight: 700;
+  line-height: 1.16;
+  letter-spacing: -0.02em;
+  margin-bottom: 14px;
+  text-wrap: balance;
+}
+.ic-screen .ic-p {
+  font-size: 0.98rem;
+  line-height: 1.5;
+  color: var(--ic-mute);
+}
+.ic-screen .ic-p a {
+  color: var(--ic-link);
+  font-weight: 600;
+}
+
+/* The journey cluster that stands in for Apple's iCloud+ artwork: the book
+   with three Bible stories around it and the book count over the top. */
+.ic-screen .ic-plus {
+  position: relative;
+  width: min(100%, 320px);
+  aspect-ratio: 320 / 210;
+  margin: 0 auto 18px;
+}
+.ic-screen .ic-blob {
+  position: absolute;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.32);
+}
+.ic-screen .ic-blob img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ic-screen .ic-b1 {
+  left: 27%;
+  top: 2%;
+  width: 46%;
+  aspect-ratio: 1;
+  border-radius: 0;
+  box-shadow: none;
+  z-index: 3;
+}
+.ic-screen .ic-b1 img {
+  object-fit: contain;
+}
+.ic-screen .ic-b2 {
+  left: 1%;
+  top: 26%;
+  width: 31%;
+  aspect-ratio: 1;
+  z-index: 2;
+}
+.ic-screen .ic-b3 {
+  left: 22%;
+  bottom: 0;
+  width: 27%;
+  aspect-ratio: 1;
+  z-index: 4;
+}
+.ic-screen .ic-b4 {
+  right: 1%;
+  top: 32%;
+  width: 30%;
+  aspect-ratio: 1;
+  z-index: 2;
+}
+.ic-screen .ic-count {
+  position: absolute;
+  right: 19%;
+  top: -2%;
+  z-index: 6;
+  min-width: 2.4em;
+  text-align: center;
+  padding: 0.22em 0.5em;
+  border-radius: 999px;
+  background: var(--ic-link);
+  color: var(--ic-bg);
+  font-size: clamp(13px, 2.2vw, 17px);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+}
+.ic-screen .ic-plus-name {
+  text-align: center;
+  font-size: clamp(1.5rem, 4.4vw, 2.2rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ic-link);
+  margin-bottom: 16px;
+}
+
+.ic-screen .ic-foot {
+  border-top: 1px solid var(--ic-line);
+  padding: 18px 20px 28px;
+  font-size: 0.76rem;
+  color: var(--ic-mute);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 18px;
+}

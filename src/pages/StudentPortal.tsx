@@ -58,6 +58,7 @@ import { getMyJourneyProgress } from '../lib/journey'
 import { CharacterCollectionGallery, CharacterRevealModal } from '../components/CharacterCollection'
 import { lessonArt } from '../content/bibleBookArt'
 import StreakScreen from '../components/StreakScreen'
+import KidsSignIn from '../components/KidsSignIn'
 import PrayerGlobe from '../components/PrayerGlobe'
 import BibleBuddyChat from '../components/BibleBuddy'
 import { useAutoHideNav } from '../lib/useAutoHideNav'
@@ -126,23 +127,9 @@ export default function StudentPortal() {
       </div>
     )
   }
-  if (!session || profile?.role !== 'student') {
-    return (
-      <div className="mx-auto max-w-md space-y-4 text-center">
-        <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-md border border-[var(--hairline-strong)] text-[var(--gold)]">
-          <User className="h-6 w-6" strokeWidth={1.75} />
-        </span>
-        <h1 className="font-display text-2xl font-extrabold sm:text-3xl">Children&apos;s Dashboard</h1>
-        <p className="text-sm text-[var(--ink-muted)]">
-          Sign up with just your name and a passcode to get your own dashboard, no class code needed. Your
-          teacher will add you to your class once you&apos;re in.
-        </p>
-        <Link to="/join" className="btn-solid inline-flex">
-          Sign Up
-        </Link>
-      </div>
-    )
-  }
+  // Signed out, this is the whole page rather than a card inside the shell:
+  // the icloud.com landing page, with our own features in the cluster.
+  if (!session || profile?.role !== 'student') return <KidsSignIn />
   return <Dashboard />
 }
 

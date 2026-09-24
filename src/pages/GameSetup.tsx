@@ -5,11 +5,12 @@ import { db, ensureSeedData, ensureActiveSeason, createMatch } from '../db/db'
 import { playClick, playToggle, playNav } from '../lib/sound'
 import { haptics } from '../lib/haptics'
 import { selectQuestionsForGame } from '../lib/selectQuestions'
-import { LADDER } from '../lib/ladder'
+import { buildLadder, DEFAULT_QUESTION_COUNT, MIN_QUESTION_COUNT, MAX_QUESTION_COUNT } from '../lib/ladder'
 import { fileToResizedDataUrl } from '../lib/image'
 import type { GameConfig, Question } from '../db/types'
 
 const TIMER_OPTIONS = [15, 20, 30, 45, 60]
+const QUESTION_COUNT_OPTIONS = [5, 10, 15, 20]
 const MAX_TEAMS = 10
 
 const emptyQuestionForm = {
@@ -50,6 +51,8 @@ export default function GameSetup() {
   const [setId, setSetId] = useState<number | null>(null)
   const [mode, setMode] = useState<'marathon' | 'rotational'>('marathon')
   const [questionMode, setQuestionMode] = useState<'random' | 'selected' | 'pickNumber'>('random')
+  const [totalQuestions, setTotalQuestions] = useState(DEFAULT_QUESTION_COUNT)
+  const [customQuestionCount, setCustomQuestionCount] = useState('')
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<Set<number>>(new Set())
   const seededSetIdRef = useRef<number | null>(null)
   const [timerSeconds, setTimerSeconds] = useState(30)
@@ -95,7 +98,11 @@ export default function GameSetup() {
     if (questionMode === 'random' || !setId || setQuestions.length === 0) return
     if (seededSetIdRef.current === setId) return
     seededSetIdRef.current = setId
-    setSelectedQuestionIds(new Set(setQuestions.slice(0, LADDER.length).map((q) => q.id!)))
+    setSelectedQuestionIds(new Set(setQuestions.slice(0, totalQuestions).map((q) => q.id!)))
+    // totalQuestions deliberately excluded - this only seeds once per set, a
+    // later change to the count is left for "First N by difficulty" or the
+    // checkboxes below to pick up, same as any other manual toggle.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [setId, questionMode, setQuestions])
 
   const toggleQuestionSelection = (id: number) => {
@@ -264,12 +271,12 @@ export default function GameSetup() {
       setError('Please choose a question set.')
       return shakeError()
     }
-    if (questionCount < LADDER.length) {
-      setError(`This set needs at least ${LADDER.length} questions to fill all ${LADDER.length} levels. Add more in the Question Bank.`)
+    if (questionCount < totalQuestions) {
+      setError(`This set needs at least ${totalQuestions} questions to fill all ${totalQuestions} levels. Add more in the Question Bank.`)
       return shakeError()
     }
-    if (questionMode !== 'random' && selectedQuestionIds.size !== LADDER.length) {
-      setError(`Select exactly ${LADDER.length} questions below (you have ${selectedQuestionIds.size}).`)
+    if (questionMode !== 'random' && selectedQuestionIds.size !== totalQuestions) {
+      setError(`Select exactly ${totalQuestions} questions below (you have ${selectedQuestionIds.size}).`)
       return shakeError()
     }
 
@@ -287,7 +294,7 @@ export default function GameSetup() {
     // deliberate, level by level.
     const questionIds =
       questionMode === 'random'
-        ? selectQuestionsForGame(pool).map((q) => q.id!)
+        ? selectQuestionsForGame(pool, buildLadder(totalQuestions)).map((q) => q.id!)
         : pool
             .filter((q) => selectedQuestionIds.has(q.id!))
             .sort((a, b) => a.difficulty - b.difficulty || (a.id! - b.id!))
@@ -523,7 +530,7 @@ export default function GameSetup() {
         </select>
         {setId && (
           <p className="text-xs text-[var(--ink-faint)]">
-            {questionCount} question{questionCount === 1 ? '' : 's'} available in this set ({LADDER.length} needed).
+            {questionCount} question{questionCount === 1 ? '' : 's'} available in this set ({totalQuestions} needed).
           </p>
         )}
 
@@ -604,6 +611,53 @@ export default function GameSetup() {
       </div>
 
       <div className="panel space-y-2 p-5 transition hover:bg-[var(--ink-raised)]">
+        <label className="block text-sm font-semibold text-[var(--fg)]/80">Number of Questions</label>
+        <div className="flex flex-wrap gap-2">
+          {QUESTION_COUNT_OPTIONS.map((n) => (
+            <button
+              key={n}
+              onClick={() => {
+                setTotalQuestions(n)
+                setCustomQuestionCount('')
+                playClick()
+              }}
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition hover:scale-105 ${
+                totalQuestions === n ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'bg-[var(--ink-panel)] hover:bg-[var(--ink-raised)]'
+              }`}
+            >
+              {n}
+            </button>
+          ))}
+          <div className="flex items-center gap-1.5 rounded-full border border-[var(--hairline-strong)] pl-3 pr-1.5">
+            <input
+              type="number"
+              min={MIN_QUESTION_COUNT}
+              max={MAX_QUESTION_COUNT}
+              value={customQuestionCount}
+              onChange={(e) => setCustomQuestionCount(e.target.value)}
+              placeholder="Custom"
+              className="w-16 bg-transparent py-2 text-sm font-semibold outline-none placeholder:text-[var(--ink-faint)]"
+            />
+            <button
+              onClick={() => {
+                const n = Math.round(Number(customQuestionCount))
+                if (Number.isFinite(n) && n >= MIN_QUESTION_COUNT && n <= MAX_QUESTION_COUNT) {
+                  setTotalQuestions(n)
+                  playClick()
+                }
+              }}
+              className="rounded-full bg-[var(--gold)] px-3 py-1.5 text-xs font-bold text-[var(--gold-ink)] transition hover:scale-105"
+            >
+              Set
+            </button>
+          </div>
+        </div>
+        {!QUESTION_COUNT_OPTIONS.includes(totalQuestions) && (
+          <p className="text-xs text-[var(--ink-faint)]">Custom: {totalQuestions} questions</p>
+        )}
+      </div>
+
+      <div className="panel space-y-2 p-5 transition hover:bg-[var(--ink-raised)]">
         <label className="block text-sm font-semibold text-[var(--fg)]/80">Question Selection</label>
         <div className="flex flex-wrap gap-2">
           {(
@@ -642,20 +696,20 @@ export default function GameSetup() {
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span
                 className={`text-sm font-bold ${
-                  selectedQuestionIds.size === LADDER.length ? 'text-emerald-600' : 'text-[var(--gold)]'
+                  selectedQuestionIds.size === totalQuestions ? 'text-emerald-600' : 'text-[var(--gold)]'
                 }`}
               >
-                {selectedQuestionIds.size} / {LADDER.length} selected
+                {selectedQuestionIds.size} / {totalQuestions} selected
               </span>
               <div className="flex gap-2 text-xs">
                 <button
                   onClick={() => {
-                    setSelectedQuestionIds(new Set(setQuestions.slice(0, LADDER.length).map((q) => q.id!)))
+                    setSelectedQuestionIds(new Set(setQuestions.slice(0, totalQuestions).map((q) => q.id!)))
                     playClick()
                   }}
                   className="btn-outline px-3 py-1"
                 >
-                  First {LADDER.length} by difficulty
+                  First {totalQuestions} by difficulty
                 </button>
                 <button
                   onClick={() => {

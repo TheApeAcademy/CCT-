@@ -1,5 +1,5 @@
-import type { Question } from '../db/types'
-import { LADDER, difficultyForLevel } from './ladder'
+import type { Question, LadderLevel } from '../db/types'
+import { LADDER } from './ladder'
 
 function shuffle<T>(arr: T[]): T[] {
   const copy = [...arr]
@@ -27,12 +27,12 @@ export function shuffleOptions(q: Question): Question {
 }
 
 /** Picks one question per ladder level, preferring the level's target difficulty. */
-export function selectQuestionsForGame(allQuestions: Question[]): Question[] {
+export function selectQuestionsForGame(allQuestions: Question[], ladder: LadderLevel[] = LADDER): Question[] {
   const remaining = shuffle(allQuestions)
   const result: Question[] = []
 
-  for (const level of LADDER) {
-    const target = difficultyForLevel(level.level)
+  for (const level of ladder) {
+    const target = level.difficulty
     let bestIndex = -1
     let bestDiff = Infinity
     for (let i = 0; i < remaining.length; i++) {

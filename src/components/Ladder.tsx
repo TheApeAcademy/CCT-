@@ -1,9 +1,9 @@
-import { LADDER } from '../lib/ladder'
+import type { LadderLevel } from '../db/types'
 
-export default function Ladder({ currentLevel }: { currentLevel: number }) {
+export default function Ladder({ currentLevel, ladder }: { currentLevel: number; ladder: LadderLevel[] }) {
   return (
     <div className="flex flex-col-reverse gap-1 rounded-2xl bg-black/30 p-3">
-      {LADDER.map((l) => {
+      {ladder.map((l) => {
         const isCurrent = l.level === currentLevel
         const isPast = l.level < currentLevel
         return (

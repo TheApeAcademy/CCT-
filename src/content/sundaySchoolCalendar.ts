@@ -15,7 +15,7 @@ export const SUNDAY_LESSON_THEMES: { title: string; image: string }[] = [
   { title: "Learning God's Word", image: '/feature-bible.png' },
   { title: 'Sunday Worship', image: '/hero-bible.jpg' },
   { title: 'Our Church Family', image: '/mfm-wuye-building.jpg' },
-  { title: 'A Message From Pastor', image: '/children-pastor.jpg' },
+  { title: 'A Message From Pastor', image: '/classroom-bible-reading-bg.jpg' },
   { title: 'Fun in Sunday School', image: '/feature-class.png' },
   { title: 'Growing Together', image: '/hero-kids.jpg' },
 ]

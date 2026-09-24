@@ -1748,7 +1748,7 @@ function SundaySchoolTab({
 
       <div className="space-y-3 px-4">
         <p className="eyebrow mx-auto max-w-2xl">Calendar</p>
-        <SundayCalendarPath klass={Boolean(klass)} unlockedDates={unlockedDates} />
+        <SundayCalendarPath unlockedDates={unlockedDates} />
       </div>
     </div>
   )
@@ -1774,7 +1774,7 @@ const CALENDAR_ROW_HEIGHT = CALENDAR_CARD_WIDTH + 34
 // (left-to-right, then right-to-left down the next row, like a board game
 // track) instead of a plain grid, so it reads as one step-by-step journey
 // and fills the full width instead of being capped to a narrow column.
-function SundayCalendarPath({ klass, unlockedDates }: { klass: boolean; unlockedDates: Set<string> }) {
+function SundayCalendarPath({ unlockedDates }: { unlockedDates: Set<string> }) {
   const rows = Math.ceil(SUNDAYS_2026.length / CALENDAR_COLS)
   const totalHeight = rows * CALENDAR_ROW_HEIGHT
 
@@ -1805,7 +1805,12 @@ function SundayCalendarPath({ klass, unlockedDates }: { klass: boolean; unlocked
       {SUNDAYS_2026.map((date, i) => {
         const theme = SUNDAY_LESSON_THEMES[i % SUNDAY_LESSON_THEMES.length]
         const key = sundayDateKey(date)
-        const locked = !klass || (!unlockedDates.has(key) && date > TODAY_START)
+        // Every Sunday up to today is open to any child, whether or not they
+        // have been put in a class yet. The old rule started with `!klass ||`,
+        // so a child with no class saw a padlock on every single week
+        // including ones months in the past. A teacher can still open a future
+        // Sunday early for their own class, which is what unlockedDates is.
+        const locked = date > TODAY_START && !unlockedDates.has(key)
         const { xPct, y } = positions[i]
         return (
           <div

@@ -64,6 +64,12 @@
      its plain gold accent untouched. */
   --hero-accent: #9c2bb0;
   --hero-accent-hover: #b136c7;
+
+  /* The character wall's "Read" pill. Pinkish purple, a shade off --gold so
+     it reads as its own action rather than the page accent, with a solid
+     bottom edge instead of a shadow so it keeps the toy-button feel. */
+  --pin: #e06cc4;
+  --pin-edge: #a83a8c;
 }
 
 /* Re-themes the shared "site chrome" design system (.panel, .btn-solid,
@@ -85,6 +91,8 @@
   --gold: #9c2bb0;
   --gold-ink: #ffffff;
   --fg: #1c1030;
+  --pin: #c0399f;
+  --pin-edge: #8e2273;
 }
 
 html, body, #root {

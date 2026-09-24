@@ -13,7 +13,12 @@ export function unlockedCharacterKeys(achievements: EarnedAchievement[]): Set<st
   )
 }
 
-/** Dedicated gallery for the character collection - not a re-skin of Bible Journey's "By Character" browse, which is for picking any lesson to learn right away regardless of unlock state. This one is the trophy case. */
+/** Dedicated gallery for the character collection - not a re-skin of Bible Journey's "By Character" browse, which is for picking any lesson to learn right away regardless of unlock state. This one is the trophy case.
+ *
+ * Laid out as a Pinterest wall rather than a grid of squares: the paintings are
+ * a mix of landscape and portrait, and a square tile crops or stretches both.
+ * CSS columns let every tile keep the orientation the painting was drawn at,
+ * which is also what stops the wall reading as a spreadsheet. */
 export function CharacterCollectionGallery({
   achievements,
   onGoToJourney,
@@ -31,39 +36,67 @@ export function CharacterCollectionGallery({
   const unlockedCount = characters.filter((c) => unlocked.has(c.key)).length
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-bold text-white/70">
+    <div>
+      <div className="mb-3 flex items-center justify-between">
+        <p className="text-xs font-bold" style={{ color: 'var(--ink-muted)' }}>
           {unlockedCount} of {characters.length} unlocked
         </p>
         <button onClick={onGoToJourney} className="text-xs font-bold underline" style={{ color: 'var(--gold)' }}>
           Go learn more
         </button>
       </div>
-      <div className="grid grid-cols-2 gap-2.5">
-        {characters.map((c) => {
+
+      {/* Column *width*, not a breakpoint count: this wall renders inside the
+          kid tablet as well as full width, and a viewport breakpoint would give
+          the narrow panel four cramped columns. A min column width lets the
+          container decide how many fit. */}
+      <div className="cc-wall" style={{ columnWidth: '8.5rem', columnGap: '0.75rem' }}>
+        {characters.map((c, i) => {
           const isUnlocked = unlocked.has(c.key)
           return (
-            <div key={c.key} className="relative aspect-square overflow-hidden rounded-2xl">
+            <figure key={c.key} className="group mb-3 break-inside-avoid">
               {isUnlocked ? (
-                <>
-                  <img src={c.image} alt="" className="absolute inset-0 h-full w-full object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
-                  <p className="font-display absolute bottom-1.5 left-1.5 right-1.5 line-clamp-2 text-[11px] font-extrabold leading-tight text-white drop-shadow">
-                    {c.name}
-                  </p>
-                </>
+                <div className="relative block overflow-hidden rounded-2xl" style={{ background: 'var(--ink-panel)' }}>
+                  <img src={c.image} alt="" loading="lazy" className="block h-auto w-full" />
+                  <div className="pointer-events-none absolute inset-0 bg-black/35 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100" />
+                  <button
+                    onClick={() => {
+                      playClick()
+                      onGoToJourney()
+                    }}
+                    className="absolute right-2 top-2 z-[2] translate-y-[-3px] rounded-full px-4 py-1.5 text-[11px] font-extrabold text-white opacity-0 transition duration-150 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100 focus-visible:opacity-100 active:translate-y-[3px] active:shadow-none"
+                    style={{ background: 'var(--pin)', boxShadow: '0 3px 0 var(--pin-edge)' }}
+                  >
+                    Read
+                  </button>
+                </div>
               ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-white/5">
-                  <Lock className="h-5 w-5 text-white/30" strokeWidth={2} />
-                  <p className="text-[10px] font-bold text-white/30">{c.book}</p>
+                <div
+                  className={`flex ${i % 3 === 1 ? 'aspect-[4/3]' : 'aspect-[4/5]'} flex-col items-center justify-center gap-1 rounded-2xl`}
+                  style={{ background: 'var(--ink-panel)', border: '1px solid var(--hairline)' }}
+                >
+                  <Lock className="h-5 w-5" style={{ color: 'var(--ink-faint)' }} strokeWidth={2} />
+                  <p className="text-[10px] font-bold" style={{ color: 'var(--ink-faint)' }}>
+                    {c.book}
+                  </p>
                 </div>
               )}
-            </div>
+              <figcaption className="px-1 pt-2">
+                <b className="block text-[13px] font-extrabold leading-tight" style={{ color: isUnlocked ? 'var(--fg)' : 'var(--ink-faint)' }}>
+                  {isUnlocked ? c.name : 'Locked'}
+                </b>
+                <span className="block text-[11px]" style={{ color: 'var(--ink-muted)' }}>
+                  {c.book}
+                </span>
+              </figcaption>
+            </figure>
           )
         })}
       </div>
-      <p className="text-center text-[11px] text-white/40">Keep earning points and finishing lessons - locked ones are a surprise!</p>
+
+      <p className="pt-1 text-center text-[11px]" style={{ color: 'var(--ink-faint)' }}>
+        Keep earning points and finishing lessons - locked ones are a surprise!
+      </p>
     </div>
   )
 }

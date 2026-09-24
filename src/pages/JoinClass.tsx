@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Check, Copy, KeyRound, PartyPopper, Phone, Sparkles, User } from 'lucide-react'
 import { registerStudent, studentSignInByName } from '../lib/ministry'
 import { playClick, playNav } from '../lib/sound'
@@ -19,7 +19,20 @@ type Mode = 'new' | 'returning'
 const inputClass = 'apple-field'
 
 export default function JoinClass() {
-  const [mode, setMode] = useState<Mode>('new')
+  const [params, setParams] = useSearchParams()
+  // Which half of the page opens first. It used to always be the sign up
+  // form, so the Sign In button on the kids sign in page landed a returning
+  // child on "I'm new here" and read as being bounced back to the sign up
+  // page. Two things move it now: ?mode= in the URL, which is what the two
+  // buttons on that page pass, and a passcode already remembered on this
+  // device, because a child who has signed in here before is not new.
+  const [remembered] = useState(() => Boolean(getRememberedStudent()))
+  // Read from the URL rather than held in state, and the tabs write to the
+  // URL. Held in state it was set once on mount, so arriving from the other
+  // button without a remount left the wrong half open.
+  const urlMode = params.get('mode')
+  const mode: Mode = urlMode === 'returning' || urlMode === 'new' ? urlMode : remembered ? 'returning' : 'new'
+  const setMode = (next: Mode) => setParams({ mode: next }, { replace: true })
 
   return (
     <div className="relative mx-auto max-w-md space-y-8">

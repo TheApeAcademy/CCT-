@@ -2761,6 +2761,19 @@ button:active, a:active {
 .ic-screen .ic-btn:active {
   transform: translateY(1px);
 }
+/* The quiet second door. Apple's own sign-in page carries one pill and a
+   plain text link under it, not two pills, so this stays text. */
+.ic-screen .ic-btn-quiet {
+  display: block;
+  width: fit-content;
+  margin: 14px auto 0;
+  color: var(--ic-mute);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.ic-screen .ic-btn-quiet:hover {
+  color: var(--ic-fg);
+}
 
 .ic-screen .ic-lower {
   margin-top: 40px;

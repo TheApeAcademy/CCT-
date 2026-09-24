@@ -100,8 +100,13 @@ export default function KidsSignIn() {
 
       <h1 className="ic-word">MFM Kids</h1>
       <p className="ic-sub">Your class, your lessons, your Bible Journey.</p>
-      <Link to="/join" className="ic-btn" onClick={() => playClick()}>
+      {/* ?mode=returning, not a bare /join: a button that says Sign In has to
+          land on the sign in form, not on the sign up form. */}
+      <Link to="/join?mode=returning" className="ic-btn" onClick={() => playClick()}>
         Sign In
+      </Link>
+      <Link to="/join?mode=new" className="ic-btn-quiet" onClick={() => playClick()}>
+        I am new here
       </Link>
 
       <div className="ic-lower">

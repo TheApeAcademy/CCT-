@@ -57,6 +57,7 @@ import { bibleComUrl } from '../lib/bibleLink'
 import { getMyJourneyProgress } from '../lib/journey'
 import { CharacterCollectionGallery, CharacterRevealModal } from '../components/CharacterCollection'
 import { lessonArt } from '../content/bibleBookArt'
+import StreakScreen from '../components/StreakScreen'
 import PrayerGlobe from '../components/PrayerGlobe'
 import BibleBuddyChat from '../components/BibleBuddy'
 import { useAutoHideNav } from '../lib/useAutoHideNav'
@@ -1679,6 +1680,7 @@ function SundaySchoolTab({
   onNestedViewChange: (nested: boolean) => void
 }) {
   const [journeyOpen, setJourneyOpen] = useState(false)
+  const [streakOpen, setStreakOpen] = useState(false)
   const [streak, setStreak] = useState(0)
   const [unlockedDates, setUnlockedDates] = useState<Set<string>>(new Set())
 
@@ -1695,12 +1697,21 @@ function SundaySchoolTab({
   }, [])
 
   useEffect(() => {
-    onNestedViewChange(journeyOpen)
+    onNestedViewChange(journeyOpen || streakOpen)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [journeyOpen])
+  }, [journeyOpen, streakOpen])
 
   if (journeyOpen) {
     return <BibleJourneyPanel onExit={() => setJourneyOpen(false)} />
+  }
+
+  if (streakOpen) {
+    return (
+      <StreakScreen
+        onBack={() => setStreakOpen(false)}
+        onContinue={() => window.open('https://www.bible.com/reading-plans', '_blank', 'noopener,noreferrer')}
+      />
+    )
   }
 
   return (
@@ -1731,7 +1742,7 @@ function SundaySchoolTab({
           rotate={-8}
           onClick={() => {
             playClick()
-            window.open('https://www.bible.com/reading-plans', '_blank', 'noopener,noreferrer')
+            setStreakOpen(true)
           }}
         />
         <HugeHeroIcon

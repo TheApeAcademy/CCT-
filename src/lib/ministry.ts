@@ -1096,6 +1096,31 @@ export async function getMyBibleStreak(): Promise<number> {
   return (data as number) ?? 0
 }
 
+/**
+ * The days this child has finished a reading, as YYYY-MM-DD in their own
+ * timezone, for the last `days` days. The streak screen draws a week from
+ * this; the streak number itself still comes from get_my_bible_streak, which
+ * is the one definition of a streak.
+ */
+export async function listMyReadingDays(days = 14): Promise<Set<string>> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) return new Set()
+  const since = new Date()
+  since.setDate(since.getDate() - days)
+  const { data, error } = await supabase
+    .from('student_bible_progress')
+    .select('completed_at')
+    .eq('student_id', auth.user.id)
+    .gte('completed_at', since.toISOString())
+  if (error) throw error
+  const out = new Set<string>()
+  for (const row of (data ?? []) as { completed_at: string }[]) {
+    const d = new Date(row.completed_at)
+    out.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)
+  }
+  return out
+}
+
 export async function completeBibleReading(readingId: string) {
   const { error } = await supabase.rpc('complete_bible_reading', { p_reading_id: readingId })
   if (error) throw error

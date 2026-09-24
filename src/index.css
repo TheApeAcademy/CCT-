@@ -2244,3 +2244,310 @@ button:active, a:active {
     width: min(100%, 320px);
   }
 }
+
+/* ---------- Streak screen ----------
+   One structure, two skins. The light one is the screen Banks approved; the
+   dark one is the image he sent afterwards, with the brown glow bleeding out
+   of the flame. Every rule paints from --sk-*, so the screen follows the
+   surface it is mounted on instead of each variant being written twice. */
+.st-screen {
+  --sk-ground: #ffffff;
+  --sk-glow: none;
+  --sk-fg: #3c3c3c;
+  --sk-num: #ffb020;
+  --sk-accent: #ff9600;
+  --sk-accent-soft: #ffb349;
+  --sk-card: #ffffff;
+  --sk-card-line: #efefef;
+  --sk-strip: #f7f7f7;
+  --sk-strip-ink: #6f6f6f;
+  --sk-dim: #b5b5b5;
+  --sk-off: #a5a5a5;
+  --sk-rail: #eaeaea;
+  --sk-cta: #9c2bb0;
+  --sk-cta-edge: #6f1d7e;
+
+  position: relative;
+  isolation: isolate;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  background: var(--sk-ground);
+  color: var(--sk-fg);
+}
+.st-screen.is-dark {
+  --sk-ground: #050403;
+  --sk-glow: radial-gradient(78% 42% at 50% 23%, #5a2c06 0%, #2a1403 34%, #0d0703 62%, #030202 100%);
+  --sk-fg: #ffffff;
+  --sk-num: #ffffff;
+  --sk-accent: #ee7a15;
+  --sk-accent-soft: #f88609;
+  --sk-card: #131110;
+  --sk-card-line: #272524;
+  --sk-strip: #0e0e0e;
+  --sk-strip-ink: #cfc6bf;
+  --sk-dim: #7c736c;
+  --sk-off: #5d5650;
+  --sk-rail: #151515;
+  --sk-cta: #e67002;
+  --sk-cta-edge: #a34f01;
+}
+.st-screen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--sk-glow);
+}
+
+/* Everything below the top bar sits in one block that centres itself when the
+   screen is taller than the content, so a big display does not leave the CTA
+   stranded halfway up with dead space under it. */
+.st-screen .sk-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.st-screen .sk-stage {
+  position: relative;
+  width: 206px;
+  height: 178px;
+  margin: 8px auto -6px;
+  display: grid;
+  place-items: center;
+}
+.st-screen .sk-halo {
+  position: absolute;
+  inset: -14px 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, rgba(255, 150, 40, 0.2) 0 38%, rgba(255, 150, 40, 0) 70%);
+  animation: sk-halo 3.2s ease-in-out infinite;
+}
+.st-screen .sk-halo.is-2 {
+  inset: 8px 24px;
+  background: none;
+  border: 1px solid rgba(255, 160, 50, 0.3);
+  box-shadow: 0 0 34px rgba(238, 122, 21, 0.28);
+  animation-delay: 0.5s;
+}
+@keyframes sk-halo {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.045);
+    opacity: 1;
+  }
+}
+.st-screen .sk-flame {
+  position: relative;
+  width: 88px;
+  height: 100px;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 26px rgba(248, 134, 9, 0.62));
+  animation: sk-pulse 2.6s ease-in-out infinite;
+}
+@keyframes sk-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .st-screen .sk-flame,
+  .st-screen .sk-halo {
+    animation: none !important;
+  }
+}
+.st-screen .sk-num {
+  font-size: 4.4rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.045em;
+  color: var(--sk-num);
+}
+.st-screen .sk-lbl {
+  font-size: 1.02rem;
+  font-weight: 800;
+  margin-top: 2px;
+  color: var(--sk-num);
+}
+.st-screen .sk-said {
+  font-size: 0.8rem;
+  color: var(--sk-dim);
+  margin: 10px 0 20px;
+}
+
+.st-screen .sk-card {
+  background: var(--sk-card);
+  border: 1px solid var(--sk-card-line);
+  border-radius: 22px;
+  padding: 16px 14px 18px;
+  text-align: left;
+  margin-bottom: 14px;
+}
+.st-screen .sk-dow {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--sk-dim);
+  text-align: center;
+  margin-bottom: 14px;
+}
+.st-screen .sk-dow span.is-on {
+  color: var(--sk-accent);
+  font-weight: 800;
+}
+.st-screen .sk-dots {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  align-items: center;
+}
+/* The bar only runs as far as the days actually done, so its length is the
+   week's progress rather than decoration. --sk-run is set per render. */
+.st-screen .sk-dots::before {
+  content: '';
+  position: absolute;
+  left: 4%;
+  width: var(--sk-run, 0%);
+  height: 26px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--sk-accent) 76%, #000), var(--sk-accent));
+}
+.st-screen .sk-dot {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  margin: 0 auto;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--sk-accent) 88%, #000);
+  color: #fff;
+}
+.st-screen .sk-dot.is-now {
+  width: 30px;
+  height: 30px;
+  background: #fff;
+  color: var(--sk-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sk-accent) 26%, transparent);
+}
+.st-screen .sk-off {
+  position: relative;
+  text-align: center;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--sk-off);
+  font-variant-numeric: tabular-nums;
+}
+
+.st-screen .sk-rw {
+  background: var(--sk-rail);
+  border: 1px solid var(--sk-card-line);
+  border-radius: 22px;
+  overflow: hidden;
+  margin-bottom: 18px;
+}
+.st-screen .sk-rw-top {
+  background: var(--sk-strip);
+  text-align: center;
+  font-size: 0.63rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--sk-strip-ink);
+  padding: 11px 8px;
+}
+.st-screen .sk-tiers {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+.st-screen .sk-tier {
+  padding: 14px 4px 16px;
+  text-align: center;
+  position: relative;
+}
+.st-screen .sk-tier + .sk-tier::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 1px;
+  background: var(--sk-card-line);
+}
+.st-screen .sk-tier b {
+  display: block;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--sk-strip-ink);
+  margin-bottom: 12px;
+}
+.st-screen .sk-tier span {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--sk-fg);
+}
+.st-screen .sk-tier.is-done b,
+.st-screen .sk-tier.is-done span {
+  color: var(--sk-off);
+  text-decoration: line-through;
+}
+.st-screen .sk-tier.is-now::after {
+  content: '';
+  position: absolute;
+  inset: 6px 5px;
+  border: 1.5px dashed var(--sk-accent);
+  border-radius: 12px;
+}
+
+.st-screen .sk-cta {
+  margin-top: auto;
+  width: 100%;
+  border-radius: 999px;
+  background: var(--sk-cta);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 800;
+  padding: 17px;
+  box-shadow: 0 6px 0 var(--sk-cta-edge);
+}
+.st-screen .sk-cta:active {
+  transform: translateY(6px);
+  box-shadow: none;
+}
+
+/* Wide enough and the week card and the rewards sit side by side under the
+   flame, instead of one narrow column down the middle of a big screen. */
+.st-screen .sk-body {
+  width: 100%;
+  max-width: 420px;
+  margin-inline: auto;
+}
+@media (min-width: 880px) {
+  .st-screen .sk-body {
+    max-width: 860px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    align-items: start;
+  }
+  .st-screen .sk-cta {
+    grid-column: 1 / -1;
+    max-width: 420px;
+    margin-inline: auto;
+  }
+}

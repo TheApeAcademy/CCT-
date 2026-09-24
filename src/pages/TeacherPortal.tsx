@@ -124,6 +124,19 @@ function ApplicationGate({ onChange }: { onChange: () => void }) {
     load()
   }, [])
 
+  // The admin who approves an application is in another browser. Poll so the
+  // teacher sitting on the pending screen is let in without signing out and
+  // back in, which is what it used to take. onChange re-reads the profile
+  // role, load() re-reads the application row.
+  useEffect(() => {
+    const id = setInterval(() => {
+      load()
+      onChange()
+    }, 10000)
+    return () => clearInterval(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onChange])
+
   if (app === 'loading') return <div className="py-20 text-center text-xl">Loading…</div>
 
   if (!app) {
@@ -164,9 +177,15 @@ function StatusScreen({ icon: Icon, title, body }: { icon: typeof ClipboardList;
       </span>
       <h1 className="font-display text-2xl font-extrabold sm:text-3xl">{title}</h1>
       <p className="text-sm text-[var(--ink-muted)]">{body}</p>
-      <button onClick={() => signOut()} className="btn-outline">
-        Sign Out
-      </button>
+      <p className="text-xs text-[var(--ink-faint)]">This page is watching. If your account is approved while it is open, it will let you straight in.</p>
+      <div className="flex flex-wrap justify-center gap-2">
+        <button onClick={() => signOut()} className="btn-solid text-sm">
+          Sign In as a Teacher
+        </button>
+        <button onClick={() => signOut()} className="btn-outline text-sm">
+          Sign Out
+        </button>
+      </div>
     </div>
   )
 }

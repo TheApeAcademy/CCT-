@@ -73,7 +73,7 @@ import { playClick } from '../lib/sound'
 import { haptics } from '../lib/haptics'
 
 export default function AdminPortal() {
-  const { session, profile, loading } = useMinistryAuth()
+  const { session, profile, loading, refreshProfile } = useMinistryAuth()
 
   if (loading) return <div className="py-20 text-center text-xl">Loading…</div>
   if (!session) {
@@ -94,21 +94,38 @@ export default function AdminPortal() {
       />
     )
   }
-  if (profile?.role !== 'admin') return <NotAuthorized />
+  if (profile?.role !== 'admin') return <NotAuthorized onRecheck={refreshProfile} />
   return <AdminDashboard />
 }
 
-function NotAuthorized() {
+function NotAuthorized({ onRecheck }: { onRecheck: () => void }) {
+  // Somebody else grants the admin role, from another browser. Watch for it
+  // rather than making the person sign out and back in to find out: the hook
+  // already re-reads the profile when the tab regains focus, and this covers
+  // the case where they never leave the tab at all.
+  useEffect(() => {
+    const id = setInterval(onRecheck, 10000)
+    return () => clearInterval(id)
+  }, [onRecheck])
+
   return (
     <div className="mx-auto max-w-md space-y-4 text-center">
       <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-md border border-[var(--hairline-strong)] text-[var(--gold)]">
         <ShieldCheck className="h-6 w-6" strokeWidth={1.75} />
       </span>
       <h1 className="font-display text-2xl font-extrabold sm:text-3xl">Not an Admin (Yet)</h1>
-      <p className="text-sm text-[var(--ink-muted)]">You're signed in, but this account hasn't been made an admin. Ask an existing admin to promote you from the Admins tab.</p>
-      <button onClick={() => signOut()} className="btn-outline">
-        Sign Out
-      </button>
+      <p className="text-sm text-[var(--ink-muted)]">
+        You're signed in with a different account. Sign in as an admin, or ask an existing admin to promote this one from the Admins tab.
+      </p>
+      <p className="text-xs text-[var(--ink-faint)]">If somebody promotes you while this page is open, it will let you straight in.</p>
+      <div className="flex flex-wrap justify-center gap-2">
+        <button onClick={() => signOut()} className="btn-solid text-sm">
+          Sign In as Admin
+        </button>
+        <button onClick={() => signOut()} className="btn-outline text-sm">
+          Sign Out
+        </button>
+      </div>
     </div>
   )
 }

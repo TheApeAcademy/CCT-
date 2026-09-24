@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase, getMyProfile, type Profile } from './supabase'
 
@@ -70,14 +70,36 @@ export function useMinistryAuth() {
 
   const loading = initializing || (!!session && profileFor !== session.user.id)
 
-  const refreshProfile = () => {
+  const refreshProfile = useCallback(() => {
     const uid = session?.user.id
     if (!uid) return
     setProfileError(false)
     getMyProfile()
       .then(setProfile)
       .catch(() => setProfileError(true))
-  }
+  }, [session])
+
+  // A role is granted by somebody else, in another browser: an admin promotes
+  // a teacher from the Admins tab, or approves an application. Nothing pushes
+  // that down to the tab already sitting on the "you are not an admin yet"
+  // screen, so without this the only way to see the new role is to sign out
+  // and sign back in - which is exactly what it used to take. Re-reading the
+  // one profile row whenever the tab comes back to the front is cheap and
+  // covers the real case: the person is told they have been approved, they
+  // switch back to the tab, and it is already right.
+  useEffect(() => {
+    if (!session) return
+    const onFocus = () => {
+      if (document.visibilityState === 'hidden') return
+      refreshProfile()
+    }
+    window.addEventListener('focus', onFocus)
+    document.addEventListener('visibilitychange', onFocus)
+    return () => {
+      window.removeEventListener('focus', onFocus)
+      document.removeEventListener('visibilitychange', onFocus)
+    }
+  }, [session, refreshProfile])
 
   return { session, profile, loading, profileError, refreshProfile }
 }

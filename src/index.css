@@ -2072,3 +2072,175 @@ button:active, a:active {
     padding-block: 13px;
   }
 }
+
+/* ---------- Class page ----------
+   Built to the reference Banks approved: white ground, a small letterspaced
+   class name over a two-line heading, the isometric figure standing free with
+   only a soft ground shadow under it, a dark navy pill, and lesson cards with
+   the painting filling the top half in a squircle and the words underneath.
+   Colours are lifted off that file and declared once here. */
+.cp-screen {
+  --cp-orange: #ff9051;
+  --cp-navy: #181824;
+  --cp-line: #f0eef4;
+  --cp-chip: #f7f6fa;
+  --cp-sub: #8b8a99;
+  --cp-ground: #ffffff;
+
+  background: var(--cp-ground);
+  color: var(--cp-navy);
+}
+
+.cp-screen .cp-eyebrow {
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--cp-sub);
+}
+.cp-screen .cp-head {
+  font-size: 1.72rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+.cp-screen .cp-cap {
+  font-size: 0.86rem;
+  color: var(--cp-sub);
+  max-width: 24ch;
+}
+
+/* The figure stands on the page, not in a circle. The shadow is the only
+   thing under it, which is what makes it read as standing rather than
+   floating. */
+.cp-screen .cp-hero {
+  position: relative;
+  width: min(100%, 232px);
+  margin-inline: auto;
+}
+.cp-screen .cp-hero::before {
+  content: '';
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: 4%;
+  height: 20px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 50%, rgba(20, 20, 43, 0.14), rgba(20, 20, 43, 0) 72%);
+}
+.cp-screen .cp-hero img {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.cp-screen .cp-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  background: var(--cp-navy);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.92rem;
+  padding: 14px 26px;
+  box-shadow: 0 12px 24px -10px rgba(24, 24, 36, 0.7);
+}
+
+.cp-screen .cp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  border: 1px solid var(--cp-line);
+  background: var(--cp-chip);
+  padding: 8px 14px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--cp-navy);
+}
+.cp-screen .cp-chip:disabled {
+  color: var(--cp-sub);
+}
+
+.cp-screen .cp-card {
+  display: block;
+  width: 100%;
+  text-align: center;
+  border: 1px solid var(--cp-line);
+  background: #fff;
+  border-radius: 28px;
+  padding: 10px 10px 18px;
+  overflow: hidden;
+  box-shadow: 0 10px 26px rgba(20, 20, 43, 0.05);
+  transition: transform 0.12s ease, box-shadow 0.2s ease;
+}
+.cp-screen .cp-card:hover {
+  transform: translateY(-2px);
+}
+/* height:auto matters: an <img> with a height attribute counts as a specified
+   height, and aspect-ratio only applies when one side is auto. Without it the
+   painting keeps its own portrait shape instead of the 16:10 band. */
+.cp-screen .cp-shot {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border-radius: 20px;
+  margin-bottom: 14px;
+  background: var(--cp-chip);
+}
+.cp-screen .cp-card b {
+  display: block;
+  font-size: 1.02rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-bottom: 3px;
+  padding-inline: 8px;
+}
+.cp-screen .cp-card small {
+  display: block;
+  font-size: 0.73rem;
+  font-weight: 500;
+  color: var(--cp-sub);
+  padding-inline: 8px;
+}
+.cp-screen .cp-card.is-on {
+  background: var(--cp-orange);
+  border-color: var(--cp-orange);
+  color: #fff;
+  box-shadow: 0 16px 30px rgba(255, 144, 81, 0.36);
+}
+.cp-screen .cp-card.is-on small {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.cp-screen .cp-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 26px;
+  align-items: start;
+}
+.cp-screen .cp-cards {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+@media (min-width: 880px) {
+  .cp-screen .cp-body {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    gap: 40px;
+  }
+  .cp-screen .cp-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .cp-screen .cp-head {
+    font-size: 2.1rem;
+  }
+  .cp-screen .cp-hero {
+    width: min(100%, 320px);
+  }
+}

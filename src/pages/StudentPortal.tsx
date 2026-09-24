@@ -42,6 +42,7 @@ import {
   ChevronDown,
   CalendarDays,
   Crown,
+  ChevronRight,
   type LucideIcon,
 } from 'lucide-react'
 import { supabase, signOut } from '../lib/supabase'
@@ -55,6 +56,7 @@ import { SUNDAY_LESSON_THEMES, SUNDAYS_2026, sundayDateKey } from '../content/su
 import { bibleComUrl } from '../lib/bibleLink'
 import { getMyJourneyProgress } from '../lib/journey'
 import { CharacterCollectionGallery, CharacterRevealModal } from '../components/CharacterCollection'
+import { lessonArt } from '../content/bibleBookArt'
 import PrayerGlobe from '../components/PrayerGlobe'
 import BibleBuddyChat from '../components/BibleBuddy'
 import { useAutoHideNav } from '../lib/useAutoHideNav'
@@ -1137,6 +1139,7 @@ function ClassTab({
   const [lessons, setLessons] = useState<LectureRow[]>([])
   const [loading, setLoading] = useState(true)
   const [active, setActive] = useState<ClassFeatureKey | null>(null)
+  const [openLesson, setOpenLesson] = useState<string | null>(null)
 
   useEffect(() => {
     if (!klass) {
@@ -1155,20 +1158,127 @@ function ClassTab({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active])
 
-  // Without a class this used to throw the whole classroom away and leave a
-  // bare white card on an empty page, which read as a broken screen rather
-  // than as something not unlocked yet. The room, the dial and the wedges all
-  // stay: four of them wear a padlock, the Notebook still opens because it
-  // never needed a class, and the code the teacher needs is right there.
+  // Without a class there is nothing for a teacher to have posted, so the page
+  // keeps its shape and the lesson column carries the join code instead of an
+  // empty list. Notebook still opens, because it never needed a class.
   const locked = !klass
+  const lesson = openLesson ? lessons.find((l) => l.id === openLesson) ?? null : null
 
   return (
-    <div className="fixed inset-0 z-0 overflow-hidden">
-      <img src="/classroom-bible-reading-bg.jpg" alt="" className="absolute inset-0 h-full w-full scale-110 object-cover blur-md" />
-      <div className="absolute inset-0 bg-black/45" />
-      <div className="relative z-10 flex h-full flex-col items-center justify-center overflow-y-auto px-4 py-16">
-        {active ? (
-          <div key="panel" className="w-full max-w-md animate-page-in">
+    <div className="cp-screen min-h-screen">
+      <div className="mx-auto w-full max-w-6xl px-5 pb-16 pt-20 sm:pt-16">
+        <div className="cp-body">
+          <div className="flex flex-col items-center text-center">
+            <p className="cp-eyebrow">{klass?.name ?? 'Your class'}</p>
+            <h1 className="cp-head mt-3">
+              Bible learning
+              <br />
+              for kids
+            </h1>
+            <div className="cp-hero my-5">
+              <img src="/teacher-isometric.png" alt="" />
+            </div>
+            <p className="cp-cap">{klass ? `The easy way to learn the Bible with ${klass.teacher_name}` : 'The easy way to learn the Bible with your class'}</p>
+            <button
+              type="button"
+              className="cp-go mt-5"
+              onClick={() => {
+                playClick()
+                const first = lessons[0]
+                if (first) setOpenLesson(first.id)
+                else setActive('notes')
+              }}
+            >
+              Start learning
+              <ChevronRight className="h-4 w-4" strokeWidth={2.5} />
+            </button>
+
+            {/* The four class features that are not the lesson list itself.
+                They were wedges on a dial before; here they are the row under
+                the figure, and each opens the same panel it always did. */}
+            <div className="mt-6 flex flex-wrap justify-center gap-2">
+              {CLASS_FEATURES.filter((f) => f.key !== 'lessons').map((f) => {
+                const isLocked = locked && f.key !== 'notes'
+                const Icon = f.icon
+                return (
+                  <button
+                    key={f.key}
+                    type="button"
+                    disabled={isLocked}
+                    className="cp-chip"
+                    onClick={() => {
+                      playClick()
+                      setActive(f.key)
+                    }}
+                  >
+                    {isLocked ? <Lock className="h-3.5 w-3.5" strokeWidth={2.4} /> : <Icon className="h-3.5 w-3.5" strokeWidth={2.4} />}
+                    {f.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <div>
+            <div className="mb-4 flex items-center gap-3">
+              <span
+                className="flex h-10 w-10 items-center justify-center rounded-full"
+                style={{ background: 'var(--cp-chip)', border: '1px solid var(--cp-line)' }}
+              >
+                <BookOpen className="h-5 w-5" strokeWidth={2.2} />
+              </span>
+              <p className="text-left text-lg font-bold leading-tight">
+                Choose
+                <span className="block font-semibold" style={{ color: 'var(--cp-sub)' }}>
+                  the lesson
+                </span>
+              </p>
+            </div>
+
+            {loading && <p className="text-sm" style={{ color: 'var(--cp-sub)' }}>Loading the lessons…</p>}
+            {!loading && locked && <JoinClassNotice code={student?.student_code ?? null} />}
+            {!loading && !locked && lessons.length === 0 && (
+              <p className="text-sm" style={{ color: 'var(--cp-sub)' }}>
+                No lessons posted yet. When {klass?.teacher_name ?? 'your teacher'} posts one, it shows up here.
+              </p>
+            )}
+            {!loading && lessons.length > 0 && (
+              <div className="cp-cards">
+                {lessons.map((l, i) => {
+                  const art = lessonArt(l.title)
+                  return (
+                    <button
+                      key={l.id}
+                      type="button"
+                      className={`cp-card${i === 0 ? ' is-on' : ''}`}
+                      onClick={() => {
+                        playClick()
+                        setOpenLesson(l.id)
+                      }}
+                    >
+                      {art ? (
+                        <img className="cp-shot" src={art.image} alt="" loading="lazy" />
+                      ) : (
+                        <span className="cp-shot flex items-center justify-center font-display text-3xl font-extrabold" style={{ color: 'var(--cp-sub)' }}>
+                          {l.title.slice(0, 1).toUpperCase()}
+                        </span>
+                      )}
+                      <b>{l.title}</b>
+                      <small>{i === 0 ? 'Start here' : art && art.scene.toLowerCase() !== l.title.toLowerCase() ? art.scene : 'Not started'}</small>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {lesson && <LessonSheet lecture={lesson} onClose={() => setOpenLesson(null)} />}
+
+      {active && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4" onClick={() => setActive(null)}>
+          <div className="w-full max-w-md animate-page-in" onClick={(e) => e.stopPropagation()}>
             {klass ? (
               <ClassFeaturePanel
                 feature={active}
@@ -1191,14 +1301,43 @@ function ClassTab({
               </ClassGlassPanel>
             )}
           </div>
-        ) : (
-          <div key="dial" className="flex flex-col items-center gap-4 animate-page-in">
-            <ClassDial onSelect={setActive} lockedExcept={locked ? 'notes' : null} />
-            {locked ? <JoinClassNotice code={student?.student_code ?? null} /> : (
-              <p className="text-xs font-bold uppercase tracking-wide text-white/70">Tap an icon to open it</p>
-            )}
-          </div>
-        )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+/** One lesson, opened from a card. The painting runs across the top the way it
+ *  does on the card, so tapping through does not change what you were looking
+ *  at, only how much of it you can read. */
+function LessonSheet({ lecture, onClose }: { lecture: LectureRow; onClose: () => void }) {
+  const art = lessonArt(lecture.title)
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 p-0 sm:items-center sm:p-4" onClick={onClose}>
+      <div
+        className="w-full max-w-lg overflow-hidden rounded-t-[28px] sm:rounded-[28px]"
+        style={{ background: '#fff', color: 'var(--cp-navy)', maxHeight: '86vh' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="relative">
+          {art && <img src={art.image} alt="" className="block h-44 w-full object-cover" />}
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close the lesson"
+            className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-black/45 text-white"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="space-y-3 overflow-y-auto p-5" style={{ maxHeight: '60vh' }}>
+          <p className="font-display text-xl font-extrabold leading-tight">{lecture.title}</p>
+          {lecture.description && <p className="text-sm leading-relaxed">{lecture.description}</p>}
+          {lecture.body && <p className="whitespace-pre-wrap text-sm leading-relaxed" style={{ color: 'var(--cp-sub)' }}>{lecture.body}</p>}
+          {!lecture.description && !lecture.body && (
+            <p className="text-sm" style={{ color: 'var(--cp-sub)' }}>Your teacher has not written this one up yet.</p>
+          )}
+        </div>
       </div>
     </div>
   )
@@ -1258,87 +1397,6 @@ function JoinClassNotice({ code }: { code: string | null }) {
       ) : (
         <p className="mt-3 text-sm text-white/50">Your code is still being made.</p>
       )}
-    </div>
-  )
-}
-
-/**
- * GTA V weapon-wheel style hub for the classroom: a glass ring floating over
- * the class photo with the teacher figurine at its center and one wedge icon
- * per feature spaced evenly around the circle.
- */
-function ClassDial({ onSelect, lockedExcept }: { onSelect: (key: ClassFeatureKey) => void; lockedExcept: ClassFeatureKey | null }) {
-  const n = CLASS_FEATURES.length
-  return (
-    <div className="relative" style={{ width: 'min(96vw, 750px)', height: 'min(105vw, 510px)' }}>
-      <div
-        className="absolute inset-0"
-        style={{
-          borderRadius: 84,
-          background: 'radial-gradient(circle at 50% 38%, rgba(255,255,255,0.16), rgba(255,255,255,0.04) 70%)',
-          border: '1px solid rgba(255,255,255,0.35)',
-          boxShadow: '0 30px 70px -20px rgba(0,0,0,0.65), inset 0 0 50px rgba(255,255,255,0.08), inset 0 0 0 10px rgba(255,255,255,0.05)',
-          backdropFilter: 'blur(18px)',
-          WebkitBackdropFilter: 'blur(18px)',
-        }}
-      />
-      <div className="absolute border border-white/20" style={{ inset: '15%', borderRadius: 54 }} />
-
-      <div
-        className="absolute left-1/2 top-1/2 flex items-center justify-center rounded-full"
-        style={{
-          width: 285,
-          height: 285,
-          transform: 'translate(-50%,-50%)',
-          background: 'radial-gradient(circle, rgba(255,255,255,0.18), rgba(255,255,255,0.02))',
-          boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.25), 0 10px 30px -10px rgba(0,0,0,0.55)',
-        }}
-      >
-        <img src="/teacher-isometric.png" alt="" className="h-[82%] w-[82%] object-contain drop-shadow-2xl" />
-      </div>
-
-      {CLASS_FEATURES.map((f, i) => {
-        const angle = (-90 + (360 / n) * i) * (Math.PI / 180)
-        const R = 42
-        const x = 50 + R * Math.cos(angle)
-        const y = 50 + R * Math.sin(angle)
-        const Icon = f.icon
-        const isLocked = lockedExcept !== null && f.key !== lockedExcept
-        return (
-          <button
-            key={f.key}
-            disabled={isLocked}
-            onClick={() => {
-              if (isLocked) return
-              playClick()
-              onSelect(f.key)
-            }}
-            className={`absolute flex flex-col items-center gap-2 transition ${isLocked ? 'cursor-not-allowed' : 'hover:scale-110 active:scale-95'}`}
-            style={{ left: `${x}%`, top: `${y}%`, transform: 'translate(-50%,-50%)' }}
-          >
-            <span
-              className="relative flex h-[84px] w-[84px] items-center justify-center overflow-hidden rounded-full sm:h-24 sm:w-24"
-              style={{
-                background: isLocked ? 'rgba(255,255,255,0.07)' : `linear-gradient(155deg, ${f.from} 0%, ${f.to} 100%)`,
-                border: '1px solid rgba(255,255,255,0.45)',
-                boxShadow: isLocked
-                  ? 'inset 0 0 0 1px rgba(255,255,255,0.12)'
-                  : '0 10px 24px -8px rgba(0,0,0,0.55), inset 0 1px 1px rgba(255,255,255,0.45), inset 0 -3px 6px rgba(0,0,0,0.3)',
-              }}
-            >
-              {!isLocked && (
-                <span className="absolute inset-0" style={{ background: 'radial-gradient(circle at 30% 20%, rgba(255,255,255,0.45), transparent 55%)' }} />
-              )}
-              {isLocked ? (
-                <Lock className="relative h-8 w-8 text-white/55" strokeWidth={2} />
-              ) : (
-                <Icon className="relative h-9 w-9 text-white drop-shadow" strokeWidth={2.1} />
-              )}
-            </span>
-            <span className="whitespace-nowrap rounded-full bg-black/50 px-2.5 py-1 text-xs font-bold text-white backdrop-blur">{f.label}</span>
-          </button>
-        )
-      })}
     </div>
   )
 }

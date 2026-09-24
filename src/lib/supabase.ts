@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { clearKidsDashboardState } from './kidsDashboardState'
 
 // Publishable key, safe to ship in client code by design (Row Level Security
 // on the backend is what actually protects the data). This is a dedicated
@@ -85,6 +86,10 @@ export async function getMyProfile(): Promise<Profile | null> {
 }
 
 export async function signOut() {
+  // The kid dashboard remembers which room it was in, in sessionStorage. That
+  // belongs to the child who was signed in, so it goes when they do; otherwise
+  // the next person to sign in on this tab lands in their room.
+  clearKidsDashboardState()
   await supabase.auth.signOut()
 }
 

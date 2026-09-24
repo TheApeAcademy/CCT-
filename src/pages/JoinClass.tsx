@@ -7,6 +7,7 @@ import { haptics } from '../lib/haptics'
 import { setRememberMe } from '../lib/supabase'
 import { getRememberedStudent, saveRememberedStudent, clearRememberedStudent } from '../lib/rememberedStudent'
 import FloatingArt from '../components/FloatingArt'
+import { clearKidsDashboardState } from '../lib/kidsDashboardState'
 // Landing page's playful display face for the big student code / step
 // numbers - safe to pull in here since /join is already its own lazy
 // route, never loaded by the offline quiz.
@@ -299,6 +300,7 @@ function NewStudentFlow() {
           <button
             onClick={() => {
               playNav()
+              clearKidsDashboardState()
               navigate('/student')
             }}
             className="lp-btn-solid w-full py-3 text-base"
@@ -372,6 +374,9 @@ function ReturningStudentFlow() {
       await studentSignInByName({ full_name: fullName, passcode })
       if (rememberMe) saveRememberedStudent({ fullName, passcode })
       else clearRememberedStudent()
+      // A sign in always opens on the village map, never on whatever room the
+      // last session in this tab happened to leave behind.
+      clearKidsDashboardState()
       playNav()
       haptics.success()
       navigate('/student')

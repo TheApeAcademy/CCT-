@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   User,
@@ -58,7 +58,6 @@ import { getMyJourneyProgress } from '../lib/journey'
 import { CharacterCollectionGallery, CharacterRevealModal } from '../components/CharacterCollection'
 import { lessonArt } from '../content/bibleBookArt'
 import StreakScreen from '../components/StreakScreen'
-import KidsSignIn from '../components/KidsSignIn'
 import PrayerGlobe from '../components/PrayerGlobe'
 import BibleBuddyChat from '../components/BibleBuddy'
 import { useAutoHideNav } from '../lib/useAutoHideNav'
@@ -99,6 +98,7 @@ import {
 import { achievementIcon } from '../lib/achievementIcons'
 import { fileToResizedDataUrl } from '../lib/image'
 import { renderIdCardPng } from '../lib/idCard'
+import { loadKidsDashboardState, saveKidsDashboardState } from '../lib/kidsDashboardState'
 import { playClick, playNav } from '../lib/sound'
 import { haptics } from '../lib/haptics'
 
@@ -127,9 +127,11 @@ export default function StudentPortal() {
       </div>
     )
   }
-  // Signed out, this is the whole page rather than a card inside the shell:
-  // the icloud.com landing page, with our own features in the cluster.
-  if (!session || profile?.role !== 'student') return <KidsSignIn />
+  // Signed out, go straight to the sign in form. The cluster screen this used
+  // to render lives on the landing page now, so showing it again here was the
+  // same door twice: a child who pressed Sign In down there arrived at another
+  // page asking them to press Sign In.
+  if (!session || profile?.role !== 'student') return <Navigate to="/join?mode=returning" replace />
   return <Dashboard />
 }
 
@@ -148,26 +150,6 @@ const TAB_ACCENT: Record<Tab, string> = {
   messages: 'var(--lp-accent-training)',
   ears: 'var(--lp-accent-ears)',
   game: 'var(--lp-accent-compete)',
-}
-
-// A mobile browser can unload/reload this tab in the background (low
-// memory, coming back from another app) - without this, that reload
-// dumps the kid straight back to the village map instead of wherever
-// they actually were.
-const DASHBOARD_STATE_KEY = 'mfm-kids-dashboard-state'
-
-function loadDashboardState(): { tab: Tab; view: 'map' | 'tab' } | null {
-  try {
-    const raw = sessionStorage.getItem(DASHBOARD_STATE_KEY)
-    if (!raw) return null
-    const parsed = JSON.parse(raw)
-    if ((parsed?.view === 'map' || parsed?.view === 'tab') && typeof parsed?.tab === 'string' && parsed.tab in TAB_ACCENT) {
-      return { tab: parsed.tab, view: parsed.view }
-    }
-  } catch {
-    // sessionStorage can throw in private/locked-down browsing - just skip restoring.
-  }
-  return null
 }
 
 // Today's Loop - no new table, no new reward, just today's activity across
@@ -228,8 +210,11 @@ function TodayLoopBanner({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
 }
 
 function Dashboard() {
-  const [tab, setTab] = useState<Tab>(() => loadDashboardState()?.tab ?? 'home')
-  const [view, setView] = useState<'map' | 'tab'>(() => loadDashboardState()?.view ?? 'map')
+  // A sign in always clears this, so a restored tab here can only ever be
+  // this same child coming back to a reloaded tab, never a stale view left
+  // by whoever was signed in before.
+  const [tab, setTab] = useState<Tab>(() => loadKidsDashboardState()?.tab ?? 'home')
+  const [view, setView] = useState<'map' | 'tab'>(() => loadKidsDashboardState()?.view ?? 'map')
   const [student, setStudent] = useState<StudentRow | null>(null)
   // My Card used to render literally nothing whenever this was null -
   // no spinner, no message, no error - so a child whose record had not
@@ -243,11 +228,7 @@ function Dashboard() {
   const [characterCatalog, setCharacterCatalog] = useState<BibleCharacterRow[]>([])
 
   useEffect(() => {
-    try {
-      sessionStorage.setItem(DASHBOARD_STATE_KEY, JSON.stringify({ tab, view }))
-    } catch {
-      // ignore - same private-browsing case as loadDashboardState
-    }
+    saveKidsDashboardState({ tab, view })
   }, [tab, view])
 
   // A character unlock is a DB-side side effect of earning points (see

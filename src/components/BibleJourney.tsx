@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Lock, Check, Star, ArrowLeft, ChevronLeft, ChevronRight, Sparkles, BookOpen, Flame, Coins, X } from 'lucide-react'
+import { Lock, Check, Star, ArrowLeft, ChevronLeft, ChevronRight, Sparkles, BookOpen, Flame, Coins, Heart, HeartCrack, RotateCcw, X } from 'lucide-react'
 import {
   JOURNEY_BOOKS,
   getJourneyBook,
@@ -768,6 +768,9 @@ function StatsPanel({ stats, lesson, big }: { stats: JourneyStats | null; lesson
 
 type LearnStep = { kind: 'card'; text: string; emoji: string; ref: string; image?: string } | { kind: 'groupcheck'; check: JourneyCheckCard }
 
+/** Duolingo's own number, and the same for every lesson however long it is. */
+const HEARTS_PER_LESSON = 5
+
 /**
  * The lesson player, built as a replica of a Duolingo lesson rather than a
  * card sitting inside the Sunday School tab.
@@ -780,11 +783,17 @@ type LearnStep = { kind: 'card'; text: string; emoji: string; ref: string; image
  * follows the same two steps rather than marking right or wrong the instant
  * a child taps.
  *
- * Two things are ours rather than theirs. The slot Duolingo fills with hearts
- * carries the lesson's points instead, because this game has no lives to
- * lose. And a teaching page is laid out as a Duolingo Stories page, the
- * character on the left with the line in a speech bubble beside it, because
- * our teaching step is a picture and a sentence.
+ * Hearts work as Duolingo's do: five to a lesson, one spent on every wrong
+ * answer, and at zero the lesson stops on its own screen. What is not
+ * Duolingo is what happens next - the only way out of that screen is to
+ * start the lesson over, free and immediately. No timer counting down to a
+ * refill and nothing to buy: a child who ran out of hearts in a church app
+ * being told to come back in four hours would simply stop coming back.
+ *
+ * One other thing is ours rather than theirs. A teaching page is laid out as
+ * a Duolingo Stories page, the character on the left with the line in a
+ * speech bubble beside it, because our teaching step is a picture and a
+ * sentence.
  *
  * It has to go through a portal: KidsShell renders its header at z-40 and its
  * main at z-10, so anything inside main is capped below that header whatever
@@ -799,11 +808,34 @@ function LessonRunner({ bookKey, lessonKey, onDone }: { bookKey: string; lessonK
   const found = findLesson(lessonKey)
   const lesson = found?.lesson
   const [phase, setPhase] = useState<'learn' | 'mastery' | 'celebrate'>('learn')
+  // Kept apart from `phase` so the progress bar still reads off the real
+  // phase behind the out of hearts screen, and so a restart only has to
+  // clear this one flag.
+  const [outOfHearts, setOutOfHearts] = useState(false)
   const [stepIndex, setStepIndex] = useState(0)
   const [queue, setQueue] = useState<number[]>([])
   const [wrongOnce, setWrongOnce] = useState<Set<number>>(new Set())
   const [selected, setSelected] = useState<number | null>(null)
   const [showResult, setShowResult] = useState(false)
+  const [hearts, setHearts] = useState(HEARTS_PER_LESSON)
+  // Counts losses rather than tracking a boolean, so the chip re-animates on
+  // the second heart lost as well as the first - a key that never changes
+  // replays no animation.
+  const [heartsLost, setHeartsLost] = useState(0)
+
+  /** Back to the first page with a full set of hearts. */
+  const restart = () => {
+    playClick()
+    setPhase('learn')
+    setStepIndex(0)
+    setQueue([])
+    setWrongOnce(new Set())
+    setSelected(null)
+    setShowResult(false)
+    setHearts(HEARTS_PER_LESSON)
+    setHeartsLost(0)
+    setOutOfHearts(false)
+  }
 
   // The lesson is a fixed full screen layer, so the page underneath must not
   // keep its own scrollbar or a phone scrolls the wrong thing under the
@@ -848,6 +880,8 @@ function LessonRunner({ bookKey, lessonKey, onDone }: { bookKey: string; lessonK
     if (selected === activeCheck.correctIndex) haptics.success()
     else {
       haptics.error()
+      setHearts((h) => Math.max(0, h - 1))
+      setHeartsLost((n) => n + 1)
       if (phase === 'mastery') setWrongOnce((prev) => new Set(prev).add(queue[0]))
     }
   }
@@ -887,7 +921,18 @@ function LessonRunner({ bookKey, lessonKey, onDone }: { bookKey: string; lessonK
     setQueue(nextQueue)
   }
 
-  const advance = phase === 'learn' ? advanceLearn : advanceMastery
+  // The last heart goes on the answer, but the child reads why they were
+  // wrong first: the footer shows the correct answer as it always does, and
+  // only pressing Continue from there lands on the out of hearts screen.
+  const advance =
+    hearts === 0
+      ? () => {
+          playClick()
+          setOutOfHearts(true)
+        }
+      : phase === 'learn'
+        ? advanceLearn
+        : advanceMastery
 
   const progressPct =
     phase === 'celebrate'
@@ -912,14 +957,20 @@ function LessonRunner({ bookKey, lessonKey, onDone }: { bookKey: string; lessonK
             <span className="dl-bar-shine" />
           </div>
         </div>
-        <p className="dl-reward">
-          <Coins className="h-5 w-5" /> 15
+        {/* Duolingo's own top right slot. It empties as the lesson goes, so
+            it is the count that changes, not a row of five icons a child has
+            to count at a glance. */}
+        <p key={heartsLost} className={`dl-hearts ${hearts === 0 ? 'is-empty' : ''} ${heartsLost > 0 ? 'is-lost' : ''}`}>
+          <Heart className="h-5 w-5" fill="currentColor" strokeWidth={0} />
+          {hearts}
         </p>
       </header>
 
       <main className="dl-main">
         <div className="dl-stage">
-          {phase === 'celebrate' ? (
+          {outOfHearts ? (
+            <OutOfHearts />
+          ) : phase === 'celebrate' ? (
             <LessonComplete total={totalMastery} firstTry={totalMastery - wrongOnce.size} />
           ) : (
             <AnimatePresence mode="wait" initial={false}>
@@ -947,9 +998,9 @@ function LessonRunner({ bookKey, lessonKey, onDone }: { bookKey: string; lessonK
         </div>
       </main>
 
-      <footer className={`dl-foot ${footState}`}>
+      <footer className={`dl-foot ${outOfHearts ? '' : footState}`}>
         <div className="dl-foot-in">
-          {showResult && activeCheck && (
+          {!outOfHearts && showResult && activeCheck && (
             <div className="dl-verdict">
               <span className="dl-verdict-mark">
                 {isCorrect ? <Check className="h-5 w-5" strokeWidth={4} /> : <X className="h-5 w-5" strokeWidth={4} />}
@@ -963,7 +1014,16 @@ function LessonRunner({ bookKey, lessonKey, onDone }: { bookKey: string; lessonK
             </div>
           )}
 
-          {phase === 'celebrate' ? (
+          {outOfHearts ? (
+            <>
+              <button className="dl-btn dl-btn-go" onClick={restart}>
+                <RotateCcw className="h-5 w-5" strokeWidth={3} /> Try again
+              </button>
+              <button className="dl-btn dl-btn-quiet" onClick={onDone}>
+                Not now
+              </button>
+            </>
+          ) : phase === 'celebrate' ? (
             <button className="dl-btn dl-btn-go" onClick={onDone}>
               Continue
             </button>
@@ -1052,6 +1112,25 @@ function QuestionStep({
           )
         })}
       </div>
+    </div>
+  )
+}
+
+/**
+ * The page a child lands on with no hearts left. Deliberately not a
+ * punishment screen: it names what happened, says the way back is simply to
+ * start again, and the footer carries that as the loud button.
+ */
+function OutOfHearts() {
+  return (
+    <div className="dl-done">
+      <p className="dl-done-emoji dl-done-sad">
+        <HeartCrack className="h-16 w-16" strokeWidth={2.25} />
+      </p>
+      <h2 className="dl-done-title">Out of hearts</h2>
+      <p className="dl-done-sub">
+        That is alright. Every one of these is worth a second go, and you keep everything you learned on the way.
+      </p>
     </div>
   )
 }

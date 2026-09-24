@@ -3010,17 +3010,34 @@ button:active, a:active {
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.35);
 }
-/* Duolingo puts hearts here. This game has no lives to lose, so the slot
-   carries what the lesson is actually worth. */
-.dl-reward {
+/* Duolingo's own top right slot: the hearts left in this lesson. */
+.dl-hearts {
   flex: none;
   display: flex;
   align-items: center;
   gap: 5px;
   font-weight: 800;
   font-size: 17px;
-  color: var(--dl-accent);
+  color: var(--dl-bad);
 }
+/* The chip is keyed on the number of hearts lost, so React remounts it on
+   every loss and the animation plays again rather than only the first time. */
+.dl-hearts.is-lost {
+  animation: dl-heart-knock 0.45s ease;
+}
+.dl-hearts.is-empty {
+  color: var(--dl-sub);
+}
+@keyframes dl-heart-knock {
+  0% { transform: scale(1); }
+  25% { transform: scale(1.35) rotate(-8deg); }
+  50% { transform: scale(0.92) rotate(5deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dl-hearts.is-lost { animation: none; }
+}
+
 
 /* middle */
 .dl-main {
@@ -3263,6 +3280,12 @@ button:active, a:active {
 
 .dl-btn {
   width: 100%;
+  /* A row, not a block: two of these carry a leading icon, and in a block a
+     centred text node leaves the icon stranded against the left edge. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   padding: 14px 16px;
   border: 0;
   border-bottom: 4px solid transparent;
@@ -3299,6 +3322,21 @@ button:active, a:active {
   background: var(--dl-bad);
   border-bottom-color: var(--dl-bad-edge);
 }
+/* The second button on the out of hearts screen. A way out that does not
+   compete with Try again, which is the one we want pressed. It has to sit
+   after .dl-btn: both are one class deep, so source order decides the
+   colour, and above it the label came out white on white. */
+.dl-btn-quiet {
+  background: transparent;
+  border-bottom-color: transparent;
+  color: var(--dl-sub);
+}
+.dl-btn-quiet:not(:disabled):active {
+  transform: none;
+  border-bottom-width: 4px;
+  margin-bottom: 0;
+  color: var(--dl-ink);
+}
 
 /* end of lesson */
 .dl-done {
@@ -3307,6 +3345,20 @@ button:active, a:active {
 .dl-done-emoji {
   font-size: 64px;
   line-height: 1;
+}
+/* The broken heart is an icon, not an emoji, so it needs the colour and the
+   centring the emoji got from the glyph itself. */
+.dl-done-sad {
+  display: flex;
+  justify-content: center;
+  color: var(--dl-bad);
+}
+.dl-done-sub {
+  margin: 10px auto 0;
+  max-width: 34ch;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--dl-sub);
 }
 .dl-done-title {
   margin-top: 12px;
@@ -3386,6 +3438,12 @@ button:active, a:active {
   .dl-btn {
     width: 200px;
     flex: none;
+  }
+  /* Stacked on a phone the loud button belongs on top, which is source
+     order. In a row the loud button belongs on the right, so the quiet one
+     moves ahead of it rather than the markup changing. */
+  .dl-foot-in .dl-btn-quiet {
+    order: -1;
   }
   /* Duolingo's character is big on a wide screen; at 104px ours read as a
      thumbnail beside the speech bubble. */

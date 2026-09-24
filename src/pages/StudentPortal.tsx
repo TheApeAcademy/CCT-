@@ -862,17 +862,31 @@ function ShinyDigitalCard({
   )
 }
 
+// Each picture is the story the game is actually about, so the art on a card
+// says something rather than being whatever painting came next. The two that
+// used cut-out feature props (a rocket, a trophy) sat in a row of paintings
+// and read as placeholders, which is what they were.
 const COMING_SOON_GAMES: { title: string; icon: LucideIcon; photo: string }[] = [
-  { title: 'Bible Word Search', icon: Grid3x3, photo: '/journey/tower-of-babel.jpg' },
-  { title: 'Memory Match', icon: Layers, photo: '/journey/noah-dove-olive-branch.jpg' },
-  { title: 'Verse Scramble', icon: Shuffle, photo: '/journey/adam-eve-garden-home.jpg' },
-  { title: 'Story Builder', icon: PencilLine, photo: '/journey/jacob-ladder-dream.jpg' },
-  { title: 'Bible Bingo', icon: Puzzle, photo: '/journey/abraham-isaac-ram-provided.jpg' },
-  { title: 'Coloring Book', icon: Palette, photo: '/journey/cain-abel-offerings.jpg' },
-  { title: 'Sing-Along', icon: Music2, photo: '/journey/noah-building-ark.jpg' },
-  { title: 'Guess the Sound', icon: Mic2, photo: '/journey/adam-eve-first-sin.jpg' },
-  { title: 'Roll & Answer', icon: Dice5, photo: '/feature-rocket.png' },
-  { title: 'Brain Teasers', icon: Brain, photo: '/feature-achievements.png' },
+  // Words hidden in a grid, so the book of wise sayings.
+  { title: 'Bible Word Search', icon: Grid3x3, photo: '/journey/books/proverbs.jpg' },
+  // Matching pairs, so the animals going in two by two.
+  { title: 'Memory Match', icon: Layers, photo: '/journey/noah-building-ark.jpg' },
+  // Words put back in order, so the tower where language was scrambled.
+  { title: 'Verse Scramble', icon: Shuffle, photo: '/journey/tower-of-babel.jpg' },
+  // Building a story, so the book the first story is in.
+  { title: 'Story Builder', icon: PencilLine, photo: '/journey/books/genesis.jpg' },
+  // Numbers called out, so the book of Numbers.
+  { title: 'Bible Bingo', icon: Puzzle, photo: '/journey/books/numbers.jpg' },
+  // Colour, so the garden.
+  { title: 'Coloring Book', icon: Palette, photo: '/journey/adam-eve-garden-home.jpg' },
+  // Songs, so the songbook.
+  { title: 'Sing-Along', icon: Music2, photo: '/journey/books/psalms.jpg' },
+  // Sounds to name, so the trumpets at Jericho.
+  { title: 'Guess the Sound', icon: Mic2, photo: '/journey/books/joshua.jpg' },
+  // Casting a die, so the book whose feast is named after casting lots.
+  { title: 'Roll & Answer', icon: Dice5, photo: '/journey/books/esther.jpg' },
+  // Riddles, so Samson's riddle.
+  { title: 'Brain Teasers', icon: Brain, photo: '/journey/books/judges.jpg' },
 ]
 
 function BentoTile({

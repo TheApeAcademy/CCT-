@@ -84,8 +84,11 @@ function FeatureLine({ feature, accent }: { feature: ShowcaseFeature; accent: st
 }
 
 export default function Home() {
+  // No bottom padding on the wrapper. The last band carries its own, and the
+  // 40px that used to be here showed the page's own background as a white
+  // strip between the purple band and the footer.
   return (
-    <div className="lp-page full-bleed relative space-y-0 pb-10">
+    <div className="lp-page full-bleed relative space-y-0">
       <ScrollProgressBar />
       {/* ---------- hero ---------- */}
       <HeroCarousel slides={slides} />
@@ -306,36 +309,61 @@ export default function Home() {
         <SignInLower />
       </div>
 
-      {/* ---------- final CTA: the two doors a child does not use ----------
-           The sign in block above is the children's way in, so this band
-           no longer repeats it: what is left here is the teacher's door,
-           the parent's door, and the feature tour. */}
-      <div className="stage-glow full-bleed border-t border-[var(--hairline)] px-4 lp-rhythm text-center">
-        <Reveal>
-          <FloatingArt className="mx-auto w-36 sm:w-44">
-            <img src="/feature-rocket.png" alt="" className="w-full drop-shadow-2xl" />
-          </FloatingArt>
-          <p className="eyebrow mt-2 justify-center">You&apos;ve Seen the World</p>
+      {/* ---------- the two doors that are not the children's ----------
+           A child signs in from the block above, so a third button here
+           saying the same thing was the same door twice. What is left is
+           the teacher's door and the parent's door, one card each, with
+           the photo in its own card inside. */}
+      <div className="stage-glow full-bleed border-t border-[var(--hairline)] px-4 lp-rhythm">
+        <Reveal className="text-center">
+          <p className="eyebrow justify-center">You&apos;ve Seen the World</p>
           <h2 className="mt-2 font-display text-3xl font-extrabold text-white sm:text-4xl">Now step inside.</h2>
           <p className="mx-auto mt-3 max-w-md text-sm text-[var(--ink-muted)] sm:text-base">
-            The Quiz, the Bible streak, the leaderboard, achievements, a teacher who listens. Children join a class in
-            under a minute, and teachers apply straight to the Control Centre.
+            Children sign in higher up this page. These two doors are for the grown ups.
           </p>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-            <Link to="/join" onClick={() => playClick()} className="hero-btn-solid !px-7 !py-3.5 !text-base uppercase">
-              Enter the Children&apos;s Platform
-            </Link>
-            <Link to="/teacher" onClick={() => playClick()} className="hero-btn-outline !px-7 !py-3.5 !text-base uppercase">
-              Apply to Teach
-            </Link>
-            <Link to="/parent" onClick={() => playClick()} className="hero-btn-outline !px-7 !py-3.5 !text-base uppercase">
-              Parent Dashboard
-            </Link>
-          </div>
+        </Reveal>
+
+        <RevealStagger className="mx-auto mt-9 grid max-w-4xl gap-5 sm:grid-cols-2">
+          <RevealItem>
+            <div className="door-card">
+              <div className="door-photo is-teacher">
+                <img src="/classroom-bible-reading-bg.jpg" alt="A teacher reading the Bible with her class" loading="lazy" />
+              </div>
+              <p className="door-eyebrow">For Teachers</p>
+              <h3 className="door-title font-display">Run your class from the Control Centre</h3>
+              <p className="door-body">
+                Build the Question Bank, host a match on the shared screen, open a Sunday early, and see where every
+                child in your class has got to.
+              </p>
+              <Link to="/teacher" onClick={() => playClick()} className="door-btn">
+                Apply to Teach
+              </Link>
+            </div>
+          </RevealItem>
+
+          <RevealItem>
+            <div className="door-card">
+              <div className="door-photo">
+                <img src="/hero-kids.jpg" alt="Children playing together" loading="lazy" />
+              </div>
+              <p className="door-eyebrow">For Parents</p>
+              <h3 className="door-title font-display">Follow your child through the week</h3>
+              <p className="door-body">
+                Their streak, their lessons, their badges and their attendance, from one code your child reads straight
+                off their own card.
+              </p>
+              <Link to="/parent" onClick={() => playClick()} className="door-btn">
+                Parent Dashboard
+              </Link>
+            </div>
+          </RevealItem>
+        </RevealStagger>
+
+        <Reveal className="text-center">
           <Link
             to="/features"
             onClick={() => playClick()}
-            className="mt-7 inline-flex items-center gap-1.5 text-sm font-bold text-white/80 underline decoration-[var(--gold)] decoration-2 underline-offset-4 transition hover:text-white"
+            className="mt-9 inline-flex items-center gap-1.5 text-sm font-bold text-white/80 underline decoration-[var(--gold)] decoration-2 underline-offset-4 transition hover:text-white"
           >
             See everything inside, feature by feature <ArrowRight className="h-4 w-4" strokeWidth={2.5} />
           </Link>

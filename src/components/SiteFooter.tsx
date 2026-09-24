@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Radio } from 'lucide-react'
 import { playNav, playClick } from '../lib/sound'
@@ -39,7 +40,7 @@ export default function SiteFooter() {
   return (
     <footer className="section-band full-bleed relative z-10 border-t border-[var(--hairline)]">
       <div className="mx-auto max-w-6xl px-4 py-14 sm:py-16">
-        <div className="grid gap-10 lg:grid-cols-[1.3fr_1fr_1fr_1fr]">
+        <div className="grid gap-10 lg:grid-cols-[1.3fr_1fr_1fr_1fr_auto]">
           <div>
             <img src="/children-ministry-logo-splash.png" alt="MFM Children's Ministry" className="h-16 w-auto object-contain" />
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-[var(--ink-muted)]">
@@ -71,6 +72,7 @@ export default function SiteFooter() {
               </ul>
             </div>
           ))}
+          <ZebraishCard />
         </div>
         <div className="mt-12 flex flex-col gap-2 border-t border-[var(--hairline)] pt-6 text-xs text-[var(--ink-faint)] sm:flex-row sm:items-center sm:justify-between">
           <p>&copy; {new Date().getFullYear()} MFM Children&apos;s Ministry, Wuye.</p>
@@ -78,5 +80,34 @@ export default function SiteFooter() {
         </div>
       </div>
     </footer>
+  )
+}
+
+/**
+ * The studio's own panel, in the footer's row rather than under it: a narrow
+ * vertical card, the last column of the grid.
+ *
+ * The logo falls back to the wordmark in type if the file ever goes missing,
+ * because a footer that ships a broken image icon is worse than one that
+ * ships no image. There is no name line under it either way: the lockup
+ * already spells the name, and so does the fallback.
+ */
+function ZebraishCard() {
+  const [logoFailed, setLogoFailed] = useState(false)
+  return (
+    <aside className="zeb-card">
+      <div className="zeb-mark">
+        {logoFailed ? (
+          <span className="zeb-wordmark">ZEBRAISH</span>
+        ) : (
+          <img src="/zebraish-lockup.png" alt="Zebraish" onError={() => setLogoFailed(true)} />
+        )}
+      </div>
+      <p className="zeb-body">
+        A software studio. We design and build websites and apps for churches, schools and small teams, this one
+        included.
+      </p>
+      <p className="zeb-foot">Built this site</p>
+    </aside>
   )
 }

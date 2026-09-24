@@ -3418,3 +3418,15 @@ button:active, a:active {
     font-size: 15.5px;
   }
 }
+
+/* A name plate on the village map. The map is one painting, identical in
+   light and in dark, so these pills take their ground and their ink from the
+   art rather than from the theme. Painting the ink with --lp-heading, as
+   they used to, put white text on a white pill the instant the kid shell
+   learned dark mode. This is the same exception as .dark-island: a surface
+   whose own colours are fixed by what is behind it. */
+.village-label {
+  background: rgba(255, 255, 255, 0.94);
+  color: #1c1030;
+  border: 1.5px solid rgba(42, 27, 71, 0.18);
+}

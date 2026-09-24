@@ -103,14 +103,18 @@ export default function VillageMap({
             >
               <img src={b.image} alt="" className="w-full object-contain" style={{ filter: 'drop-shadow(0 6px 8px rgba(0,0,0,0.35))' }} />
             </motion.button>
+            {/* village-label, not the theme tokens: these pills sit on the
+                village painting, which is the same picture in light and in
+                dark, so their ground and their ink belong to the art rather
+                than to the theme. Taking --lp-heading for the ink put white
+                text on a white pill the moment this shell learned dark mode. */}
             <span
-              className="absolute left-1/2 top-full -translate-x-1/2 whitespace-nowrap rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide shadow-md sm:text-xs"
-              style={{
-                marginTop: '2%',
-                border: `1.5px solid ${isActive ? b.accent : 'var(--lp-hairline-strong)'}`,
-                background: isActive ? b.accent : 'white',
-                color: isActive ? 'white' : 'var(--lp-heading)',
-              }}
+              className="village-label absolute left-1/2 top-full -translate-x-1/2 whitespace-nowrap rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide shadow-md sm:text-xs"
+              style={
+                isActive
+                  ? { marginTop: '2%', border: `1.5px solid ${b.accent}`, background: b.accent, color: '#ffffff' }
+                  : { marginTop: '2%' }
+              }
             >
               {b.label}
             </span>
@@ -138,7 +142,7 @@ export default function VillageMap({
             <Lock className="h-2.5 w-2.5" strokeWidth={2.25} />
           </span>
         </button>
-        <span className="absolute left-1/2 top-full -translate-x-1/2 whitespace-nowrap rounded-full border border-white/70 bg-white/90 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide text-[var(--lp-heading)] shadow-md sm:text-xs" style={{ marginTop: '4px' }}>
+        <span className="village-label absolute left-1/2 top-full -translate-x-1/2 whitespace-nowrap rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide shadow-md sm:text-xs" style={{ marginTop: '4px' }}>
           Coming Soon
         </span>
         <AnimatePresence>

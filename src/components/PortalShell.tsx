@@ -1,7 +1,9 @@
 import { lazy, Suspense } from 'react'
 import { Link, Outlet } from 'react-router-dom'
 import BackButton from './BackButton'
+import ThemeToggle from './ThemeToggle'
 import { useAutoHideNav } from '../lib/useAutoHideNav'
+import { useLandingTheme } from '../lib/landingTheme'
 
 // Lazy on purpose. This shell is the route element itself, so it is imported
 // eagerly and anything it pulls in lands in the shared entry chunk that the
@@ -26,8 +28,17 @@ const NotificationBell = lazy(() => import('./NotificationBell'))
  */
 export default function PortalShell({ eyebrow }: { eyebrow: string }) {
   const autoHidden = useAutoHideNav()
+  // This shell used to be pinned to light, so an admin or a teacher had no
+  // dark mode at all, on the portal or on the sign in page it wraps. It reads
+  // the same stored preference the landing page's toggle writes, so one
+  // choice follows the person across the whole site.
+  const { theme, toggle } = useLandingTheme()
   return (
-    <div data-apple-chrome="" data-landing-theme="light" className="site-light-theme lp-page relative isolate min-h-screen">
+    <div
+      data-apple-chrome=""
+      data-landing-theme={theme}
+      className={`${theme === 'light' ? 'site-light-theme ' : ''}lp-page relative isolate min-h-screen`}
+    >
       <header
         className={`sticky top-0 z-40 border-b border-[var(--lp-hairline)] bg-[var(--lp-bg)] transition-transform duration-300 ${
           autoHidden ? '-translate-y-full' : 'translate-y-0'
@@ -45,6 +56,7 @@ export default function PortalShell({ eyebrow }: { eyebrow: string }) {
           </div>
           <div className="flex min-w-0 items-center gap-3">
             <span className="lp-eyebrow truncate">{eyebrow}</span>
+            <ThemeToggle theme={theme} onToggle={toggle} />
             <Suspense fallback={null}>
               <NotificationBell />
             </Suspense>

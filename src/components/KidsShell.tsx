@@ -1,7 +1,9 @@
 import { lazy, Suspense } from 'react'
 import { Link, Outlet } from 'react-router-dom'
 import BackButton from './BackButton'
+import ThemeToggle from './ThemeToggle'
 import { useAutoHideNav } from '../lib/useAutoHideNav'
+import { useLandingTheme } from '../lib/landingTheme'
 
 // Lazy on purpose. This shell is the route element itself, so it is imported
 // eagerly and anything it pulls in lands in the shared entry chunk that the
@@ -37,8 +39,16 @@ const NotificationBell = lazy(() => import('./NotificationBell'))
 export default function KidsShell({ eyebrow, bare = false }: { eyebrow: string; bare?: boolean }) {
   const autoHidden = useAutoHideNav()
   const surface = bare ? { 'data-apple-chrome': '' } : { 'data-kid-surface': '' }
+  // Same stored preference as the landing page and PortalShell, so a child
+  // who turns the lights down on one screen gets it on all of them. These
+  // screens were pinned to light and had no way to change it.
+  const { theme, toggle } = useLandingTheme()
   return (
-    <div {...surface} data-landing-theme="light" className="site-light-theme lp-page relative isolate min-h-screen">
+    <div
+      {...surface}
+      data-landing-theme={theme}
+      className={`${theme === 'light' ? 'site-light-theme ' : ''}lp-page relative isolate min-h-screen`}
+    >
       {/* The dot texture is the kid screens' ground. The sign-in page has a
           plain one: on Apple's own sign-in there is nothing behind the card
           at all, and that emptiness is the whole effect. */}
@@ -57,8 +67,9 @@ export default function KidsShell({ eyebrow, bare = false }: { eyebrow: string; 
         // itself, and a header logo directly above it meant the same logo
         // twice on one screen.
         <header className="relative z-40">
-          <div className="mx-auto flex max-w-3xl items-center px-4 py-4">
+          <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4">
             <BackButton />
+            <ThemeToggle theme={theme} onToggle={toggle} />
           </div>
         </header>
       ) : (
@@ -79,6 +90,7 @@ export default function KidsShell({ eyebrow, bare = false }: { eyebrow: string; 
             </div>
             <div className="flex min-w-0 items-center gap-3">
               <span className="lp-eyebrow truncate">{eyebrow}</span>
+              <ThemeToggle theme={theme} onToggle={toggle} />
               <Suspense fallback={null}>
                 <NotificationBell />
               </Suspense>

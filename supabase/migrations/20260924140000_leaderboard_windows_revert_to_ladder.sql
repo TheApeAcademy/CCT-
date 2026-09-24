@@ -1,23 +1,23 @@
--- The leaderboard's four windows did not agree with each other.
+-- Puts the leaderboard's dated windows back to correct_count * 10, and undoes
+-- 20260924130000, which was wrong.
 --
--- "All time" reads students.total_points, which the triggers bank as work
--- happens: bump_student_points() adds quiz_attempts.points, the row's own
--- points column, which carries the quiz's speed and streak bonuses.
+-- That migration changed the quiz term in the windows from correct_count * 10
+-- to sum(quiz_attempts.points), on the reading that the points column was what
+-- the trigger banks into students.total_points and the window was undervaluing
+-- a quiz by about eight times. Checked against the live rows, that is backwards:
 --
--- The dated windows (week, month, year) recomputed from source instead, and
--- valued a quiz at correct_count * 10. Those are not the same number. Across
--- the 72 attempts on the live site the banked points total 47,260 while
--- correct_count * 10 totals 6,050: per attempt, 300 to 980 against a hard
--- ceiling of 100. So the same child showed roughly eight times more points on
--- All time than on This week, which reads as a broken board.
+--   all time (sum of students.total_points)          7770
+--   this year with correct_count * 10                7770   <- exact match
+--   this year with sum(quiz_attempts.points)        48980
 --
--- The window now sums the same quiz points the trigger banked. The other three
--- terms already matched their triggers: a bible reading is 10, an assignment
--- submission is 10, a journey lesson is 15.
+-- The points column on all 72 existing rows is seed data and bears no relation
+-- to the result: 800 points for 7 right, 350 for 8, 300 for 9. The ladder in
+-- src/lib/ladder.ts is a flat 10 points a level over 10 levels, so a real game
+-- can only ever produce correct_count * 10, with 100 as a perfect score. The
+-- windows were already right; the seed column is the thing that lies.
 --
--- The streak column has the same dead-table problem the kid's flame had, and
--- is fixed the same way: a day counts if the child did a bible reading or a
--- journey lesson. See 20260924120000_streak_counts_journey_lessons.sql.
+-- The journey_progress half of 20260924130000 is kept. That fix was real: the
+-- streak column counted only student_bible_progress, which nothing writes.
 create or replace function public.get_leaderboard_ranked(p_range text default 'all'::text)
 returns table(
   student_id uuid,
@@ -42,7 +42,6 @@ as $function$
              else null::timestamptz
            end as since
   ),
-  -- Every day a child did something that counts, from either source.
   active_days as (
     select sbp.student_id, sbp.completed_at::date as day
     from public.student_bible_progress sbp
@@ -50,8 +49,6 @@ as $function$
     select jp.student_id, jp.completed_at::date as day
     from public.journey_progress jp
   ),
-  -- Consecutive days share a value of (day minus its row number), which groups
-  -- a run without needing a recursive query.
   numbered as (
     select ad.student_id, ad.day,
            ad.day - (row_number() over (partition by ad.student_id order by ad.day))::int as grp
@@ -62,7 +59,6 @@ as $function$
     from numbered n
     group by n.student_id, n.grp
   ),
-  -- Only a run reaching today or yesterday is a streak you are still on.
   current_streak as (
     select r.student_id, max(r.len)::int as streak
     from runs r
@@ -78,7 +74,7 @@ as $function$
     case
       when (select since from bounds) is null then coalesce(s.total_points, 0)
       else
-        coalesce((select sum(qa.points) from public.quiz_attempts qa
+        coalesce((select sum(qa.correct_count) * 10 from public.quiz_attempts qa
                   where qa.student_id = s.id and qa.created_at >= (select since from bounds)), 0)
       + coalesce((select count(*) * 10 from public.student_bible_progress sbp
                   where sbp.student_id = s.id and sbp.completed_at >= (select since from bounds)), 0)

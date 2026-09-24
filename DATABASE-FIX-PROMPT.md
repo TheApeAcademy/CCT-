@@ -1,88 +1,43 @@
-# Prompt to hand to Claude Code in the browser
+# Prompt to hand to Claude Code with Supabase open
 
-Copy everything below the line into Claude Code in the browser, with the
-Supabase tab already open on the MFM project.
+An earlier version of this file contained a second fix that was wrong. It has
+been replaced by the correction below. If you already ran the earlier file,
+this one undoes the part that needs undoing and leaves the part that was right.
+
+Copy everything below the line.
 
 ---
 
-You have a browser open with Supabase already signed in on the MFM Children's
-Ministry project, reference `zdgbatkxjxiecqshnmwh`. Two database functions are
-wrong and I need you to replace them. Work in the browser, do not ask me to do
-any of it by hand.
+You have Supabase open on the MFM Children's Ministry project, reference
+`zdgbatkxjxiecqshnmwh`. One function needs replacing. Work in the browser or
+through the Supabase connector, whichever you have. Do not ask me to do any of
+it by hand.
 
-**Step 1.** In the Supabase tab, go to the SQL Editor and open a new query.
+**Background so you know what you are undoing.** A previous run replaced the
+quiz term in `get_leaderboard_ranked()`'s dated windows with
+`sum(quiz_attempts.points)`, on the theory that the `points` column is what the
+trigger banks into `students.total_points`. That was checked against the live
+rows afterwards and it is backwards:
 
-**Step 2.** Paste the whole block below in and run it. It is two
-`create or replace function` statements. Replacing a function this way keeps
-its existing permissions, so nothing else needs granting afterwards.
+| |  |
+|---|---|
+| all time (sum of `students.total_points`) | 7,770 |
+| this year using `correct_count * 10` | 7,770 |
+| this year using `sum(quiz_attempts.points)` | 48,980 |
+
+All 72 rows in `quiz_attempts` are seed data and their `points` column bears no
+relation to the result: 800 points for 7 right, 350 for 8, 300 for 9. The real
+ladder is a flat 10 points a level over 10 levels, so a real game can only ever
+produce `correct_count * 10`, with 100 as a perfect score. The window was
+already right. Only the seed column lies.
+
+The `journey_progress` part of that run is correct and stays. So is the whole
+of the `compute_bible_streak()` fix. Do not touch either.
+
+**Step 1.** Run this. It is one `create or replace`, which keeps the function's
+existing permissions, so nothing needs granting afterwards.
 
 ```sql
--- FIX 1 of 2: the Bible streak.
---
--- Finishing a Bible Journey lesson writes a row to journey_progress, but this
--- function only counted student_bible_progress, and nothing in the app writes
--- to that table. So every streak on the site reads 0 however many lessons a
--- child does. A day now counts if the child did either.
---
--- It also refused parents outright, which left a child's panel in the Parent
--- Dashboard loading forever, so is_parent_of_student goes on the list.
-create or replace function public.compute_bible_streak(p_student_id uuid)
-returns integer
-language plpgsql
-stable
-security definer
-set search_path to 'public'
-as $function$
-declare
-  streak integer := 0;
-  check_date date := current_date;
-  has_today boolean;
-begin
-  if not (
-    p_student_id = auth.uid()
-    or public.is_teacher_of_student(p_student_id)
-    or public.is_parent_of_student(p_student_id)
-    or public.is_admin()
-  ) then
-    raise exception 'Not authorized.';
-  end if;
-
-  select exists(
-    select 1 from public.student_bible_progress
-    where student_id = p_student_id and completed_at::date = current_date
-    union all
-    select 1 from public.journey_progress
-    where student_id = p_student_id and completed_at::date = current_date
-  ) into has_today;
-
-  if not has_today then
-    check_date := current_date - 1;
-  end if;
-
-  loop
-    exit when not exists (
-      select 1 from public.student_bible_progress
-      where student_id = p_student_id and completed_at::date = check_date
-      union all
-      select 1 from public.journey_progress
-      where student_id = p_student_id and completed_at::date = check_date
-    );
-    streak := streak + 1;
-    check_date := check_date - 1;
-  end loop;
-
-  return streak;
-end;
-$function$;
-
-
--- FIX 2 of 2: the leaderboard's time windows.
---
--- All time reads students.total_points, which the triggers bank as work
--- happens, quiz speed and streak bonuses included. The dated windows valued
--- the same quiz at correct_count * 10, with no bonuses, so the two disagreed
--- by roughly eight times. The window now sums the same points the trigger
--- banked. The streak column gets the same journey_progress fix as above.
 create or replace function public.get_leaderboard_ranked(p_range text default 'all'::text)
 returns table(
   student_id uuid,
@@ -139,7 +94,7 @@ as $function$
     case
       when (select since from bounds) is null then coalesce(s.total_points, 0)
       else
-        coalesce((select sum(qa.points) from public.quiz_attempts qa
+        coalesce((select sum(qa.correct_count) * 10 from public.quiz_attempts qa
                   where qa.student_id = s.id and qa.created_at >= (select since from bounds)), 0)
       + coalesce((select count(*) * 10 from public.student_bible_progress sbp
                   where sbp.student_id = s.id and sbp.completed_at >= (select since from bounds)), 0)
@@ -161,34 +116,26 @@ as $function$
 $function$;
 ```
 
-**Step 3.** Run this check in a new query and show me the result:
+**Step 2.** Run this and show me all three numbers:
 
 ```sql
 select
+  (select sum(points) from public.get_leaderboard_ranked('year')) as this_year,
+  (select sum(points) from public.get_leaderboard_ranked('all'))  as all_time,
   (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public' and p.proname = 'compute_bible_streak'
-     and pg_get_functiondef(p.oid) like '%is_parent_of_student%') as fix1_applied,
-  (select count(*) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-   where n.nspname = 'public' and p.proname = 'get_leaderboard_ranked'
-     and pg_get_functiondef(p.oid) like '%sum(qa.points)%') as fix2_applied;
+     and pg_get_functiondef(p.oid) like '%is_parent_of_student%') as streak_fix_still_applied;
 ```
 
-Both columns must come back `1`. If either is `0` the replacement did not take,
-so say so rather than moving on.
+`this_year` and `all_time` must both come back **7,770**, and
+`streak_fix_still_applied` must be **1**. If `this_year` comes back anywhere
+near 48,000 the replacement did not take, so say so rather than moving on.
 
-**Step 4.** Then run this and show me the numbers:
+"This week" will be 0 and that is correct. Nothing has happened since the week
+began on Mon 21 Sep: the last quiz attempt was 11 Sep, the last Bible progress
+12 Sep, the last journey lesson 16 Sep and the last assignment 17 Sep.
 
-```sql
-select 'this week' as window, sum(points) as total from public.get_leaderboard_ranked('week')
-union all
-select 'all time', sum(points) from public.get_leaderboard_ranked('all');
-```
-
-Before the fix "this week" came out at roughly an eighth of "all time" for the
-same children. They will not be equal, a week is not all time, but the gap
-should now be explainable rather than a fixed 8x.
-
-**If anything errors**, stop and paste the exact error back to me. Do not
-improvise a different version of either function, and do not drop anything.
-`create or replace` is the only shape that is safe here, because dropping
-`get_leaderboard_ranked` would take its permissions with it.
+**If anything errors**, stop and paste the exact error back. Do not improvise a
+different version, and do not drop anything. `create or replace` is the only
+safe shape here, because dropping `get_leaderboard_ranked` would take its
+permissions with it.

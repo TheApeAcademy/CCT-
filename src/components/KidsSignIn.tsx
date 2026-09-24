@@ -34,9 +34,6 @@ export default function KidsSignIn() {
     }
   })
 
-  const today = new Date()
-  const dow = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][today.getDay()]
-
   const setTheme = (next: boolean) => {
     setDark(next)
     try {
@@ -73,41 +70,7 @@ export default function KidsSignIn() {
         </button>
       </div>
 
-      <div className="ic-hero" aria-hidden>
-        <span className="ic-app ic-a3 sq">
-          <img src="/village/class-house1.png" alt="" />
-        </span>
-        <span className="ic-app ic-a1">
-          <img src="/icons/bible-journey-book.png" alt="" />
-        </span>
-        <span className="ic-face">
-          <img src="/teacher-isometric.png" alt="" />
-        </span>
-        <span className="ic-app ic-a2">
-          <img src="/feature-leaderboard.png" alt="" />
-        </span>
-        <span className="ic-app ic-a5 is-story">
-          <img src="/journey/noah-dove-olive-branch.jpg" alt="" />
-        </span>
-        <span className="ic-app ic-a4">
-          <img src="/icons/streak-flame.png" alt="" />
-        </span>
-        <span className="ic-cal">
-          <em>{dow}</em>
-          <b>{today.getDate()}</b>
-        </span>
-      </div>
-
-      <h1 className="ic-word">MFM Kids</h1>
-      <p className="ic-sub">Your class, your lessons, your Bible Journey.</p>
-      {/* ?mode=returning, not a bare /join: a button that says Sign In has to
-          land on the sign in form, not on the sign up form. */}
-      <Link to="/join?mode=returning" className="ic-btn" onClick={() => playClick()}>
-        Sign In
-      </Link>
-      <Link to="/join?mode=new" className="ic-btn-quiet" onClick={() => playClick()}>
-        I am new here
-      </Link>
+      <SignInCluster />
 
       <div className="ic-lower">
         <div>
@@ -167,5 +130,55 @@ export default function KidsSignIn() {
       </div>
     </div>,
     document.body,
+  )
+}
+
+/**
+ * The cluster, the wordmark and the two doors. Lives on its own because the
+ * landing page carries the same thing: this is the first thing anyone sees of
+ * MFM Kids, on the public site and on the kids sign in page alike. The dow
+ * and date are read fresh at render so the calendar tile is never stale.
+ */
+export function SignInCluster() {
+  const today = new Date()
+  const dow = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][today.getDay()]
+  return (
+    <>
+    <div className="ic-hero" aria-hidden>
+      <span className="ic-app ic-a3 sq">
+        <img src="/village/class-house1.png" alt="" />
+      </span>
+      <span className="ic-app ic-a1">
+        <img src="/icons/bible-journey-book.png" alt="" />
+      </span>
+      <span className="ic-face">
+        <img src="/teacher-isometric.png" alt="" />
+      </span>
+      <span className="ic-app ic-a2">
+        <img src="/feature-leaderboard.png" alt="" />
+      </span>
+      <span className="ic-app ic-a5 is-story">
+        <img src="/journey/noah-dove-olive-branch.jpg" alt="" />
+      </span>
+      <span className="ic-app ic-a4">
+        <img src="/icons/streak-flame.png" alt="" />
+      </span>
+      <span className="ic-cal">
+        <em>{dow}</em>
+        <b>{today.getDate()}</b>
+      </span>
+    </div>
+
+    <h1 className="ic-word">MFM Kids</h1>
+    <p className="ic-sub">Your class, your lessons, your Bible Journey.</p>
+    {/* ?mode=returning, not a bare /join: a button that says Sign In has to
+        land on the sign in form, not on the sign up form. */}
+    <Link to="/join?mode=returning" className="ic-btn" onClick={() => playClick()}>
+      Sign In
+    </Link>
+    <Link to="/join?mode=new" className="ic-btn-quiet" onClick={() => playClick()}>
+      I am new here
+    </Link>
+    </>
   )
 }

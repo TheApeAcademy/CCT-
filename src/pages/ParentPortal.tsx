@@ -26,6 +26,11 @@ const inputClass = 'w-full rounded-md border border-[var(--hairline-strong)] bg-
 export default function ParentPortal() {
   const { session, profile, loading, refreshProfile } = useMinistryAuth()
   const [claiming, setClaiming] = useState(false)
+  const [claimError, setClaimError] = useState('')
+  // Bumping this re-runs the claim. Without it a parent whose claim failed had
+  // nothing to press: the effect's guards are all unchanged after a failure,
+  // so it would never fire again on its own.
+  const [claimAttempt, setClaimAttempt] = useState(0)
 
   useEffect(() => {
     if (!session || loading || profile === null || profile.role !== null) return
@@ -33,12 +38,33 @@ export default function ParentPortal() {
     // just created an account here specifically to follow their child - the
     // RPC itself only ever sets the role when it's still unset, so this is
     // safe even if effect timing runs it more than once.
+    let cancelled = false
     setClaiming(true)
+    setClaimError('')
     claimParentRole()
       .then(refreshProfile)
-      .finally(() => setClaiming(false))
+      .then((fresh) => {
+        // The RPC can come back clean and still not have set the role, so the
+        // refetched profile is the only thing that proves it worked. Treating
+        // "no error" as success is what left this page on its setup line for
+        // good.
+        if (cancelled) return
+        if (!fresh || fresh.role === null) {
+          setClaimError('We could not finish setting up your account.')
+        }
+      })
+      .catch((e) => {
+        if (cancelled) return
+        setClaimError(e instanceof Error ? e.message : 'We could not finish setting up your account.')
+      })
+      .finally(() => {
+        if (!cancelled) setClaiming(false)
+      })
+    return () => {
+      cancelled = true
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session, loading, profile?.role])
+  }, [session, loading, profile?.role, claimAttempt])
 
   if (loading || claiming) return <div className="py-20 text-center text-xl">Loading…</div>
   if (!session) {
@@ -52,7 +78,29 @@ export default function ParentPortal() {
     )
   }
   if (profile?.role === 'parent') return <ParentDashboard />
-  if (profile?.role === null) return <div className="py-20 text-center text-xl">Setting up your account…</div>
+  if (profile?.role === null) {
+    return (
+      <div className="mx-auto max-w-md space-y-4 py-20 text-center">
+        <h1 className="font-display text-2xl font-extrabold">
+          {claimError ? 'Setup did not finish' : 'Setting up your account…'}
+        </h1>
+        {claimError ? (
+          <>
+            <p className="text-sm text-[var(--ink-muted)]">{claimError}</p>
+            <button
+              onClick={() => {
+                playClick()
+                setClaimAttempt((n) => n + 1)
+              }}
+              className="btn-outline"
+            >
+              Try Again
+            </button>
+          </>
+        ) : null}
+      </div>
+    )
+  }
 
   return (
     <div className="mx-auto max-w-md space-y-4 text-center">

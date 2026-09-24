@@ -70,13 +70,22 @@ export function useMinistryAuth() {
 
   const loading = initializing || (!!session && profileFor !== session.user.id)
 
-  const refreshProfile = useCallback(() => {
+  // Returns the row it fetched, not just void. A caller that has just changed
+  // something about the profile (the parent role claim) needs to see the
+  // result to know whether the change actually took, and reading the `profile`
+  // state straight after this resolves would still give the stale value.
+  const refreshProfile = useCallback(async (): Promise<Profile | null> => {
     const uid = session?.user.id
-    if (!uid) return
+    if (!uid) return null
     setProfileError(false)
-    getMyProfile()
-      .then(setProfile)
-      .catch(() => setProfileError(true))
+    try {
+      const fresh = await getMyProfile()
+      setProfile(fresh)
+      return fresh
+    } catch {
+      setProfileError(true)
+      return null
+    }
   }, [session])
 
   // A role is granted by somebody else, in another browser: an admin promotes

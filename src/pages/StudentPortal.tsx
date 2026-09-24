@@ -186,9 +186,17 @@ function TodayLoopBanner({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
   const [earsToday, setEarsToday] = useState(false)
 
   useEffect(() => {
-    getMyBibleStreak().then(setStreak)
-    getMyJourneyProgress().then((rows) => setJourneyToday(rows.some((r) => isToday(r.completed_at))))
-    listMyEarsMessages().then((rows) => setEarsToday(rows.some((m) => isToday(m.created_at))))
+    // Three independent reads, each only feeding one pill. A failure leaves
+    // that pill unticked rather than throwing past this effect.
+    getMyBibleStreak()
+      .then(setStreak)
+      .catch(() => {})
+    getMyJourneyProgress()
+      .then((rows) => setJourneyToday(rows.some((r) => isToday(r.completed_at))))
+      .catch(() => {})
+    listMyEarsMessages()
+      .then((rows) => setEarsToday(rows.some((m) => isToday(m.created_at))))
+      .catch(() => {})
   }, [])
 
   const pill = (done: boolean, label: string, tab: Tab) => (

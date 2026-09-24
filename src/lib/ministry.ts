@@ -1107,14 +1107,22 @@ export async function listMyReadingDays(days = 14): Promise<Set<string>> {
   if (!auth.user) return new Set()
   const since = new Date()
   since.setDate(since.getDate() - days)
-  const { data, error } = await supabase
-    .from('student_bible_progress')
-    .select('completed_at')
-    .eq('student_id', auth.user.id)
-    .gte('completed_at', since.toISOString())
-  if (error) throw error
+  const sinceIso = since.toISOString()
+
+  // Both sources, for the same reason compute_bible_streak counts both: a
+  // child's daily work goes into journey_progress, and student_bible_progress
+  // only ever holds rows from the reading plan. Reading one table gave a
+  // screen that argued with itself, a streak of 4 over a week with nothing
+  // ticked on it.
+  const [readings, lessons] = await Promise.all([
+    supabase.from('student_bible_progress').select('completed_at').eq('student_id', auth.user.id).gte('completed_at', sinceIso),
+    supabase.from('journey_progress').select('completed_at').eq('student_id', auth.user.id).gte('completed_at', sinceIso),
+  ])
+  if (readings.error) throw readings.error
+  if (lessons.error) throw lessons.error
+
   const out = new Set<string>()
-  for (const row of (data ?? []) as { completed_at: string }[]) {
+  for (const row of [...(readings.data ?? []), ...(lessons.data ?? [])] as { completed_at: string }[]) {
     const d = new Date(row.completed_at)
     out.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)
   }

@@ -498,11 +498,17 @@ interface JourneyStats {
 function useJourneyStats(): JourneyStats | null {
   const [stats, setStats] = useState<JourneyStats | null>(null)
   useEffect(() => {
-    Promise.all([getMyStudentProfile(), getLeaderboard(500), getMyBibleStreak()]).then(([student, board, streak]) => {
-      if (!student) return
-      const rankIdx = board.findIndex((r) => r.student_id === student.id)
-      setStats({ points: student.total_points, rank: rankIdx === -1 ? null : rankIdx + 1, streak })
-    })
+    Promise.all([getMyStudentProfile(), getLeaderboard(500), getMyBibleStreak()])
+      .then(([student, board, streak]) => {
+        if (!student) return
+        const rankIdx = board.findIndex((r) => r.student_id === student.id)
+        setStats({ points: student.total_points, rank: rankIdx === -1 ? null : rankIdx + 1, streak })
+      })
+      .catch(() => {
+        // The stats panel is decoration on a screen whose job is the lesson
+        // path. It stays on its placeholder rather than taking the path down
+        // with it.
+      })
   }, [])
   return stats
 }

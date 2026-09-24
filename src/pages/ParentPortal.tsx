@@ -78,8 +78,24 @@ function ParentDashboard() {
   const [linking, setLinking] = useState(false)
   const [linkError, setLinkError] = useState('')
   const [openChild, setOpenChild] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState('')
 
-  const load = () => listMyChildren().then((c) => { setChildren(c); setLoading(false) })
+  // The catch matters as much as the fetch here. Without it a failed lookup
+  // left the whole dashboard on its "Loading" line with no error and no way
+  // to try again, which is indistinguishable from a parent having no children
+  // linked.
+  const load = () => {
+    setLoadError('')
+    listMyChildren()
+      .then((c) => {
+        setChildren(c)
+        setLoading(false)
+      })
+      .catch((e) => {
+        setLoadError(e instanceof Error ? e.message : 'Something went wrong.')
+        setLoading(false)
+      })
+  }
   useEffect(() => {
     load()
   }, [])
@@ -139,7 +155,16 @@ function ParentDashboard() {
       </div>
 
       {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
-      {!loading && children.length === 0 && (
+      {!loading && loadError && (
+        <div className="panel space-y-3 p-5 text-center">
+          <p className="text-sm font-semibold text-[var(--fg)]">We could not load your children.</p>
+          <p className="text-xs text-[var(--ink-muted)]">{loadError}</p>
+          <button onClick={load} className="btn-outline text-sm">
+            Try again
+          </button>
+        </div>
+      )}
+      {!loading && !loadError && children.length === 0 && (
         <p className="text-sm text-[var(--ink-muted)]">No children linked yet. Enter their code above to see their progress.</p>
       )}
 
@@ -245,7 +270,10 @@ function ChildDetail({ child }: { child: ChildRow }) {
   if (failed) {
     return (
       <div className="space-y-1 border-t border-[var(--hairline)] p-6 text-center">
-        <p className="text-sm font-semibold text-[var(--ink)]">
+        {/* --fg, not --ink: this shell re-points the theme for a light
+            surface and --ink is still the dark palette's ink, so the line
+            came out white on a pale panel. */}
+        <p className="text-sm font-semibold text-[var(--fg)]">
           We could not load {child.full_name.split(' ')[0]}&apos;s progress.
         </p>
         <p className="text-xs text-[var(--ink-muted)]">{failed}</p>

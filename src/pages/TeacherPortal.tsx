@@ -102,11 +102,19 @@ import {
 import { fileToResizedDataUrl } from '../lib/image'
 import { playClick } from '../lib/sound'
 import { haptics } from '../lib/haptics'
+import { setLastPortal } from '../lib/lastPortal'
 
 const inputClass = 'w-full rounded-md border border-[var(--hairline-strong)] bg-transparent px-4 py-3 outline-none focus:border-[var(--gold)]'
 
 export default function TeacherPortal() {
   const { session, profile, loading, refreshProfile } = useMinistryAuth()
+
+  // Remembered so an installed home-screen icon can launch straight into
+  // /teacher next time (see the redirect script in index.html), instead of
+  // always opening the marketing landing page first.
+  useEffect(() => {
+    if (session && profile?.role === 'teacher') setLastPortal('teacher')
+  }, [session, profile])
 
   if (loading) return <div className="py-20 text-center text-xl">Loading…</div>
   if (!session) return <AuthCard icon={GraduationCap} title="Teacher Portal" subtitle="Sign in, or create an account and apply to teach." />

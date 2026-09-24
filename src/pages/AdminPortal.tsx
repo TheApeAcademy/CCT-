@@ -71,9 +71,17 @@ import {
 import { DataList, DataRow, DataIdentity, DataActions, DataBadge } from '../components/ui/DataList'
 import { playClick } from '../lib/sound'
 import { haptics } from '../lib/haptics'
+import { setLastPortal } from '../lib/lastPortal'
 
 export default function AdminPortal() {
   const { session, profile, loading, refreshProfile } = useMinistryAuth()
+
+  // Remembered so an installed home-screen icon can launch straight into
+  // /admin next time (see the redirect script in index.html), instead of
+  // always opening the marketing landing page first.
+  useEffect(() => {
+    if (session && profile?.role === 'admin') setLastPortal('admin')
+  }, [session, profile])
 
   if (loading) return <div className="py-20 text-center text-xl">Loading…</div>
   if (!session) {
@@ -288,6 +296,7 @@ const BANK_CATEGORY_ICON: Record<DigitalBankFile['category'], LucideIcon> = {
   song: Music,
   video: Video,
   doc: FileText,
+  note: FileText,
   other: FileIcon,
 }
 
@@ -392,6 +401,7 @@ function DigitalBankTab() {
         {visible.map((f) => {
           const Icon = BANK_CATEGORY_ICON[f.category]
           const download = () => {
+            if (!f.blob) return
             const url = URL.createObjectURL(f.blob)
             const a = document.createElement('a')
             a.href = url

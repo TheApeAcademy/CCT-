@@ -7,6 +7,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#1b1030" />
     <meta name="description" content="MFM Children's Ministry Bible Quiz: a Who Wants to Be a Millionaire style trivia game for Sunday school, fully offline." />
+    <!-- iOS ignores the manifest's display/start_url - these are what make
+         "Add to Home Screen" open full-screen (no Safari chrome) with the
+         right status bar look, closest iOS gets to a real installed app. -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Bible Quiz" />
     <title>MFM Children's Ministry Bible Quiz</title>
     <script>
       // This app routes entirely off the URL hash (HashRouter) - once React
@@ -19,6 +25,26 @@
       // hash it should have been all along.
       (function () {
         var path = window.location.pathname
+        var hasRealHash = !!window.location.hash && window.location.hash !== '#' && window.location.hash !== '#/'
+
+        // Launched from an installed home-screen icon (Android "Install
+        // app" or iOS "Add to Home Screen"), landing on the bare root with
+        // no specific page requested - jump straight back into whichever
+        // portal was last signed into (see lastPortal.ts), instead of
+        // always showing the public marketing site first. A browser tab
+        // that's never been through a portal has nothing saved here, so it
+        // still lands on the landing page like normal.
+        var isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true
+        if (isStandalone && !hasRealHash && (path === '/' || path === '')) {
+          try {
+            var lastPortal = window.localStorage.getItem('cct-last-portal')
+            if (lastPortal === 'student' || lastPortal === 'teacher' || lastPortal === 'admin') {
+              window.location.replace('/#/' + lastPortal)
+              return
+            }
+          } catch (e) {}
+        }
+
         if (path !== '/' && path !== '' && !window.location.hash) {
           window.location.replace('/#' + path + window.location.search)
         }

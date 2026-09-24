@@ -66,11 +66,12 @@ export default function Training() {
 
   const handleStart = async () => {
     if (!setId || !profile) return
-    const qs = (await db.questions.where('setId').equals(setId).toArray()).map(shuffleOptions)
-    if (qs.length < 4) return
+    const rawQs = await db.questions.where('setId').equals(setId).toArray()
+    if (rawQs.length < 4) return
     await getOrCreatePlayer(profile.name, profile.className)
     sound.playNav()
     haptics.success()
+    const qs = rawQs.map(shuffleOptions)
     const shuffled = shuffle(qs)
     setPool(qs)
     setAnswered(0)
@@ -97,7 +98,7 @@ export default function Training() {
           setBestStreak((b) => Math.max(b, next))
           return next
         })
-        sound.playApplause(1.4)
+        sound.playCorrect()
         haptics.success()
         setFlash('green')
         setShowConfetti(true)

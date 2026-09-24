@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, ensureSeedData, ensureActiveSeason, createMatch } from '../db/db'
 import { playClick, playToggle, playNav } from '../lib/sound'
 import { haptics } from '../lib/haptics'
 import { selectQuestionsForGame } from '../lib/selectQuestions'
+import { LADDER } from '../lib/ladder'
 import { fileToResizedDataUrl } from '../lib/image'
-import type { GameConfig } from '../db/types'
+import type { GameConfig, Question } from '../db/types'
 
 const TIMER_OPTIONS = [15, 20, 30, 45, 60]
 const MAX_TEAMS = 10
@@ -48,6 +49,9 @@ export default function GameSetup() {
   const [seasonFilter, setSeasonFilter] = useState<number | 'all'>('all')
   const [setId, setSetId] = useState<number | null>(null)
   const [mode, setMode] = useState<'marathon' | 'rotational'>('marathon')
+  const [questionMode, setQuestionMode] = useState<'random' | 'selected' | 'pickNumber'>('random')
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState<Set<number>>(new Set())
+  const seededSetIdRef = useRef<number | null>(null)
   const [timerSeconds, setTimerSeconds] = useState(30)
   const [customTimer, setCustomTimer] = useState('')
   const [fiftyFifty, setFiftyFifty] = useState(true)
@@ -74,6 +78,53 @@ export default function GameSetup() {
     () => (setId ? db.questions.where('setId').equals(setId).count() : Promise.resolve(0)),
     [setId]
   ) ?? 0
+
+  // The actual question rows for "Selected"/"Pick a Number" mode's picker
+  // below - sorted by difficulty so the default pre-check (and the order
+  // questions appear in the list) already reads as an escalating ladder.
+  const setQuestions = useLiveQuery(
+    () => (setId ? db.questions.where('setId').equals(setId).sortBy('difficulty') : Promise.resolve<Question[]>([])),
+    [setId]
+  ) ?? []
+
+  // First time a non-random mode becomes active for a given set, pre-check
+  // the first N by difficulty as a sane starting point - after that, every
+  // toggle is left exactly as the teacher set it, even if they uncheck down
+  // to zero, so their choices are never silently overwritten.
+  useEffect(() => {
+    if (questionMode === 'random' || !setId || setQuestions.length === 0) return
+    if (seededSetIdRef.current === setId) return
+    seededSetIdRef.current = setId
+    setSelectedQuestionIds(new Set(setQuestions.slice(0, LADDER.length).map((q) => q.id!)))
+  }, [setId, questionMode, setQuestions])
+
+  const toggleQuestionSelection = (id: number) => {
+    playClick()
+    setSelectedQuestionIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  // Picking "+ Write custom questions" creates a real (empty) set right
+  // away and switches straight to it - from that point it's just a normal
+  // set, so every question typed into the quick-add form below lands in
+  // the real Question Bank exactly like any other set's questions do.
+  const handleSetSelect = async (value: string) => {
+    if (value === '__custom__') {
+      playClick()
+      const season = await ensureActiveSeason()
+      const name = `Custom Quiz — ${new Date().toLocaleDateString()}`
+      const newId = (await db.questionSets.add({ name, createdAt: Date.now(), isStarter: false, seasonId: season.id })) as number
+      setSetId(newId)
+      setShowQuickAdd(true)
+      return
+    }
+    setSetId(Number(value))
+    playClick()
+  }
 
   // ---------- quick "add a question" panel, right here on the game setup page ----------
   const [showQuickAdd, setShowQuickAdd] = useState(false)
@@ -213,8 +264,12 @@ export default function GameSetup() {
       setError('Please choose a question set.')
       return shakeError()
     }
-    if (questionCount < 10) {
-      setError('This set needs at least 10 questions to fill all 10 levels. Add more in the Question Bank.')
+    if (questionCount < LADDER.length) {
+      setError(`This set needs at least ${LADDER.length} questions to fill all ${LADDER.length} levels. Add more in the Question Bank.`)
+      return shakeError()
+    }
+    if (questionMode !== 'random' && selectedQuestionIds.size !== LADDER.length) {
+      setError(`Select exactly ${LADDER.length} questions below (you have ${selectedQuestionIds.size}).`)
       return shakeError()
     }
 
@@ -225,7 +280,18 @@ export default function GameSetup() {
     setStarting(true)
 
     const pool = await db.questions.where('setId').equals(setId).toArray()
-    const questionIds = selectQuestionsForGame(pool).map((q) => q.id!)
+    // "random" draws one question per level at random, matched to that
+    // level's target difficulty (the original behavior). "selected" and
+    // "pickNumber" instead use exactly the questions the teacher checked
+    // off in the picker below, in difficulty order, no shuffling at all -
+    // deliberate, level by level.
+    const questionIds =
+      questionMode === 'random'
+        ? selectQuestionsForGame(pool).map((q) => q.id!)
+        : pool
+            .filter((q) => selectedQuestionIds.has(q.id!))
+            .sort((a, b) => a.difficulty - b.difficulty || (a.id! - b.id!))
+            .map((q) => q.id!)
 
     // Photos and student links are aligned to the original team slots; keep only the ones for teams that ended up with a name.
     const keptIndexes = teamNames.map((n, i) => (n.trim() ? i : -1)).filter((i) => i >= 0)
@@ -247,6 +313,7 @@ export default function GameSetup() {
       teamStudentIds: cleanStudentIds,
       teamStudentClassIds: cleanStudentClassIds,
       mode,
+      questionMode,
     })
 
     const config: GameConfig = {
@@ -262,6 +329,7 @@ export default function GameSetup() {
       timerSecondsPerQuestion: timerSeconds,
       lifelines,
       mode,
+      questionMode,
     }
     navigate('/ground-rules', { state: config })
   }
@@ -434,25 +502,30 @@ export default function GameSetup() {
 
       <div className="panel space-y-2 p-5 transition hover:bg-[var(--ink-raised)]">
         <label className="block text-sm font-semibold text-[var(--fg)]/80">Question Set</label>
-        {sets.length === 0 ? (
-          <p className="text-sm text-[var(--ink-faint)]">No question sets in this season yet. Add one in the Question Bank.</p>
-        ) : (
-          <select
-            value={setId ?? ''}
-            onChange={(e) => {
-              setSetId(Number(e.target.value))
-              playClick()
-            }}
-            className={inputClass}
-          >
-            {sets.map((s) => (
-              <option key={s.id} value={s.id} className="text-black">
-                {s.name}
-              </option>
-            ))}
-          </select>
+        <select
+          value={setId ?? ''}
+          onChange={(e) => handleSetSelect(e.target.value)}
+          className={inputClass}
+        >
+          {sets.length === 0 && (
+            <option value="" className="text-black">
+              No question sets in this season yet
+            </option>
+          )}
+          {sets.map((s) => (
+            <option key={s.id} value={s.id} className="text-black">
+              {s.name}
+            </option>
+          ))}
+          <option value="__custom__" className="text-black">
+            + Write custom questions for this quiz
+          </option>
+        </select>
+        {setId && (
+          <p className="text-xs text-[var(--ink-faint)]">
+            {questionCount} question{questionCount === 1 ? '' : 's'} available in this set ({LADDER.length} needed).
+          </p>
         )}
-        <p className="text-xs text-[var(--ink-faint)]">{questionCount} question{questionCount === 1 ? '' : 's'} available in this set (10 needed).</p>
 
         {setId && (
           <div className="pt-1">
@@ -527,6 +600,108 @@ export default function GameSetup() {
               </div>
             )}
           </div>
+        )}
+      </div>
+
+      <div className="panel space-y-2 p-5 transition hover:bg-[var(--ink-raised)]">
+        <label className="block text-sm font-semibold text-[var(--fg)]/80">Question Selection</label>
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              { value: 'random' as const, label: '🎲 Random', hint: 'A random question per level, matched to that level\'s difficulty' },
+              { value: 'selected' as const, label: '📋 Selected Quiz Questions', hint: 'Exactly the questions curated in this set, in order - no shuffling' },
+              { value: 'pickNumber' as const, label: '🔢 Pick a Number', hint: 'Contestants choose which numbered question to play next' },
+            ] as const
+          ).map((opt) => (
+            <button
+              key={opt.value}
+              onClick={() => {
+                setQuestionMode(opt.value)
+                playClick()
+              }}
+              title={opt.hint}
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition hover:scale-105 ${
+                questionMode === opt.value ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'bg-[var(--ink-panel)] hover:bg-[var(--ink-raised)]'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-[var(--ink-faint)]">
+          {questionMode === 'random' &&
+            'Avoids repeats within a match, but which exact questions show up isn\'t guaranteed - good for casual play.'}
+          {questionMode === 'selected' &&
+            'Check exactly which questions from this set play in this match, in the order they\'re shown below - no randomizing.'}
+          {questionMode === 'pickNumber' &&
+            'Same deliberate question picking as Selected, but during the match contestants pick a number off a board instead of always going in order.'}
+        </p>
+
+        {questionMode !== 'random' && setId && (
+          <div className="space-y-2 pt-1">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span
+                className={`text-sm font-bold ${
+                  selectedQuestionIds.size === LADDER.length ? 'text-emerald-600' : 'text-[var(--gold)]'
+                }`}
+              >
+                {selectedQuestionIds.size} / {LADDER.length} selected
+              </span>
+              <div className="flex gap-2 text-xs">
+                <button
+                  onClick={() => {
+                    setSelectedQuestionIds(new Set(setQuestions.slice(0, LADDER.length).map((q) => q.id!)))
+                    playClick()
+                  }}
+                  className="btn-outline px-3 py-1"
+                >
+                  First {LADDER.length} by difficulty
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedQuestionIds(new Set())
+                    playClick()
+                  }}
+                  className="btn-outline px-3 py-1"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+
+            <div className="max-h-72 space-y-1.5 overflow-y-auto rounded-lg border border-[var(--hairline)] p-2">
+              {setQuestions.map((q) => (
+                <label
+                  key={q.id}
+                  className="flex cursor-pointer items-start gap-2 rounded-md px-2 py-1.5 text-sm transition hover:bg-[var(--ink-panel)]"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedQuestionIds.has(q.id!)}
+                    onChange={() => toggleQuestionSelection(q.id!)}
+                    className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--gold)]"
+                  />
+                  <span className="min-w-0">
+                    <span className="mr-1.5 rounded-full bg-[var(--gold)]/15 px-1.5 py-0.5 text-[10px] font-bold text-[var(--gold)]">
+                      D{q.difficulty}
+                    </span>
+                    {q.text}
+                  </span>
+                </label>
+              ))}
+              {setQuestions.length === 0 && <p className="p-2 text-sm text-[var(--ink-faint)]">No questions in this set yet - write some below.</p>}
+            </div>
+          </div>
+        )}
+
+        {questionMode !== 'random' && (
+          <Link
+            to="/questions"
+            onClick={() => playClick()}
+            className="mt-1 block w-full rounded-lg border border-dashed border-[var(--hairline-strong)] py-2 text-center text-sm text-[var(--ink-muted)] transition hover:scale-[1.01] hover:bg-[var(--ink-panel)]"
+          >
+            📚 Open Question Bank to write more questions to pick from →
+          </Link>
         )}
       </div>
 

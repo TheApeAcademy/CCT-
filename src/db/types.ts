@@ -1,17 +1,20 @@
 /**
- * The Digital Bank: any file related to the ministry (songs, videos, docs)
- * that doesn't belong in a question set or a Bible reading plan. Stored
- * locally in this browser's IndexedDB for now, not Supabase Storage - so
- * it works fully offline like the rest of the quiz, at the cost of not
- * being shared across devices yet.
+ * The Digital Bank: any file or note related to the ministry (songs,
+ * videos, docs, plain write-ups) that doesn't belong in a question set or
+ * a Bible reading plan. Stored locally in this browser's IndexedDB for
+ * now, not Supabase Storage - so it works fully offline like the rest of
+ * the quiz, at the cost of not being shared across devices yet. A "note"
+ * has no blob at all - `textContent` is the entry itself, typed in
+ * directly rather than uploaded.
  */
 export interface DigitalBankFile {
   id?: number
   name: string
-  category: 'song' | 'video' | 'doc' | 'other'
+  category: 'song' | 'video' | 'doc' | 'note' | 'other'
   mimeType: string
   size: number
-  blob: Blob
+  blob?: Blob
+  textContent?: string
   uploadedAt: number
 }
 
@@ -142,6 +145,17 @@ export interface Match {
    * screen presents as "1v1" - same engine, just a head-to-head display.
    */
   mode?: 'marathon' | 'rotational'
+  /**
+   * "random" (default when absent): one question per ladder level, drawn at
+   * random from the set and matched to that level's target difficulty -
+   * the original behavior. "selected": the exact questions curated for this
+   * set, in difficulty order, no shuffling - what a teacher hand-picked in
+   * the Question Bank is exactly what plays. "pickNumber": same fixed
+   * question-per-level assignment as "selected", but contestants choose
+   * which numbered question to play next instead of always going in order
+   * (see the picker in Gameplay.tsx).
+   */
+  questionMode?: 'random' | 'selected' | 'pickNumber'
 }
 
 // A quiz result waiting to be pushed to the ministry leaderboard. Written
@@ -185,6 +199,7 @@ export interface GameConfig {
     phoneFriend: boolean
   }
   mode?: 'marathon' | 'rotational'
+  questionMode?: 'random' | 'selected' | 'pickNumber'
 }
 
 export interface PracticeSession {

@@ -64,6 +64,9 @@ const AUDIO_FILES: Record<string, string> = {
   applause: '/sounds/applause.mp3',
   cheer: '/sounds/cheer.mp3',
   oops: '/sounds/oops.mp3',
+  curtain: '/sounds/curtain-open.mp3',
+  musicCalm: '/sounds/background-music-calm.mp3',
+  musicIntense: '/sounds/background-music-intense.mp3',
 }
 const audioElements: Record<string, HTMLAudioElement> = {}
 const audioAvailability: Record<string, Promise<boolean>> = {}
@@ -71,7 +74,14 @@ const audioAvailability: Record<string, Promise<boolean>> = {}
 function checkAudioFile(key: string): Promise<boolean> {
   if (!audioAvailability[key]) {
     audioAvailability[key] = fetch(AUDIO_FILES[key], { method: 'HEAD' })
-      .then((res) => res.ok)
+      // A missing file isn't a real 404 here - both Vercel's catch-all
+      // rewrite (vercel.json) and this app's own local preview server
+      // answer any unmatched path with a 200 + the index.html shell
+      // instead of erroring, so res.ok alone can't tell "the mp3 exists"
+      // from "nothing here, have the app instead". The content-type can:
+      // a real audio file serves as audio/mpeg (or similar); the SPA
+      // fallback always serves text/html.
+      .then((res) => res.ok && (res.headers.get('content-type') ?? '').startsWith('audio/'))
       .catch(() => false)
   }
   return audioAvailability[key]
@@ -347,18 +357,42 @@ export function playCountIn(step: 3 | 2 | 1 | 0) {
   }
 }
 
-// ---------- background music (generative, still zero audio assets) ----------
-// A soft looping chord progression under gameplay, independent of the SFX
-// mute toggle above (its own on/off) since a host might want one without
-// the other. Self-schedules with setTimeout rather than setInterval so
-// there's no drift to correct for, and speeds up + adds a rhythmic tick
-// layer for the last couple of ladder questions instead of just looping
-// unchanged the whole match.
+// ---------- background music ----------
+// One continuous track for the whole match, start to finish - never
+// stopped mid-match. A real recorded track loops with a 3-second
+// crossfade instead of native <audio loop> (which just jumps back to 0
+// with an audible click at the seam) - see crossfadeLoop below, which
+// runs two <audio> elements a beat apart and hands off between them.
+// "Intensity" for the last couple of ladder questions is a volume swell
+// on top of that (ramped, not an abrupt jump), not a different track
+// cutting in. Independent of the SFX mute toggle above (its own on/off)
+// since a host might want one without the other.
+const CROSSFADE_SEC = 3
+
 let musicMuted = false
 let musicRunning = false
 let musicTimer: number | null = null
 let musicStep = 0
 let musicIntensity: 'calm' | 'intense' = 'calm'
+let volumeRampId: number | null = null
+
+// The two alternating players for the crossfade loop, and which one is
+// currently the audible one - null/unused while running on the synth path.
+let playerA: HTMLAudioElement | null = null
+let playerB: HTMLAudioElement | null = null
+let activeIsA = true
+let crossfadeTimer: number | null = null
+let crossfadeIntervalId: number | null = null
+
+// Every real recorded track drops in here (in upload order) and the match
+// rotates through all of them, crossfading from one straight into the
+// next rather than just looping a single file - variety over a long
+// match, same "never actually stops" feel. A single track left in here
+// alone still works fine: it just crossfades into itself each lap, same
+// as the original single-track version of this feature.
+const MUSIC_PLAYLIST_KEYS = ['musicIntense', 'musicCalm'] as const
+let musicPlaylist: string[] = []
+let playlistIndex = 0
 
 const MUSIC_PROGRESSION: number[][] = [
   [261.63, 329.63, 392.0], // C major
@@ -367,16 +401,72 @@ const MUSIC_PROGRESSION: number[][] = [
   [196.0, 246.94, 293.66], // G major
 ]
 
+const MUSIC_VOLUME = { calm: 0.55, intense: 1 }
+// User-controlled multiplier (0-1) on top of the calm/intense preset above,
+// driven by the volume slider in the in-game settings panel - separate
+// from the calm->intense swell so dragging it doesn't fight that ramp.
+let musicVolumeMultiplier = 1
+
+/** What the currently-audible player's volume should be right now, given both the calm/intense preset and the user's own slider. */
+function musicTargetVolume(): number {
+  return MUSIC_VOLUME[musicIntensity] * musicVolumeMultiplier
+}
+
 export function isMusicMuted() {
   return musicMuted
 }
 
 export function setMusicMuted(value: boolean) {
   musicMuted = value
+  if (playerA) playerA.muted = value
+  if (playerB) playerB.muted = value
+}
+
+export function getMusicVolume() {
+  return musicVolumeMultiplier
+}
+
+/** Applied immediately (not ramped) - this is a direct drag on a slider, not an automatic swell. */
+export function setMusicVolume(value: number) {
+  musicVolumeMultiplier = Math.max(0, Math.min(1, value))
+  const audio = activePlayer()
+  if (audio) audio.volume = musicTargetVolume()
+}
+
+/** Every MUSIC_PLAYLIST_KEYS entry that's actually had a file dropped in, in order - empty if none, meaning fall back to the generative synth progression below. */
+async function resolveMusicPlaylist(): Promise<string[]> {
+  const available = await Promise.all(MUSIC_PLAYLIST_KEYS.map((key) => checkAudioFile(key)))
+  return MUSIC_PLAYLIST_KEYS.filter((_, i) => available[i]).map((key) => AUDIO_FILES[key])
+}
+
+function activePlayer(): HTMLAudioElement | null {
+  return activeIsA ? playerA : playerB
+}
+
+/** Smoothly moves the currently-audible player's volume to `target` over ~1.2s, so intensity reads as the music swelling rather than clipping to full blast instantly. Leaves the idle (pre-loaded, silent) player alone - the next crossfade reads musicIntensity fresh anyway. */
+function rampVolume(target: number) {
+  const audio = activePlayer()
+  if (!audio) return
+  if (volumeRampId !== null) window.clearInterval(volumeRampId)
+  const steps = 12
+  const start = audio.volume
+  let i = 0
+  volumeRampId = window.setInterval(() => {
+    i++
+    audio.volume = start + (target - start) * (i / steps)
+    if (i >= steps) {
+      window.clearInterval(volumeRampId!)
+      volumeRampId = null
+    }
+  }, 100)
 }
 
 export function setMusicIntensity(level: 'calm' | 'intense') {
+  if (musicIntensity === level) return
   musicIntensity = level
+  // The synth path already reads musicIntensity fresh on every bar it
+  // schedules - only a recorded track already playing needs its volume moved.
+  rampVolume(MUSIC_VOLUME[level] * musicVolumeMultiplier)
 }
 
 function scheduleMusicBar() {
@@ -397,11 +487,84 @@ function scheduleMusicBar() {
   musicTimer = window.setTimeout(scheduleMusicBar, barMs)
 }
 
+/**
+ * Crossfades from `outgoing` (audible, about to end) into `incoming`
+ * (silent, loaded with the next playlist track and primed at time 0) over
+ * CROSSFADE_SEC, then swaps which one counts as "active", advances the
+ * playlist, and schedules the next handoff off the newly active player -
+ * so this rotates through every track forever without ever stopping.
+ */
+function runCrossfade(outgoing: HTMLAudioElement, incoming: HTMLAudioElement) {
+  if (!musicRunning || musicPlaylist.length === 0) return
+  const nextIndex = (playlistIndex + 1) % musicPlaylist.length
+  const target = musicTargetVolume()
+  incoming.src = musicPlaylist[nextIndex]
+  incoming.currentTime = 0
+  incoming.volume = 0
+  incoming.muted = musicMuted
+  incoming.play().catch(() => {})
+  if (crossfadeIntervalId !== null) window.clearInterval(crossfadeIntervalId)
+  const steps = 30
+  const stepMs = (CROSSFADE_SEC * 1000) / steps
+  let i = 0
+  crossfadeIntervalId = window.setInterval(() => {
+    i++
+    const t = i / steps
+    outgoing.volume = target * (1 - t)
+    incoming.volume = target * t
+    if (i >= steps) {
+      window.clearInterval(crossfadeIntervalId!)
+      crossfadeIntervalId = null
+      outgoing.pause()
+      outgoing.currentTime = 0
+      activeIsA = !activeIsA
+      playlistIndex = nextIndex
+      scheduleCrossfade(incoming, outgoing)
+    }
+  }, stepMs)
+}
+
+/** Waits for `current`'s real duration (unknown until its metadata loads) then times the next crossfade to land exactly CROSSFADE_SEC before it would otherwise loop. */
+function scheduleCrossfade(current: HTMLAudioElement, next: HTMLAudioElement) {
+  if (crossfadeTimer !== null) window.clearTimeout(crossfadeTimer)
+  const duration = current.duration
+  if (!isFinite(duration) || duration <= CROSSFADE_SEC) {
+    crossfadeTimer = window.setTimeout(() => {
+      if (musicRunning) scheduleCrossfade(current, next)
+    }, 200)
+    return
+  }
+  const msUntilCrossfade = Math.max(0, (duration - CROSSFADE_SEC - current.currentTime) * 1000)
+  crossfadeTimer = window.setTimeout(() => runCrossfade(current, next), msUntilCrossfade)
+}
+
+/** Starts rotating through every recorded track that's been dropped into /public/sounds for the whole match, otherwise the generative chord progression below. Each one crossfades straight into the next rather than a hard cut back to 0. */
 export function startMusic() {
   if (musicRunning) return
   musicRunning = true
   musicStep = 0
-  scheduleMusicBar()
+  resolveMusicPlaylist().then((list) => {
+    if (!musicRunning) return // stopped again before the check resolved
+    if (list.length === 0) {
+      scheduleMusicBar()
+      return
+    }
+    musicPlaylist = list
+    playlistIndex = 0
+    activeIsA = true
+    playerA = new Audio(list[0])
+    playerB = new Audio()
+    playerA.muted = musicMuted
+    playerB.muted = musicMuted
+    playerA.volume = musicTargetVolume()
+    playerB.volume = 0
+    playerA.play().catch(() => {
+      playerA = null
+      playerB = null
+      scheduleMusicBar()
+    })
+    scheduleCrossfade(playerA, playerB)
+  })
 }
 
 export function stopMusic() {
@@ -410,6 +573,28 @@ export function stopMusic() {
     window.clearTimeout(musicTimer)
     musicTimer = null
   }
+  if (volumeRampId !== null) {
+    window.clearInterval(volumeRampId)
+    volumeRampId = null
+  }
+  if (crossfadeTimer !== null) {
+    window.clearTimeout(crossfadeTimer)
+    crossfadeTimer = null
+  }
+  if (crossfadeIntervalId !== null) {
+    window.clearInterval(crossfadeIntervalId)
+    crossfadeIntervalId = null
+  }
+  for (const player of [playerA, playerB]) {
+    if (player) {
+      player.pause()
+      player.currentTime = 0
+    }
+  }
+  playerA = null
+  playerB = null
+  musicPlaylist = []
+  playlistIndex = 0
 }
 
 /**
@@ -444,7 +629,12 @@ export function playDramaticSting() {
  * from layered sawtooth+square+triangle oscillators (a single sine tone
  * reads as a UI beep, not brass) so it lands as an actual musical flourish.
  */
+/** Real /sounds/curtain-open.mp3 if one's been added, else the synthesized trumpet fanfare below. */
 export function playFanfare() {
+  playRecordedOr('curtain', playFanfareSynth)
+}
+
+function playFanfareSynth() {
   if (muted) return
   const notes: [number, number, number][] = [
     [392.0, 0, 0.28], // G4

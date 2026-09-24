@@ -4,6 +4,7 @@ import BackButton from './BackButton'
 import ThemeToggle from './ThemeToggle'
 import { useAutoHideNav } from '../lib/useAutoHideNav'
 import { useLandingTheme } from '../lib/landingTheme'
+import InstallAppButton from './InstallAppButton'
 
 // Lazy on purpose. This shell is the route element itself, so it is imported
 // eagerly and anything it pulls in lands in the shared entry chunk that the
@@ -55,6 +56,7 @@ export default function PortalShell({ eyebrow }: { eyebrow: string }) {
             </Link>
           </div>
           <div className="flex min-w-0 items-center gap-3">
+            <InstallAppButton />
             <span className="lp-eyebrow truncate">{eyebrow}</span>
             <ThemeToggle theme={theme} onToggle={toggle} />
             <Suspense fallback={null}>

@@ -21,17 +21,26 @@ export default function Results() {
     db.gameSessions.get(Number(sessionId)).then(async (s) => {
       if (!s) return
       setSession(s)
+      // Every finished run gets an audio verdict, not just a perfect score:
+      // half the ladder or better earns the extended cheer, anything
+      // rougher gets oops instead - a perfect run still gets the extra
+      // fireworks/win flourish on top.
       const isPerfect = s.correctCount === s.totalLevels
+      const ratio = s.totalLevels > 0 ? s.correctCount / s.totalLevels : 0
       if (isPerfect) {
         setShowFireworks(true)
         sound.playWin()
-        sound.playCheer(2.2, 0.4)
+        sound.playCheer(2.6, 0.4)
         haptics.win()
         window.setTimeout(() => setShowFireworks(false), 4200)
-      } else if (s.correctCount > 0) {
+      } else if (ratio >= 0.5) {
         setShowConfetti(true)
+        sound.playCheer(2.2, 0.2)
         haptics.success()
         window.setTimeout(() => setShowConfetti(false), 3000)
+      } else {
+        sound.playOops()
+        haptics.error()
       }
       if (s.matchId) {
         const m = await db.matches.get(s.matchId)
@@ -85,14 +94,15 @@ export default function Results() {
       <Fireworks active={showFireworks} />
 
       <div>
-        {session.playerPhoto && (
+        {session.playerPhoto ? (
           <img
             src={session.playerPhoto}
             alt=""
-            className="mx-auto mb-2 h-20 w-20 rounded-full object-cover shadow-xl shadow-black/40 ring-4 ring-amber-400/60"
+            className="animate-crown-bounce mx-auto mb-2 h-24 w-24 rounded-full object-cover shadow-xl shadow-black/40 ring-4 ring-amber-400/60"
           />
+        ) : (
+          <p className="animate-crown-bounce text-6xl drop-shadow-[0_0_25px_rgba(250,204,21,0.5)]">{emoji}</p>
         )}
-        <p className="animate-crown-bounce text-6xl drop-shadow-[0_0_25px_rgba(250,204,21,0.5)]">{emoji}</p>
         <h1 className="mt-2 font-display text-4xl font-extrabold sm:text-5xl">
           {isPerfect ? (
             <span className="bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-200 bg-clip-text text-transparent animate-shimmer">

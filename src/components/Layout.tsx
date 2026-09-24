@@ -7,6 +7,7 @@ import StageBackground from './StageBackground'
 import BackButton from './BackButton'
 import SiteFooter from './SiteFooter'
 import ThemeToggle from './ThemeToggle'
+import InstallAppButton from './InstallAppButton'
 import { useLandingTheme } from '../lib/landingTheme'
 import { useAutoHideNav } from '../lib/useAutoHideNav'
 
@@ -234,6 +235,8 @@ export default function Layout() {
                 header is hidden while a match runs anyway. */}
             {!isFullscreenQuiz && <ThemeToggle theme={theme} onToggle={toggleTheme} />}
 
+            <InstallAppButton className="hidden sm:block" />
+
             <button
               type="button"
               onClick={toggleMute}
@@ -298,6 +301,7 @@ export default function Layout() {
               <Radio className="h-3.5 w-3.5" strokeWidth={2.25} />
               Live
             </a>
+            <InstallAppButton className="[&>button]:w-full [&>button]:justify-center" />
           </div>
         </nav>
       </header>

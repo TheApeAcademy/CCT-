@@ -186,6 +186,7 @@ function ChildDetail({ child }: { child: ChildRow }) {
   const [monthlyStars, setMonthlyStars] = useState(0)
   const [buddy, setBuddy] = useState<AiCompanionMessageRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [failed, setFailed] = useState('')
 
   useEffect(() => {
     const startOfMonth = new Date()
@@ -202,29 +203,52 @@ function ChildDetail({ child }: { child: ChildRow }) {
       // Never rejects the whole load: a parent should still get the rest of
       // the page if this one query fails.
       listChildBibleBuddy(child.id).catch(() => [] as AiCompanionMessageRow[]),
-    ]).then(([s, ach, att, jp, quizzes, buddyLog]) => {
-      setStreak(s)
-      setAchievements(ach)
-      setAttendance({ present: att.filter((a) => a.present).length, total: att.length })
-      setJourney(jp)
-      setBuddy(buddyLog)
+    ])
+      .catch((e) => {
+        // Without this the panel sat on its loading line forever whenever any
+        // one of these failed, with nothing on screen to say why and no way
+        // to try again. compute_bible_streak refusing a parent did exactly
+        // that.
+        setFailed(e instanceof Error ? e.message : 'Something went wrong loading this.')
+        setLoading(false)
+        return null
+      })
+      .then((rows) => {
+        if (!rows) return
+        const [s, ach, att, jp, quizzes, buddyLog] = rows
+        setStreak(s)
+        setAchievements(ach)
+        setAttendance({ present: att.filter((a) => a.present).length, total: att.length })
+        setJourney(jp)
+        setBuddy(buddyLog)
 
-      // A simple, transparent monthly rating - not a hidden formula: one
-      // star for every 3 things done this month (lessons, quizzes, days
-      // present), capped at 5. No activity this month shows 0, not a
-      // participation-trophy floor.
-      const lessonsThisMonth = jp.filter((j) => j.completed_at >= monthIso).length
-      const attendanceThisMonth = att.filter((a) => a.present && a.date >= monthIso.slice(0, 10)).length
-      const activity = lessonsThisMonth + quizzes.length + attendanceThisMonth
-      setMonthlyStars(Math.min(5, Math.ceil(activity / 3)))
-      setLoading(false)
-    })
+        // A simple, transparent monthly rating - not a hidden formula: one
+        // star for every 3 things done this month (lessons, quizzes, days
+        // present), capped at 5. No activity this month shows 0, not a
+        // participation-trophy floor.
+        const lessonsThisMonth = jp.filter((j) => j.completed_at >= monthIso).length
+        const attendanceThisMonth = att.filter((a) => a.present && a.date >= monthIso.slice(0, 10)).length
+        const activity = lessonsThisMonth + quizzes.length + attendanceThisMonth
+        setMonthlyStars(Math.min(5, Math.ceil(activity / 3)))
+        setLoading(false)
+      })
   }, [child.id])
 
   if (loading) {
     return (
       <div className="border-t border-[var(--hairline)] p-6 text-center text-sm text-[var(--ink-muted)]">
         Loading {child.full_name.split(' ')[0]}&apos;s progress…
+      </div>
+    )
+  }
+
+  if (failed) {
+    return (
+      <div className="space-y-1 border-t border-[var(--hairline)] p-6 text-center">
+        <p className="text-sm font-semibold text-[var(--ink)]">
+          We could not load {child.full_name.split(' ')[0]}&apos;s progress.
+        </p>
+        <p className="text-xs text-[var(--ink-muted)]">{failed}</p>
       </div>
     )
   }

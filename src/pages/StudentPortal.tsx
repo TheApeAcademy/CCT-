@@ -1724,11 +1724,20 @@ function SundaySchoolTab({
             'linear-gradient(180deg, rgba(11,46,26,0.3) 0%, rgba(11,46,26,0.72) 100%), url(/icons/sunday-school-cover.jpg)',
           backgroundSize: 'cover',
           backgroundPosition: 'center 65%',
-          minHeight: 400,
+          // Taller than the 400 it was by exactly the room the heading now
+          // takes, so the icons keep the same clearance under them.
+          minHeight: 470,
         }}
       >
-        <div className="px-5 pt-5">
-          <p className="max-w-xs text-sm text-white/85 drop-shadow-md">
+        {/* The band is full bleed and starts at the very top of the viewport,
+            which puts the first 89px of it behind KidsShell's own header. At
+            pt-5 this line rendered underneath that header and was never
+            visible; it has to clear it. */}
+        <div className="px-5 pb-1 pt-24">
+          <h2 className="font-display text-2xl font-extrabold leading-tight text-white drop-shadow-md sm:text-3xl">
+            Sunday School
+          </h2>
+          <p className="mt-1 max-w-xs text-sm text-white/85 drop-shadow-md">
             Everything for growing your faith, one day at a time.
           </p>
         </div>
@@ -1739,7 +1748,7 @@ function SundaySchoolTab({
           value={String(streak)}
           size="min(38vw, 170px)"
           left="27%"
-          top={130}
+          top={200}
           rotate={-8}
           onClick={() => {
             playClick()
@@ -1751,7 +1760,7 @@ function SundaySchoolTab({
           label="Bible Journey"
           size="min(44vw, 200px)"
           left="72%"
-          top={105}
+          top={175}
           rotate={5}
           onClick={() => {
             playClick()
@@ -1774,36 +1783,56 @@ function SundaySchoolTab({
 const TODAY_START = new Date()
 TODAY_START.setHours(0, 0, 0, 0)
 
-const CALENDAR_COLS = 4
 const CALENDAR_MAX_WIDTH = 1040
 const CALENDAR_CARD_GAP = 18
-// The card is aspect-square, so its rendered height always equals its
-// rendered width - row height has to be derived from that same width
-// (not an independent guess) or rows overlap as soon as the container
-// gets wide enough to make the cards bigger than a fixed row height.
-const CALENDAR_CARD_WIDTH = CALENDAR_MAX_WIDTH / CALENDAR_COLS - CALENDAR_CARD_GAP
-const CALENDAR_ROW_HEIGHT = CALENDAR_CARD_WIDTH + 34
 
 // The weekly calendar cards laid out as a snaking, roped-together path
 // (left-to-right, then right-to-left down the next row, like a board game
 // track) instead of a plain grid, so it reads as one step-by-step journey
 // and fills the full width instead of being capped to a narrow column.
 function SundayCalendarPath({ unlockedDates }: { unlockedDates: Set<string> }) {
-  const rows = Math.ceil(SUNDAYS_2026.length / CALENDAR_COLS)
-  const totalHeight = rows * CALENDAR_ROW_HEIGHT
+  // Measured, not assumed. The cards are positioned as a percentage of this
+  // container while the row height is in pixels, so the two only agree if the
+  // pixel figure comes from the container's real width. It used to be derived
+  // from CALENDAR_MAX_WIDTH, which on a phone reserved a 276px row for a 70px
+  // card and left most of the calendar as empty space. A viewport breakpoint
+  // would not do either: this same component renders full width and inside
+  // narrower panels.
+  const wrapRef = useRef<HTMLDivElement>(null)
+  const [width, setWidth] = useState(CALENDAR_MAX_WIDTH)
+  useEffect(() => {
+    const el = wrapRef.current
+    if (!el) return
+    const measure = () => setWidth(el.getBoundingClientRect().width || CALENDAR_MAX_WIDTH)
+    measure()
+    if (typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
+  // Four across is the board-game look, but at four a phone gives each card
+  // about 70px, which is too small for a date and a lesson title.
+  const cols = width < 560 ? 2 : 4
+  const cardWidth = width / cols - CALENDAR_CARD_GAP
+  // The card is aspect-square, so its rendered height always equals its
+  // rendered width; the extra 34 is the gap between one row and the next.
+  const rowHeight = cardWidth + 34
+  const rows = Math.ceil(SUNDAYS_2026.length / cols)
+  const totalHeight = rows * rowHeight
 
   const positions = SUNDAYS_2026.map((_, i) => {
-    const row = Math.floor(i / CALENDAR_COLS)
-    const colInRow = i % CALENDAR_COLS
-    const col = row % 2 === 0 ? colInRow : CALENDAR_COLS - 1 - colInRow
-    const xPct = ((col + 0.5) / CALENDAR_COLS) * 100
-    const y = row * CALENDAR_ROW_HEIGHT + CALENDAR_ROW_HEIGHT / 2
+    const row = Math.floor(i / cols)
+    const colInRow = i % cols
+    const col = row % 2 === 0 ? colInRow : cols - 1 - colInRow
+    const xPct = ((col + 0.5) / cols) * 100
+    const y = row * rowHeight + rowHeight / 2
     return { xPct, y }
   })
   const pathD = positions.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.xPct} ${p.y}`).join(' ')
 
   return (
-    <div className="relative mx-auto" style={{ height: totalHeight, maxWidth: CALENDAR_MAX_WIDTH }}>
+    <div ref={wrapRef} className="relative mx-auto" style={{ height: totalHeight, maxWidth: CALENDAR_MAX_WIDTH }}>
       <svg className="absolute inset-0 h-full w-full" viewBox={`0 0 100 ${totalHeight}`} preserveAspectRatio="none">
         <path
           d={pathD}
@@ -1830,7 +1859,7 @@ function SundayCalendarPath({ unlockedDates }: { unlockedDates: Set<string> }) {
           <div
             key={key}
             className="absolute"
-            style={{ left: `${xPct}%`, top: y, transform: 'translate(-50%, -50%)', width: `calc(${100 / CALENDAR_COLS}% - ${CALENDAR_CARD_GAP}px)` }}
+            style={{ left: `${xPct}%`, top: y, transform: 'translate(-50%, -50%)', width: `calc(${100 / cols}% - ${CALENDAR_CARD_GAP}px)` }}
           >
             <SundayLessonCard date={date} title={theme.title} image={theme.image} locked={locked} />
           </div>

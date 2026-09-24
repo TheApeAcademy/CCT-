@@ -214,8 +214,13 @@ function QuizTab() {
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2">
+      {/* Hosting was a teacher-only door by accident, not by design: Game Setup
+          has always authorised an admin to link a team to a Student Code, and
+          an admin can record a result for any child in the ministry, not just
+          one class. The card was simply missing here. */}
+      <div className="grid gap-3 sm:grid-cols-3">
         <QuizLink to="/questions" icon={BookOpen} title="Question Bank" description="Oversee every trivia question and set across the ministry." />
+        <QuizLink to="/setup" icon={Gamepad2} title="Host a Match" description="Run a live quiz-show match on the big screen, for any class." />
         <QuizLink to="/history" icon={Trophy} title="History" description="Every completed match, team score, and full recap." />
       </div>
       <div className="panel p-5">

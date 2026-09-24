@@ -10,12 +10,20 @@ import { listMinistryEvents, type MinistryEventRow } from '../lib/ministry'
 export default function MinistryCalendarReadOnly({ dark = false }: { dark?: boolean }) {
   const [events, setEvents] = useState<MinistryEventRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [failed, setFailed] = useState(false)
 
   useEffect(() => {
-    listMinistryEvents().then((e) => {
-      setEvents(e)
-      setLoading(false)
-    })
+    // Without the catch a refused or dropped read left this on "Loading…"
+    // for ever, which reads as a broken page rather than an empty one.
+    listMinistryEvents()
+      .then((e) => {
+        setEvents(e)
+        setLoading(false)
+      })
+      .catch(() => {
+        setFailed(true)
+        setLoading(false)
+      })
   }, [])
 
   const today = new Date()
@@ -32,7 +40,11 @@ export default function MinistryCalendarReadOnly({ dark = false }: { dark?: bool
     <div className="space-y-4">
       {loading && <p className={`text-sm ${textMuted}`}>Loading…</p>}
 
-      {!loading && upcoming.length === 0 && past.length === 0 && <p className={`text-sm ${textMuted}`}>Nothing on the calendar yet.</p>}
+      {!loading && failed && <p className={`text-sm ${textMuted}`}>The calendar could not be loaded. Check your connection and reopen this tab.</p>}
+
+      {!loading && !failed && upcoming.length === 0 && past.length === 0 && (
+        <p className={`text-sm ${textMuted}`}>No ministry events yet. Children's Days, camps and parties appear here as soon as an admin adds them.</p>
+      )}
 
       {!loading && upcoming.length > 0 && (
         <div className="space-y-2">

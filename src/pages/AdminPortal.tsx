@@ -584,8 +584,12 @@ function MinistryCalendarTab() {
   const [description, setDescription] = useState('')
   const [editing, setEditing] = useState<MinistryEventRow | null>(null)
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
 
-  const load = () => listMinistryEvents().then((e) => { setEvents(e); setLoading(false) })
+  const load = () =>
+    listMinistryEvents()
+      .then((e) => { setEvents(e); setLoading(false) })
+      .catch((e) => { setError(e instanceof Error ? e.message : 'Could not load the calendar.'); setLoading(false) })
   useEffect(() => { load() }, [])
 
   const resetForm = () => {
@@ -603,8 +607,9 @@ function MinistryCalendarTab() {
   }
 
   const save = async () => {
-    if (!title.trim()) return
+    if (!title.trim()) return setError('Give the event a name.')
     setSaving(true)
+    setError('')
     try {
       if (editing) {
         await updateMinistryEvent(editing.id, { title, event_date: eventDate, description })
@@ -615,6 +620,12 @@ function MinistryCalendarTab() {
       haptics.success()
       resetForm()
       load()
+    } catch (e) {
+      // This used to be a bare try/finally, so a refused write (not an admin
+      // any more, offline, a dropped request) left the button springing back
+      // to "Add Event" with nothing saved and nothing said. Say it instead.
+      haptics.error()
+      setError(e instanceof Error ? e.message : 'Could not save the event.')
     } finally {
       setSaving(false)
     }
@@ -622,9 +633,14 @@ function MinistryCalendarTab() {
 
   const remove = async (id: string) => {
     if (!confirm('Delete this event?')) return
-    await deleteMinistryEvent(id)
-    haptics.tap()
-    load()
+    try {
+      await deleteMinistryEvent(id)
+      haptics.tap()
+      load()
+    } catch (e) {
+      haptics.error()
+      setError(e instanceof Error ? e.message : 'Could not delete the event.')
+    }
   }
 
   return (
@@ -660,10 +676,14 @@ function MinistryCalendarTab() {
             </button>
           )}
         </div>
+        {error && <p className="text-sm font-semibold text-[#e05f5f]">{error}</p>}
+        <p className="text-xs text-[var(--ink-faint)]">Everything you add here shows up on the Teacher Portal calendar and on the children's Calendar app.</p>
       </div>
 
       {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
-      {!loading && events.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No events on the calendar yet.</p>}
+      {!loading && events.length === 0 && (
+        <p className="text-sm text-[var(--ink-muted)]">Nothing on the calendar yet. Add the next Children's Day, camp or party above and the whole ministry sees it.</p>
+      )}
       <div className="space-y-2">
         {events.map((event) => (
           <div key={event.id} className="panel flex items-start justify-between gap-3 px-4 py-3">

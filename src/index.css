@@ -3676,18 +3676,55 @@ button:active, a:active {
   color: var(--gold);
 }
 
-.zeb-body {
-  font-size: 12px;
-  line-height: 1.5;
-  color: var(--ink-muted);
-}
-.zeb-foot {
-  margin-top: 12px;
-  padding-top: 10px;
-  border-top: 1px solid var(--hairline);
+/* The credit sits directly under the lockup, so the card says what it is
+   before it says what the studio does. */
+.zeb-credit {
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--ink-faint);
+  color: var(--gold);
+}
+.zeb-body {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-muted);
+}
+
+/* The whole call to action is one link, so the question and the address are a
+   single target rather than a line of copy with a small link after it. */
+.zeb-cta {
+  display: block;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--hairline);
+  text-decoration: none;
+}
+.zeb-cta-line {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: #ffffff;
+}
+.zeb-cta-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--gold);
+  transition: opacity 0.15s ease;
+}
+.zeb-cta:hover .zeb-cta-link {
+  opacity: 0.75;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.zeb-cta:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+  border-radius: 6px;
 }

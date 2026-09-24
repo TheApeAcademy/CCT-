@@ -1,9 +1,18 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Radio } from 'lucide-react'
+import { ArrowUpRight, Radio } from 'lucide-react'
 import { playNav, playClick } from '../lib/sound'
 
 const MFM_LIVE_URL = 'https://www.mountainoffire.org/live'
+
+/**
+ * The studio's own address, for the panel at the end of the footer row.
+ *
+ * An empty string is a supported state: the panel then keeps its credit and
+ * its copy and shows no call to action, rather than putting a dead link on a
+ * client's live site.
+ */
+const ZEBRAISH_URL = 'https://bankys-portfolio.vercel.app/'
 
 const columns = [
   {
@@ -103,11 +112,25 @@ function ZebraishCard() {
           <img src="/zebraish-lockup.png" alt="Zebraish" onError={() => setLogoFailed(true)} />
         )}
       </div>
+      <p className="zeb-credit">Built this site</p>
       <p className="zeb-body">
-        A software studio. We design and build websites and apps for churches, schools and small teams, this one
-        included.
+        A software studio. We design and build websites and apps for churches, schools and small teams.
       </p>
-      <p className="zeb-foot">Built this site</p>
+      {ZEBRAISH_URL ? (
+        <a
+          href={ZEBRAISH_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => playClick()}
+          className="zeb-cta"
+        >
+          <span className="zeb-cta-line">Want a site like this one?</span>
+          <span className="zeb-cta-link">
+            See our work
+            <ArrowUpRight className="h-3.5 w-3.5" strokeWidth={2.5} />
+          </span>
+        </a>
+      ) : null}
     </aside>
   )
 }

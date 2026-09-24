@@ -41,6 +41,7 @@ import {
   ClipboardList,
   ChevronDown,
   CalendarDays,
+  Crown,
   type LucideIcon,
 } from 'lucide-react'
 import { supabase, signOut } from '../lib/supabase'
@@ -1805,9 +1806,13 @@ const RANGES: { key: LeaderboardRange; label: string }[] = [
 
 type BoardKey = 'points' | 'streak'
 
-/** Gold, silver, bronze. Only the podium gets a plate; everyone else is a
- *  plain numeral, so the top of the board reads first. */
-const MEDALS = ['#e8b923', '#c9ccd4', '#cd8b4f']
+/** "5th", "1st". The board shows a child their own place as a word, not a
+ *  bare number in a column, so it reads at a glance. */
+function ordinal(n: number): string {
+  const rem100 = n % 100
+  if (rem100 >= 11 && rem100 <= 13) return `${n}th`
+  return `${n}${['th', 'st', 'nd', 'rd'][n % 10] ?? 'th'}`
+}
 
 /** Two initials, for a child who has no picture yet. Never an icon at a
  *  different size to everybody else's photo: that is what made the old rows
@@ -1839,6 +1844,44 @@ function Avatar({ row, size = 32 }: { row: RankedLeaderboardRow; size?: number }
     >
       {initialsOf(row.full_name)}
     </span>
+  )
+}
+
+/** Where a child sits in the current window against the next wider one. The
+ *  reference board carries an up/down arrow per row, and all four windows are
+ *  already loaded, so this is real movement rather than decoration. */
+const WIDER: Record<LeaderboardRange, LeaderboardRange | null> = { week: 'month', month: 'year', year: 'all', all: null }
+
+function movementOf(
+  id: string,
+  range: LeaderboardRange,
+  byRange: Record<LeaderboardRange, RankedLeaderboardRow[]>,
+  board: BoardKey,
+): 'up' | 'down' | 'same' {
+  const wider = WIDER[range]
+  if (!wider) return 'same'
+  const place = (rows: RankedLeaderboardRow[]) => {
+    const sorted = [...rows].sort((a, b) => (board === 'points' ? b.points - a.points : b.streak - a.streak))
+    const i = sorted.findIndex((r) => r.student_id === id)
+    return i === -1 ? null : i
+  }
+  const now = place(byRange[range])
+  const before = place(byRange[wider])
+  if (now === null || before === null || now === before) return 'same'
+  return now < before ? 'up' : 'down'
+}
+
+function PodiumFace({ row, place }: { row: RankedLeaderboardRow; place: number }) {
+  return (
+    <div className={`pod is-${place}`}>
+      <Crown className="crown" strokeWidth={2.25} aria-hidden />
+      <div className="ring">
+        {row.avatar_url ? <img src={row.avatar_url} alt="" /> : initialsOf(row.full_name).slice(0, 1)}
+        <b>{place}</b>
+      </div>
+      <div className="nm truncate">{row.full_name.split(/\s+/)[0]}</div>
+      <div className="pt">{row.points.toLocaleString()}</div>
+    </div>
   )
 }
 
@@ -1885,10 +1928,39 @@ function LeaderboardTab({ myId }: { myId: string | null }) {
   }
   if (!byRange) return <p className="p-4 text-sm text-[var(--ink-muted)]">Loading the board…</p>
 
+  const podium = sorted.slice(0, 3)
+  const rest = sorted.slice(3)
+  const myPlace = myId ? sorted.findIndex((r) => r.student_id === myId) : -1
+  const mine = myPlace === -1 ? null : sorted[myPlace]
+  const value = (r: RankedLeaderboardRow) => (board === 'points' ? r.points.toLocaleString() : String(r.streak))
+  const unit = board === 'points' ? 'pts' : 'days'
+
+  const rowFor = (r: RankedLeaderboardRow, place: number, cls: string) => (
+    <button
+      key={r.student_id}
+      onClick={() => {
+        playClick()
+        setOpenId(r.student_id)
+      }}
+      className={cls}
+    >
+      <span className="lb-rank">{place}</span>
+      <i className={`lb-arrow is-${movementOf(r.student_id, range, byRange, board)}`} />
+      <Avatar row={r} />
+      <span className="lb-name truncate">
+        {r.full_name}
+        <span className="truncate">{r.class_name ?? 'No class yet'}</span>
+      </span>
+      <span className="lb-pts">
+        {value(r)} {unit}
+      </span>
+    </button>
+  )
+
   return (
-    <div className="space-y-4">
-      <div className="mx-auto flex w-full max-w-3xl flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-1.5">
+    <div className="lb-screen -mx-4 -mt-2 space-y-4 rounded-2xl px-4 py-4 sm:mx-0 sm:px-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="lb-tabs min-w-[240px] flex-1">
           {RANGES.map((r) => (
             <button
               key={r.key}
@@ -1896,17 +1968,13 @@ function LeaderboardTab({ myId }: { myId: string | null }) {
                 playClick()
                 setRange(r.key)
               }}
-              className="rounded-full px-3 py-1.5 text-xs font-bold transition"
-              style={{
-                background: range === r.key ? 'var(--gold)' : 'var(--ink-panel)',
-                color: range === r.key ? 'var(--gold-ink)' : 'var(--ink-muted)',
-              }}
+              className={`lb-tab${range === r.key ? ' is-on' : ''}`}
             >
               {r.label}
             </button>
           ))}
         </div>
-        <div className="flex gap-1.5">
+        <div className="lb-tabs">
           {(['points', 'streak'] as const).map((b) => (
             <button
               key={b}
@@ -1914,11 +1982,7 @@ function LeaderboardTab({ myId }: { myId: string | null }) {
                 playClick()
                 setBoard(b)
               }}
-              className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition"
-              style={{
-                background: board === b ? 'var(--gold)' : 'var(--ink-panel)',
-                color: board === b ? 'var(--gold-ink)' : 'var(--ink-muted)',
-              }}
+              className={`lb-tab flex items-center gap-1.5${board === b ? ' is-on' : ''}`}
             >
               {b === 'points' ? <Trophy className="h-3.5 w-3.5" strokeWidth={2} /> : <Flame className="h-3.5 w-3.5" strokeWidth={2} />}
               {b === 'points' ? 'Points' : 'Streak'}
@@ -1928,57 +1992,38 @@ function LeaderboardTab({ myId }: { myId: string | null }) {
       </div>
 
       {sorted.length === 0 ? (
-        <p className="panel p-6 text-center text-sm text-[var(--ink-muted)]">Nobody has scored in this window yet. Be the first!</p>
+        <p className="lb-list p-6 text-center text-sm" style={{ color: 'var(--lb-mute)' }}>
+          Nobody has scored in this window yet. Be the first!
+        </p>
       ) : (
-        <div
-          className="mx-auto w-full max-w-3xl overflow-hidden rounded-2xl border border-[var(--hairline)]"
-          style={{ background: 'var(--ink-raised)' }}
-        >
-          {/* Every row is the same height and every face is cropped to the same
-              circle, so the eye can run straight down the list. Numbers are
-              tabular, so the column edge does not wobble. */}
-          <div className="lb-grid border-b border-[var(--hairline)] px-4 py-2 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--ink-faint)]">
-            <span>#</span>
-            <span>Player</span>
-            <span className="lb-games text-right">Games</span>
-            <span className="text-right">{board === 'points' ? 'Points' : 'Streak'}</span>
+        <div className="lb-body">
+          <div className="space-y-4">
+            <div className="lb-podium">
+              {/* Second, first, third - the winner stands in the middle. */}
+              {podium[1] && <PodiumFace row={podium[1]} place={2} />}
+              {podium[0] && <PodiumFace row={podium[0]} place={1} />}
+              {podium[2] && <PodiumFace row={podium[2]} place={3} />}
+            </div>
+            {mine && (
+              <div className="lb-stat">
+                <div>
+                  <b>{value(mine)}</b>
+                  <span>{board === 'points' ? 'Your points' : 'Your streak'}</span>
+                </div>
+                <div>
+                  <b>{ordinal(myPlace + 1)}</b>
+                  <span>Your place</span>
+                </div>
+              </div>
+            )}
           </div>
-          {sorted.map((r, i) => {
-            const mine = r.student_id === myId
-            return (
-              <button
-                key={r.student_id}
-                onClick={() => {
-                  playClick()
-                  setOpenId(r.student_id)
-                }}
-                className="lb-grid w-full border-b border-[var(--hairline)] px-4 text-left transition last:border-b-0 hover:bg-[var(--ink-panel)]"
-                style={{ height: 56, background: mine ? 'color-mix(in srgb, var(--gold) 12%, transparent)' : undefined }}
-              >
-                <span
-                  className="flex h-7 w-7 items-center justify-center rounded-full font-display text-xs font-bold tabular-nums"
-                  style={
-                    i < 3
-                      ? { background: MEDALS[i], color: '#3a2a08' }
-                      : { color: 'var(--ink-faint)' }
-                  }
-                >
-                  {i + 1}
-                </span>
-                <span className="flex min-w-0 items-center gap-3">
-                  <Avatar row={r} />
-                  <span className="min-w-0">
-                    <span className="block truncate text-sm font-bold text-[var(--fg)]">{r.full_name}</span>
-                    <span className="block truncate text-xs text-[var(--ink-muted)]">{r.class_name ?? 'No class yet'}</span>
-                  </span>
-                </span>
-                <span className="lb-games text-right text-sm tabular-nums text-[var(--ink-muted)]">{r.games}</span>
-                <span className="text-right font-display text-sm font-bold tabular-nums text-[var(--fg)]">
-                  {board === 'points' ? r.points.toLocaleString() : r.streak}
-                </span>
-              </button>
-            )
-          })}
+
+          <div className="space-y-4">
+            {rest.length > 0 && <div className="lb-list">{rest.map((r, i) => rowFor(r, i + 4, 'lb-row'))}</div>}
+            {/* Pinned only when you are not already on the podium, so the board
+                never shows the same child twice. */}
+            {mine && myPlace >= 3 && rowFor(mine, myPlace + 1, 'lb-you')}
+          </div>
         </div>
       )}
 

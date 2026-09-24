@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
 import { type ReactNode } from 'react'
 import { Mail, ArrowRight } from 'lucide-react'
-import { SignInCluster } from '../components/KidsSignIn'
+import HeroCarousel, { type HeroSlide } from '../components/HeroCarousel'
+import { SignInCluster, SignInLower } from '../components/KidsSignIn'
 import QuizFeatureIntro from '../components/QuizFeatureIntro'
 import BibleFeatureIntro from '../components/BibleFeatureIntro'
 import ClassFeatureIntro from '../components/ClassFeatureIntro'
@@ -19,9 +20,37 @@ import { playClick } from '../lib/sound'
 // clean Poppins and the body's Nunito) for tags/badges/numbers - part of
 // the landing page's own lazy chunk, never loaded by the offline quiz.
 
-// The hero carousel's slides used to live here. The landing page now opens
-// with the MFM Kids cluster instead (see the hero below), so the carousel
-// and its copy are one revert away rather than sitting here unused.
+const slides: HeroSlide[] = [
+  {
+    title: "MFM Children's Ministry",
+    body: 'Raising children in the Word through classes, a Bible Quiz built for the ministry, and a place every child in this church can call theirs.',
+    primaryCta: { label: 'Apply as a Child', to: '/join' },
+    secondaryCta: { label: 'Apply to Teach', to: '/teacher' },
+    quote: { text: 'But upon mount Zion shall be deliverance, and there shall be holiness', source: 'Obadiah 1:17' },
+    image: '/hero-kids.jpg',
+  },
+  {
+    title: 'Know the Word. Play the Quiz.',
+    body: 'Live trivia on the shared screen, team lifelines, seasons and a leaderboard that means something. Every question is a chance to know Scripture a little better.',
+    primaryCta: { label: 'Host a Match', to: '/setup' },
+    secondaryCta: { label: 'Practice Mode', to: '/training' },
+    image: '/hero-quiz.jpg',
+  },
+  {
+    title: 'Nourish Your Soul. Read Daily.',
+    body: 'A short Bible reading and a streak that keeps count. Come back tomorrow and it grows, right there on your own dashboard.',
+    primaryCta: { label: 'Apply as a Child', to: '/join' },
+    quote: { text: 'Thy word have I hid in mine heart, that I might not sin against thee', source: 'Psalm 119:11' },
+    image: '/hero-bible.jpg',
+  },
+  {
+    title: 'Our Sunday School Teachers',
+    body: 'Real classrooms, real teachers, approved by the ministry and ready to walk with your child through the Word, every single week.',
+    primaryCta: { label: 'Apply to Teach', to: '/teacher' },
+    secondaryCta: { label: 'Apply as a Child', to: '/join' },
+    image: '/hero-teachers.jpg',
+  },
+]
 
 const TOTAL_FEATURES = SHOWCASE_GROUPS.reduce((sum, group) => sum + group.features.length, 0)
 
@@ -59,14 +88,7 @@ export default function Home() {
     <div className="lp-page full-bleed relative space-y-0 pb-10">
       <ScrollProgressBar />
       {/* ---------- hero ---------- */}
-      {/* The landing hero is the same cluster the kids sign in page opens
-          with: the ministry's features orbiting the Sunday school figure,
-          the wordmark, and the two doors. Rendered inline rather than as the
-          fixed full screen layer that page uses, which is all .ic-inline
-          changes; the palette follows the site's own light and dark toggle. */}
-      <div className="ic-screen ic-inline full-bleed">
-        <SignInCluster />
-      </div>
+      <HeroCarousel slides={slides} />
 
       {/* ---------- flagship feature: the quiz, demonstrated ---------- */}
       <div className="lp-band lp-blob-bg full-bleed isolate px-4 lp-rhythm">
@@ -272,7 +294,22 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ---------- final CTA: brings the whole ecosystem together ---------- */}
+      {/* ---------- sign in: the kids sign in page, whole, at the foot of the
+           landing page ----------
+           The same cluster, wordmark, doors and copy a child meets at
+           /join, so the public site and the app open on one identical
+           screen. Rendered inline rather than as the fixed full screen
+           layer that page uses, which is all .ic-inline changes; the
+           palette follows the site's own light and dark toggle. */}
+      <div className="ic-screen ic-inline full-bleed">
+        <SignInCluster />
+        <SignInLower />
+      </div>
+
+      {/* ---------- final CTA: the two doors a child does not use ----------
+           The sign in block above is the children's way in, so this band
+           no longer repeats it: what is left here is the teacher's door,
+           the parent's door, and the feature tour. */}
       <div className="stage-glow full-bleed border-t border-[var(--hairline)] px-4 lp-rhythm text-center">
         <Reveal>
           <FloatingArt className="mx-auto w-36 sm:w-44">

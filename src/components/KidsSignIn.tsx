@@ -72,55 +72,7 @@ export default function KidsSignIn() {
 
       <SignInCluster />
 
-      <div className="ic-lower">
-        <div>
-          <div className="ic-grid">
-            {TILES.map((t) => (
-              <span key={t.label} className="ic-tile" style={{ background: `linear-gradient(160deg, ${t.from}, ${t.to})` }} title={t.label}>
-                <img src={t.src} alt={t.label} loading="lazy" />
-              </span>
-            ))}
-          </div>
-          <h2 className="ic-h2">
-            Everything from Sunday morning,
-            <br />
-            on any screen at home
-          </h2>
-          <p className="ic-p">
-            Your class, your lessons, your Bible Journey and your points live in one place. Sign in on a phone, a
-            tablet or the family laptop and pick up on the same verse you stopped at in church.
-          </p>
-        </div>
-
-        <div>
-          <div className="ic-plus" aria-hidden>
-            <span className="ic-blob ic-b2">
-              <img src="/journey/jacob-ladder-dream.jpg" alt="" />
-            </span>
-            <span className="ic-blob ic-b1">
-              <img src="/icons/bible-journey-book.png" alt="" />
-            </span>
-            <span className="ic-blob ic-b3">
-              <img src="/journey/noah-dove-olive-branch.jpg" alt="" />
-            </span>
-            <span className="ic-blob ic-b4">
-              <img src="/journey/abraham-isaac-ram-provided.jpg" alt="" />
-            </span>
-            <b className="ic-count">39</b>
-          </div>
-          <p className="ic-plus-name">Bible Journey</p>
-          <h2 className="ic-h2">
-            Every book of the
-            <br />
-            Old Testament, one stepping stone at a time
-          </h2>
-          <p className="ic-p">
-            Thirty nine books, each with its own painting, unlocked in order as a child finishes the one before.
-            Parents see the streak, teachers see the class. Read the <Link to="/safety">safety promise</Link> for what
-            we do and do not keep.
-          </p>
-        </div>
-      </div>
+      <SignInLower />
 
       <div className="ic-foot">
         <span>MFM Children&apos;s Ministry, Wuye</span>
@@ -180,5 +132,65 @@ export function SignInCluster() {
       I am new here
     </Link>
     </>
+  )
+}
+
+/**
+ * Everything that sits under the two doors: the app icon grid and the two
+ * columns of headline and copy. Exported for the same reason SignInCluster
+ * is - the landing page carries this block whole, so a child meets the same
+ * page on the public site as inside the app.
+ */
+export function SignInLower() {
+  return (
+    <div className="ic-lower">
+      <div>
+        <div className="ic-grid">
+          {TILES.map((t) => (
+            <span key={t.label} className="ic-tile" style={{ background: `linear-gradient(160deg, ${t.from}, ${t.to})` }} title={t.label}>
+              <img src={t.src} alt={t.label} loading="lazy" />
+            </span>
+          ))}
+        </div>
+        <h2 className="ic-h2">
+          Everything from Sunday morning,
+          <br />
+          on any screen at home
+        </h2>
+        <p className="ic-p">
+          Your class, your lessons, your Bible Journey and your points live in one place. Sign in on a phone, a
+          tablet or the family laptop and pick up on the same verse you stopped at in church.
+        </p>
+      </div>
+
+      <div>
+        <div className="ic-plus" aria-hidden>
+          <span className="ic-blob ic-b2">
+            <img src="/journey/jacob-ladder-dream.jpg" alt="" />
+          </span>
+          <span className="ic-blob ic-b1">
+            <img src="/icons/bible-journey-book.png" alt="" />
+          </span>
+          <span className="ic-blob ic-b3">
+            <img src="/journey/noah-dove-olive-branch.jpg" alt="" />
+          </span>
+          <span className="ic-blob ic-b4">
+            <img src="/journey/abraham-isaac-ram-provided.jpg" alt="" />
+          </span>
+          <b className="ic-count">39</b>
+        </div>
+        <p className="ic-plus-name">Bible Journey</p>
+        <h2 className="ic-h2">
+          Every book of the
+          <br />
+          Old Testament, one stepping stone at a time
+        </h2>
+        <p className="ic-p">
+          Thirty nine books, each with its own painting, unlocked in order as a child finishes the one before.
+          Parents see the streak, teachers see the class. Read the <Link to="/safety">safety promise</Link> for what
+          we do and do not keep.
+        </p>
+      </div>
+    </div>
   )
 }

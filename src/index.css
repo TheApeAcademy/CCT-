@@ -3494,16 +3494,19 @@ button:active, a:active {
    is the hero, so it sits in the flow and lets the page scroll normally.
    Everything else about the treatment, every .ic-screen rule above, is
    unchanged, which is the point of overriding rather than re-scoping. */
+/* The sign in screen as a band on the landing page rather than the fixed,
+   full screen layer it is at /join: same cluster, same doors, same copy
+   under them. It sits between two other bands now, so it carries a hairline
+   above it and the site's own section rhythm rather than the clearance it
+   needed when it was the hero under the nav. */
 .ic-screen.ic-inline {
   position: static;
   inset: auto;
   z-index: auto;
   overflow: visible;
-  /* Clear the site's own sticky nav. On the kids page this cluster starts at
-     the top of an empty screen; here the nav bar is above it, and without
-     this the orbiting tiles paint straight over the menu. */
-  padding-top: clamp(76px, 9vw, 116px);
-  padding-bottom: 8px;
+  border-top: 1px solid var(--lp-hairline);
+  padding-top: clamp(40px, 6vw, 72px);
+  padding-bottom: clamp(32px, 5vw, 56px);
 }
 /* On the kids page the palette is its own switch. Here it follows the site's
    toggle, so the hero is never light while the page around it is dark. */

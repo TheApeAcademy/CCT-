@@ -81,6 +81,8 @@ export default function Layout() {
   // down. It solidifies once scrolled so nav stays legible over page content
   // and reachable without scrolling back to top. Every other route keeps the
   // header solid immediately since there's no hero photo to float over.
+  // Light only applies where the theme applies at all.
+  const isLight = !isFullscreenQuiz && theme === 'light'
   const solidHeader = scrolled || !isHome
   const autoHidden = useAutoHideNav()
 
@@ -121,7 +123,22 @@ export default function Layout() {
   }
 
   return (
-    <div data-landing-theme={isLandingStyle ? theme : undefined} className="relative flex min-h-screen flex-col text-white">
+    <div
+      // Every route carries the theme now. It used to be landing-only, which
+      // is why a parent landing on their dashboard got a dark page inside an
+      // otherwise light site with no way to change it. The quiz stage opts
+      // out: it is painted as a dark stage on purpose.
+      //
+      // Both token systems have to move together. data-landing-theme re-points
+      // the --lp-* landing tokens; .site-light-theme re-points the --ink-*/--fg
+      // app tokens that every non-landing page actually paints from. Setting
+      // only the first gives a half lit page: landing panels turn light while
+      // the chrome around them stays dark.
+      data-landing-theme={isFullscreenQuiz ? undefined : theme}
+      className={`relative flex min-h-screen flex-col ${
+        isLight ? 'site-light-theme text-[var(--fg)]' : 'text-white'
+      }`}
+    >
       <StageBackground />
       <header
         className={`fixed inset-x-0 top-0 z-40 transition-all duration-300 ${
@@ -211,7 +228,11 @@ export default function Layout() {
               Join
             </NavLink>
 
-            {isLandingStyle && <ThemeToggle theme={theme} onToggle={toggleTheme} />}
+            {/* On every route now, not just the landing pages. A page with no
+                way to leave dark mode was the complaint; the quiz stage is the
+                one exception, since it is a deliberately dark stage and its
+                header is hidden while a match runs anyway. */}
+            {!isFullscreenQuiz && <ThemeToggle theme={theme} onToggle={toggleTheme} />}
 
             <button
               type="button"

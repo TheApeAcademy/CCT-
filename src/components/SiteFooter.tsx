@@ -73,7 +73,7 @@ export default function SiteFooter() {
               <ul className="mt-3 flex flex-col gap-2.5">
                 {col.links.map((l) => (
                   <li key={l.to}>
-                    <Link to={l.to} onClick={() => playNav()} className="text-sm font-semibold text-white/75 transition hover:text-white">
+                    <Link to={l.to} onClick={() => playNav()} className="text-sm font-semibold text-[var(--ink-muted)] transition hover:text-[var(--fg)]">
                       {l.label}
                     </Link>
                   </li>

@@ -740,20 +740,23 @@ button:active, a:active {
 .nav-cta-solid:active {
   transform: scale(0.97);
 }
+/* Painted from the tokens, not from white. The header carries a theme on
+   every route now, so a hardcoded white label here was invisible on every
+   light page. */
 .nav-cta-outline {
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
   background: transparent;
-  color: #fff;
+  color: var(--fg);
   font-weight: 800;
   border-radius: 8px;
-  border: 1.5px solid rgba(255, 255, 255, 0.6);
+  border: 1.5px solid color-mix(in srgb, var(--fg) 45%, transparent);
   transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 .nav-cta-outline:hover {
-  border-color: #fff;
-  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--fg);
+  background: color-mix(in srgb, var(--fg) 8%, transparent);
 }
 
 /* ==================== landing page theme (scoped) ====================
@@ -1175,10 +1178,9 @@ button:active, a:active {
   transform: rotate(-8deg) scale(1.08);
 }
 
-/* The header's plain icon controls. Same 40px pill as .lp-theme-toggle next
-   to it, but built on the app tokens rather than the --lp-* landing ones,
-   because this button also renders on routes that never set a landing
-   theme. Sizes and radii are kept in step with .lp-theme-toggle by hand. */
+/* The header's plain icon controls. Same 2.5rem height as .lp-theme-switch
+   next to it, but built on the app tokens rather than the --lp-* landing
+   ones. Sizes and radii are kept in step with the switch by hand. */
 /* One card for every Bible character: same frame, same crop, same caption
    block, so the grid reads as rows rather than as a pile. */
 .character-card {
@@ -1229,37 +1231,117 @@ button:active, a:active {
   transform: scale(0.93);
 }
 
-.lp-theme-toggle {
+/* The light/dark switch, in the header on every route but the quiz stage.
+   A track with both ends showing and a knob that slides between them, so the
+   control reads as two states rather than one button with a changing icon.
+
+   Sized in rem against the 2.5rem icon buttons beside it so the header row
+   keeps one height. */
+.lp-theme-switch {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
+  flex: none;
   height: 2.5rem;
-  width: 2.5rem;
+  width: 4rem;
+  padding: 0;
   border-radius: var(--lp-radius-pill);
   border: 1px solid var(--lp-hairline-strong);
   background: color-mix(in srgb, var(--lp-bg-panel) 70%, transparent);
-  color: var(--lp-heading);
   backdrop-filter: blur(6px);
-  transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
 }
-.lp-theme-toggle:hover {
+.lp-theme-switch:hover {
   border-color: var(--lp-accent-fill);
 }
-.lp-theme-toggle:active {
-  transform: scale(0.93);
+.lp-theme-switch:focus-visible {
+  outline: 2px solid var(--lp-accent-fill);
+  outline-offset: 2px;
 }
-@keyframes lp-theme-icon-pop {
-  from {
-    transform: rotate(-90deg) scale(0.6);
-    opacity: 0;
-  }
-  to {
-    transform: rotate(0deg) scale(1);
-    opacity: 1;
-  }
+
+/* The two fixed ends. They sit under the knob and stay dim: the knob is what
+   carries the current state at full contrast. */
+.lp-theme-switch-end {
+  position: absolute;
+  top: 50%;
+  height: 0.875rem;
+  width: 0.875rem;
+  margin-top: -0.4375rem;
+  color: var(--lp-heading);
+  opacity: 0.4;
+  transition: opacity 0.3s ease;
 }
-.lp-theme-toggle-icon {
-  animation: lp-theme-icon-pop 0.25s ease-out;
+.lp-theme-switch-end.is-sun {
+  left: 0.5rem;
+}
+.lp-theme-switch-end.is-moon {
+  right: 0.5rem;
+}
+/* Whichever end the knob is covering does not need to show through it. */
+.lp-theme-switch:not(.is-dark) .lp-theme-switch-end.is-sun,
+.lp-theme-switch.is-dark .lp-theme-switch-end.is-moon {
+  opacity: 0;
+}
+
+.lp-theme-switch-knob {
+  position: absolute;
+  top: 50%;
+  left: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.875rem;
+  width: 1.875rem;
+  margin-top: -0.9375rem;
+  border-radius: 999px;
+  background: var(--lp-accent-fill);
+  color: var(--lp-accent-fill-ink);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+  /* A touch of overshoot at the end of the travel, which is what makes it
+     feel like a switch being thrown rather than a box being moved. */
+  transition: transform 0.42s cubic-bezier(0.34, 1.32, 0.52, 1);
+  transform: translateX(0);
+}
+.lp-theme-switch.is-dark .lp-theme-switch-knob {
+  transform: translateX(1.5rem);
+}
+.lp-theme-switch:active .lp-theme-switch-knob {
+  height: 1.75rem;
+  width: 1.75rem;
+  margin-top: -0.875rem;
+}
+
+/* Both icons are mounted; they cross-fade and turn rather than swapping, so
+   there is no frame where the knob is empty. */
+.lp-theme-switch-knob-icon {
+  position: absolute;
+  height: 0.9375rem;
+  width: 0.9375rem;
+  transition: opacity 0.28s ease, transform 0.42s cubic-bezier(0.34, 1.32, 0.52, 1);
+}
+.lp-theme-switch-knob-icon.is-sun {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+.lp-theme-switch-knob-icon.is-moon {
+  opacity: 0;
+  transform: rotate(-70deg) scale(0.5);
+}
+.lp-theme-switch.is-dark .lp-theme-switch-knob-icon.is-sun {
+  opacity: 0;
+  transform: rotate(70deg) scale(0.5);
+}
+.lp-theme-switch.is-dark .lp-theme-switch-knob-icon.is-moon {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-theme-switch-knob,
+  .lp-theme-switch-knob-icon,
+  .lp-theme-switch-end {
+    transition-duration: 0.01ms;
+  }
 }
 
 /* A deliberate, designed stand-in for a photo that doesn't exist yet -
@@ -3706,7 +3788,7 @@ button:active, a:active {
   font-size: 12px;
   font-weight: 700;
   line-height: 1.4;
-  color: #ffffff;
+  color: var(--fg);
 }
 .zeb-cta-link {
   display: inline-flex;

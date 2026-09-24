@@ -16,20 +16,29 @@ export default function ThemeToggle({
   onToggle: () => void
   className?: string
 }) {
+  const isDark = theme === 'dark'
+  const label = isDark ? 'Switch to light mode' : 'Switch to dark mode'
   return (
     <button
       type="button"
+      role="switch"
+      aria-checked={isDark}
       onClick={() => {
         onToggle()
-        playToggle(theme === 'dark')
+        playToggle(isDark)
         haptics.tap()
       }}
-      className={`lp-theme-toggle ${className}`}
-      aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-      title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+      className={`lp-theme-switch ${isDark ? 'is-dark' : ''} ${className}`}
+      aria-label={label}
+      title={label}
     >
-      <span key={theme} className="lp-theme-toggle-icon flex items-center justify-center">
-        {theme === 'dark' ? <Sun className="h-4 w-4" strokeWidth={2} /> : <Moon className="h-4 w-4" strokeWidth={2} />}
+      {/* Both ends of the track stay visible, so the control reads as a
+          switch between two states rather than a button showing one. */}
+      <Sun className="lp-theme-switch-end is-sun" strokeWidth={2.25} aria-hidden="true" />
+      <Moon className="lp-theme-switch-end is-moon" strokeWidth={2.25} aria-hidden="true" />
+      <span className="lp-theme-switch-knob" aria-hidden="true">
+        <Sun className="lp-theme-switch-knob-icon is-sun" strokeWidth={2.5} />
+        <Moon className="lp-theme-switch-knob-icon is-moon" strokeWidth={2.5} />
       </span>
     </button>
   )

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Lock, Check, Star, ArrowLeft, ChevronLeft, ChevronRight, Sparkles, BookOpen, Flame, Coins } from 'lucide-react'
+import { Lock, Check, Star, ArrowLeft, ChevronLeft, ChevronRight, Sparkles, BookOpen, Flame, Coins, X } from 'lucide-react'
 import {
   JOURNEY_BOOKS,
   getJourneyBook,
@@ -768,11 +769,31 @@ function StatsPanel({ stats, lesson, big }: { stats: JourneyStats | null; lesson
 type LearnStep = { kind: 'card'; text: string; emoji: string; ref: string; image?: string } | { kind: 'groupcheck'; check: JourneyCheckCard }
 
 /**
- * cards -> groupCheck (the "3-4 pages, then a question" pass), then a
- * mastery round over every masteryQuestions entry: answering one wrong
- * doesn't skip it - it shows the explanation and requeues that question to
- * the back of the line, so the lesson can't complete until every single
- * one has been answered right at least once.
+ * The lesson player, built as a replica of a Duolingo lesson rather than a
+ * card sitting inside the Sunday School tab.
+ *
+ * Duolingo's lesson owns the whole screen: a close cross top left, one fat
+ * rounded progress bar across the top, the reward top right, the exercise in
+ * the middle, and a footer bar that is grey while you choose, then turns
+ * green or red once you answer. That footer is the whole reason an answer is
+ * a two step action there - you pick an option, then press CHECK - so this
+ * follows the same two steps rather than marking right or wrong the instant
+ * a child taps.
+ *
+ * Two things are ours rather than theirs. The slot Duolingo fills with hearts
+ * carries the lesson's points instead, because this game has no lives to
+ * lose. And a teaching page is laid out as a Duolingo Stories page, the
+ * character on the left with the line in a speech bubble beside it, because
+ * our teaching step is a picture and a sentence.
+ *
+ * It has to go through a portal: KidsShell renders its header at z-40 and its
+ * main at z-10, so anything inside main is capped below that header whatever
+ * z-index it climbs to.
+ *
+ * Order of play is unchanged: cards then their group check, then a mastery
+ * round over every mastery question, where getting one wrong requeues it to
+ * the back of the line so the lesson cannot finish until each has been
+ * answered right at least once.
  */
 function LessonRunner({ bookKey, lessonKey, onDone }: { bookKey: string; lessonKey: string; onDone: () => void }) {
   const found = findLesson(lessonKey)
@@ -783,6 +804,17 @@ function LessonRunner({ bookKey, lessonKey, onDone }: { bookKey: string; lessonK
   const [wrongOnce, setWrongOnce] = useState<Set<number>>(new Set())
   const [selected, setSelected] = useState<number | null>(null)
   const [showResult, setShowResult] = useState(false)
+
+  // The lesson is a fixed full screen layer, so the page underneath must not
+  // keep its own scrollbar or a phone scrolls the wrong thing under the
+  // child's finger.
+  useEffect(() => {
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [])
 
   const learnSteps: LearnStep[] = useMemo(() => {
     if (!lesson) return []
@@ -797,14 +829,27 @@ function LessonRunner({ bookKey, lessonKey, onDone }: { bookKey: string; lessonK
 
   const totalMastery = lesson.masteryQuestions.length
   const masteredCount = totalMastery - queue.length
+  const learnStep = phase === 'learn' ? learnSteps[stepIndex] : null
+  const activeCheck: JourneyCheckCard | null =
+    phase === 'mastery' ? lesson.masteryQuestions[queue[0]] : learnStep && learnStep.kind === 'groupcheck' ? learnStep.check : null
+  const isCorrect = activeCheck ? selected === activeCheck.correctIndex : false
 
-  const chooseLearn = (idx: number) => {
+  const pick = (idx: number) => {
     if (showResult) return
     playClick()
+    haptics.tap()
     setSelected(idx)
+  }
+
+  const check = () => {
+    if (!activeCheck || selected === null || showResult) return
+    playClick()
     setShowResult(true)
-    if (idx === (learnSteps[stepIndex] as { kind: 'groupcheck'; check: JourneyCheckCard }).check.correctIndex) haptics.success()
-    else haptics.error()
+    if (selected === activeCheck.correctIndex) haptics.success()
+    else {
+      haptics.error()
+      if (phase === 'mastery') setWrongOnce((prev) => new Set(prev).add(queue[0]))
+    }
   }
 
   const advanceLearn = async () => {
@@ -825,19 +870,6 @@ function LessonRunner({ bookKey, lessonKey, onDone }: { bookKey: string; lessonK
     setPhase('mastery')
   }
 
-  const chooseMastery = (idx: number) => {
-    if (showResult) return
-    playClick()
-    setSelected(idx)
-    setShowResult(true)
-    const currentQ = lesson.masteryQuestions[queue[0]]
-    if (idx === currentQ.correctIndex) haptics.success()
-    else {
-      haptics.error()
-      setWrongOnce((prev) => new Set(prev).add(queue[0]))
-    }
-  }
-
   const advanceMastery = async () => {
     playClick()
     const currentIdx = queue[0]
@@ -855,183 +887,197 @@ function LessonRunner({ bookKey, lessonKey, onDone }: { bookKey: string; lessonK
     setQueue(nextQueue)
   }
 
-  if (phase === 'celebrate') {
-    return (
-      <div className="relative space-y-4 py-6 text-center">
-        <Confetti active />
-        <div className="text-6xl">🎉</div>
-        <p className="font-display text-2xl font-extrabold">Lesson Complete!</p>
-        <p className="text-sm text-[var(--ink-muted)]">
-          {totalMastery}/{totalMastery} mastered · {totalMastery - wrongOnce.size} right on the first try · +15 points
-        </p>
-        <button onClick={onDone} className="btn-solid w-full py-3">
-          Continue
-        </button>
-      </div>
-    )
-  }
+  const advance = phase === 'learn' ? advanceLearn : advanceMastery
 
   const progressPct =
-    phase === 'learn' ? ((stepIndex + 1) / learnSteps.length) * 60 : 60 + (totalMastery ? masteredCount / totalMastery : 1) * 40
+    phase === 'celebrate'
+      ? 100
+      : phase === 'learn'
+        ? ((stepIndex + 1) / learnSteps.length) * 60
+        : 60 + (totalMastery ? masteredCount / totalMastery : 1) * 40
 
-  return (
-    <div className="space-y-4">
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--lp-hairline)]">
-        <div className="h-full rounded-full transition-all" style={{ width: `${progressPct}%`, background: ACCENT }} />
-      </div>
-      {phase === 'mastery' && (
-        <p className="text-center text-xs font-bold text-[var(--ink-muted)]">
-          Mastery round · {masteredCount}/{totalMastery} answered right
+  // A teaching page has nothing to get wrong, so its footer is one plain
+  // Continue. A question's footer is Check until it has been answered.
+  const needsCheck = activeCheck !== null && !showResult
+  const footState = !showResult ? '' : isCorrect ? 'is-good' : 'is-bad'
+
+  const screen = (
+    <div className="dl-screen">
+      <header className="dl-top">
+        <button className="dl-x" onClick={onDone} aria-label="Leave the lesson">
+          <X className="h-6 w-6" strokeWidth={3} />
+        </button>
+        <div className="dl-bar" role="progressbar" aria-valuenow={Math.round(progressPct)} aria-valuemin={0} aria-valuemax={100}>
+          <div className="dl-bar-fill" style={{ width: `${Math.max(progressPct, 6)}%` }}>
+            <span className="dl-bar-shine" />
+          </div>
+        </div>
+        <p className="dl-reward">
+          <Coins className="h-5 w-5" /> 15
         </p>
-      )}
+      </header>
 
-      <AnimatePresence mode="wait" initial={false}>
-        {phase === 'learn' ? (
-          <LearnStepView
-            key={`learn-${stepIndex}`}
-            step={learnSteps[stepIndex]}
-            selected={selected}
-            showResult={showResult}
-            onChoose={chooseLearn}
-            onAdvance={advanceLearn}
-          />
-        ) : (
-          <MasteryStepView
-            key={`mastery-${queue[0]}-${masteredCount}`}
-            check={lesson.masteryQuestions[queue[0]]}
-            selected={selected}
-            showResult={showResult}
-            onChoose={chooseMastery}
-            onAdvance={advanceMastery}
-          />
-        )}
-      </AnimatePresence>
+      <main className="dl-main">
+        <div className="dl-stage">
+          {phase === 'celebrate' ? (
+            <LessonComplete total={totalMastery} firstTry={totalMastery - wrongOnce.size} />
+          ) : (
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div
+                key={phase === 'learn' ? `learn-${stepIndex}` : `mastery-${queue[0]}-${masteredCount}`}
+                initial={{ opacity: 0, x: 24 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -24 }}
+                transition={{ duration: 0.18 }}
+              >
+                {activeCheck ? (
+                  <QuestionStep
+                    eyebrow={phase === 'mastery' ? 'Mastery round' : 'Quick check'}
+                    check={activeCheck}
+                    selected={selected}
+                    showResult={showResult}
+                    onPick={pick}
+                  />
+                ) : learnStep && learnStep.kind === 'card' ? (
+                  <StoryStep step={learnStep} />
+                ) : null}
+              </motion.div>
+            </AnimatePresence>
+          )}
+        </div>
+      </main>
+
+      <footer className={`dl-foot ${footState}`}>
+        <div className="dl-foot-in">
+          {showResult && activeCheck && (
+            <div className="dl-verdict">
+              <span className="dl-verdict-mark">
+                {isCorrect ? <Check className="h-5 w-5" strokeWidth={4} /> : <X className="h-5 w-5" strokeWidth={4} />}
+              </span>
+              <div>
+                <p className="dl-verdict-title">{isCorrect ? 'Nice!' : 'Correct answer:'}</p>
+                {!isCorrect && <p className="dl-verdict-answer">{activeCheck.options[activeCheck.correctIndex]}</p>}
+                {!isCorrect && activeCheck.explanation && <p className="dl-verdict-why">{activeCheck.explanation}</p>}
+                {!isCorrect && phase === 'mastery' && <p className="dl-verdict-why">This one will come back around.</p>}
+              </div>
+            </div>
+          )}
+
+          {phase === 'celebrate' ? (
+            <button className="dl-btn dl-btn-go" onClick={onDone}>
+              Continue
+            </button>
+          ) : needsCheck ? (
+            <button className="dl-btn dl-btn-go" onClick={check} disabled={selected === null}>
+              Check
+            </button>
+          ) : (
+            <button className={`dl-btn ${showResult ? (isCorrect ? 'dl-btn-good' : 'dl-btn-bad') : 'dl-btn-go'}`} onClick={advance}>
+              Continue
+            </button>
+          )}
+        </div>
+      </footer>
+    </div>
+  )
+
+  return createPortal(screen, document.body)
+}
+
+/** A teaching page, laid out as a Duolingo Stories page. */
+function StoryStep({ step }: { step: Extract<LearnStep, { kind: 'card' }> }) {
+  return (
+    <div>
+      <p className="dl-eyebrow">
+        <span className="dl-eyebrow-dot">
+          <Sparkles className="h-3.5 w-3.5" strokeWidth={3} />
+        </span>
+        New story
+      </p>
+      <div className="dl-story">
+        <div className="dl-avatar">
+          {step.image ? <img src={step.image} alt="" /> : <span className="dl-emoji">{step.emoji}</span>}
+        </div>
+        <div className="dl-bubble">
+          <p className="dl-bubble-text">{step.text}</p>
+          <a href={bibleComUrl(step.ref)} target="_blank" rel="noreferrer" className="dl-ref">
+            <BookOpen className="h-3.5 w-3.5" /> {step.ref}
+          </a>
+        </div>
+      </div>
     </div>
   )
 }
 
-function LearnStepView({
-  step,
-  selected,
-  showResult,
-  onChoose,
-  onAdvance,
-}: {
-  step: LearnStep
-  selected: number | null
-  showResult: boolean
-  onChoose: (idx: number) => void
-  onAdvance: () => void
-}) {
-  return (
-    <motion.div initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.2 }}>
-      {step.kind === 'card' ? (
-        <div className="panel space-y-4 p-6 text-center">
-          {step.image ? (
-            <img src={step.image} alt="" className="mx-auto h-40 w-full rounded-lg object-cover" />
-          ) : (
-            <div className="text-5xl">{step.emoji}</div>
-          )}
-          <p className="text-base leading-relaxed">{step.text}</p>
-          <a
-            href={bibleComUrl(step.ref)}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1 rounded-full border border-[var(--lp-hairline)] px-3 py-1 text-xs font-bold text-[var(--ink-muted)] transition hover:text-[var(--lp-heading)]"
-          >
-            <BookOpen className="h-3 w-3" /> {step.ref}
-          </a>
-          <button onClick={onAdvance} className="btn-solid w-full py-3">
-            Got it, next
-          </button>
-        </div>
-      ) : (
-        <CheckCard
-          check={step.check}
-          selected={selected}
-          showResult={showResult}
-          onChoose={onChoose}
-          onAdvance={onAdvance}
-          heading="Quick check"
-        />
-      )}
-    </motion.div>
-  )
-}
-
-function MasteryStepView({
+/** One multiple choice exercise, laid out as a Duolingo exercise. */
+function QuestionStep({
+  eyebrow,
   check,
   selected,
   showResult,
-  onChoose,
-  onAdvance,
+  onPick,
 }: {
+  eyebrow: string
   check: JourneyCheckCard
   selected: number | null
   showResult: boolean
-  onChoose: (idx: number) => void
-  onAdvance: () => void
+  onPick: (idx: number) => void
 }) {
   return (
-    <motion.div initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={{ duration: 0.2 }}>
-      <CheckCard check={check} selected={selected} showResult={showResult} onChoose={onChoose} onAdvance={onAdvance} heading="Mastery round" />
-    </motion.div>
-  )
-}
-
-function CheckCard({
-  check,
-  selected,
-  showResult,
-  onChoose,
-  onAdvance,
-  heading,
-}: {
-  check: JourneyCheckCard
-  selected: number | null
-  showResult: boolean
-  onChoose: (idx: number) => void
-  onAdvance: () => void
-  heading: string
-}) {
-  const isWrong = showResult && selected !== check.correctIndex
-  return (
-    <div className="panel space-y-3 p-6">
-      <p className="flex items-center gap-1.5 text-xs font-bold uppercase text-[var(--ink-muted)]">
-        <Sparkles className="h-3.5 w-3.5" /> {heading}
+    <div>
+      <p className="dl-eyebrow">
+        <span className="dl-eyebrow-dot">
+          <Sparkles className="h-3.5 w-3.5" strokeWidth={3} />
+        </span>
+        {eyebrow}
       </p>
-      <p className="font-display text-lg font-bold">{check.question}</p>
-      <div className="space-y-2">
+      <h2 className="dl-q">{check.question}</h2>
+      <div className="dl-opts">
         {check.options.map((opt, idx) => {
-          const isCorrect = idx === check.correctIndex
-          const isPicked = idx === selected
+          const picked = idx === selected
+          const state = !showResult
+            ? picked
+              ? 'is-pick'
+              : ''
+            : idx === check.correctIndex
+              ? 'is-good'
+              : picked
+                ? 'is-bad'
+                : ''
           return (
-            <button
-              key={idx}
-              onClick={() => onChoose(idx)}
-              disabled={showResult}
-              className="w-full rounded-md border-2 p-3 text-left text-sm font-bold transition"
-              style={{
-                borderColor: showResult && isCorrect ? '#4caf6d' : showResult && isPicked ? '#e05f5f' : 'var(--lp-hairline-strong)',
-                background: showResult && isCorrect ? 'color-mix(in srgb, #4caf6d 14%, transparent)' : showResult && isPicked ? 'color-mix(in srgb, #e05f5f 14%, transparent)' : 'transparent',
-              }}
-            >
-              {opt}
+            <button key={idx} onClick={() => onPick(idx)} disabled={showResult} className={`dl-opt ${state}`}>
+              <span className="dl-opt-num">{idx + 1}</span>
+              <span className="dl-opt-text">{opt}</span>
             </button>
           )
         })}
       </div>
-      {isWrong && check.explanation && (
-        <p className="rounded-md bg-[var(--lp-hairline)] p-3 text-sm text-[var(--ink-muted)]">{check.explanation}</p>
-      )}
-      {isWrong && (
-        <p className="text-center text-xs font-bold text-[var(--ink-muted)]">Not quite - this one will come back around.</p>
-      )}
-      {showResult && (
-        <button onClick={onAdvance} className="btn-solid w-full py-3">
-          Continue
-        </button>
-      )}
+    </div>
+  )
+}
+
+/** Duolingo's end of lesson page: the title, then the run of stat pills. */
+function LessonComplete({ total, firstTry }: { total: number; firstTry: number }) {
+  const accuracy = total === 0 ? 100 : Math.round((firstTry / total) * 100)
+  return (
+    <div className="dl-done">
+      <Confetti active />
+      <p className="dl-done-emoji">🎉</p>
+      <h2 className="dl-done-title">Lesson complete!</h2>
+      <div className="dl-stats">
+        <div className="dl-stat dl-stat-xp">
+          <p className="dl-stat-label">Total points</p>
+          <p className="dl-stat-value">
+            <Coins className="h-5 w-5" /> 15
+          </p>
+        </div>
+        <div className="dl-stat dl-stat-good">
+          <p className="dl-stat-label">Right first try</p>
+          <p className="dl-stat-value">
+            <Star className="h-5 w-5" /> {accuracy}%
+          </p>
+        </div>
+      </div>
     </div>
   )
 }

@@ -2912,3 +2912,496 @@ button:active, a:active {
   justify-content: center;
   gap: 6px 18px;
 }
+
+/* ---------- Bible Journey lesson: the Duolingo lesson screen ----------
+   A replica of a Duolingo lesson, which is the reference Banks set for this
+   screen. Their shape: a cross and one fat progress bar across the top, the
+   exercise centred in the middle, and a footer bar that is neutral while you
+   choose and then turns green or red once you answer.
+
+   The palette is ours - the journey's warm accent carries the primary button
+   and the progress fill - but correct and wrong stay green and red, because
+   those two are meaning rather than brand. The page is white in both app
+   themes, the same way the class page is: a lesson is a takeover, and
+   Duolingo's is white. */
+.dl-screen {
+  --dl-ink: #3c3c3c;
+  --dl-sub: #777777;
+  --dl-line: #e5e5e5;
+  --dl-ground: #ffffff;
+  --dl-wash: #f7f7f7;
+  --dl-pick: #ddf4ff;
+  --dl-pick-line: #84d8ff;
+  --dl-pick-ink: #1899d6;
+  --dl-good: #58cc02;
+  --dl-good-edge: #46a302;
+  --dl-good-wash: #d7ffb8;
+  --dl-good-ink: #4b8f01;
+  --dl-bad: #ff4b4b;
+  --dl-bad-edge: #d33131;
+  --dl-bad-wash: #ffdfe0;
+  --dl-bad-ink: #ea2b2b;
+  --dl-accent: #e0793f;
+  --dl-accent-edge: #b3592a;
+
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  background: var(--dl-ground);
+  color: var(--dl-ink);
+}
+
+/* top bar */
+.dl-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 14px;
+  max-width: 1000px;
+  width: 100%;
+  margin: 0 auto;
+}
+.dl-x {
+  flex: none;
+  color: #afafaf;
+  transition: color 0.12s;
+}
+.dl-x:hover {
+  color: var(--dl-sub);
+}
+.dl-bar {
+  position: relative;
+  flex: 1;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--dl-line);
+  overflow: hidden;
+}
+.dl-bar-fill {
+  position: relative;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--dl-accent);
+  transition: width 0.3s ease;
+}
+/* Duolingo's bar carries a lighter stripe inside the fill, inset from both
+   ends, which is what stops it reading as a flat block of colour. */
+.dl-bar-shine {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.35);
+}
+/* Duolingo puts hearts here. This game has no lives to lose, so the slot
+   carries what the lesson is actually worth. */
+.dl-reward {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 800;
+  font-size: 17px;
+  color: var(--dl-accent);
+}
+
+/* middle */
+.dl-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  overflow-y: auto;
+  padding-block: 12px 24px;
+}
+.dl-stage {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.dl-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--dl-accent);
+}
+.dl-eyebrow-dot {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--dl-accent);
+  color: #fff;
+}
+
+.dl-q {
+  font-size: clamp(22px, 5vw, 30px);
+  font-weight: 800;
+  /* 1.25 cut it fine enough that the display face's own glyph box overflowed
+     the line box by 4px, which paints outside the heading rather than inside
+     it. 1.35 holds the ink. */
+  line-height: 1.35;
+  text-wrap: balance;
+  margin-bottom: 24px;
+}
+
+.dl-opts {
+  display: grid;
+  gap: 12px;
+}
+.dl-opt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 14px 16px;
+  border: 2px solid var(--dl-line);
+  border-bottom-width: 4px;
+  border-radius: 14px;
+  background: var(--dl-ground);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--dl-ink);
+  transition:
+    background 0.1s,
+    border-color 0.1s,
+    color 0.1s;
+}
+.dl-opt:not(:disabled):active {
+  transform: translateY(2px);
+  border-bottom-width: 2px;
+  margin-bottom: 2px;
+}
+.dl-opt.is-pick {
+  border-color: var(--dl-pick-line);
+  background: var(--dl-pick);
+  color: var(--dl-pick-ink);
+}
+.dl-opt.is-good {
+  border-color: var(--dl-good);
+  background: var(--dl-good-wash);
+  color: var(--dl-good-ink);
+}
+.dl-opt.is-bad {
+  border-color: var(--dl-bad);
+  background: var(--dl-bad-wash);
+  color: var(--dl-bad-ink);
+}
+.dl-opt-num {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 2px solid currentColor;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 800;
+  opacity: 0.45;
+}
+.dl-opt-text {
+  flex: 1;
+}
+
+/* a teaching page, as a Duolingo Stories page */
+.dl-story {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.dl-avatar {
+  flex: none;
+  width: 104px;
+  aspect-ratio: 1;
+  border-radius: 20px;
+  overflow: hidden;
+  background: var(--dl-wash);
+  display: grid;
+  place-items: center;
+}
+.dl-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+/* Most teaching pages have no painting, only an emoji, and at 44px it sat in
+   the middle of the box like a thumbnail. Duolingo's character fills its
+   space, so this does too. */
+.dl-emoji {
+  font-size: 56px;
+  line-height: 1;
+}
+.dl-bubble {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  border: 2px solid var(--dl-line);
+  border-radius: 18px;
+  padding: 16px 18px;
+  background: var(--dl-ground);
+}
+.dl-bubble::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 30px;
+  width: 12px;
+  height: 12px;
+  transform: rotate(45deg);
+  background: var(--dl-ground);
+  border-left: 2px solid var(--dl-line);
+  border-bottom: 2px solid var(--dl-line);
+}
+.dl-bubble-text {
+  font-size: 17px;
+  line-height: 1.6;
+  font-weight: 500;
+}
+.dl-ref {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 4px 12px;
+  border: 2px solid var(--dl-line);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--dl-sub);
+  transition: border-color 0.12s;
+}
+.dl-ref:hover {
+  border-color: var(--dl-accent);
+  color: var(--dl-accent);
+}
+
+/* footer */
+.dl-foot {
+  border-top: 2px solid var(--dl-line);
+  background: var(--dl-ground);
+  transition:
+    background 0.12s,
+    border-color 0.12s;
+}
+.dl-foot.is-good {
+  background: var(--dl-good-wash);
+  border-top-color: transparent;
+}
+.dl-foot.is-bad {
+  background: var(--dl-bad-wash);
+  border-top-color: transparent;
+}
+.dl-foot-in {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+}
+.dl-verdict {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.dl-foot.is-good .dl-verdict {
+  color: var(--dl-good-ink);
+}
+.dl-foot.is-bad .dl-verdict {
+  color: var(--dl-bad-ink);
+}
+.dl-verdict-mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: var(--dl-ground);
+}
+.dl-verdict-title {
+  font-size: 19px;
+  font-weight: 800;
+}
+.dl-verdict-answer {
+  font-size: 15px;
+  font-weight: 700;
+}
+.dl-verdict-why {
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.dl-btn {
+  width: 100%;
+  padding: 14px 16px;
+  border: 0;
+  border-bottom: 4px solid transparent;
+  border-radius: 16px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #fff;
+  transition:
+    background 0.1s,
+    filter 0.1s;
+}
+.dl-btn:not(:disabled):active {
+  transform: translateY(4px);
+  border-bottom-width: 0;
+  margin-bottom: 4px;
+}
+.dl-btn:disabled {
+  background: var(--dl-line);
+  border-bottom-color: var(--dl-line);
+  color: #afafaf;
+  cursor: default;
+}
+.dl-btn-go {
+  background: var(--dl-accent);
+  border-bottom-color: var(--dl-accent-edge);
+}
+.dl-btn-good {
+  background: var(--dl-good);
+  border-bottom-color: var(--dl-good-edge);
+}
+.dl-btn-bad {
+  background: var(--dl-bad);
+  border-bottom-color: var(--dl-bad-edge);
+}
+
+/* end of lesson */
+.dl-done {
+  text-align: center;
+}
+.dl-done-emoji {
+  font-size: 64px;
+  line-height: 1;
+}
+.dl-done-title {
+  margin-top: 12px;
+  font-size: clamp(26px, 6vw, 36px);
+  font-weight: 800;
+  color: var(--dl-accent);
+}
+.dl-stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 24px;
+}
+/* Duolingo's end of lesson pills: a coloured band naming the stat, the
+   figure on white under it, the whole thing ringed in the same colour. */
+.dl-stat {
+  min-width: 150px;
+  border: 2px solid;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.dl-stat-label {
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #fff;
+}
+.dl-stat-value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  font-size: 22px;
+  font-weight: 800;
+  background: var(--dl-ground);
+}
+.dl-stat-xp {
+  border-color: var(--dl-accent);
+}
+.dl-stat-xp .dl-stat-label {
+  background: var(--dl-accent);
+}
+.dl-stat-xp .dl-stat-value {
+  color: var(--dl-accent);
+}
+.dl-stat-good {
+  border-color: var(--dl-good);
+}
+.dl-stat-good .dl-stat-label {
+  background: var(--dl-good);
+}
+.dl-stat-good .dl-stat-value {
+  color: var(--dl-good-ink);
+}
+
+/* From a tablet up Duolingo puts the verdict on the left of the footer and
+   the button on the right, rather than stacking them. The footer's column is
+   the same 600px as the exercise above it, so the button's right edge lines
+   up with the right edge of the answers rather than floating past them. */
+@media (min-width: 700px) {
+  .dl-foot-in {
+    flex-direction: row;
+    align-items: center;
+    /* flex-end, not space-between: a teaching page has no verdict, and
+       space-between would leave its lone Continue button stranded on the
+       left. The verdict pushes itself over with margin-right: auto. */
+    justify-content: flex-end;
+    gap: 20px;
+  }
+  .dl-verdict {
+    margin-right: auto;
+  }
+  .dl-btn {
+    width: 200px;
+    flex: none;
+  }
+  /* Duolingo's character is big on a wide screen; at 104px ours read as a
+     thumbnail beside the speech bubble. */
+  .dl-avatar {
+    width: 140px;
+  }
+  .dl-emoji {
+    font-size: 72px;
+  }
+  .dl-bubble {
+    padding: 20px 22px;
+  }
+  .dl-bubble-text {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 420px) {
+  .dl-avatar {
+    width: 76px;
+    border-radius: 16px;
+  }
+  .dl-emoji {
+    font-size: 40px;
+  }
+  .dl-bubble {
+    padding: 13px 14px;
+  }
+  .dl-bubble-text {
+    font-size: 15.5px;
+  }
+}

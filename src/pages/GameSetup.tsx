@@ -5,11 +5,12 @@ import { db, ensureSeedData, ensureActiveSeason, createMatch } from '../db/db'
 import { playClick, playToggle, playNav } from '../lib/sound'
 import { haptics } from '../lib/haptics'
 import { selectQuestionsForGame } from '../lib/selectQuestions'
-import { LADDER } from '../lib/ladder'
+import { DEFAULT_QUESTION_COUNT } from '../lib/ladder'
 import { fileToResizedDataUrl } from '../lib/image'
 import type { GameConfig, Question } from '../db/types'
 
 const TIMER_OPTIONS = [15, 20, 30, 45, 60]
+const COUNT_OPTIONS = [5, 10, 15, 20, 25, 30]
 const MAX_TEAMS = 10
 
 const emptyQuestionForm = {
@@ -47,11 +48,20 @@ export default function GameSetup() {
   const [linkErrors, setLinkErrors] = useState<(string | undefined)[]>([undefined])
   const [linkBusyIndex, setLinkBusyIndex] = useState<number | null>(null)
   const [seasonFilter, setSeasonFilter] = useState<number | 'all'>('all')
-  const [setId, setSetId] = useState<number | null>(null)
+  // A quiz can pull from any number of question sets at once - the first
+  // one ticked doubles as the "primary" set older code (and the quick-add
+  // panel's default target) expects.
+  const [setIds, setSetIds] = useState<number[]>([])
+  const setId = setIds[0] ?? null
+  const setIdsKey = setIds.join(',')
+  // How many questions this quiz has - any number, not a fixed 10.
+  const [numQuestions, setNumQuestions] = useState(DEFAULT_QUESTION_COUNT)
+  const [customCount, setCustomCount] = useState('')
+  const [quickTargetSetId, setQuickTargetSetId] = useState<number | null>(null)
   const [mode, setMode] = useState<'marathon' | 'rotational'>('marathon')
   const [questionMode, setQuestionMode] = useState<'random' | 'selected' | 'pickNumber'>('random')
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<Set<number>>(new Set())
-  const seededSetIdRef = useRef<number | null>(null)
+  const seededSetIdRef = useRef<string | null>(null)
   const [timerSeconds, setTimerSeconds] = useState(30)
   const [customTimer, setCustomTimer] = useState('')
   const [fiftyFifty, setFiftyFifty] = useState(true)
@@ -69,34 +79,49 @@ export default function GameSetup() {
     [allSets, seasonFilter]
   )
 
+  // Drop any ticked set that's no longer visible (e.g. the season filter
+  // changed), and default to the first set when nothing is ticked yet.
+  // (A set that isn't in allSets at all yet - one just created by "write
+  // custom questions" that the live query hasn't picked up - is kept.)
   useEffect(() => {
-    if (sets.length > 0 && !sets.some((s) => s.id === setId)) setSetId(sets[0].id!)
-    if (sets.length === 0) setSetId(null)
-  }, [sets, setId])
+    const visible = setIds.filter((id) => sets.some((s) => s.id === id) || !allSets.some((s) => s.id === id))
+    if (visible.length === 0 && sets.length > 0) setSetIds([sets[0].id!])
+    else if (visible.length !== setIds.length) setSetIds(visible)
+  }, [sets, allSets, setIds])
 
   const questionCount = useLiveQuery(
-    () => (setId ? db.questions.where('setId').equals(setId).count() : Promise.resolve(0)),
-    [setId]
+    () => (setIds.length ? db.questions.where('setId').anyOf(setIds).count() : Promise.resolve(0)),
+    [setIdsKey]
   ) ?? 0
 
   // The actual question rows for "Selected"/"Pick a Number" mode's picker
   // below - sorted by difficulty so the default pre-check (and the order
   // questions appear in the list) already reads as an escalating ladder.
   const setQuestions = useLiveQuery(
-    () => (setId ? db.questions.where('setId').equals(setId).sortBy('difficulty') : Promise.resolve<Question[]>([])),
-    [setId]
+    () =>
+      setIds.length
+        ? db.questions
+            .where('setId')
+            .anyOf(setIds)
+            .toArray()
+            .then((qs) => qs.sort((a, b) => a.difficulty - b.difficulty || a.id! - b.id!))
+        : Promise.resolve<Question[]>([]),
+    [setIdsKey]
   ) ?? []
 
-  // First time a non-random mode becomes active for a given set, pre-check
-  // the first N by difficulty as a sane starting point - after that, every
-  // toggle is left exactly as the teacher set it, even if they uncheck down
-  // to zero, so their choices are never silently overwritten.
+  // First time a non-random mode becomes active for a given combination of
+  // sets, pre-check the first N by difficulty as a sane starting point -
+  // after that, every toggle is left exactly as the teacher set it, even if
+  // they uncheck down to zero, so their choices are never silently
+  // overwritten.
   useEffect(() => {
-    if (questionMode === 'random' || !setId || setQuestions.length === 0) return
-    if (seededSetIdRef.current === setId) return
-    seededSetIdRef.current = setId
-    setSelectedQuestionIds(new Set(setQuestions.slice(0, LADDER.length).map((q) => q.id!)))
-  }, [setId, questionMode, setQuestions])
+    if (questionMode === 'random' || !setIdsKey || setQuestions.length === 0) return
+    if (seededSetIdRef.current === setIdsKey) return
+    seededSetIdRef.current = setIdsKey
+    setSelectedQuestionIds(new Set(setQuestions.slice(0, numQuestions).map((q) => q.id!)))
+  }, [setIdsKey, questionMode, setQuestions, numQuestions])
+
+  const setNameById = useMemo(() => new Map(allSets.map((s) => [s.id!, s.name])), [allSets])
 
   const toggleQuestionSelection = (id: number) => {
     playClick()
@@ -112,19 +137,24 @@ export default function GameSetup() {
   // away and switches straight to it - from that point it's just a normal
   // set, so every question typed into the quick-add form below lands in
   // the real Question Bank exactly like any other set's questions do.
-  const handleSetSelect = async (value: string) => {
-    if (value === '__custom__') {
-      playClick()
-      const season = await ensureActiveSeason()
-      const name = `Custom Quiz — ${new Date().toLocaleDateString()}`
-      const newId = (await db.questionSets.add({ name, createdAt: Date.now(), isStarter: false, seasonId: season.id })) as number
-      setSetId(newId)
-      setShowQuickAdd(true)
-      return
-    }
-    setSetId(Number(value))
+  const createCustomSet = async () => {
     playClick()
+    const season = await ensureActiveSeason()
+    const name = `Custom Quiz — ${new Date().toLocaleDateString()}`
+    const newId = (await db.questionSets.add({ name, createdAt: Date.now(), isStarter: false, seasonId: season.id })) as number
+    setSetIds((prev) => [...prev, newId])
+    setQuickTargetSetId(newId)
+    setShowQuickAdd(true)
   }
+
+  const toggleSet = (id: number) => {
+    playClick()
+    setSetIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
+  }
+
+  // Where the quick-add form writes to: the set picked in its own dropdown,
+  // falling back to the first ticked set.
+  const quickAddSetId = quickTargetSetId && setIds.includes(quickTargetSetId) ? quickTargetSetId : setId
 
   // ---------- quick "add a question" panel, right here on the game setup page ----------
   const [showQuickAdd, setShowQuickAdd] = useState(false)
@@ -133,11 +163,11 @@ export default function GameSetup() {
   const [quickSaved, setQuickSaved] = useState(false)
 
   const handleQuickAddQuestion = async () => {
-    if (!setId) return
+    if (!quickAddSetId) return
     if (!quickForm.text.trim()) return setQuickError('Question text is required.')
     if (quickForm.options.some((o) => !o.trim())) return setQuickError('All four options are required.')
     await db.questions.add({
-      setId,
+      setId: quickAddSetId,
       category: quickForm.category.trim() || 'General',
       difficulty: quickForm.difficulty,
       text: quickForm.text.trim(),
@@ -261,25 +291,29 @@ export default function GameSetup() {
       return shakeError()
     }
     if (!setId) {
-      setError('Please choose a question set.')
+      setError('Please choose at least one question set.')
       return shakeError()
     }
-    if (questionCount < LADDER.length) {
-      setError(`This set needs at least ${LADDER.length} questions to fill all ${LADDER.length} levels. Add more in the Question Bank.`)
+    if (questionMode === 'random' && questionCount < numQuestions) {
+      setError(
+        `You asked for ${numQuestions} questions but the chosen set${setIds.length === 1 ? ' has' : 's have'} only ${questionCount}. Pick a smaller number, tick more sets, or add questions in the Question Bank.`
+      )
       return shakeError()
     }
-    if (questionMode !== 'random' && selectedQuestionIds.size !== LADDER.length) {
-      setError(`Select exactly ${LADDER.length} questions below (you have ${selectedQuestionIds.size}).`)
+    if (questionMode !== 'random' && selectedQuestionIds.size === 0) {
+      setError('Tick at least one question below.')
       return shakeError()
     }
 
-    const selectedSet = sets.find((s) => s.id === setId)!
+    const chosenSets = setIds.map((id) => allSets.find((s) => s.id === id)).filter((s): s is NonNullable<typeof s> => !!s)
+    const selectedSet = chosenSets[0]
+    const setName = chosenSets.map((s) => s.name).join(' + ')
     const season = seasons.find((s) => s.id === selectedSet.seasonId)
     playNav()
     haptics.success()
     setStarting(true)
 
-    const pool = await db.questions.where('setId').equals(setId).toArray()
+    const pool = await db.questions.where('setId').anyOf(setIds).toArray()
     // "random" draws one question per level at random, matched to that
     // level's target difficulty (the original behavior). "selected" and
     // "pickNumber" instead use exactly the questions the teacher checked
@@ -287,7 +321,7 @@ export default function GameSetup() {
     // deliberate, level by level.
     const questionIds =
       questionMode === 'random'
-        ? selectQuestionsForGame(pool).map((q) => q.id!)
+        ? selectQuestionsForGame(pool, numQuestions).map((q) => q.id!)
         : pool
             .filter((q) => selectedQuestionIds.has(q.id!))
             .sort((a, b) => a.difficulty - b.difficulty || (a.id! - b.id!))
@@ -302,7 +336,8 @@ export default function GameSetup() {
     const lifelines = { fiftyFifty, askChurch, phoneFriend }
     const matchId = await createMatch({
       setId,
-      setName: selectedSet.name,
+      setIds,
+      setName,
       seasonId: selectedSet.seasonId,
       seasonName: season?.name,
       questionIds,
@@ -324,7 +359,7 @@ export default function GameSetup() {
       teamStudentClassIds: cleanStudentClassIds,
       teamIndex: 0,
       setId,
-      setName: selectedSet.name,
+      setName,
       seasonName: season?.name,
       timerSecondsPerQuestion: timerSeconds,
       lifelines,
@@ -501,29 +536,35 @@ export default function GameSetup() {
       )}
 
       <div className="panel space-y-2 p-5 transition hover:bg-[var(--ink-raised)]">
-        <label className="block text-sm font-semibold text-[var(--fg)]/80">Question Set</label>
-        <select
-          value={setId ?? ''}
-          onChange={(e) => handleSetSelect(e.target.value)}
-          className={inputClass}
-        >
-          {sets.length === 0 && (
-            <option value="" className="text-black">
-              No question sets in this season yet
-            </option>
-          )}
+        <label className="block text-sm font-semibold text-[var(--fg)]/80">
+          Question Sets <span className="font-normal text-[var(--ink-faint)]">(tick as many as you like - questions are mixed together)</span>
+        </label>
+        <div className="max-h-64 space-y-1.5 overflow-y-auto rounded-lg border border-[var(--hairline)] p-2">
+          {sets.length === 0 && <p className="p-2 text-sm text-[var(--ink-faint)]">No question sets in this season yet</p>}
           {sets.map((s) => (
-            <option key={s.id} value={s.id} className="text-black">
-              {s.name}
-            </option>
+            <label
+              key={s.id}
+              className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition hover:bg-[var(--ink-panel)]"
+            >
+              <input
+                type="checkbox"
+                checked={setIds.includes(s.id!)}
+                onChange={() => toggleSet(s.id!)}
+                className="h-4 w-4 shrink-0 accent-[var(--gold)]"
+              />
+              <span className="min-w-0 flex-1 truncate">{s.name}</span>
+            </label>
           ))}
-          <option value="__custom__" className="text-black">
-            + Write custom questions for this quiz
-          </option>
-        </select>
-        {setId && (
+        </div>
+        <button
+          onClick={createCustomSet}
+          className="w-full rounded-lg border border-dashed border-[var(--hairline-strong)] py-2 text-sm text-[var(--ink-muted)] transition hover:scale-[1.01] hover:bg-[var(--ink-panel)]"
+        >
+          + Write custom questions for this quiz
+        </button>
+        {setIds.length > 0 && (
           <p className="text-xs text-[var(--ink-faint)]">
-            {questionCount} question{questionCount === 1 ? '' : 's'} available in this set ({LADDER.length} needed).
+            {questionCount} question{questionCount === 1 ? '' : 's'} available across {setIds.length} set{setIds.length === 1 ? '' : 's'}.
           </p>
         )}
 
@@ -536,12 +577,25 @@ export default function GameSetup() {
               }}
               className="w-full rounded-lg border border-dashed border-[var(--hairline-strong)] py-2 text-sm text-[var(--ink-muted)] transition hover:scale-[1.01] hover:bg-[var(--ink-panel)]"
             >
-              {showQuickAdd ? '▲ Hide question bank' : '📚 Add a question to this set (admin)'}
+              {showQuickAdd ? '▲ Hide question bank' : `📚 Add a question to ${setIds.length > 1 ? 'a chosen set' : 'this set'} (admin)`}
             </button>
             {showQuickAdd && (
               <div className="mt-3 space-y-2 rounded-xl bg-[var(--ink-panel)] p-4">
                 {quickError && <p className="text-sm text-red-600">{quickError}</p>}
                 {quickSaved && <p className="text-sm text-emerald-600">Question added! ✅</p>}
+                {setIds.length > 1 && (
+                  <select
+                    value={quickAddSetId ?? ''}
+                    onChange={(e) => setQuickTargetSetId(Number(e.target.value))}
+                    className={`${inputClass} text-sm`}
+                  >
+                    {setIds.map((id) => (
+                      <option key={id} value={id} className="text-black">
+                        Add to: {setNameById.get(id)}
+                      </option>
+                    ))}
+                  </select>
+                )}
                 <textarea
                   value={quickForm.text}
                   onChange={(e) => setQuickForm({ ...quickForm, text: e.target.value })}
@@ -595,7 +649,7 @@ export default function GameSetup() {
                   ))}
                 </div>
                 <button onClick={handleQuickAddQuestion} className="btn-solid w-full py-2 text-sm">
-                  + Add question to "{sets.find((s) => s.id === setId)?.name}"
+                  + Add question to "{quickAddSetId ? setNameById.get(quickAddSetId) : ''}"
                 </button>
               </div>
             )}
@@ -603,13 +657,83 @@ export default function GameSetup() {
         )}
       </div>
 
+      {questionMode === 'random' && (
+        <div className="panel space-y-2 p-5 transition hover:bg-[var(--ink-raised)]">
+          <label className="block text-sm font-semibold text-[var(--fg)]/80">Number of Questions</label>
+          <div className="flex flex-wrap gap-2">
+            {COUNT_OPTIONS.map((n) => (
+              <button
+                key={n}
+                onClick={() => {
+                  setNumQuestions(n)
+                  playClick()
+                }}
+                disabled={n > questionCount}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition hover:scale-105 disabled:opacity-40 disabled:hover:scale-100 ${
+                  numQuestions === n ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'bg-[var(--ink-panel)] hover:bg-[var(--ink-raised)]'
+                }`}
+              >
+                {n}
+              </button>
+            ))}
+            {questionCount > 0 && (
+              <button
+                onClick={() => {
+                  setNumQuestions(questionCount)
+                  playClick()
+                }}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition hover:scale-105 ${
+                  numQuestions === questionCount && !COUNT_OPTIONS.includes(questionCount)
+                    ? 'bg-[var(--gold)] text-[var(--gold-ink)]'
+                    : 'bg-[var(--ink-panel)] hover:bg-[var(--ink-raised)]'
+                }`}
+              >
+                All ({questionCount})
+              </button>
+            )}
+            <div className="flex items-center gap-1.5 rounded-full border border-[var(--hairline-strong)] pl-3 pr-1.5">
+              <input
+                type="number"
+                min={1}
+                max={questionCount || undefined}
+                value={customCount}
+                onChange={(e) => setCustomCount(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key !== 'Enter') return
+                  const n = Math.round(Number(customCount))
+                  if (Number.isFinite(n) && n >= 1) setNumQuestions(n)
+                }}
+                placeholder="Custom"
+                className="w-16 bg-transparent py-2 text-sm font-semibold outline-none placeholder:text-[var(--ink-faint)]"
+              />
+              <button
+                onClick={() => {
+                  const n = Math.round(Number(customCount))
+                  if (Number.isFinite(n) && n >= 1) {
+                    setNumQuestions(n)
+                    playClick()
+                  }
+                }}
+                className="rounded-full bg-[var(--gold)] px-3 py-1.5 text-xs font-bold text-[var(--gold-ink)] transition hover:scale-105"
+              >
+                Set
+              </button>
+            </div>
+          </div>
+          <p className={`text-xs ${numQuestions > questionCount ? 'text-red-600' : 'text-[var(--ink-faint)]'}`}>
+            {numQuestions} question{numQuestions === 1 ? '' : 's'} per team
+            {numQuestions > questionCount ? ` - only ${questionCount} available in the chosen sets` : ''}.
+          </p>
+        </div>
+      )}
+
       <div className="panel space-y-2 p-5 transition hover:bg-[var(--ink-raised)]">
         <label className="block text-sm font-semibold text-[var(--fg)]/80">Question Selection</label>
         <div className="flex flex-wrap gap-2">
           {(
             [
               { value: 'random' as const, label: '🎲 Random', hint: 'A random question per level, matched to that level\'s difficulty' },
-              { value: 'selected' as const, label: '📋 Selected Quiz Questions', hint: 'Exactly the questions curated in this set, in order - no shuffling' },
+              { value: 'selected' as const, label: '📋 Selected Quiz Questions', hint: 'Exactly the questions you tick, in order - no shuffling' },
               { value: 'pickNumber' as const, label: '🔢 Pick a Number', hint: 'Contestants choose which numbered question to play next' },
             ] as const
           ).map((opt) => (
@@ -632,7 +756,7 @@ export default function GameSetup() {
           {questionMode === 'random' &&
             'Avoids repeats within a match, but which exact questions show up isn\'t guaranteed - good for casual play.'}
           {questionMode === 'selected' &&
-            'Check exactly which questions from this set play in this match, in the order they\'re shown below - no randomizing.'}
+            'Tick exactly which questions play in this match - as many as you want, from any of the chosen sets - in the order they\'re shown below. No randomizing.'}
           {questionMode === 'pickNumber' &&
             'Same deliberate question picking as Selected, but during the match contestants pick a number off a board instead of always going in order.'}
         </p>
@@ -641,21 +765,28 @@ export default function GameSetup() {
           <div className="space-y-2 pt-1">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span
-                className={`text-sm font-bold ${
-                  selectedQuestionIds.size === LADDER.length ? 'text-emerald-600' : 'text-[var(--gold)]'
-                }`}
+                className={`text-sm font-bold ${selectedQuestionIds.size > 0 ? 'text-emerald-600' : 'text-[var(--gold)]'}`}
               >
-                {selectedQuestionIds.size} / {LADDER.length} selected
+                {selectedQuestionIds.size} of {setQuestions.length} selected
               </span>
               <div className="flex gap-2 text-xs">
                 <button
                   onClick={() => {
-                    setSelectedQuestionIds(new Set(setQuestions.slice(0, LADDER.length).map((q) => q.id!)))
+                    setSelectedQuestionIds(new Set(setQuestions.slice(0, numQuestions).map((q) => q.id!)))
                     playClick()
                   }}
                   className="btn-outline px-3 py-1"
                 >
-                  First {LADDER.length} by difficulty
+                  First {numQuestions} by difficulty
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedQuestionIds(new Set(setQuestions.map((q) => q.id!)))
+                    playClick()
+                  }}
+                  className="btn-outline px-3 py-1"
+                >
+                  All
                 </button>
                 <button
                   onClick={() => {
@@ -686,6 +817,9 @@ export default function GameSetup() {
                       D{q.difficulty}
                     </span>
                     {q.text}
+                    {setIds.length > 1 && (
+                      <span className="ml-1.5 text-[10px] text-[var(--ink-faint)]">· {setNameById.get(q.setId)}</span>
+                    )}
                   </span>
                 </label>
               ))}

@@ -78,12 +78,16 @@ export default function Results() {
       matchId: match.id!,
       teamNames: match.teamNames,
       teamPhotos: match.teamPhotos,
+      teamStudentIds: match.teamStudentIds,
+      teamStudentClassIds: match.teamStudentClassIds,
       teamIndex: nextIndex,
       setId: match.setId,
       setName: match.setName,
       seasonName: match.seasonName,
       timerSecondsPerQuestion: match.timerSecondsPerQuestion,
       lifelines: match.lifelines,
+      mode: match.mode,
+      questionMode: match.questionMode,
     }
     navigate('/play', { state: config })
   }

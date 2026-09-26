@@ -1,5 +1,5 @@
 import type { Question } from '../db/types'
-import { LADDER, difficultyForLevel } from './ladder'
+import { buildLadder, DEFAULT_QUESTION_COUNT } from './ladder'
 
 function shuffle<T>(arr: T[]): T[] {
   const copy = [...arr]
@@ -26,13 +26,17 @@ export function shuffleQuestionOptions(q: Question): Question {
   return { ...q, options, correctIndex }
 }
 
-/** Picks one question per ladder level, preferring the level's target difficulty. */
-export function selectQuestionsForGame(allQuestions: Question[]): Question[] {
+/**
+ * Picks `count` questions (capped at however many the pool has), one per
+ * ladder level, preferring each level's target difficulty. The pool can
+ * be drawn from any number of question sets at once.
+ */
+export function selectQuestionsForGame(allQuestions: Question[], count: number = DEFAULT_QUESTION_COUNT): Question[] {
   const remaining = shuffle(allQuestions)
   const result: Question[] = []
 
-  for (const level of LADDER) {
-    const target = difficultyForLevel(level.level)
+  for (const level of buildLadder(Math.min(count, allQuestions.length))) {
+    const target = level.difficulty
     let bestIndex = -1
     let bestDiff = Infinity
     for (let i = 0; i < remaining.length; i++) {

@@ -120,7 +120,11 @@ export interface GameSession {
 
 export interface Match {
   id?: number
+  /** The first of setIds - kept for older code/rows that only know about a single set. */
   setId: number
+  /** Every question set this match draws from (a quiz can mix several). Absent on older matches = just setId. */
+  setIds?: number[]
+  /** All chosen set names joined, e.g. "General Bible + Who Am I?". */
   setName: string
   seasonId?: number
   seasonName?: string

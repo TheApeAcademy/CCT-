@@ -1,14 +1,14 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { db, getOrCreatePlayer, completeMatch, getMatchSessions } from '../db/db'
-import { LADDER, pointsForLevel, difficultyForLevel } from '../lib/ladder'
+import { buildLadder, pointsForLevel as ladderPoints, difficultyForLevel as ladderDifficulty } from '../lib/ladder'
 import { shuffleQuestionOptions } from '../lib/selectQuestions'
 import * as sound from '../lib/sound'
 import { haptics } from '../lib/haptics'
 import Confetti from '../components/Confetti'
 import Ladder from '../components/Ladder'
 import CountUp from '../components/CountUp'
-import type { AnswerRecord, GameConfig, GameOutcome, GameSession, LifelinesUsed, Question } from '../db/types'
+import type { AnswerRecord, GameConfig, GameOutcome, GameSession, LadderLevel, LifelinesUsed, Question } from '../db/types'
 
 type Phase =
   | 'loading'
@@ -81,6 +81,13 @@ export default function Gameplay() {
   // extend the question currently being timed.
   const [timerSeconds, setTimerSeconds] = useState(() => config?.timerSecondsPerQuestion ?? 30)
 
+  // The ladder is as long as the quiz actually is - however many questions
+  // were chosen at setup, not a fixed 10.
+  const ladder = useMemo(() => buildLadder(questions?.length || 1), [questions])
+  const totalQuestions = ladder.length
+  const pointsForLevel = useCallback((level: number) => ladderPoints(level, ladder), [ladder])
+  const difficultyForLevel = (level: number) => ladderDifficulty(level, ladder)
+
   const questionStartRef = useRef<number>(Date.now())
   const turnStartRef = useRef<number>(Date.now())
 
@@ -132,8 +139,8 @@ export default function Gameplay() {
 
   // Ramps the music's intensity up for the last stretch of the ladder.
   useEffect(() => {
-    sound.setMusicIntensity(currentLevel >= LADDER.length - 2 ? 'intense' : 'calm')
-  }, [currentLevel])
+    sound.setMusicIntensity(currentLevel >= totalQuestions - 2 ? 'intense' : 'calm')
+  }, [currentLevel, totalQuestions])
 
   // 3-2-1-GO intro sequence before this team's first question
   useEffect(() => {
@@ -186,13 +193,13 @@ export default function Gameplay() {
         seasonName: config.seasonName,
         points: pointsWon,
         correctCount,
-        totalQuestions: LADDER.length,
+        totalQuestions,
         createdAt: Date.now(),
         synced: 0,
       })
       import('../lib/leaderboardSync').then((m) => m.syncPendingLeaderboard())
     },
-    [config]
+    [config, totalQuestions]
   )
 
   // Marathon: finishes just the one team this Gameplay mount is running.
@@ -216,7 +223,7 @@ export default function Gameplay() {
         outcome,
         levelReached: finalAnswers.length,
         pointsWon,
-        totalLevels: LADDER.length,
+        totalLevels: totalQuestions,
         correctCount,
         wrongCount: finalAnswers.length - correctCount,
         lifelinesUsed,
@@ -230,7 +237,7 @@ export default function Gameplay() {
       import('../lib/sessionSync').then((m) => m.syncPendingSessions())
       navigate(`/results/${id}`, { replace: true })
     },
-    [config, lifelinesUsed, navigate, teamName, isLastTeam, queueLeaderboardSync]
+    [config, lifelinesUsed, navigate, teamName, isLastTeam, queueLeaderboardSync, totalQuestions]
   )
 
   // Rotational: the shared ladder is done (or ended early) - write every
@@ -259,7 +266,7 @@ export default function Gameplay() {
           outcome,
           levelReached: teamAnswers.length,
           pointsWon,
-          totalLevels: LADDER.length,
+          totalLevels: totalQuestions,
           correctCount,
           wrongCount: teamAnswers.length - correctCount,
           lifelinesUsed,
@@ -274,7 +281,7 @@ export default function Gameplay() {
       import('../lib/sessionSync').then((m) => m.syncPendingSessions())
       navigate(`/match-results/${config.matchId}`, { replace: true })
     },
-    [config, lifelinesUsed, navigate, queueLeaderboardSync]
+    [config, lifelinesUsed, navigate, queueLeaderboardSync, totalQuestions]
   )
 
   const reveal = useCallback(
@@ -306,7 +313,7 @@ export default function Gameplay() {
 
       window.setTimeout(() => {
         setRevealed(true)
-        const isMilestone = LADDER.find((l) => l.level === currentLevel)?.isMilestone
+        const isMilestone = ladder.find((l) => l.level === currentLevel)?.isMilestone
         if (correct) {
           sound.playCheer(1.4)
           haptics.success()
@@ -326,7 +333,7 @@ export default function Gameplay() {
         window.setTimeout(() => setPhase('feedback'), 300)
       }, 850)
     },
-    [activeTeamIndex, currentLevel, currentQuestion]
+    [activeTeamIndex, currentLevel, currentQuestion, ladder, pointsForLevel]
   )
 
   // Timer: ticks every second, getting faster and more alarming as it nears zero.
@@ -423,7 +430,7 @@ export default function Gameplay() {
 
   const handleNext = () => {
     const justCompleted = turnsCompleted + 1
-    if (justCompleted >= LADDER.length) {
+    if (justCompleted >= totalQuestions) {
       setTurnsCompleted(justCompleted)
       if (isRotational) finishRotationalMatch('completed', answersByTeam)
       else finishTurn('completed', answers)
@@ -564,7 +571,7 @@ export default function Gameplay() {
                 ✕
               </button>
             </div>
-            <Ladder currentLevel={currentLevel} />
+            <Ladder currentLevel={currentLevel} ladder={ladder} />
           </div>
         )}
       </div>
@@ -577,6 +584,7 @@ export default function Gameplay() {
           answersByTeam={answersByTeam}
           pastSessions={pastSessions}
           xpTotals={xpTotals}
+          ladder={ladder}
         />
       )}
 
@@ -675,7 +683,7 @@ export default function Gameplay() {
 
         {phase === 'picking' && (
           <QuestionPicker
-            levels={LADDER.map((l) => l.level)}
+            levels={ladder.map((l) => l.level)}
             usedLevels={
               new Set(isRotational ? Object.values(answersByTeam).flat().map((a) => a.level) : answers.map((a) => a.level))
             }
@@ -690,7 +698,7 @@ export default function Gameplay() {
           <div className="hex-fill flex min-h-[80px] flex-col items-center justify-center gap-1.5 px-6 py-3 text-center sm:min-h-[100px]">
             <div className="flex items-center gap-2 text-xs">
               <span className="rounded-full bg-black/30 px-3 py-1 font-bold">
-                Q{currentLevel} of {LADDER.length}
+                Q{currentLevel} of {totalQuestions}
               </span>
               <span className="rounded-full bg-black/30 px-3 py-1">{currentQuestion.category}</span>
               {suspense && <span className="animate-pulse text-amber-300">● locking in…</span>}
@@ -784,7 +792,7 @@ export default function Gameplay() {
               onClick={handleNext}
               className="animate-pulse-glow rounded-xl bg-amber-400 px-6 py-3 font-bold text-purple-950 transition hover:scale-105"
             >
-              {turnsCompleted + 1 >= LADDER.length ? (isRotational ? 'Finish Match →' : `Finish ${teamName}'s Turn →`) : `Next Question →`}
+              {turnsCompleted + 1 >= totalQuestions ? (isRotational ? 'Finish Match →' : `Finish ${teamName}'s Turn →`) : `Next Question →`}
             </button>
           </div>
         )}
@@ -829,6 +837,7 @@ export default function Gameplay() {
           answersByTeam={answersByTeam}
           pastSessions={pastSessions}
           xpTotals={xpTotals}
+          ladder={ladder}
         />
       ) : (
         <div className="hidden shrink-0 lg:flex lg:w-[220px] lg:flex-col lg:justify-center lg:gap-2">
@@ -838,6 +847,7 @@ export default function Gameplay() {
             activeTeamIndex={activeTeamIndex}
             pastSessions={pastSessions}
             xpTotals={xpTotals}
+            ladder={ladder}
           />
         </div>
       )}
@@ -905,7 +915,9 @@ function LiveScoreboard({
   activeTeamIndex,
   pastSessions,
   xpTotals,
+  ladder,
 }: {
+  ladder: LadderLevel[]
   config: GameConfig
   answersByTeam: Record<number, AnswerRecord[]>
   activeTeamIndex: number
@@ -925,14 +937,14 @@ function LiveScoreboard({
             <div className="flex items-center justify-between gap-2 text-sm">
               <span className={`truncate font-bold ${isCurrent ? 'text-amber-300' : 'text-white/80'}`}>{name}</span>
               <span className="shrink-0 font-bold text-amber-300">
-                {correctCount}/{LADDER.length} ✓
+                {correctCount}/{ladder.length} ✓
               </span>
             </div>
             {isLinked && xpTotals[idx] !== undefined && (
               <p className="text-right text-xs text-white/40">🏆 {xpTotals[idx].toLocaleString()} all-time</p>
             )}
             <div className="mt-2 flex flex-wrap gap-1">
-              {LADDER.map((l) => {
+              {ladder.map((l) => {
                 const a = teamAnswers.find((rec) => rec.level === l.level)
                 const state = !a ? 'pending' : a.correct ? 'correct' : 'wrong'
                 return (
@@ -1014,7 +1026,9 @@ function SideStrip({
   answersByTeam,
   pastSessions,
   xpTotals,
+  ladder,
 }: {
+  ladder: LadderLevel[]
   config: GameConfig
   teamIdx: number
   activeTeamIndex: number
@@ -1038,8 +1052,8 @@ function SideStrip({
   // here is genuinely theirs.
   const ownLevels =
     config.mode === 'rotational'
-      ? LADDER.filter((l) => (l.level - 1) % config.teamNames.length === teamIdx)
-      : LADDER
+      ? ladder.filter((l) => (l.level - 1) % config.teamNames.length === teamIdx)
+      : ladder
 
   return (
     <div className="flex w-16 shrink-0 flex-col items-center text-center sm:w-24">

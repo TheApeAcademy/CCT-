@@ -17,6 +17,7 @@ import type {
 } from './types'
 import { starterQuestions } from './seedQuestions'
 import { expansionQuestions } from './seedQuestionsExpansion'
+import { quizOnTheGoSets } from './seedQuizOnTheGo'
 
 export class TriviaDB extends Dexie {
   questions!: Table<Question, number>
@@ -129,7 +130,21 @@ export async function setActiveSeason(id: number) {
   activeSeasonPromise = null
 }
 
-export async function ensureSeedData() {
+// Same in-flight caching as ensureActiveSeason: App, GameSetup, Training and
+// the Question Bank all call this on load, and each by-name "already
+// seeded?" check below is a separate read-then-write that would otherwise
+// race into duplicate sets.
+let seedPromise: Promise<void> | null = null
+
+export function ensureSeedData(): Promise<void> {
+  if (!seedPromise) seedPromise = seedData().catch((e) => {
+    seedPromise = null
+    throw e
+  })
+  return seedPromise
+}
+
+async function seedData() {
   const season = await ensureActiveSeason()
 
   const count = await db.questionSets.count()
@@ -164,6 +179,21 @@ export async function ensureSeedData() {
     await db.questions.bulkAdd(
       expansionQuestions.map((q) => ({ ...q, setId: expansionSetId as number }))
     )
+  }
+
+  // Same by-name check for each later batch of ministry-supplied sets, so
+  // they reach devices that already had everything above, exactly once.
+  for (const seed of quizOnTheGoSets) {
+    const exists = await db.questionSets.where('name').equals(seed.name).count()
+    if (exists > 0) continue
+    const newSetId = (await db.questionSets.add({
+      name: seed.name,
+      description: seed.description,
+      createdAt: Date.now(),
+      isStarter: true,
+      seasonId: season.id,
+    })) as number
+    await db.questions.bulkAdd(seed.questions.map((q) => ({ ...q, setId: newSetId })))
   }
 }
 

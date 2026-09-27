@@ -6,7 +6,6 @@ import { shuffleQuestionOptions } from '../lib/selectQuestions'
 import * as sound from '../lib/sound'
 import { haptics } from '../lib/haptics'
 import Confetti from '../components/Confetti'
-import Ladder from '../components/Ladder'
 import CountUp from '../components/CountUp'
 import type { AnswerRecord, GameConfig, GameOutcome, GameSession, LifelinesUsed, Question } from '../db/types'
 
@@ -58,7 +57,6 @@ export default function Gameplay() {
   const [answersByTeam, setAnswersByTeam] = useState<Record<number, AnswerRecord[]>>({})
   const [showConfetti, setShowConfetti] = useState(false)
   const [pastSessions, setPastSessions] = useState<GameSession[]>([])
-  const [showLadder, setShowLadder] = useState(false)
   // All-time ministry leaderboard total per team index, for teams linked to
   // a registered Student Code - best-effort only. The quiz itself must keep
   // working fully offline, so this is a silent, non-blocking fetch: no
@@ -549,26 +547,6 @@ export default function Gameplay() {
         <div className={`pointer-events-none fixed inset-0 z-40 ${flash === 'green' ? 'animate-flash-green' : 'animate-flash-red'}`} />
       )}
 
-      <div className="fixed right-3 top-3 z-50">
-        <button
-          onClick={() => setShowLadder((v) => !v)}
-          className="flex items-center gap-2 rounded-full bg-black/70 px-4 py-2 text-sm font-semibold shadow-lg backdrop-blur transition hover:bg-black/80"
-        >
-          👑 Leaderboard
-        </button>
-        {showLadder && (
-          <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl bg-indigo-950 p-3 shadow-2xl">
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-sm font-bold text-white/80">Point Ladder</span>
-              <button onClick={() => setShowLadder(false)} className="rounded-full bg-white/10 px-2 py-0.5 text-xs hover:bg-white/20">
-                ✕
-              </button>
-            </div>
-            <Ladder currentLevel={currentLevel} />
-          </div>
-        )}
-      </div>
-
       {isHeadToHead && (
         <SideStrip
           config={config}
@@ -1042,7 +1020,7 @@ function SideStrip({
       : LADDER
 
   return (
-    <div className="flex w-16 shrink-0 flex-col items-center text-center sm:w-24">
+    <div className="flex w-20 shrink-0 flex-col items-center text-center sm:w-32 lg:w-40">
       {isLinked && xpTotals[teamIdx] !== undefined && (
         <p className="text-[10px] font-bold text-white/40">🏆 {xpTotals[teamIdx].toLocaleString()}</p>
       )}
@@ -1055,7 +1033,7 @@ function SideStrip({
       ) : (
         <PersonSilhouette active={isActive} />
       )}
-      <p className={`mt-1.5 truncate px-1 text-base font-extrabold sm:text-lg ${isActive ? 'text-amber-300' : 'text-white/90'}`}>
+      <p className={`mt-1.5 w-full break-words px-0.5 text-sm font-extrabold leading-tight [overflow-wrap:anywhere] sm:text-base lg:text-lg ${isActive ? 'text-amber-300' : 'text-white/90'}`}>
         {name}
       </p>
 

@@ -291,6 +291,36 @@ button:active, a:active {
 
 /* ---------- countdown number pop ---------- */
 
+/* "Next up" handoff between turns: the next contestant's photo starts dark
+   and blurred, then sharpens into focus as the drumroll builds. */
+@keyframes next-up-focus {
+  0% { filter: blur(22px) brightness(0.15); transform: scale(0.82) rotate(-4deg); }
+  70% { filter: blur(3px) brightness(0.8); transform: scale(0.98) rotate(1deg); }
+  82% { filter: none; transform: scale(1.06) rotate(0deg); }
+  100% { filter: none; transform: scale(1); }
+}
+.animate-next-up-focus {
+  animation: next-up-focus 3.2s cubic-bezier(0.3, 0, 0.2, 1) both;
+}
+@keyframes next-up-name {
+  0%, 78% { opacity: 0; transform: translateY(14px) scale(0.9); }
+  90% { opacity: 1; transform: translateY(0) scale(1.08); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-next-up-name {
+  animation: next-up-name 4s ease-out both;
+}
+@keyframes next-up-bar {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+.animate-next-up-bar {
+  animation: next-up-bar 4s linear both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-next-up-focus, .animate-next-up-name { animation: none; }
+}
+
 @keyframes number-pop {
   0% { transform: scale(0.3); opacity: 0; }
   60% { transform: scale(1.15); opacity: 1; }

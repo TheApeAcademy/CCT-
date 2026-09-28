@@ -31,6 +31,9 @@ const FRIEND_LINES = [
 
 const COUNT_IN_STEPS: (3 | 2 | 1 | 0)[] = [3, 2, 1, 0]
 
+/** How long the "Next up" reveal between contestants holds before their question starts. */
+const NEXT_UP_MS = 4000
+
 export default function Gameplay() {
   const location = useLocation()
   const navigate = useNavigate()
@@ -378,14 +381,27 @@ export default function Gameplay() {
     return <div className="py-20 text-center text-xl">Loading game…</div>
   }
 
-  if (phase === 'intro' || phase === 'switching') {
+  if (phase === 'switching') {
+    return (
+      <NextUpReveal
+        teamName={teamName}
+        teamPhoto={config.teamPhotos?.[activeTeamIndex]}
+        teamNumber={activeTeamIndex + 1}
+        totalTeams={config.teamNames.length}
+        questionNumber={turnsCompleted + 1}
+        totalQuestions={totalQuestions}
+      />
+    )
+  }
+
+  if (phase === 'intro') {
     return (
       <IntroCountdown
         teamName={teamName}
         teamPhoto={config.teamPhotos?.[activeTeamIndex]}
         teamNumber={activeTeamIndex + 1}
         totalTeams={config.teamNames.length}
-        step={phase === 'intro' ? introStep : null}
+        step={introStep}
       />
     )
   }
@@ -449,10 +465,16 @@ export default function Gameplay() {
     // choice to the contestant.
     if (!usesQuestionPicker) setCurrentLevel((l) => l + 1)
     // In rotational mode, the next question may belong to a different
-    // team - a quick "get ready" beat instead of jumping straight into it.
+    // team - a suspenseful "Next up" reveal of who's answering instead of
+    // jumping straight into it.
     const nextTeamIndex = isRotational ? (justCompleted % config.teamNames.length) : wasTeamIndex
     if (isRotational && nextTeamIndex !== wasTeamIndex) {
       setPhase('switching')
+      sound.playDrumroll(3.1)
+      window.setTimeout(() => {
+        sound.playCountIn(0)
+        haptics.success()
+      }, 3150)
       window.setTimeout(() => {
         if (usesQuestionPicker) {
           setPhase('picking')
@@ -461,7 +483,7 @@ export default function Gameplay() {
           questionStartRef.current = Date.now()
           setPhase('question')
         }
-      }, 1400)
+      }, NEXT_UP_MS)
       return
     }
     if (usesQuestionPicker) {
@@ -958,13 +980,12 @@ function IntroCountdown({
   teamPhoto?: string
   teamNumber: number
   totalTeams: number
-  /** null for the brief "up next" beat between rotational turns - no numeric countdown, just the handoff. */
-  step: 3 | 2 | 1 | 0 | null
+  step: 3 | 2 | 1 | 0
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
+    <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
       {teamPhoto ? (
-        <img src={teamPhoto} alt="" className="h-24 w-24 rounded-full object-cover shadow-xl shadow-black/40 ring-4 ring-amber-400/60" />
+        <SquirclePhoto src={teamPhoto} className="h-40 w-40 sm:h-52 sm:w-52" />
       ) : (
         <img src="/children-ministry-logo-splash.png" alt="" className="h-32 w-auto object-contain drop-shadow-xl" />
       )}
@@ -973,12 +994,76 @@ function IntroCountdown({
           Team {teamNumber} of {totalTeams}
         </p>
       )}
-      <p className="text-xl text-white/70">{step === null ? `Up next, ${teamName}!` : `Get ready, ${teamName}!`}</p>
-      {step !== null && (
-        <div key={step} className="animate-number-pop font-display text-9xl font-extrabold text-amber-300 drop-shadow-[0_0_40px_rgba(250,204,21,0.6)]">
-          {step === 0 ? 'GO!' : step}
-        </div>
+      <p className="text-xl text-white/70">Get ready, {teamName}!</p>
+      <div key={step} className="animate-number-pop font-display text-9xl font-extrabold text-amber-300 drop-shadow-[0_0_40px_rgba(250,204,21,0.6)]">
+        {step === 0 ? 'GO!' : step}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * A photo (or, with none set, a person silhouette) in a big rounded-square
+ * "squircle" frame with a glowing gold ring. The superellipse-ish curve
+ * comes from a large percentage border-radius, not a plain rounded-xl.
+ */
+function SquirclePhoto({ src, className = '', imgClassName = '' }: { src?: string; className?: string; imgClassName?: string }) {
+  return (
+    <div
+      className={`relative shrink-0 overflow-hidden rounded-[30%] bg-indigo-900/60 shadow-[0_0_60px_rgba(250,204,21,0.35)] ring-4 ring-amber-400/80 ${className}`}
+    >
+      {src ? (
+        <img src={src} alt="" className={`h-full w-full object-cover ${imgClassName}`} />
+      ) : (
+        <svg viewBox="0 0 24 24" className={`h-full w-full fill-white/50 p-[12%] ${imgClassName}`} aria-hidden="true">
+          <circle cx="12" cy="8" r="4" />
+          <path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8v1H4z" />
+        </svg>
       )}
+    </div>
+  )
+}
+
+/**
+ * The 4-second handoff between contestants in rotational play: "NEXT UP",
+ * the next contestant's photo in a big squircle sharpening out of a dark
+ * blur as the drumroll builds, then their name popping in, with a bar
+ * running out the remaining time before their question starts.
+ */
+function NextUpReveal({
+  teamName,
+  teamPhoto,
+  teamNumber,
+  totalTeams,
+  questionNumber,
+  totalQuestions,
+}: {
+  teamName: string
+  teamPhoto?: string
+  teamNumber: number
+  totalTeams: number
+  questionNumber: number
+  totalQuestions: number
+}) {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-5 py-10 text-center">
+      <p className="animate-pulse font-display text-2xl font-extrabold uppercase tracking-[0.3em] text-amber-300 sm:text-3xl">
+        Next up…
+      </p>
+      <SquirclePhoto
+        src={teamPhoto}
+        className="h-56 w-56 sm:h-72 sm:w-72 lg:h-80 lg:w-80"
+        imgClassName="animate-next-up-focus"
+      />
+      <div className="animate-next-up-name">
+        <p className="font-display text-4xl font-extrabold leading-tight [overflow-wrap:anywhere] sm:text-5xl">{teamName}</p>
+        <p className="mt-1 text-sm uppercase tracking-wide text-white/60">
+          {totalTeams > 1 ? `Team ${teamNumber} of ${totalTeams} · ` : ''}Question {questionNumber} of {totalQuestions}
+        </p>
+      </div>
+      <div className="h-1.5 w-56 overflow-hidden rounded-full bg-white/10 sm:w-72">
+        <div className="animate-next-up-bar h-full rounded-full bg-gradient-to-r from-amber-400 to-yellow-300" />
+      </div>
     </div>
   )
 }
@@ -1039,11 +1124,7 @@ function SideStrip({
         <p className="text-[10px] font-bold text-white/40">🏆 {xpTotals[teamIdx].toLocaleString()}</p>
       )}
       {photo ? (
-        <img
-          src={photo}
-          alt=""
-          className={`mt-1 h-14 w-14 rounded-full object-cover ring-2 sm:h-20 sm:w-20 ${isActive ? 'ring-amber-400' : 'ring-amber-400/40'}`}
-        />
+        <PassportPhoto src={photo} active={isActive} />
       ) : (
         <PersonSilhouette active={isActive} />
       )}
@@ -1081,15 +1162,31 @@ function SideStrip({
   )
 }
 
-/** No-photo fallback: a plain person silhouette rather than the ministry logo, so an empty slot reads as "no photo set" not as a branding mark. */
+/**
+ * 1v1 contestant photo as a passport photo: a 3:4 portrait rectangle on a
+ * white border, not a circle. The active contestant's frame glows gold.
+ */
+function PassportPhoto({ src, active }: { src: string; active: boolean }) {
+  return (
+    <div
+      className={`mt-1 w-14 shrink-0 rounded-[3px] bg-white p-[3px] shadow-lg shadow-black/50 transition sm:w-24 lg:w-28 ${
+        active ? 'ring-2 ring-amber-400 shadow-[0_0_18px_rgba(250,204,21,0.55)]' : 'opacity-85'
+      }`}
+    >
+      <img src={src} alt="" className="aspect-[3/4] w-full rounded-[1px] object-cover" />
+    </div>
+  )
+}
+
+/** No-photo fallback: a plain person silhouette in the same passport frame, so an empty slot reads as "no photo set" not as a branding mark. */
 function PersonSilhouette({ active }: { active: boolean }) {
   return (
     <div
-      className={`mt-1 flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white/10 ring-2 sm:h-20 sm:w-20 ${
-        active ? 'ring-amber-400' : 'ring-white/20'
+      className={`mt-1 flex aspect-[3/4] w-14 shrink-0 items-end justify-center overflow-hidden rounded-[3px] border-[3px] border-white/80 bg-slate-300/20 sm:w-24 lg:w-28 ${
+        active ? 'ring-2 ring-amber-400' : ''
       }`}
     >
-      <svg viewBox="0 0 24 24" className="h-3/4 w-3/4 fill-white/50" aria-hidden="true">
+      <svg viewBox="0 0 24 24" className="h-4/5 w-4/5 fill-white/50" aria-hidden="true">
         <circle cx="12" cy="8" r="4" />
         <path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8v1H4z" />
       </svg>

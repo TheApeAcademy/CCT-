@@ -127,17 +127,25 @@ export default function GroundRules() {
         />
       </div>
 
-      <div className={`relative z-10 mx-auto max-w-3xl space-y-6 transition-opacity duration-500 ${open ? 'opacity-100' : 'opacity-0'}`}>
+      <div className={`relative z-10 mx-auto w-full max-w-7xl space-y-[2.5vh] transition-opacity duration-500 ${open ? 'opacity-100' : 'opacity-0'}`}>
         <div>
-          <p className="text-sm uppercase tracking-widest text-amber-300/80">Ground Rules</p>
-          <h1 className="font-display text-3xl font-extrabold sm:text-4xl">Before We Begin...</h1>
-          <p className="mt-1 text-white/60">{config.setName}</p>
+          <p className="text-lg font-bold uppercase tracking-[0.3em] text-amber-300/90 sm:text-2xl">Ground Rules</p>
+          <h1 className="font-display font-extrabold leading-tight" style={{ fontSize: 'clamp(2rem, min(5vw, 7vh), 5rem)' }}>
+            Before We Begin...
+          </h1>
+          <p className="mt-2 text-lg text-white/60 sm:text-2xl">{config.setName}</p>
         </div>
 
-        <ul className="mx-auto max-w-xl space-y-2 rounded-2xl border border-white/10 bg-black/30 p-5 text-left">
+        {/* Sized off the viewport (whichever of width/height is tighter) so
+            the rules read from the back of the room on a projector or TV,
+            yet all six still fit on one screen without scrolling. */}
+        <ul
+          className="mx-auto w-full space-y-[1.2vh] rounded-3xl border border-white/10 bg-black/35 px-[3vw] py-[3vh] text-left font-semibold leading-snug"
+          style={{ fontSize: 'clamp(1.15rem, min(2.6vw, 4.1vh), 3.25rem)' }}
+        >
           {RULES.map((rule, i) => (
-            <li key={i} className="animate-page-in flex items-start gap-3" style={{ animationDelay: `${i * 90}ms` }}>
-              <span className="mt-0.5 shrink-0 text-amber-300">✦</span>
+            <li key={i} className="animate-page-in flex items-start gap-[0.6em]" style={{ animationDelay: `${i * 90}ms` }}>
+              <span className="shrink-0 text-amber-300">✦</span>
               <span>{rule}</span>
             </li>
           ))}
@@ -146,13 +154,13 @@ export default function GroundRules() {
         <div className="flex flex-wrap justify-center gap-3">
           <button
             onClick={readAloud}
-            className="rounded-2xl bg-white/10 px-6 py-3 font-semibold transition hover:scale-105 hover:bg-white/20"
+            className="rounded-2xl bg-white/10 px-8 py-4 text-xl font-semibold transition hover:scale-105 hover:bg-white/20 sm:text-2xl"
           >
             {speaking ? '⏹ Stop Reading' : '🔊 Read Rules Aloud'}
           </button>
           <button
             onClick={beginQuiz}
-            className="animate-pulse-glow rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-500 px-8 py-3 font-bold text-purple-950 shadow-lg shadow-amber-400/20 transition hover:scale-105"
+            className="animate-pulse-glow rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-500 px-10 py-4 text-xl font-bold sm:text-2xl text-purple-950 shadow-lg shadow-amber-400/20 transition hover:scale-105"
           >
             Let's Begin the Quiz! →
           </button>

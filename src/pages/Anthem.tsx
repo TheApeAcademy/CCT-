@@ -70,7 +70,7 @@ export default function Anthem() {
   }
 
   return (
-    <div data-landing-theme="light" className="site-light-theme lp-page full-bleed px-4 py-6">
+    <div data-landing-theme="light" className="site-light-theme lp-page full-bleed -mb-6 flex-1 px-4 py-6">
       <div className="mx-auto max-w-2xl space-y-6 text-center">
       <div>
         <p className="text-4xl">🎶🧒🎤</p>

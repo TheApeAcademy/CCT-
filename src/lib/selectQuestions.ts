@@ -1,5 +1,5 @@
-import type { Question } from '../db/types'
-import { buildLadder, DEFAULT_QUESTION_COUNT } from './ladder'
+import type { Question, LadderLevel } from '../db/types'
+import { LADDER } from './ladder'
 
 function shuffle<T>(arr: T[]): T[] {
   const copy = [...arr]
@@ -11,31 +11,27 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 /**
- * Shuffles a single question's own options (and moves correctIndex to
- * match) - whoever wrote the question chose where the right answer sits
- * in the list, and that tends to cluster on option A far more than chance
- * would, letting kids learn to just guess the first option. Called once
- * per question as it's loaded into an actual playthrough, never touching
- * the stored data itself, so the same question gets an independently
- * random position every time it's played.
+ * Every seeded question stores its correct answer at index 0, and the
+ * Question Bank's add form starts there too. Rendering them as stored means
+ * "A" is always right, which any child works out in one game. So the four
+ * options are re-ordered every time a question is drawn, and correctIndex is
+ * remapped to follow the answer to wherever it landed.
  */
-export function shuffleQuestionOptions(q: Question): Question {
+export function shuffleOptions(q: Question): Question {
   const order = shuffle([0, 1, 2, 3])
-  const options = order.map((i) => q.options[i]) as Question['options']
-  const correctIndex = order.indexOf(q.correctIndex) as Question['correctIndex']
-  return { ...q, options, correctIndex }
+  return {
+    ...q,
+    options: order.map((i) => q.options[i]) as [string, string, string, string],
+    correctIndex: order.indexOf(q.correctIndex) as 0 | 1 | 2 | 3,
+  }
 }
 
-/**
- * Picks `count` questions (capped at however many the pool has), one per
- * ladder level, preferring each level's target difficulty. The pool can
- * be drawn from any number of question sets at once.
- */
-export function selectQuestionsForGame(allQuestions: Question[], count: number = DEFAULT_QUESTION_COUNT): Question[] {
+/** Picks one question per ladder level, preferring the level's target difficulty. */
+export function selectQuestionsForGame(allQuestions: Question[], ladder: LadderLevel[] = LADDER): Question[] {
   const remaining = shuffle(allQuestions)
   const result: Question[] = []
 
-  for (const level of buildLadder(Math.min(count, allQuestions.length))) {
+  for (const level of ladder) {
     const target = level.difficulty
     let bestIndex = -1
     let bestDiff = Infinity

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Check, Copy, KeyRound, PartyPopper, Phone, Sparkles, User } from 'lucide-react'
 import { registerStudent, studentSignInByName } from '../lib/ministry'
 import { playClick, playNav } from '../lib/sound'
@@ -7,51 +7,59 @@ import { haptics } from '../lib/haptics'
 import { setRememberMe } from '../lib/supabase'
 import { getRememberedStudent, saveRememberedStudent, clearRememberedStudent } from '../lib/rememberedStudent'
 import FloatingArt from '../components/FloatingArt'
-import ColorSprinkles from '../components/ColorSprinkles'
+import { clearKidsDashboardState } from '../lib/kidsDashboardState'
 // Landing page's playful display face for the big student code / step
 // numbers - safe to pull in here since /join is already its own lazy
 // route, never loaded by the offline quiz.
-import '@fontsource/fredoka/700.css'
 
 type Mode = 'new' | 'returning'
 
-const inputClass =
-  'w-full rounded-xl border-2 border-[var(--lp-hairline-strong)] bg-[var(--lp-bg)] px-4 py-3 text-[var(--lp-heading)] outline-none transition-colors focus:border-[var(--hero-accent)]'
+// One field shape for the whole page (C2). The ring on focus belongs to
+// .apple-field in index.css, so a field does not change size when it is
+// tapped the way a 2px border swap does.
+const inputClass = 'apple-field'
 
 export default function JoinClass() {
-  const [mode, setMode] = useState<Mode>('new')
+  const [params, setParams] = useSearchParams()
+  // Which half of the page opens first. It used to always be the sign up
+  // form, so the Sign In button on the kids sign in page landed a returning
+  // child on "I'm new here" and read as being bounced back to the sign up
+  // page. Two things move it now: ?mode= in the URL, which is what the two
+  // buttons on that page pass, and a passcode already remembered on this
+  // device, because a child who has signed in here before is not new.
+  const [remembered] = useState(() => Boolean(getRememberedStudent()))
+  // Read from the URL rather than held in state, and the tabs write to the
+  // URL. Held in state it was set once on mount, so arriving from the other
+  // button without a remount left the wrong half open.
+  const urlMode = params.get('mode')
+  const mode: Mode = urlMode === 'returning' || urlMode === 'new' ? urlMode : remembered ? 'returning' : 'new'
+  const setMode = (next: Mode) => setParams({ mode: next }, { replace: true })
 
   return (
     <div className="relative mx-auto max-w-md space-y-8">
-      <ColorSprinkles />
+      {/* The mark, one line of type, and nothing else - which is the whole
+          of Apple's own sign-in page. The shell above renders no logo on
+          this route, so this is the only one on the screen. */}
       <div className="text-center">
         <FloatingArt className="mx-auto w-28 sm:w-32">
-          <img src="/children-ministry-logo-splash.png" alt="MFM Children's Ministry" className="w-full drop-shadow-xl" />
+          <img src="/children-ministry-logo-splash.png" alt="MFM Children's Ministry" className="w-full" />
         </FloatingArt>
-        <p className="lp-eyebrow mt-4 justify-center" style={{ ['--card-accent' as string]: 'var(--lp-accent-compete)' }}>
-          The Ultimate Bible Quiz Adventure
-        </p>
-        <h1 className="lp-heading mt-2 font-display text-2xl font-extrabold leading-tight sm:text-3xl">
-          Know the Word. Play the Quiz.
-          <br />
-          Grow in Faith.
+        <h1 className="lp-heading mt-5 font-display text-2xl font-extrabold leading-tight sm:text-3xl">
+          Know the Word. Play the Quiz. Grow in Faith.
         </h1>
+        <p className="mt-2 text-sm text-[var(--lp-muted)]">The Ultimate Bible Quiz Adventure</p>
       </div>
 
-      <div className="flex gap-1 rounded-xl border-2 border-[var(--lp-hairline-strong)] bg-[var(--lp-bg-panel)] p-1">
-        <button
-          onClick={() => setMode('new')}
-          className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-bold transition ${
-            mode === 'new' ? 'bg-[var(--hero-accent)] text-white shadow-md' : 'text-[var(--lp-muted)] hover:text-[var(--lp-heading)]'
-          }`}
-        >
+      <div className="apple-segmented" role="tablist">
+        <button type="button" role="tab" aria-selected={mode === 'new'} onClick={() => setMode('new')} className="apple-segment">
           I&apos;m new here
         </button>
         <button
+          type="button"
+          role="tab"
+          aria-selected={mode === 'returning'}
           onClick={() => setMode('returning')}
-          className={`flex-1 rounded-lg px-4 py-2.5 text-sm font-bold transition ${
-            mode === 'returning' ? 'bg-[var(--hero-accent)] text-white shadow-md' : 'text-[var(--lp-muted)] hover:text-[var(--lp-heading)]'
-          }`}
+          className="apple-segment"
         >
           I&apos;ve signed up before
         </button>
@@ -75,22 +83,24 @@ type Step = 'name' | 'phone' | 'passcode' | 'confirm' | 'generating' | 'done'
 
 const STEP_ORDER: Step[] = ['name', 'phone', 'passcode', 'confirm', 'generating', 'done']
 
-const STEP_ACCENT: Record<Step, string> = {
-  name: 'var(--lp-accent-compete)',
-  phone: 'var(--lp-accent-training)',
-  passcode: 'var(--lp-accent-achievements)',
-  confirm: 'var(--lp-accent-leaderboard)',
-  generating: 'var(--hero-accent)',
-  done: 'var(--lp-accent-class)',
-}
+// One accent for the whole sign-up, not a different colour at every step.
+// Six accents down one flow made each panel look like a different product.
+const ACCENT = 'var(--hero-accent)'
 
 // Kids don't pick a passcode - it's built from their own first name so it's
-// easy to remember: first name + "mfm" + one random digit (e.g. "joshmfm7").
-function generatePasscode(fullName: string): string {
+// easy to remember: first name + "mfm" + three random digits (e.g.
+// "joshmfm472"). The passcode IS the account password, so the random part
+// has to be long enough that knowing a child's name isn't enough to guess
+// their way into their messages and their Ears for You entries. One digit
+// meant ten tries; three means a thousand.
+/** The stable part of a passcode: the child's first name, lowercased. */
+function passcodeBase(fullName: string): string {
   const firstName = fullName.trim().split(/\s+/)[0] ?? ''
-  const base = firstName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'kid'
-  const digit = Math.floor(Math.random() * 10)
-  return `${base}mfm${digit}`
+  return `${firstName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'kid'}mfm`
+}
+
+function generatePasscode(fullName: string): string {
+  return `${passcodeBase(fullName)}${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`
 }
 
 function NewStudentFlow() {
@@ -112,8 +122,14 @@ function NewStudentFlow() {
   }
 
   const goToPasscode = () => {
-    setPasscode(generatePasscode(fullName))
-    setConfirmPasscode('')
+    // Only mint a new one if there isn't one yet, or the name it's built
+    // from has changed. Regenerating here would hand the child a different
+    // passcode from the one they just wrote down, purely because they
+    // stepped back a question.
+    if (!passcode || !passcode.startsWith(passcodeBase(fullName))) {
+      setPasscode(generatePasscode(fullName))
+      setConfirmPasscode('')
+    }
     advance('passcode')
   }
 
@@ -151,13 +167,13 @@ function NewStudentFlow() {
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--lp-bg-panel)]">
           <div
             className="h-full rounded-full transition-all duration-500"
-            style={{ width: `${progress}%`, background: STEP_ACCENT[step] }}
+            style={{ width: `${progress}%`, background: ACCENT }}
           />
         </div>
       )}
 
       {step === 'name' && (
-        <StepPanel icon={User} accent={STEP_ACCENT.name} question="What's your name?">
+        <StepPanel icon={User} accent={ACCENT} question="What's your name?">
           <input
             autoFocus
             value={fullName}
@@ -180,7 +196,7 @@ function NewStudentFlow() {
       )}
 
       {step === 'phone' && (
-        <StepPanel icon={Phone} accent={STEP_ACCENT.phone} question="Parent or guardian's phone number?" hint="Optional — in case we ever need to reach home.">
+        <StepPanel icon={Phone} accent={ACCENT} question="Parent or guardian's phone number?" hint="Optional, in case we ever need to reach home.">
           <input
             autoFocus
             value={guardianPhone}
@@ -202,11 +218,11 @@ function NewStudentFlow() {
       )}
 
       {step === 'passcode' && (
-        <StepPanel icon={KeyRound} accent={STEP_ACCENT.passcode} question="Here's your passcode" hint="We made it from your name so it's easy to remember.">
-          <div className="rounded-xl border-2 border-[var(--lp-hairline-strong)] bg-[var(--lp-bg)] py-5 text-center">
+        <StepPanel icon={KeyRound} accent={ACCENT} question="Here's your passcode" hint="We made it from your name so it's easy to remember.">
+          <div className="apple-field py-5 text-center">
             <p
               className="font-display text-3xl font-extrabold tracking-widest"
-              style={{ fontFamily: 'Fredoka, var(--font-display)', color: STEP_ACCENT.passcode }}
+              style={{ fontFamily: 'var(--font-display)', color: ACCENT }}
             >
               {passcode}
             </p>
@@ -216,8 +232,8 @@ function NewStudentFlow() {
             {passcodeCopied ? 'Copied' : 'Copy passcode'}
           </button>
           <p className="text-sm text-[var(--lp-muted)]">
-            Copy it or write it down somewhere safe. You&apos;ll need it, with your name, to sign in next time —
-            even though it&apos;s easy to remember!
+            Copy it or write it down somewhere safe. Even though it&apos;s easy to remember, you&apos;ll need it,
+            with your name, to sign in next time.
           </p>
           {error && <p className="text-sm text-red-500">{error}</p>}
           <div className="flex gap-2">
@@ -232,7 +248,7 @@ function NewStudentFlow() {
       )}
 
       {step === 'confirm' && (
-        <StepPanel icon={KeyRound} accent={STEP_ACCENT.confirm} question="Type your passcode again" hint="Just to make sure you saved it right.">
+        <StepPanel icon={KeyRound} accent={ACCENT} question="Type your passcode again" hint="Just to make sure you saved it right.">
           <input
             autoFocus
             value={confirmPasscode}
@@ -273,17 +289,18 @@ function NewStudentFlow() {
 
       {step === 'done' && (
         <div className="animate-page-in space-y-4">
-          <div className="lp-panel lp-panel-accented space-y-3 p-6 text-center" style={{ ['--card-accent' as string]: STEP_ACCENT.done }}>
-            <PartyPopper className="mx-auto h-10 w-10" style={{ color: STEP_ACCENT.done }} strokeWidth={1.75} />
+          <div className="lp-panel lp-panel-accented space-y-3 p-6 text-center" style={{ ['--card-accent' as string]: ACCENT }}>
+            <PartyPopper className="mx-auto h-10 w-10" style={{ color: ACCENT }} strokeWidth={1.75} />
             <p className="lp-heading font-display text-xl font-bold">You&apos;re all set, {fullName.trim().split(/\s+/)[0]}!</p>
             <p className="text-sm text-[var(--lp-muted)]">
-              Your Student Code is waiting on your profile once you&apos;re in — that&apos;s what you&apos;ll give
+              Your Student Code is waiting on your profile once you&apos;re in, and that&apos;s what you&apos;ll give
               your teacher to get added to your class.
             </p>
           </div>
           <button
             onClick={() => {
               playNav()
+              clearKidsDashboardState()
               navigate('/student')
             }}
             className="lp-btn-solid w-full py-3 text-base"
@@ -357,6 +374,9 @@ function ReturningStudentFlow() {
       await studentSignInByName({ full_name: fullName, passcode })
       if (rememberMe) saveRememberedStudent({ fullName, passcode })
       else clearRememberedStudent()
+      // A sign in always opens on the village map, never on whatever room the
+      // last session in this tab happened to leave behind.
+      clearKidsDashboardState()
       playNav()
       haptics.success()
       navigate('/student')

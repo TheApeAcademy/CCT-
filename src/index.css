@@ -20,10 +20,23 @@
   height: 100%;
 }
 
+/* One radius scale for the whole app. Before this there were six
+   near-identical values in play (6px buttons, 8px landing buttons, 10px
+   panels, 14px icon chips, 16px and 20px cards), which is the kind of thing
+   that reads as "assembled" rather than "designed" even when no single
+   value looks wrong. Three steps, each about 1.4x the last, plus a pill. */
+@theme {
+  --radius-md: 10px;
+  --radius-lg: 14px;
+}
+
 :root {
   color-scheme: dark;
   --font-display: 'Baloo 2', system-ui, sans-serif;
   --font-body: 'Nunito', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --radius-control: 10px;
+  --radius-panel: 14px;
+  --radius-surface: 20px;
 
   /* ---------- site chrome design system ----------
      Distinct from the "quiz-show" tokens above (hex-pill, shimmer, pulse-glow),
@@ -51,6 +64,12 @@
      its plain gold accent untouched. */
   --hero-accent: #9c2bb0;
   --hero-accent-hover: #b136c7;
+
+  /* The character wall's "Read" pill. Pinkish purple, a shade off --gold so
+     it reads as its own action rather than the page accent, with a solid
+     bottom edge instead of a shadow so it keeps the toy-button feel. */
+  --pin: #e06cc4;
+  --pin-edge: #a83a8c;
 }
 
 /* Re-themes the shared "site chrome" design system (.panel, .btn-solid,
@@ -72,6 +91,8 @@
   --gold: #9c2bb0;
   --gold-ink: #ffffff;
   --fg: #1c1030;
+  --pin: #c0399f;
+  --pin-edge: #8e2273;
 }
 
 html, body, #root {
@@ -96,7 +117,42 @@ html {
 
 h1, h2, h3, .font-display {
   font-family: var(--font-display);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.012em;
+}
+
+/* Optical sizing. Tracking is not linear with size: the -0.01em that suits
+   an 18px subhead leaves a 72px headline visibly gappy, because the gaps
+   scale with the type while the eye's tolerance for them does not. Big type
+   wants to be tighter, small type wants more air. Keyed off the size classes
+   the headings already carry, so nothing in the markup has to change. */
+:is(h1, h2, h3, .font-display):is(.text-2xl, .text-3xl) {
+  letter-spacing: -0.019em;
+}
+:is(h1, h2, h3, .font-display):is(.text-4xl, .text-5xl) {
+  letter-spacing: -0.026em;
+}
+:is(h1, h2, h3, .font-display):is(.text-6xl, .text-7xl) {
+  letter-spacing: -0.032em;
+}
+
+@media (min-width: 640px) {
+  :is(h1, h2, h3, .font-display):is(.sm\:text-3xl) {
+    letter-spacing: -0.019em;
+  }
+  :is(h1, h2, h3, .font-display):is(.sm\:text-4xl, .sm\:text-5xl) {
+    letter-spacing: -0.026em;
+  }
+  :is(h1, h2, h3, .font-display):is(.sm\:text-6xl) {
+    letter-spacing: -0.032em;
+  }
+}
+
+/* The counterpart at the small end: an all-caps eyebrow at 11px needs its
+   letters pushed apart to stay readable, which the eyebrow classes already
+   do, but small bold labels elsewhere were inheriting display tracking they
+   are too small to carry. */
+:is(h1, h2, h3, .font-display):is(.text-xs, .text-\[11px\], .text-\[10px\]) {
+  letter-spacing: 0;
 }
 
 button {
@@ -141,6 +197,15 @@ body::before {
   pointer-events: none;
   z-index: 30;
   background: radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.35) 100%);
+}
+
+/* Not on a light ground. This vignette was drawn for the quiz screens, where
+   a dark surround pulls the eye to the middle of a dark stage. Every light
+   surface in the app - the landing page, the kid screens, the portals, the
+   sign-in page - was inheriting 35% black in its corners, which is why they
+   all read slightly muddy and slightly cheap. */
+body:has([data-landing-theme='light'])::before {
+  content: none;
 }
 
 /* ---------- shared micro-interactions ---------- */
@@ -441,7 +506,7 @@ button:active, a:active {
   background: var(--gold);
   color: var(--gold-ink);
   font-weight: 800;
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   padding: 0.7rem 1.35rem;
   transition: background-color 0.15s ease, transform 0.1s ease;
 }
@@ -464,7 +529,7 @@ button:active, a:active {
   background: transparent;
   color: var(--fg);
   font-weight: 700;
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   border: 1px solid var(--hairline-strong);
   padding: 0.68rem 1.3rem;
   transition: border-color 0.15s ease, background-color 0.15s ease;
@@ -477,14 +542,14 @@ button:active, a:active {
 .panel {
   background: var(--ink-panel);
   border: 1px solid var(--hairline);
-  border-radius: 10px;
+  border-radius: var(--radius-panel);
 }
 .panel-interactive {
   transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 .panel-interactive:hover {
   border-color: var(--hairline-strong);
-  background: #241a3d;
+  background: color-mix(in srgb, var(--ink-panel), var(--fg) 8%);
 }
 
 .eyebrow {
@@ -705,20 +770,23 @@ button:active, a:active {
 .nav-cta-solid:active {
   transform: scale(0.97);
 }
+/* Painted from the tokens, not from white. The header carries a theme on
+   every route now, so a hardcoded white label here was invisible on every
+   light page. */
 .nav-cta-outline {
   align-items: center;
   justify-content: center;
   gap: 0.4rem;
   background: transparent;
-  color: #fff;
+  color: var(--fg);
   font-weight: 800;
   border-radius: 8px;
-  border: 1.5px solid rgba(255, 255, 255, 0.6);
+  border: 1.5px solid color-mix(in srgb, var(--fg) 45%, transparent);
   transition: border-color 0.15s ease, background-color 0.15s ease;
 }
 .nav-cta-outline:hover {
-  border-color: #fff;
-  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--fg);
+  background: color-mix(in srgb, var(--fg) 8%, transparent);
 }
 
 /* ==================== landing page theme (scoped) ====================
@@ -734,7 +802,12 @@ button:active, a:active {
   --lp-radius-card: 20px;
   --lp-radius-feature: 24px;
   --lp-radius-pill: 999px;
-  --lp-shadow-card: 0 16px 40px -20px rgba(20, 8, 40, 0.35);
+  /* Two layers, not one: a tight contact shadow that seats the card on the
+     page and a wide soft one that gives it height. A single large blur is
+     what makes a card look like it is floating in front of the page rather
+     than resting on it. */
+  --lp-shadow-card: 0 1px 2px rgba(20, 8, 40, 0.06), 0 12px 32px -18px rgba(20, 8, 40, 0.3);
+  --lp-shadow-card-raised: 0 2px 4px rgba(20, 8, 40, 0.07), 0 22px 48px -24px rgba(20, 8, 40, 0.4);
   --lp-accent-fill: var(--hero-accent);
   --lp-accent-fill-hover: var(--hero-accent-hover);
   --lp-accent-fill-ink: #ffffff;
@@ -790,23 +863,54 @@ button:active, a:active {
   --lp-band-deep-body: rgba(237, 233, 246, 0.82);
 }
 
+/* Two band rhythms, and only two. Vertical padding on the full-bleed bands
+   used to run 56, 64, 80 and 96px in five different combinations with no
+   rule about which went where, which is invisible on any single band and
+   obvious the moment you scroll the page. A section with its own content
+   gets the standard rhythm; an interstitial that exists to introduce the
+   next one gets the compact one. */
+.lp-rhythm {
+  padding-block: 4rem;
+}
+.lp-rhythm-compact {
+  padding-block: 3rem;
+}
+@media (min-width: 640px) {
+  .lp-rhythm {
+    padding-block: 6rem;
+  }
+  .lp-rhythm-compact {
+    padding-block: 4rem;
+  }
+}
+
 .lp-page {
   background: var(--lp-bg);
   color: var(--lp-body);
+  /* Sections slide in from the right, so until one scrolls into view it sits
+     parked a few dozen pixels past the edge and the whole page could be
+     dragged sideways on a phone. Cards that deliberately hang past their
+     column (-right-2 and friends) added the rest. Clipped here rather than
+     hidden: clip does not make this a scroll container, so anything sticky
+     inside the page keeps working. */
+  overflow-x: clip;
 }
 
-/* A playful pill-shaped tag, not plain label text - Fredoka (bouncier than
-   Poppins/Baloo2/Nunito everywhere else) on a soft tinted chip, colour
-   defaulting to the purple-pink accent but overridable per section via
-   --card-accent so each part of the page can wear its own colour. */
+/* A playful pill-shaped tag, not plain label text, on a soft tinted chip,
+   colour defaulting to the purple-pink accent but overridable per section
+   via --card-accent so each part of the page can wear its own colour.
+   This used to be set in Fredoka, a fourth typeface bought purely for the
+   eyebrows. Baloo 2 is already the display face and carries the same bounce
+   at this size once the tracking is opened up, so the page now runs on three
+   faces instead of four and a phone downloads two fewer font files. */
 .lp-eyebrow {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-family: 'Fredoka', var(--font-body);
+  font-family: var(--font-display);
   font-size: 0.74rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
   color: var(--card-accent, var(--lp-accent-text));
   background: color-mix(in srgb, var(--card-accent, var(--lp-accent-text)) 14%, transparent);
@@ -838,11 +942,16 @@ button:active, a:active {
 .lp-band-raised {
   background: var(--lp-bg-raised);
 }
+/* Deep bands used to run a four-stop diagonal from near-black to magenta
+   across the full width, which is the single most template-looking thing a
+   page can do. The field is now close to one colour, with the light coming
+   from soft atmospheric pools behind the content instead of from a sweep,
+   so the band reads as a lit room rather than a gradient. */
 .lp-band-deep {
   background:
-    radial-gradient(ellipse 70% 100% at 85% 0%, rgba(255, 105, 210, 0.22), transparent 60%),
-    radial-gradient(ellipse 60% 90% at 8% 100%, rgba(156, 43, 176, 0.3), transparent 65%),
-    linear-gradient(155deg, #1b0930 0%, #3d1259 45%, #6d1b8f 80%, #8f2496 100%);
+    radial-gradient(ellipse 85% 130% at 50% -15%, rgba(176, 62, 196, 0.26), transparent 62%),
+    radial-gradient(ellipse 65% 95% at 10% 115%, rgba(104, 30, 148, 0.24), transparent 66%),
+    linear-gradient(170deg, #1d0b33 0%, #2a1147 100%);
   color: var(--lp-band-deep-body);
 }
 .lp-band-deep .lp-heading {
@@ -863,9 +972,13 @@ button:active, a:active {
 /* A colour-coded top edge instead of a plain neutral card, so a grid of
    cards reads as a row of distinct, colourful tiles rather than identical
    grey boxes with only a small icon differing. */
+/* The accent used to be a 4px coloured rail across the top of every card.
+   On a grid where a whole row shares one accent that reads as a dated
+   dashboard template, so the colour now lives in the icon chip, the border
+   and a barely-there wash instead. Same information, quieter delivery. */
 .lp-panel-accented {
-  border-top: 4px solid var(--card-accent, var(--lp-accent-fill));
-  background: linear-gradient(180deg, color-mix(in srgb, var(--card-accent, var(--lp-accent-fill)) 8%, var(--lp-bg-panel)), var(--lp-bg-panel) 65%);
+  border-color: color-mix(in srgb, var(--card-accent, var(--lp-accent-fill)) 22%, var(--lp-hairline));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--card-accent, var(--lp-accent-fill)) 5%, var(--lp-bg-panel)), var(--lp-bg-panel) 55%);
 }
 /* A profile card's photo dissolves into the card body instead of ending
    in a hard edge - the fade only eats into the photo itself, never the
@@ -889,12 +1002,15 @@ button:active, a:active {
 .lp-panel-interactive {
   transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.18s ease, background-color 0.18s ease;
 }
+/* A lift, not a tilt. The rotation read as novelty on a grid of a dozen
+   cards, and novelty is the first thing that makes a page look cheap. */
 .lp-panel-interactive:hover {
-  transform: translateY(-5px) rotate(-0.75deg) scale(1.015);
-  border-color: var(--card-accent, var(--lp-hairline-strong));
+  transform: translateY(-4px);
+  border-color: color-mix(in srgb, var(--card-accent, var(--lp-accent-fill)) 55%, transparent);
+  box-shadow: var(--lp-shadow-card-raised);
 }
 .lp-panel-interactive:active {
-  transform: translateY(-1px) scale(0.98);
+  transform: translateY(-1px) scale(0.995);
 }
 
 .lp-stat-strip {
@@ -1043,7 +1159,7 @@ button:active, a:active {
   background: var(--lp-accent-fill);
   color: var(--lp-accent-fill-ink);
   font-weight: 800;
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   padding: 0.7rem 1.35rem;
   transition: background-color 0.15s ease, transform 0.1s ease;
 }
@@ -1080,7 +1196,7 @@ button:active, a:active {
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  border-radius: 14px;
+  border-radius: 12px;
   color: var(--card-accent, var(--lp-accent-fill));
   background: color-mix(in srgb, var(--card-accent, var(--lp-accent-fill)) 16%, transparent);
   border: 1.5px solid color-mix(in srgb, var(--card-accent, var(--lp-accent-fill)) 35%, transparent);
@@ -1092,37 +1208,170 @@ button:active, a:active {
   transform: rotate(-8deg) scale(1.08);
 }
 
-.lp-theme-toggle {
+/* The header's plain icon controls. Same 2.5rem height as .lp-theme-switch
+   next to it, but built on the app tokens rather than the --lp-* landing
+   ones. Sizes and radii are kept in step with the switch by hand. */
+/* One card for every Bible character: same frame, same crop, same caption
+   block, so the grid reads as rows rather than as a pile. */
+.character-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: border-color 0.2s ease, transform 0.2s ease, background-color 0.2s ease;
+}
+.character-card:hover {
+  border-color: var(--gold);
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-3px);
+}
+.character-card:active {
+  transform: translateY(0);
+}
+
+/* The board's column track. On a phone the Games column is dropped so a
+   child's name has room to finish instead of truncating to "Divine Ok...". */
+.lb-grid {
+  display: grid;
+  align-items: center;
+  gap: 0.75rem;
+  grid-template-columns: 28px 1fr 72px;
+}
+.lb-games { display: none; }
+@media (min-width: 640px) {
+  .lb-grid { grid-template-columns: 28px 1fr 64px 72px; }
+  .lb-games { display: block; }
+}
+
+.nav-icon-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   height: 2.5rem;
   width: 2.5rem;
-  border-radius: var(--lp-radius-pill);
-  border: 1px solid var(--lp-hairline-strong);
-  background: color-mix(in srgb, var(--lp-bg-panel) 70%, transparent);
-  color: var(--lp-heading);
+  border-radius: 9999px;
+  border: 1px solid var(--hairline-strong);
+  background: color-mix(in srgb, var(--ink-panel) 70%, transparent);
+  color: var(--fg);
   backdrop-filter: blur(6px);
   transition: border-color 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
 }
-.lp-theme-toggle:hover {
-  border-color: var(--lp-accent-fill);
+.nav-icon-btn:hover {
+  border-color: var(--gold);
 }
-.lp-theme-toggle:active {
+.nav-icon-btn:active {
   transform: scale(0.93);
 }
-@keyframes lp-theme-icon-pop {
-  from {
-    transform: rotate(-90deg) scale(0.6);
-    opacity: 0;
-  }
-  to {
-    transform: rotate(0deg) scale(1);
-    opacity: 1;
-  }
+
+/* The light/dark switch, in the header on every route but the quiz stage.
+   A track with both ends showing and a knob that slides between them, so the
+   control reads as two states rather than one button with a changing icon.
+
+   Sized in rem against the 2.5rem icon buttons beside it so the header row
+   keeps one height. */
+.lp-theme-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  height: 2.5rem;
+  width: 4rem;
+  padding: 0;
+  border-radius: var(--lp-radius-pill);
+  border: 1px solid var(--lp-hairline-strong);
+  background: color-mix(in srgb, var(--lp-bg-panel) 70%, transparent);
+  backdrop-filter: blur(6px);
+  transition: border-color 0.2s ease, background-color 0.2s ease;
 }
-.lp-theme-toggle-icon {
-  animation: lp-theme-icon-pop 0.25s ease-out;
+.lp-theme-switch:hover {
+  border-color: var(--lp-accent-fill);
+}
+.lp-theme-switch:focus-visible {
+  outline: 2px solid var(--lp-accent-fill);
+  outline-offset: 2px;
+}
+
+/* The two fixed ends. They sit under the knob and stay dim: the knob is what
+   carries the current state at full contrast. */
+.lp-theme-switch-end {
+  position: absolute;
+  top: 50%;
+  height: 0.875rem;
+  width: 0.875rem;
+  margin-top: -0.4375rem;
+  color: var(--lp-heading);
+  opacity: 0.4;
+  transition: opacity 0.3s ease;
+}
+.lp-theme-switch-end.is-sun {
+  left: 0.5rem;
+}
+.lp-theme-switch-end.is-moon {
+  right: 0.5rem;
+}
+/* Whichever end the knob is covering does not need to show through it. */
+.lp-theme-switch:not(.is-dark) .lp-theme-switch-end.is-sun,
+.lp-theme-switch.is-dark .lp-theme-switch-end.is-moon {
+  opacity: 0;
+}
+
+.lp-theme-switch-knob {
+  position: absolute;
+  top: 50%;
+  left: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.875rem;
+  width: 1.875rem;
+  margin-top: -0.9375rem;
+  border-radius: 999px;
+  background: var(--lp-accent-fill);
+  color: var(--lp-accent-fill-ink);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+  /* A touch of overshoot at the end of the travel, which is what makes it
+     feel like a switch being thrown rather than a box being moved. */
+  transition: transform 0.42s cubic-bezier(0.34, 1.32, 0.52, 1);
+  transform: translateX(0);
+}
+.lp-theme-switch.is-dark .lp-theme-switch-knob {
+  transform: translateX(1.5rem);
+}
+.lp-theme-switch:active .lp-theme-switch-knob {
+  height: 1.75rem;
+  width: 1.75rem;
+  margin-top: -0.875rem;
+}
+
+/* Both icons are mounted; they cross-fade and turn rather than swapping, so
+   there is no frame where the knob is empty. */
+.lp-theme-switch-knob-icon {
+  position: absolute;
+  height: 0.9375rem;
+  width: 0.9375rem;
+  transition: opacity 0.28s ease, transform 0.42s cubic-bezier(0.34, 1.32, 0.52, 1);
+}
+.lp-theme-switch-knob-icon.is-sun {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+.lp-theme-switch-knob-icon.is-moon {
+  opacity: 0;
+  transform: rotate(-70deg) scale(0.5);
+}
+.lp-theme-switch.is-dark .lp-theme-switch-knob-icon.is-sun {
+  opacity: 0;
+  transform: rotate(70deg) scale(0.5);
+}
+.lp-theme-switch.is-dark .lp-theme-switch-knob-icon.is-moon {
+  opacity: 1;
+  transform: rotate(0deg) scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-theme-switch-knob,
+  .lp-theme-switch-knob-icon,
+  .lp-theme-switch-end {
+    transition-duration: 0.01ms;
+  }
 }
 
 /* A deliberate, designed stand-in for a photo that doesn't exist yet -
@@ -1156,4 +1405,2438 @@ button:active, a:active {
   background-repeat: no-repeat;
   opacity: 0.07;
   filter: grayscale(1) invert(1);
+}
+
+/* ---------- D1 + D4: the screens a child taps ----------
+   Duolingo governs the kid surfaces (see the design reference mapping).
+   Two things it does that this app did not, scoped to [data-kid-surface]
+   so the teacher, admin and parent portals - which share the same light
+   shell - keep the grown-up treatment.
+
+   D1, one button shape. Duolingo has exactly one: flat fill, a generous
+   radius, and a hard darker edge along the bottom that vanishes on press
+   so the button physically travels down under the thumb. No gradient, no
+   hover lift, no shrink-on-tap. Written here rather than into every call
+   site, so every child-facing button the app already has inherits it. */
+
+[data-kid-surface] :is(.btn-solid, .lp-btn-solid, .btn-outline, .lp-btn-outline, .kid-btn) {
+  border-radius: 16px;
+  font-weight: 800;
+  padding: 0.75rem 1.4rem;
+  transition: filter 0.12s ease, box-shadow 0.08s ease, transform 0.08s ease;
+}
+
+[data-kid-surface] :is(.btn-solid, .kid-btn) {
+  background: var(--gold);
+  color: var(--gold-ink);
+  box-shadow: 0 4px 0 color-mix(in srgb, var(--gold) 72%, #000);
+}
+[data-kid-surface] .lp-btn-solid {
+  box-shadow: 0 4px 0 color-mix(in srgb, var(--lp-accent-fill) 70%, #000);
+}
+[data-kid-surface] :is(.btn-outline, .lp-btn-outline) {
+  border-width: 2px;
+  box-shadow: 0 4px 0 var(--lp-hairline-strong);
+}
+
+/* Hover brightens, it does not move: the press is the only movement, which
+   is what makes the press read as a press. */
+[data-kid-surface] :is(.btn-solid, .lp-btn-solid, .btn-outline, .lp-btn-outline, .kid-btn):hover {
+  transform: none;
+  filter: brightness(1.05);
+}
+[data-kid-surface] :is(.btn-solid, .lp-btn-solid, .btn-outline, .lp-btn-outline, .kid-btn):active {
+  transform: translateY(4px);
+  box-shadow: none;
+  filter: none;
+}
+[data-kid-surface] :is(.btn-solid, .lp-btn-solid, .btn-outline, .lp-btn-outline, .kid-btn):disabled {
+  box-shadow: none;
+  transform: none;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* D4, headings a step bigger and rounder - on kid screens only. Baloo 2 is
+   already the display face; here it is set at its natural width instead of
+   the negative tracking the grown-up screens use (tight tracking reads as
+   condensed and serious, which is the opposite of what these letterforms
+   are for), and one size step up. Keyed off the size classes the headings
+   already carry, same trick as the optical-sizing block near the top, so no
+   markup changes. text-4xl and up are left alone: they are already big, and
+   growing them overflows a phone. */
+[data-kid-surface] :is(h1, h2, h3, .font-display) {
+  letter-spacing: 0;
+}
+[data-kid-surface] :is(h1, h2, h3, .font-display).text-lg {
+  font-size: 1.25rem;
+  line-height: 1.2;
+}
+[data-kid-surface] :is(h1, h2, h3, .font-display).text-xl {
+  font-size: 1.4rem;
+  line-height: 1.2;
+}
+[data-kid-surface] :is(h1, h2, h3, .font-display).text-2xl {
+  font-size: 1.7rem;
+  line-height: 1.15;
+}
+[data-kid-surface] :is(h1, h2, h3, .font-display).text-3xl {
+  font-size: 2.05rem;
+  line-height: 1.12;
+}
+
+/* The responsive halves of the same scale. Without these a heading written
+   "text-2xl sm:text-3xl" would be stuck at the phone size on a laptop,
+   because the rule above outranks Tailwind's own sm: rule. */
+@media (min-width: 640px) {
+  [data-kid-surface] :is(h1, h2, h3, .font-display).sm\:text-xl {
+    font-size: 1.4rem;
+    line-height: 1.2;
+  }
+  [data-kid-surface] :is(h1, h2, h3, .font-display).sm\:text-2xl {
+    font-size: 1.7rem;
+    line-height: 1.15;
+  }
+  [data-kid-surface] :is(h1, h2, h3, .font-display).sm\:text-3xl {
+    font-size: 2.05rem;
+    line-height: 1.12;
+  }
+}
+
+/* D2 - the journey path's one repeated object. Same shape, same size, same
+   hard bottom edge for every stop; only the fill and the icon change with
+   the state, and the edge collapses on press so the stop travels down under
+   the thumb exactly like a kid button (D1). */
+.kid-node {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  transition: box-shadow 0.08s ease, transform 0.08s ease;
+}
+.kid-node:active {
+  transform: translateY(6px);
+  box-shadow: none !important;
+}
+
+/* The "Start" flag over the stop the child is on - Duolingo's one piece of
+   movement on this screen, and the only thing on the path that is not a
+   circle, which is what makes it findable. */
+.kid-node-bubble {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 12px);
+  transform: translateX(-50%);
+  z-index: 10;
+  padding: 0.3rem 0.75rem;
+  border-radius: 10px;
+  background: var(--lp-bg-panel, #fff);
+  border: 2px solid var(--lp-accent-bible);
+  color: var(--lp-accent-bible);
+  font-family: var(--font-display);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  animation: kid-node-bob 1.4s ease-in-out infinite;
+}
+.kid-node-bubble::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  margin-top: -5px;
+  background: var(--lp-bg-panel, #fff);
+  border-right: 2px solid var(--lp-accent-bible);
+  border-bottom: 2px solid var(--lp-accent-bible);
+  transform: rotate(45deg);
+}
+
+@keyframes kid-node-bob {
+  0%, 100% { transform: translate(-50%, 0); }
+  50% { transform: translate(-50%, -5px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kid-node-bubble {
+    animation: none;
+  }
+}
+
+/* ---------- C1 C2 C3: the Apple chrome ----------
+   iCloud governs the signed-in furniture and the sign-in page (see the
+   design reference mapping). Structure only, never the palette: the app
+   keeps its own colours.
+
+   C1, one elevation instead of a border on everything. A border says "this
+   is a separate object" and this app was saying it about every block on the
+   page at once, so nothing stood out. Panels here drop the border and rest
+   on one soft shadow.
+
+   C2, three radii and no more. A control, a card, and a sheet - anything
+   else was an accident.
+
+   C3, sheets instead of page jumps, plus the quiet-until-hover rule: a
+   control shows its edge when you reach for it, not before. */
+[data-apple-chrome] {
+  --apple-r-control: 12px;
+  --apple-r-card: 18px;
+  --apple-r-sheet: 28px;
+  --apple-elev: 0 1px 2px rgba(20, 8, 40, 0.05), 0 8px 28px -14px rgba(20, 8, 40, 0.28);
+  --apple-elev-raised: 0 2px 6px rgba(20, 8, 40, 0.07), 0 18px 46px -20px rgba(20, 8, 40, 0.38);
+  /* C2 in practice: the shared chrome system has its own radius names, so
+     point them at the same three values rather than leaving a fourth and
+     fifth radius in play. */
+  --lp-radius-card: 18px;
+  --lp-radius-feature: 18px;
+  --radius-control: 12px;
+  --radius-panel: 18px;
+  --radius-surface: 28px;
+  --lp-shadow-card: var(--apple-elev);
+  --lp-shadow-card-raised: var(--apple-elev-raised);
+}
+
+[data-apple-chrome] :is(.lp-panel, .lp-stat-strip, .panel) {
+  border-color: transparent;
+  box-shadow: var(--apple-elev);
+  background: var(--lp-bg-panel);
+}
+/* The accent wash and tinted border are what a card looks like when it is
+   trying to be noticed. Under this chrome the colour lives in the icon and
+   nowhere else. */
+[data-apple-chrome] .lp-panel-accented {
+  background: var(--lp-bg-panel);
+  border-color: transparent;
+}
+[data-apple-chrome] .lp-panel-interactive:hover {
+  transform: none;
+  border-color: transparent;
+  box-shadow: var(--apple-elev-raised);
+}
+
+[data-apple-chrome] :is(.btn-solid, .lp-btn-solid, .btn-outline, .lp-btn-outline) {
+  border-radius: var(--apple-r-control);
+}
+/* Quiet until you reach for it. */
+[data-apple-chrome] :is(.btn-outline, .lp-btn-outline) {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--lp-heading) 6%, transparent);
+}
+[data-apple-chrome] :is(.btn-outline, .lp-btn-outline):hover {
+  border-color: var(--lp-hairline-strong);
+  background: color-mix(in srgb, var(--lp-heading) 10%, transparent);
+}
+
+/* The one field shape. Filled, hairline, and a ring rather than a colour
+   change on focus, so the field does not jump when you tap it. */
+.apple-field {
+  width: 100%;
+  border-radius: var(--apple-r-control, 12px);
+  border: 1px solid var(--lp-hairline-strong);
+  background: var(--lp-bg);
+  padding: 0.85rem 1rem;
+  font-size: 1rem;
+  color: var(--lp-heading);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.apple-field::placeholder {
+  color: var(--lp-faint);
+}
+.apple-field:focus {
+  border-color: var(--hero-accent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--hero-accent) 18%, transparent);
+}
+
+/* Apple's segmented control: a recessed track, and the selected segment is
+   a raised plate rather than a block of colour. */
+.apple-segmented {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: var(--apple-r-control, 12px);
+  background: color-mix(in srgb, var(--lp-heading) 7%, transparent);
+}
+.apple-segment {
+  flex: 1;
+  border-radius: calc(var(--apple-r-control, 12px) - 4px);
+  padding: 0.55rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--lp-muted);
+  transition: color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+.apple-segment:hover {
+  color: var(--lp-heading);
+}
+.apple-segment[aria-selected='true'] {
+  background: var(--lp-bg);
+  color: var(--lp-heading);
+  box-shadow: 0 1px 3px rgba(20, 8, 40, 0.14);
+}
+
+/* ---------- the vault widget ----------
+   Notes and Digital Bank used to own a hardcoded near-black card, on the
+   reasoning that they get dropped onto all sorts of backdrops and the theme
+   tokens only suited light pages. That stopped being true when
+   .site-light-theme arrived: the tokens now re-point per surface, so the
+   widget reads correctly on a dark quiz screen and a light portal alike by
+   simply using them. Two black slabs in the middle of a teacher's dashboard
+   were the cost of the old approach. */
+.vault-card {
+  border-radius: var(--apple-r-card, 16px);
+  background: var(--ink-raised);
+  color: var(--fg);
+  padding: 1rem;
+}
+.vault-inner {
+  border-radius: var(--apple-r-card, 16px);
+  border: 1px solid var(--hairline);
+  background: color-mix(in srgb, var(--fg) 4%, transparent);
+  padding: 1rem;
+}
+.vault-field {
+  width: 100%;
+  border-radius: var(--apple-r-control, 10px);
+  border: 1px solid var(--hairline-strong);
+  background: color-mix(in srgb, var(--fg) 4%, transparent);
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: var(--fg);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.vault-field::placeholder {
+  color: var(--ink-faint);
+}
+.vault-field:focus {
+  border-color: var(--gold);
+}
+.vault-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 999px;
+  border: 1px solid var(--hairline-strong);
+  background: color-mix(in srgb, var(--fg) 4%, transparent);
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--ink-muted);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.vault-chip:hover {
+  background: color-mix(in srgb, var(--fg) 10%, transparent);
+  color: var(--fg);
+}
+
+/* A dark surface sitting inside a light one - the phone mock on the kids'
+   home screen is the only one today. Anything nested here needs the app's
+   dark token values back, and needs `color` set as well as the backgrounds:
+   colour inherits as an already-resolved value, so re-pointing --fg alone
+   leaves text that was inheriting from further up still painted in the
+   light theme's near-black. That exact mistake is why the last attempt at
+   a dark kid surface produced unreadable screens. */
+.dark-island {
+  --ink: #120a1f;
+  --ink-raised: #1b1030;
+  --ink-panel: #1f1436;
+  --hairline: rgba(255, 255, 255, 0.09);
+  --hairline-strong: rgba(255, 255, 255, 0.16);
+  --ink-muted: rgba(237, 233, 246, 0.62);
+  --ink-faint: rgba(237, 233, 246, 0.4);
+  --fg: #ffffff;
+  color: var(--fg);
+}
+
+/* C3 - the one sheet shape. See src/components/ui/Sheet.tsx.
+   On a phone it rises from the bottom edge, rounded at the top only, the
+   way a system sheet does. From 640px up it is a centred panel. */
+.sheet-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(10, 4, 20, 0.55);
+  backdrop-filter: blur(2px);
+}
+.sheet-panel {
+  width: 100%;
+  max-width: 28rem;
+  max-height: 88vh;
+  overflow-y: auto;
+  background: var(--ink-panel);
+  color: var(--fg);
+  border-radius: var(--apple-r-sheet, 24px) var(--apple-r-sheet, 24px) 0 0;
+  padding: 1.25rem;
+  padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -8px 40px -12px rgba(10, 4, 20, 0.5);
+  animation: sheet-rise 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.sheet-panel-wide {
+  max-width: 34rem;
+}
+.sheet-panel:focus {
+  outline: none;
+}
+
+@keyframes sheet-rise {
+  from {
+    transform: translateY(14px);
+    opacity: 0.6;
+  }
+}
+
+@media (min-width: 640px) {
+  .sheet-scrim {
+    align-items: center;
+    padding: 1rem;
+  }
+  .sheet-panel {
+    border-radius: var(--apple-r-sheet, 24px);
+    padding-bottom: 1.25rem;
+    box-shadow: 0 24px 60px -20px rgba(10, 4, 20, 0.55);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet-panel {
+    animation: none;
+  }
+}
+
+/* ---------- A1: the full-bleed feature bands ----------
+   See src/components/FeatureBand.tsx. The photograph runs to the edge of the
+   screen and the full height of the band; the copy sits beside it on the
+   page's own ground, with no wash behind it. On a phone there is no room for
+   two columns, so the photograph becomes a full-width strip above the copy,
+   cropped exactly as it is on a laptop. */
+.lp-feature-band {
+  display: grid;
+  background: var(--lp-bg);
+}
+.lp-feature-photo {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  aspect-ratio: 16 / 10;
+}
+.lp-feature-copy {
+  padding: 3rem 1rem;
+}
+.lp-feature-copy-inner {
+  margin: 0 auto;
+  max-width: 34rem;
+}
+
+@media (min-width: 1024px) {
+  .lp-feature-band {
+    grid-template-columns: 1fr 1fr;
+    align-items: stretch;
+  }
+  .lp-feature-photo {
+    aspect-ratio: auto;
+    min-height: 32rem;
+  }
+  /* The photograph on the right means it is the second column, and the copy
+     hugs the middle of the page from the other side. */
+  .lp-feature-band[data-side='right'] .lp-feature-photo {
+    order: 2;
+  }
+  .lp-feature-copy {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 5rem 2.5rem;
+  }
+  .lp-feature-copy-inner {
+    margin: 0;
+  }
+  .lp-feature-band[data-side='left'] .lp-feature-copy-inner {
+    margin-right: auto;
+  }
+  .lp-feature-band[data-side='right'] .lp-feature-copy-inner {
+    margin-left: auto;
+  }
+}
+
+@media (min-width: 1440px) {
+  .lp-feature-copy {
+    padding-inline: 4.5rem;
+  }
+}
+
+/* ---------- The Bible Journey's three columns ----------
+   Duolingo's web layout is the reference for this screen (see the design
+   reference mapping): a rail, the path, a rail, all three visible at once.
+   The rule that matters here is that the three columns never become one.
+   Below 640px they turn into a horizontal snap row instead of stacking,
+   so a child swipes sideways between the card, the path and the board
+   rather than scrolling past two of them to reach the third. */
+.journey-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 300px) minmax(0, 1fr) minmax(0, 320px);
+  align-items: start;
+  gap: 1.25rem;
+}
+
+@media (max-width: 999px) {
+  .journey-cols {
+    grid-template-columns: minmax(0, 232px) minmax(0, 1fr) minmax(0, 248px);
+    gap: 0.75rem;
+  }
+}
+
+@media (max-width: 639px) {
+  .journey-cols {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: 82%;
+    gap: 0.6rem;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    /* The gutter is what lets the neighbouring columns peek in at both
+       edges, which is what tells a child there is something to swipe to. */
+    padding-inline: 9%;
+    margin-inline: -9%;
+    scrollbar-width: none;
+  }
+  .journey-cols::-webkit-scrollbar {
+    display: none;
+  }
+  .journey-col {
+    scroll-snap-align: center;
+  }
+}
+
+/* The rails hold still while the path scrolls, the way Duolingo's do. The
+   path itself owns its own scrolling, so the rails are only sticky on the
+   widths where the page scrolls behind them. */
+@media (min-width: 640px) {
+  .journey-cols > .journey-col:not(.journey-col-mid) {
+    position: sticky;
+    top: 0.5rem;
+  }
+}
+
+/* ---------- Leaderboard screen ----------
+   Its own small palette, declared once at the top of the screen and used by
+   every rule under it, rather than the warm hexes being written into the
+   component. The board is a cream world of its own on purpose - that is the
+   reference Banks approved - so it does not take --ink-* from the surface it
+   is mounted on, but nothing inside it carries a literal colour either. */
+.lb-screen {
+  --lb-ground: #fdf6e4;
+  --lb-card: #fffdf6;
+  --lb-band: #fbeccb;
+  --lb-mine: #fdeec8;
+  --lb-line: #f6eedd;
+  --lb-line-strong: #f2e6cc;
+  --lb-ink: #4a3f2d;
+  --lb-ink-strong: #6b5a38;
+  --lb-mute: #a08a5e;
+  --lb-faint: #b09a6e;
+  --lb-accent: #f6a94a;
+  --lb-accent-soft: #f6c667;
+  --lb-title: #e0a63c;
+  --lb-up: #58cc02;
+  --lb-down: #e06565;
+
+  background: var(--lb-ground);
+  color: var(--lb-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.lb-screen .lb-tabs {
+  display: flex;
+  background: var(--lb-band);
+  border-radius: 999px;
+  padding: 4px;
+}
+.lb-screen .lb-tab {
+  flex: 1;
+  text-align: center;
+  padding: 9px 12px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--lb-faint);
+  white-space: nowrap;
+}
+.lb-screen .lb-tab.is-on {
+  background: var(--lb-accent);
+  color: #fff;
+  box-shadow: 0 3px 8px rgba(224, 150, 50, 0.3);
+}
+
+.lb-screen .lb-podium {
+  display: grid;
+  grid-template-columns: 1fr 1.16fr 1fr;
+  align-items: end;
+  gap: 8px;
+  background: var(--lb-card);
+  border-radius: 22px;
+  padding: 22px 12px 18px;
+}
+.lb-screen .pod {
+  text-align: center;
+}
+.lb-screen .pod .crown {
+  width: 17px;
+  height: 17px;
+  margin: 0 auto 3px;
+  color: var(--lb-accent-soft);
+  fill: var(--lb-accent-soft);
+}
+.lb-screen .pod.is-1 .crown {
+  width: 21px;
+  height: 21px;
+  color: var(--lb-accent);
+  fill: var(--lb-accent);
+}
+.lb-screen .pod .ring {
+  position: relative;
+  width: 62px;
+  height: 62px;
+  margin: 0 auto 16px;
+  border-radius: 50%;
+  border: 3px solid var(--lb-accent-soft);
+  display: grid;
+  place-items: center;
+  overflow: visible;
+  font-weight: 900;
+  font-size: 1.3rem;
+  color: var(--lb-ink-strong);
+  background: var(--lb-mine);
+}
+.lb-screen .pod.is-1 .ring {
+  width: 76px;
+  height: 76px;
+  border-color: var(--lb-accent);
+  font-size: 1.6rem;
+}
+.lb-screen .pod .ring img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.lb-screen .pod .ring b {
+  position: absolute;
+  left: 50%;
+  bottom: -12px;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--lb-accent-soft);
+  color: #fff;
+  font-size: 0.74rem;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--lb-card);
+}
+.lb-screen .pod.is-1 .ring b {
+  background: var(--lb-accent);
+}
+.lb-screen .pod .nm {
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+.lb-screen .pod .pt {
+  font-size: 0.74rem;
+  color: var(--lb-mute);
+}
+
+.lb-screen .lb-list {
+  background: var(--lb-card);
+  border-radius: 22px;
+  overflow: hidden;
+}
+.lb-screen .lb-row {
+  display: grid;
+  grid-template-columns: 22px 10px 32px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  padding: 11px 14px;
+  text-align: left;
+}
+.lb-screen .lb-row + .lb-row {
+  border-top: 1px solid var(--lb-line);
+}
+.lb-screen .lb-row.is-you {
+  background: var(--lb-mine);
+  border-top-color: transparent;
+}
+.lb-screen .lb-rank {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--lb-mute);
+}
+.lb-screen .lb-arrow {
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  justify-self: center;
+}
+.lb-screen .lb-arrow.is-up {
+  border-bottom: 6px solid var(--lb-up);
+}
+.lb-screen .lb-arrow.is-down {
+  border-top: 6px solid var(--lb-down);
+}
+.lb-screen .lb-arrow.is-same {
+  width: 8px;
+  height: 2px;
+  background: #cdbc98;
+  border: 0;
+}
+.lb-screen .lb-name {
+  min-width: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+.lb-screen .lb-name span {
+  display: block;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--lb-mute);
+}
+.lb-screen .lb-pts {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--lb-ink-strong);
+}
+.lb-screen .lb-you {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 22px 10px 32px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  background: var(--lb-band);
+  border-radius: 18px;
+  padding: 13px 14px;
+}
+
+.lb-screen .lb-stat {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.lb-screen .lb-stat > div {
+  background: var(--lb-card);
+  border-radius: 18px;
+  padding: 16px 18px;
+}
+.lb-screen .lb-stat b {
+  display: block;
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--lb-ink-strong);
+}
+.lb-screen .lb-stat span {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--lb-mute);
+}
+
+/* One column on a phone, podium beside the table from 900px up. The board is
+   the same board either way - only where the pieces sit changes. */
+.lb-screen .lb-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+@media (min-width: 900px) {
+  .lb-screen .lb-body {
+    grid-template-columns: 340px minmax(0, 1fr);
+    gap: 26px;
+  }
+  .lb-screen .pod .ring {
+    width: 78px;
+    height: 78px;
+    font-size: 1.6rem;
+  }
+  .lb-screen .pod.is-1 .ring {
+    width: 96px;
+    height: 96px;
+    font-size: 2rem;
+  }
+  .lb-screen .lb-podium {
+    padding: 30px 18px 24px;
+  }
+  .lb-screen .lb-row,
+  .lb-screen .lb-you {
+    grid-template-columns: 26px 10px 36px minmax(0, 1fr) auto;
+    padding-inline: 22px;
+  }
+  .lb-screen .lb-row {
+    padding-block: 13px;
+  }
+}
+
+/* ---------- Class page ----------
+   Built to the reference Banks approved: white ground, a small letterspaced
+   class name over a two-line heading, the isometric figure standing free with
+   only a soft ground shadow under it, a dark navy pill, and lesson cards with
+   the painting filling the top half in a squircle and the words underneath.
+   Colours are lifted off that file and declared once here. */
+.cp-screen {
+  --cp-orange: #ff9051;
+  --cp-navy: #181824;
+  --cp-line: #f0eef4;
+  --cp-chip: #f7f6fa;
+  --cp-sub: #8b8a99;
+  --cp-ground: #ffffff;
+
+  background: var(--cp-ground);
+  color: var(--cp-navy);
+}
+
+.cp-screen .cp-eyebrow {
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--cp-sub);
+}
+.cp-screen .cp-head {
+  font-size: 1.72rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+.cp-screen .cp-cap {
+  font-size: 0.86rem;
+  color: var(--cp-sub);
+  max-width: 24ch;
+}
+
+/* The figure stands on the page, not in a circle. The shadow is the only
+   thing under it, which is what makes it read as standing rather than
+   floating. */
+.cp-screen .cp-hero {
+  position: relative;
+  width: min(100%, 232px);
+  margin-inline: auto;
+}
+.cp-screen .cp-hero::before {
+  content: '';
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  bottom: 4%;
+  height: 20px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 50%, rgba(20, 20, 43, 0.14), rgba(20, 20, 43, 0) 72%);
+}
+.cp-screen .cp-hero img {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.cp-screen .cp-go {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  background: var(--cp-navy);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.92rem;
+  padding: 14px 26px;
+  box-shadow: 0 12px 24px -10px rgba(24, 24, 36, 0.7);
+}
+
+.cp-screen .cp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  border: 1px solid var(--cp-line);
+  background: var(--cp-chip);
+  padding: 8px 14px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--cp-navy);
+}
+.cp-screen .cp-chip:disabled {
+  color: var(--cp-sub);
+}
+
+.cp-screen .cp-card {
+  display: block;
+  width: 100%;
+  text-align: center;
+  border: 1px solid var(--cp-line);
+  background: #fff;
+  border-radius: 28px;
+  padding: 10px 10px 18px;
+  overflow: hidden;
+  box-shadow: 0 10px 26px rgba(20, 20, 43, 0.05);
+  transition: transform 0.12s ease, box-shadow 0.2s ease;
+}
+.cp-screen .cp-card:hover {
+  transform: translateY(-2px);
+}
+/* height:auto matters: an <img> with a height attribute counts as a specified
+   height, and aspect-ratio only applies when one side is auto. Without it the
+   painting keeps its own portrait shape instead of the 16:10 band. */
+.cp-screen .cp-shot {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border-radius: 20px;
+  margin-bottom: 14px;
+  background: var(--cp-chip);
+}
+.cp-screen .cp-card b {
+  display: block;
+  font-size: 1.02rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-bottom: 3px;
+  padding-inline: 8px;
+}
+.cp-screen .cp-card small {
+  display: block;
+  font-size: 0.73rem;
+  font-weight: 500;
+  color: var(--cp-sub);
+  padding-inline: 8px;
+}
+.cp-screen .cp-card.is-on {
+  background: var(--cp-orange);
+  border-color: var(--cp-orange);
+  color: #fff;
+  box-shadow: 0 16px 30px rgba(255, 144, 81, 0.36);
+}
+.cp-screen .cp-card.is-on small {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.cp-screen .cp-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 26px;
+  align-items: start;
+}
+.cp-screen .cp-cards {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+}
+@media (min-width: 880px) {
+  .cp-screen .cp-body {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+    gap: 40px;
+  }
+  .cp-screen .cp-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .cp-screen .cp-head {
+    font-size: 2.1rem;
+  }
+  .cp-screen .cp-hero {
+    width: min(100%, 320px);
+  }
+}
+
+/* ---------- Streak screen ----------
+   One structure, two skins. The light one is the screen Banks approved; the
+   dark one is the image he sent afterwards, with the brown glow bleeding out
+   of the flame. Every rule paints from --sk-*, so the screen follows the
+   surface it is mounted on instead of each variant being written twice. */
+.st-screen {
+  --sk-ground: #ffffff;
+  --sk-glow: none;
+  --sk-fg: #3c3c3c;
+  --sk-num: #ffb020;
+  --sk-accent: #ff9600;
+  --sk-accent-soft: #ffb349;
+  --sk-card: #ffffff;
+  --sk-card-line: #efefef;
+  --sk-strip: #f7f7f7;
+  --sk-strip-ink: #6f6f6f;
+  --sk-dim: #b5b5b5;
+  --sk-off: #a5a5a5;
+  --sk-rail: #eaeaea;
+  --sk-cta: #9c2bb0;
+  --sk-cta-edge: #6f1d7e;
+
+  position: relative;
+  isolation: isolate;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  background: var(--sk-ground);
+  color: var(--sk-fg);
+}
+.st-screen.is-dark {
+  --sk-ground: #050403;
+  --sk-glow: radial-gradient(78% 42% at 50% 23%, #5a2c06 0%, #2a1403 34%, #0d0703 62%, #030202 100%);
+  --sk-fg: #ffffff;
+  --sk-num: #ffffff;
+  --sk-accent: #ee7a15;
+  --sk-accent-soft: #f88609;
+  --sk-card: #131110;
+  --sk-card-line: #272524;
+  --sk-strip: #0e0e0e;
+  --sk-strip-ink: #cfc6bf;
+  --sk-dim: #7c736c;
+  --sk-off: #5d5650;
+  --sk-rail: #151515;
+  --sk-cta: #e67002;
+  --sk-cta-edge: #a34f01;
+}
+.st-screen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--sk-glow);
+}
+
+/* Everything below the top bar sits in one block that centres itself when the
+   screen is taller than the content, so a big display does not leave the CTA
+   stranded halfway up with dead space under it. */
+.st-screen .sk-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.st-screen .sk-stage {
+  position: relative;
+  width: 206px;
+  height: 178px;
+  margin: 8px auto -6px;
+  display: grid;
+  place-items: center;
+}
+.st-screen .sk-halo {
+  position: absolute;
+  inset: -14px 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, rgba(255, 150, 40, 0.2) 0 38%, rgba(255, 150, 40, 0) 70%);
+  animation: sk-halo 3.2s ease-in-out infinite;
+}
+.st-screen .sk-halo.is-2 {
+  inset: 8px 24px;
+  background: none;
+  border: 1px solid rgba(255, 160, 50, 0.3);
+  box-shadow: 0 0 34px rgba(238, 122, 21, 0.28);
+  animation-delay: 0.5s;
+}
+@keyframes sk-halo {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.045);
+    opacity: 1;
+  }
+}
+.st-screen .sk-flame {
+  position: relative;
+  width: 88px;
+  height: 100px;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 26px rgba(248, 134, 9, 0.62));
+  animation: sk-pulse 2.6s ease-in-out infinite;
+}
+@keyframes sk-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .st-screen .sk-flame,
+  .st-screen .sk-halo {
+    animation: none !important;
+  }
+}
+.st-screen .sk-num {
+  font-size: 4.4rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.045em;
+  color: var(--sk-num);
+}
+.st-screen .sk-lbl {
+  font-size: 1.02rem;
+  font-weight: 800;
+  margin-top: 2px;
+  color: var(--sk-num);
+}
+.st-screen .sk-said {
+  font-size: 0.8rem;
+  color: var(--sk-dim);
+  margin: 10px 0 20px;
+}
+
+.st-screen .sk-card {
+  background: var(--sk-card);
+  border: 1px solid var(--sk-card-line);
+  border-radius: 22px;
+  padding: 16px 14px 18px;
+  text-align: left;
+  margin-bottom: 14px;
+}
+.st-screen .sk-dow {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--sk-dim);
+  text-align: center;
+  margin-bottom: 14px;
+}
+.st-screen .sk-dow span.is-on {
+  color: var(--sk-accent);
+  font-weight: 800;
+}
+.st-screen .sk-dots {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  align-items: center;
+}
+/* The bar only runs as far as the days actually done, so its length is the
+   week's progress rather than decoration. --sk-run is set per render. */
+.st-screen .sk-dots::before {
+  content: '';
+  position: absolute;
+  left: 4%;
+  width: var(--sk-run, 0%);
+  height: 26px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--sk-accent) 76%, #000), var(--sk-accent));
+}
+.st-screen .sk-dot {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  margin: 0 auto;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--sk-accent) 88%, #000);
+  color: #fff;
+}
+.st-screen .sk-dot.is-now {
+  width: 30px;
+  height: 30px;
+  background: #fff;
+  color: var(--sk-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--sk-accent) 26%, transparent);
+}
+.st-screen .sk-off {
+  position: relative;
+  text-align: center;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--sk-off);
+  font-variant-numeric: tabular-nums;
+}
+
+.st-screen .sk-rw {
+  background: var(--sk-rail);
+  border: 1px solid var(--sk-card-line);
+  border-radius: 22px;
+  overflow: hidden;
+  margin-bottom: 18px;
+}
+.st-screen .sk-rw-top {
+  background: var(--sk-strip);
+  text-align: center;
+  font-size: 0.63rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--sk-strip-ink);
+  padding: 11px 8px;
+}
+.st-screen .sk-tiers {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+.st-screen .sk-tier {
+  padding: 14px 4px 16px;
+  text-align: center;
+  position: relative;
+}
+.st-screen .sk-tier + .sk-tier::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 1px;
+  background: var(--sk-card-line);
+}
+.st-screen .sk-tier b {
+  display: block;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--sk-strip-ink);
+  margin-bottom: 12px;
+}
+.st-screen .sk-tier span {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--sk-fg);
+}
+.st-screen .sk-tier.is-done b,
+.st-screen .sk-tier.is-done span {
+  color: var(--sk-off);
+  text-decoration: line-through;
+}
+.st-screen .sk-tier.is-now::after {
+  content: '';
+  position: absolute;
+  inset: 6px 5px;
+  border: 1.5px dashed var(--sk-accent);
+  border-radius: 12px;
+}
+
+.st-screen .sk-cta {
+  margin-top: auto;
+  width: 100%;
+  border-radius: 999px;
+  background: var(--sk-cta);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 800;
+  padding: 17px;
+  box-shadow: 0 6px 0 var(--sk-cta-edge);
+}
+.st-screen .sk-cta:active {
+  transform: translateY(6px);
+  box-shadow: none;
+}
+
+/* Wide enough and the week card and the rewards sit side by side under the
+   flame, instead of one narrow column down the middle of a big screen. */
+.st-screen .sk-body {
+  width: 100%;
+  max-width: 420px;
+  margin-inline: auto;
+}
+@media (min-width: 880px) {
+  .st-screen .sk-body {
+    max-width: 860px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    align-items: start;
+  }
+  .st-screen .sk-cta {
+    grid-column: 1 / -1;
+    max-width: 420px;
+    margin-inline: auto;
+  }
+}
+
+/* ---------- Kids sign in ----------
+   The icloud.com signed-out landing page, with our own things in it: the
+   wordmark top left, the avatar in a lavender circle with the feature icons
+   orbiting it at their own sizes and depths, the calendar tile, the giant
+   wordmark, the pill, then the app grid and two columns under a rule. Purple
+   in light, gold in dark, where Apple has blue. */
+.ic-screen {
+  --ic-bg: #ffffff;
+  --ic-fg: #1d1d1f;
+  --ic-mute: #6e6e73;
+  --ic-line: rgba(0, 0, 0, 0.12);
+  --ic-link: #9c2bb0;
+  --ic-pill: #1d1d1f;
+  --ic-pill-ink: #ffffff;
+  --ic-face: #e7d8f7;
+  --ic-tile: #f5f5f7;
+
+  background: var(--ic-bg);
+  color: var(--ic-fg);
+  font-family: var(--font-body);
+}
+.ic-screen.is-dark {
+  --ic-bg: #000000;
+  --ic-fg: #f5f5f7;
+  --ic-mute: #a1a1a6;
+  --ic-line: rgba(255, 255, 255, 0.16);
+  --ic-link: #e8b923;
+  --ic-pill: #ffffff;
+  --ic-pill-ink: #1d1d1f;
+  --ic-face: #e7d8f7;
+  --ic-tile: #1c1c1e;
+}
+
+.ic-screen .ic-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 0;
+}
+.ic-screen .ic-mark {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 1.04rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.ic-screen .ic-mark img {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  object-fit: contain;
+}
+
+/* The cluster. Every slot is a share of the stage, so the whole thing scales
+   from a phone to a desktop without a single fixed pixel in it. */
+.ic-screen .ic-hero {
+  position: relative;
+  width: min(100%, 460px);
+  aspect-ratio: 460 / 300;
+  margin: 8px auto 0;
+}
+.ic-screen .ic-app,
+.ic-screen .ic-face,
+.ic-screen .ic-cal {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+.ic-screen .ic-face {
+  left: 50%;
+  top: 14%;
+  transform: translateX(-50%);
+  width: 40%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--ic-face);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.42);
+  z-index: 3;
+}
+.ic-screen .ic-face img {
+  max-width: 84%;
+  max-height: 84%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.18));
+}
+.ic-screen .ic-app {
+  border-radius: 50%;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+}
+.ic-screen .ic-app img {
+  max-width: 68%;
+  max-height: 68%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+.ic-screen .ic-app.sq {
+  border-radius: 26%;
+}
+.ic-screen .ic-app.sq img {
+  max-width: 80%;
+  max-height: 80%;
+}
+/* A story circle is a painting, so it fills its circle instead of sitting
+   inside it the way a cut-out icon does. */
+.ic-screen .ic-app.is-story img {
+  max-width: 100%;
+  max-height: 100%;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ic-screen .ic-a1 {
+  left: 3%;
+  top: 25%;
+  width: 21%;
+  aspect-ratio: 1;
+  background: linear-gradient(160deg, #c78ae8, #7d2196);
+  z-index: 2;
+}
+.ic-screen .ic-a2 {
+  right: 1%;
+  top: 22%;
+  width: 22%;
+  aspect-ratio: 1;
+  background: linear-gradient(160deg, #ffd479, #e0a02a);
+  z-index: 2;
+}
+.ic-screen .ic-a3 {
+  right: 15%;
+  top: -7%;
+  width: 18%;
+  aspect-ratio: 1;
+  border-radius: 22%;
+  background: linear-gradient(160deg, #5b6b8a, #26334a);
+  z-index: 1;
+}
+.ic-screen .ic-a4 {
+  left: 19%;
+  bottom: 1%;
+  width: 15%;
+  aspect-ratio: 1;
+  background: linear-gradient(160deg, #ffb36b, #e0531a);
+  z-index: 4;
+}
+.ic-screen .ic-a5 {
+  left: 0;
+  bottom: 5%;
+  width: 17%;
+  aspect-ratio: 1;
+  background: #2a2a2c;
+  z-index: 4;
+}
+.ic-screen .ic-cal {
+  right: 16%;
+  bottom: -4%;
+  width: 20%;
+  aspect-ratio: 1;
+  border-radius: 24%;
+  background: #1c1c1e;
+  color: #fff;
+  z-index: 4;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+}
+.ic-screen .ic-cal em {
+  font-style: normal;
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #ff453a;
+}
+.ic-screen .ic-cal b {
+  font-size: 1.5rem;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.ic-screen .ic-word {
+  text-align: center;
+  font-size: clamp(2.7rem, 8.8vw, 5.6rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  margin: 6px 0 0;
+}
+.ic-screen .ic-sub {
+  text-align: center;
+  color: var(--ic-mute);
+  font-size: 0.94rem;
+  margin-top: 12px;
+}
+.ic-screen .ic-btn {
+  display: block;
+  width: fit-content;
+  margin: 22px auto 0;
+  border-radius: 999px;
+  background: var(--ic-pill);
+  color: var(--ic-pill-ink);
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 14px 44px;
+}
+.ic-screen .ic-btn:active {
+  transform: translateY(1px);
+}
+/* The quiet second door. Apple's own sign-in page carries one pill and a
+   plain text link under it, not two pills, so this stays text. */
+.ic-screen .ic-btn-quiet {
+  display: block;
+  width: fit-content;
+  margin: 14px auto 0;
+  color: var(--ic-mute);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.ic-screen .ic-btn-quiet:hover {
+  color: var(--ic-fg);
+}
+
+.ic-screen .ic-lower {
+  margin-top: 40px;
+  border-top: 1px solid var(--ic-line);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 32px;
+  padding: 34px 20px 48px;
+}
+@media (min-width: 760px) {
+  .ic-screen .ic-lower {
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    padding-inline: 0;
+  }
+  .ic-screen .ic-lower > div {
+    padding: 10px 34px;
+  }
+  .ic-screen .ic-lower > div + div {
+    border-left: 1px solid var(--ic-line);
+  }
+}
+.ic-screen .ic-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: clamp(8px, 1.6vw, 18px);
+  margin-bottom: 30px;
+  max-width: 400px;
+}
+.ic-screen .ic-tile {
+  aspect-ratio: 1;
+  border-radius: 26%;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.24);
+}
+.ic-screen .ic-tile img {
+  max-width: 72%;
+  max-height: 72%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.22));
+}
+.ic-screen .ic-h2 {
+  font-size: clamp(1.4rem, 3.4vw, 1.95rem);
+  font-weight: 700;
+  line-height: 1.16;
+  letter-spacing: -0.02em;
+  margin-bottom: 14px;
+  text-wrap: balance;
+}
+.ic-screen .ic-p {
+  font-size: 0.98rem;
+  line-height: 1.5;
+  color: var(--ic-mute);
+}
+.ic-screen .ic-p a {
+  color: var(--ic-link);
+  font-weight: 600;
+}
+
+/* The journey cluster that stands in for Apple's iCloud+ artwork: the book
+   with three Bible stories around it and the book count over the top. */
+.ic-screen .ic-plus {
+  position: relative;
+  width: min(100%, 320px);
+  aspect-ratio: 320 / 210;
+  margin: 0 auto 18px;
+}
+.ic-screen .ic-blob {
+  position: absolute;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.32);
+}
+.ic-screen .ic-blob img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ic-screen .ic-b1 {
+  left: 27%;
+  top: 2%;
+  width: 46%;
+  aspect-ratio: 1;
+  border-radius: 0;
+  box-shadow: none;
+  z-index: 3;
+}
+.ic-screen .ic-b1 img {
+  object-fit: contain;
+}
+.ic-screen .ic-b2 {
+  left: 1%;
+  top: 26%;
+  width: 31%;
+  aspect-ratio: 1;
+  z-index: 2;
+}
+.ic-screen .ic-b3 {
+  left: 22%;
+  bottom: 0;
+  width: 27%;
+  aspect-ratio: 1;
+  z-index: 4;
+}
+.ic-screen .ic-b4 {
+  right: 1%;
+  top: 32%;
+  width: 30%;
+  aspect-ratio: 1;
+  z-index: 2;
+}
+.ic-screen .ic-count {
+  position: absolute;
+  right: 19%;
+  top: -2%;
+  z-index: 6;
+  min-width: 2.4em;
+  text-align: center;
+  padding: 0.22em 0.5em;
+  border-radius: 999px;
+  background: var(--ic-link);
+  color: var(--ic-bg);
+  font-size: clamp(13px, 2.2vw, 17px);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45);
+}
+.ic-screen .ic-plus-name {
+  text-align: center;
+  font-size: clamp(1.5rem, 4.4vw, 2.2rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--ic-link);
+  margin-bottom: 16px;
+}
+
+.ic-screen .ic-foot {
+  border-top: 1px solid var(--ic-line);
+  padding: 18px 20px 28px;
+  font-size: 0.76rem;
+  color: var(--ic-mute);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 18px;
+}
+
+/* ---------- Bible Journey lesson: the Duolingo lesson screen ----------
+   A replica of a Duolingo lesson, which is the reference Banks set for this
+   screen. Their shape: a cross and one fat progress bar across the top, the
+   exercise centred in the middle, and a footer bar that is neutral while you
+   choose and then turns green or red once you answer.
+
+   The palette is ours - the journey's warm accent carries the primary button
+   and the progress fill - but correct and wrong stay green and red, because
+   those two are meaning rather than brand. The page is white in both app
+   themes, the same way the class page is: a lesson is a takeover, and
+   Duolingo's is white. */
+.dl-screen {
+  --dl-ink: #3c3c3c;
+  --dl-sub: #777777;
+  --dl-line: #e5e5e5;
+  --dl-ground: #ffffff;
+  --dl-wash: #f7f7f7;
+  --dl-pick: #ddf4ff;
+  --dl-pick-line: #84d8ff;
+  --dl-pick-ink: #1899d6;
+  --dl-good: #58cc02;
+  --dl-good-edge: #46a302;
+  --dl-good-wash: #d7ffb8;
+  --dl-good-ink: #4b8f01;
+  --dl-bad: #ff4b4b;
+  --dl-bad-edge: #d33131;
+  --dl-bad-wash: #ffdfe0;
+  --dl-bad-ink: #ea2b2b;
+  --dl-accent: #e0793f;
+  --dl-accent-edge: #b3592a;
+
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  background: var(--dl-ground);
+  color: var(--dl-ink);
+}
+
+/* top bar */
+.dl-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 14px;
+  max-width: 1000px;
+  width: 100%;
+  margin: 0 auto;
+}
+.dl-x {
+  flex: none;
+  color: #afafaf;
+  transition: color 0.12s;
+}
+.dl-x:hover {
+  color: var(--dl-sub);
+}
+.dl-bar {
+  position: relative;
+  flex: 1;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--dl-line);
+  overflow: hidden;
+}
+.dl-bar-fill {
+  position: relative;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--dl-accent);
+  transition: width 0.3s ease;
+}
+/* Duolingo's bar carries a lighter stripe inside the fill, inset from both
+   ends, which is what stops it reading as a flat block of colour. */
+.dl-bar-shine {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  top: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.35);
+}
+/* Duolingo's own top right slot: the hearts left in this lesson. */
+.dl-hearts {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 800;
+  font-size: 17px;
+  color: var(--dl-bad);
+}
+/* The chip is keyed on the number of hearts lost, so React remounts it on
+   every loss and the animation plays again rather than only the first time. */
+.dl-hearts.is-lost {
+  animation: dl-heart-knock 0.45s ease;
+}
+.dl-hearts.is-empty {
+  color: var(--dl-sub);
+}
+@keyframes dl-heart-knock {
+  0% { transform: scale(1); }
+  25% { transform: scale(1.35) rotate(-8deg); }
+  50% { transform: scale(0.92) rotate(5deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dl-hearts.is-lost { animation: none; }
+}
+
+
+/* middle */
+.dl-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  overflow-y: auto;
+  padding-block: 12px 24px;
+}
+.dl-stage {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.dl-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--dl-accent);
+}
+.dl-eyebrow-dot {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--dl-accent);
+  color: #fff;
+}
+
+.dl-q {
+  font-size: clamp(22px, 5vw, 30px);
+  font-weight: 800;
+  /* 1.25 cut it fine enough that the display face's own glyph box overflowed
+     the line box by 4px, which paints outside the heading rather than inside
+     it. 1.35 holds the ink. */
+  line-height: 1.35;
+  text-wrap: balance;
+  margin-bottom: 24px;
+}
+
+.dl-opts {
+  display: grid;
+  gap: 12px;
+}
+.dl-opt {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+  padding: 14px 16px;
+  border: 2px solid var(--dl-line);
+  border-bottom-width: 4px;
+  border-radius: 14px;
+  background: var(--dl-ground);
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--dl-ink);
+  transition:
+    background 0.1s,
+    border-color 0.1s,
+    color 0.1s;
+}
+.dl-opt:not(:disabled):active {
+  transform: translateY(2px);
+  border-bottom-width: 2px;
+  margin-bottom: 2px;
+}
+.dl-opt.is-pick {
+  border-color: var(--dl-pick-line);
+  background: var(--dl-pick);
+  color: var(--dl-pick-ink);
+}
+.dl-opt.is-good {
+  border-color: var(--dl-good);
+  background: var(--dl-good-wash);
+  color: var(--dl-good-ink);
+}
+.dl-opt.is-bad {
+  border-color: var(--dl-bad);
+  background: var(--dl-bad-wash);
+  color: var(--dl-bad-ink);
+}
+.dl-opt-num {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 2px solid currentColor;
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 800;
+  opacity: 0.45;
+}
+.dl-opt-text {
+  flex: 1;
+}
+
+/* a teaching page, as a Duolingo Stories page */
+.dl-story {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.dl-avatar {
+  flex: none;
+  width: 104px;
+  aspect-ratio: 1;
+  border-radius: 20px;
+  overflow: hidden;
+  background: var(--dl-wash);
+  display: grid;
+  place-items: center;
+}
+.dl-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+/* Most teaching pages have no painting, only an emoji, and at 44px it sat in
+   the middle of the box like a thumbnail. Duolingo's character fills its
+   space, so this does too. */
+.dl-emoji {
+  font-size: 56px;
+  line-height: 1;
+}
+.dl-bubble {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  border: 2px solid var(--dl-line);
+  border-radius: 18px;
+  padding: 16px 18px;
+  background: var(--dl-ground);
+}
+.dl-bubble::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 30px;
+  width: 12px;
+  height: 12px;
+  transform: rotate(45deg);
+  background: var(--dl-ground);
+  border-left: 2px solid var(--dl-line);
+  border-bottom: 2px solid var(--dl-line);
+}
+.dl-bubble-text {
+  font-size: 17px;
+  line-height: 1.6;
+  font-weight: 500;
+}
+.dl-ref {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 4px 12px;
+  border: 2px solid var(--dl-line);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--dl-sub);
+  transition: border-color 0.12s;
+}
+.dl-ref:hover {
+  border-color: var(--dl-accent);
+  color: var(--dl-accent);
+}
+
+/* footer */
+.dl-foot {
+  border-top: 2px solid var(--dl-line);
+  background: var(--dl-ground);
+  transition:
+    background 0.12s,
+    border-color 0.12s;
+}
+.dl-foot.is-good {
+  background: var(--dl-good-wash);
+  border-top-color: transparent;
+}
+.dl-foot.is-bad {
+  background: var(--dl-bad-wash);
+  border-top-color: transparent;
+}
+.dl-foot-in {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+}
+.dl-verdict {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.dl-foot.is-good .dl-verdict {
+  color: var(--dl-good-ink);
+}
+.dl-foot.is-bad .dl-verdict {
+  color: var(--dl-bad-ink);
+}
+.dl-verdict-mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: var(--dl-ground);
+}
+.dl-verdict-title {
+  font-size: 19px;
+  font-weight: 800;
+}
+.dl-verdict-answer {
+  font-size: 15px;
+  font-weight: 700;
+}
+.dl-verdict-why {
+  margin-top: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.dl-btn {
+  width: 100%;
+  /* A row, not a block: two of these carry a leading icon, and in a block a
+     centred text node leaves the icon stranded against the left edge. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 0;
+  border-bottom: 4px solid transparent;
+  border-radius: 16px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #fff;
+  transition:
+    background 0.1s,
+    filter 0.1s;
+}
+.dl-btn:not(:disabled):active {
+  transform: translateY(4px);
+  border-bottom-width: 0;
+  margin-bottom: 4px;
+}
+.dl-btn:disabled {
+  background: var(--dl-line);
+  border-bottom-color: var(--dl-line);
+  color: #afafaf;
+  cursor: default;
+}
+.dl-btn-go {
+  background: var(--dl-accent);
+  border-bottom-color: var(--dl-accent-edge);
+}
+.dl-btn-good {
+  background: var(--dl-good);
+  border-bottom-color: var(--dl-good-edge);
+}
+.dl-btn-bad {
+  background: var(--dl-bad);
+  border-bottom-color: var(--dl-bad-edge);
+}
+/* The second button on the out of hearts screen. A way out that does not
+   compete with Try again, which is the one we want pressed. It has to sit
+   after .dl-btn: both are one class deep, so source order decides the
+   colour, and above it the label came out white on white. */
+.dl-btn-quiet {
+  background: transparent;
+  border-bottom-color: transparent;
+  color: var(--dl-sub);
+}
+.dl-btn-quiet:not(:disabled):active {
+  transform: none;
+  border-bottom-width: 4px;
+  margin-bottom: 0;
+  color: var(--dl-ink);
+}
+
+/* end of lesson */
+.dl-done {
+  text-align: center;
+}
+.dl-done-emoji {
+  font-size: 64px;
+  line-height: 1;
+}
+/* The broken heart is an icon, not an emoji, so it needs the colour and the
+   centring the emoji got from the glyph itself. */
+.dl-done-sad {
+  display: flex;
+  justify-content: center;
+  color: var(--dl-bad);
+}
+.dl-done-sub {
+  margin: 10px auto 0;
+  max-width: 34ch;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--dl-sub);
+}
+.dl-done-title {
+  margin-top: 12px;
+  font-size: clamp(26px, 6vw, 36px);
+  font-weight: 800;
+  color: var(--dl-accent);
+}
+.dl-stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 24px;
+}
+/* Duolingo's end of lesson pills: a coloured band naming the stat, the
+   figure on white under it, the whole thing ringed in the same colour. */
+.dl-stat {
+  min-width: 150px;
+  border: 2px solid;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.dl-stat-label {
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #fff;
+}
+.dl-stat-value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  font-size: 22px;
+  font-weight: 800;
+  background: var(--dl-ground);
+}
+.dl-stat-xp {
+  border-color: var(--dl-accent);
+}
+.dl-stat-xp .dl-stat-label {
+  background: var(--dl-accent);
+}
+.dl-stat-xp .dl-stat-value {
+  color: var(--dl-accent);
+}
+.dl-stat-good {
+  border-color: var(--dl-good);
+}
+.dl-stat-good .dl-stat-label {
+  background: var(--dl-good);
+}
+.dl-stat-good .dl-stat-value {
+  color: var(--dl-good-ink);
+}
+
+/* From a tablet up Duolingo puts the verdict on the left of the footer and
+   the button on the right, rather than stacking them. The footer's column is
+   the same 600px as the exercise above it, so the button's right edge lines
+   up with the right edge of the answers rather than floating past them. */
+@media (min-width: 700px) {
+  .dl-foot-in {
+    flex-direction: row;
+    align-items: center;
+    /* flex-end, not space-between: a teaching page has no verdict, and
+       space-between would leave its lone Continue button stranded on the
+       left. The verdict pushes itself over with margin-right: auto. */
+    justify-content: flex-end;
+    gap: 20px;
+  }
+  .dl-verdict {
+    margin-right: auto;
+  }
+  .dl-btn {
+    width: 200px;
+    flex: none;
+  }
+  /* Stacked on a phone the loud button belongs on top, which is source
+     order. In a row the loud button belongs on the right, so the quiet one
+     moves ahead of it rather than the markup changing. */
+  .dl-foot-in .dl-btn-quiet {
+    order: -1;
+  }
+  /* Duolingo's character is big on a wide screen; at 104px ours read as a
+     thumbnail beside the speech bubble. */
+  .dl-avatar {
+    width: 140px;
+  }
+  .dl-emoji {
+    font-size: 72px;
+  }
+  .dl-bubble {
+    padding: 20px 22px;
+  }
+  .dl-bubble-text {
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 420px) {
+  .dl-avatar {
+    width: 76px;
+    border-radius: 16px;
+  }
+  .dl-emoji {
+    font-size: 40px;
+  }
+  .dl-bubble {
+    padding: 13px 14px;
+  }
+  .dl-bubble-text {
+    font-size: 15.5px;
+  }
+}
+
+/* A name plate on the village map. The map is one painting, identical in
+   light and in dark, so these pills take their ground and their ink from the
+   art rather than from the theme. Painting the ink with --lp-heading, as
+   they used to, put white text on a white pill the instant the kid shell
+   learned dark mode. This is the same exception as .dark-island: a surface
+   whose own colours are fixed by what is behind it. */
+.village-label {
+  background: rgba(255, 255, 255, 0.94);
+  color: #1c1030;
+  border: 1.5px solid rgba(42, 27, 71, 0.18);
+}
+
+/* The same cluster, rendered inside a page instead of over it. .ic-screen is
+   a fixed full screen layer on the kids sign in page; on the landing page it
+   is the hero, so it sits in the flow and lets the page scroll normally.
+   Everything else about the treatment, every .ic-screen rule above, is
+   unchanged, which is the point of overriding rather than re-scoping. */
+/* The sign in screen as a band on the landing page rather than the fixed,
+   full screen layer it is at /join: same cluster, same doors, same copy
+   under them. It sits between two other bands now, so it carries a hairline
+   above it and the site's own section rhythm rather than the clearance it
+   needed when it was the hero under the nav. */
+.ic-screen.ic-inline {
+  position: static;
+  inset: auto;
+  z-index: auto;
+  overflow: visible;
+  border-top: 1px solid var(--lp-hairline);
+  padding-top: clamp(40px, 6vw, 72px);
+  padding-bottom: clamp(32px, 5vw, 56px);
+}
+/* On the kids page the palette is its own switch. Here it follows the site's
+   toggle, so the hero is never light while the page around it is dark. */
+[data-landing-theme='dark'] .ic-screen.ic-inline {
+  --ic-bg: #000000;
+  --ic-fg: #f5f5f7;
+  --ic-mute: #a1a1a6;
+  --ic-line: rgba(255, 255, 255, 0.16);
+  --ic-link: #e8b923;
+  --ic-pill: #ffffff;
+  --ic-pill-ink: #1d1d1f;
+  --ic-tile: #1c1c1e;
+}
+
+/* The two doors at the foot of the landing page, for teachers and parents.
+   Their colours are fixed rather than themed, the way .village-label's are:
+   the band behind them is the always-dark stage glow whichever theme the
+   page is in, so a card that followed the theme would go dark on a dark
+   ground half the time. */
+.door-card {
+  --door-ink: #1c1030;
+  --door-ink-soft: #55496b;
+  --door-surface: #ffffff;
+  --door-accent: #7d2196;
+
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 14px 14px 20px;
+  /* Very curvy, and the inner photo card takes a smaller radius so the two
+     nest rather than fight: 40 outside, 28 inside, the 14px inset making
+     the curves concentric. */
+  border-radius: 40px;
+  background: var(--door-surface);
+  color: var(--door-ink);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.5) inset,
+    0 18px 40px -18px rgba(12, 4, 24, 0.55);
+}
+
+.door-photo {
+  overflow: hidden;
+  border-radius: 28px;
+  aspect-ratio: 16 / 10;
+  background: #ece7f2;
+}
+.door-photo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Both photographs put their subject above the middle. */
+  object-position: 50% 32%;
+}
+/* The adult in this frame sits in the back row, at the top left. A crop any
+   lower down the image shows only children, which is the other card's job. */
+.door-photo.is-teacher img {
+  object-position: 50% 6%;
+}
+
+.door-eyebrow {
+  margin-top: 18px;
+  padding-inline: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--door-accent);
+}
+.door-title {
+  margin-top: 6px;
+  padding-inline: 4px;
+  font-size: 21px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-wrap: balance;
+  color: var(--door-ink);
+}
+.door-body {
+  margin-top: 10px;
+  /* The bottom padding is the gap above the button. It cannot be a margin
+     on the button, which needs margin-top: auto to pin itself down. */
+  padding: 0 4px 20px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--door-ink-soft);
+}
+
+.door-btn {
+  /* auto pins it to the bottom, so two cards carrying different amounts of
+     copy still line their buttons up. Nothing below may override it with a
+     real margin-top or the pinning goes. */
+  margin-top: auto;
+  display: block;
+  margin-inline: 4px;
+  padding: 14px 18px;
+  border-radius: 999px;
+  background: var(--door-accent);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: center;
+  transition:
+    transform 0.12s,
+    filter 0.12s;
+}
+.door-btn:hover {
+  filter: brightness(1.12);
+}
+.door-btn:active {
+  transform: translateY(1px);
+}
+
+@media (min-width: 640px) {
+  .door-title {
+    font-size: 22px;
+  }
+}
+
+/* The studio's panel in the site footer. A narrow vertical rectangle in the
+   footer's own grid row, not a band under it. Its colours come from the
+   footer's tokens so it follows wherever the footer goes. */
+.zeb-card {
+  width: 190px;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 14px 14px;
+  border: 1px solid var(--hairline-strong);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+}
+@media (max-width: 1023px) {
+  /* It drops onto its own row below the link columns. It keeps its narrow
+     width there rather than stretching, because a card as wide as the page
+     stops reading as the small vertical rectangle it is meant to be. */
+  .zeb-card {
+    width: 190px;
+    max-width: 100%;
+  }
+}
+
+/* The logo file is white artwork on a flat, opaque black plate, so the tile
+   behind it is that same black. Anything else shows the plate's edges as a
+   rectangle inside the rounded tile. */
+.zeb-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 8px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  background: #000000;
+}
+.zeb-mark img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+.zeb-wordmark {
+  padding: 22px 0;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  color: var(--gold);
+}
+
+/* The credit sits directly under the lockup, so the card says what it is
+   before it says what the studio does. */
+.zeb-credit {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.zeb-body {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-muted);
+}
+
+/* The whole call to action is one link, so the question and the address are a
+   single target rather than a line of copy with a small link after it. */
+.zeb-cta {
+  display: block;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--hairline);
+  text-decoration: none;
+}
+.zeb-cta-line {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--fg);
+}
+.zeb-cta-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--gold);
+  transition: opacity 0.15s ease;
+}
+.zeb-cta:hover .zeb-cta-link {
+  opacity: 0.75;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.zeb-cta:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+  border-radius: 6px;
 }

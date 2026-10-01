@@ -1,7 +1,6 @@
-import { LADDER } from '../lib/ladder'
 import type { LadderLevel } from '../db/types'
 
-export default function Ladder({ currentLevel, ladder = LADDER }: { currentLevel: number; ladder?: LadderLevel[] }) {
+export default function Ladder({ currentLevel, ladder }: { currentLevel: number; ladder: LadderLevel[] }) {
   return (
     <div className="flex flex-col-reverse gap-1 rounded-2xl bg-black/30 p-3">
       {ladder.map((l) => {

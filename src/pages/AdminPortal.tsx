@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   ShieldCheck,
   FileText,
   School,
   CalendarRange,
+  CalendarDays,
   Users,
   Check,
   X,
@@ -13,14 +14,27 @@ import {
   Gamepad2,
   Trophy,
   Database,
+  Music,
+  Video,
+  File as FileIcon,
+  Trash2,
+  Download,
+  Upload,
+  Lock,
+  Eye,
+  EyeOff,
+  Heart,
   type LucideIcon,
 } from 'lucide-react'
 import { signOut } from '../lib/supabase'
 import { bibleComUrl } from '../lib/bibleLink'
-import DigitalBank from '../components/DigitalBank'
+import { db } from '../db/db'
+import type { DigitalBankFile } from '../db/types'
 import { useMinistryAuth } from '../lib/useMinistryAuth'
 import AuthCard from '../components/ui/AuthCard'
 import TabBar from '../components/ui/TabBar'
+import AvatarReviewQueue from '../components/AvatarReviewQueue'
+import PortalSearch from '../components/PortalSearch'
 import {
   listTeacherApplications,
   approveTeacher,
@@ -36,19 +50,31 @@ import {
   listPlanReadings,
   addBibleReading,
   getLeaderboard,
+  aggregateClassLeaderboard,
+  listMinistryEvents,
+  createMinistryEvent,
+  updateMinistryEvent,
+  deleteMinistryEvent,
+  listEarsAuditLog,
+  listBibleBuddyTeacherLog,
+  type EarsAuditLogRow,
+  type AiCompanionTeacherLogRow,
   type TeacherApplication,
   type ClassRow,
   type SeasonRow,
+  type MinistryEventRow,
   type BiblePlanRow,
   type BibleReadingRow,
   type LeaderboardRow,
+  type SearchResult,
 } from '../lib/ministry'
+import { DataList, DataRow, DataIdentity, DataActions, DataBadge } from '../components/ui/DataList'
 import { playClick } from '../lib/sound'
 import { haptics } from '../lib/haptics'
 import { setLastPortal } from '../lib/lastPortal'
 
 export default function AdminPortal() {
-  const { session, profile, loading } = useMinistryAuth()
+  const { session, profile, loading, refreshProfile } = useMinistryAuth()
 
   // Remembered so an installed home-screen icon can launch straight into
   // /admin next time (see the redirect script in index.html), instead of
@@ -67,7 +93,7 @@ export default function AdminPortal() {
         signUpLabel="Create Account"
         afterSignUp={(email) => (
           <>
-            <p>Admin access isn't self-service &mdash; an existing admin (or the senior pastor) needs to promote your account.</p>
+            <p>Admin access isn't self-service. An existing admin (or the senior pastor) needs to promote your account.</p>
             <p className="mt-2 text-[var(--fg)]/70">
               Tell them the email you signed up with: <span className="font-bold text-[var(--gold)]">{email}</span>
             </p>
@@ -76,29 +102,60 @@ export default function AdminPortal() {
       />
     )
   }
-  if (profile?.role !== 'admin') return <NotAuthorized />
+  if (profile?.role !== 'admin') return <NotAuthorized onRecheck={refreshProfile} />
   return <AdminDashboard />
 }
 
-function NotAuthorized() {
+function NotAuthorized({ onRecheck }: { onRecheck: () => void }) {
+  // Somebody else grants the admin role, from another browser. Watch for it
+  // rather than making the person sign out and back in to find out: the hook
+  // already re-reads the profile when the tab regains focus, and this covers
+  // the case where they never leave the tab at all.
+  useEffect(() => {
+    const id = setInterval(onRecheck, 10000)
+    return () => clearInterval(id)
+  }, [onRecheck])
+
   return (
     <div className="mx-auto max-w-md space-y-4 text-center">
       <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-md border border-[var(--hairline-strong)] text-[var(--gold)]">
         <ShieldCheck className="h-6 w-6" strokeWidth={1.75} />
       </span>
       <h1 className="font-display text-2xl font-extrabold sm:text-3xl">Not an Admin (Yet)</h1>
-      <p className="text-sm text-[var(--ink-muted)]">You're signed in, but this account hasn't been made an admin. Ask an existing admin to promote you from the Admins tab.</p>
-      <button onClick={() => signOut()} className="btn-outline">
-        Sign Out
-      </button>
+      <p className="text-sm text-[var(--ink-muted)]">
+        You're signed in with a different account. Sign in as an admin, or ask an existing admin to promote this one from the Admins tab.
+      </p>
+      <p className="text-xs text-[var(--ink-faint)]">If somebody promotes you while this page is open, it will let you straight in.</p>
+      <div className="flex flex-wrap justify-center gap-2">
+        <button onClick={() => signOut()} className="btn-solid text-sm">
+          Sign In as Admin
+        </button>
+        <button onClick={() => signOut()} className="btn-outline text-sm">
+          Sign Out
+        </button>
+      </div>
     </div>
   )
 }
 
-type Tab = 'applications' | 'classes' | 'seasons' | 'quiz' | 'bible' | 'admins' | 'digitalbank'
+type Tab = 'applications' | 'classes' | 'seasons' | 'quiz' | 'bible' | 'calendar' | 'admins' | 'digitalbank' | 'safety'
 
 function AdminDashboard() {
   const [tab, setTab] = useState<Tab>('applications')
+  // The class a search result pointed at, so the list can say which row was
+  // meant. An admin here has eleven classes and rising; landing on a list of
+  // them with nothing marked is barely better than not searching.
+  const [highlightClass, setHighlightClass] = useState<string | null>(null)
+
+  const goToResult = (r: SearchResult) => {
+    if (r.kind === 'teacher') {
+      setHighlightClass(null)
+      setTab('applications')
+      return
+    }
+    setHighlightClass(r.kind === 'class' ? r.id : r.class_id)
+    setTab('classes')
+  }
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -112,6 +169,13 @@ function AdminDashboard() {
         </button>
       </div>
 
+      {/* Above the tabs, and it draws nothing unless something is waiting.
+          An admin is the only one who can clear a picture from a child who
+          has not been put in a class yet, since no teacher can reach them. */}
+      <AvatarReviewQueue />
+
+      <PortalSearch placeholder="Find a child, a class, a teacher…" onPick={goToResult} />
+
       <TabBar
         value={tab}
         onChange={setTab}
@@ -121,18 +185,22 @@ function AdminDashboard() {
           { value: 'seasons', label: 'Seasons', icon: CalendarRange },
           { value: 'quiz', label: 'Quiz', icon: Gamepad2 },
           { value: 'bible', label: 'Bible Plans', icon: BookOpen },
+          { value: 'calendar', label: 'Ministry Calendar', icon: CalendarDays },
           { value: 'digitalbank', label: 'Digital Bank', icon: Database },
           { value: 'admins', label: 'Admins', icon: Users },
+          { value: 'safety', label: 'Safety & Privacy', icon: ShieldCheck },
         ]}
       />
 
       {tab === 'applications' && <ApplicationsTab />}
-      {tab === 'classes' && <ClassesTab />}
+      {tab === 'classes' && <ClassesTab highlightId={highlightClass} />}
       {tab === 'seasons' && <SeasonsTab />}
       {tab === 'quiz' && <QuizTab />}
       {tab === 'bible' && <BiblePlansTab />}
-      {tab === 'digitalbank' && <DigitalBank />}
+      {tab === 'calendar' && <MinistryCalendarTab />}
+      {tab === 'digitalbank' && <DigitalBankTab />}
       {tab === 'admins' && <AdminsTab />}
+      {tab === 'safety' && <SafetyTab />}
     </div>
   )
 }
@@ -140,34 +208,72 @@ function AdminDashboard() {
 function QuizTab() {
   const [rows, setRows] = useState<LeaderboardRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [board, setBoard] = useState<'students' | 'classes'>('students')
 
   useEffect(() => {
-    getLeaderboard(20)
+    // High enough to be "everyone" for any realistic church - the class
+    // totals below would silently undercount if this were capped low.
+    getLeaderboard(1000)
       .then(setRows)
       .finally(() => setLoading(false))
   }, [])
 
+  const classRows = useMemo(() => aggregateClassLeaderboard(rows), [rows])
+
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2">
+      {/* Hosting was a teacher-only door by accident, not by design: Game Setup
+          has always authorised an admin to link a team to a Student Code, and
+          an admin can record a result for any child in the ministry, not just
+          one class. The card was simply missing here. */}
+      <div className="grid gap-3 sm:grid-cols-3">
         <QuizLink to="/questions" icon={BookOpen} title="Question Bank" description="Oversee every trivia question and set across the ministry." />
+        <QuizLink to="/setup" icon={Gamepad2} title="Host a Match" description="Run a live quiz-show match on the big screen, for any class." />
         <QuizLink to="/history" icon={Trophy} title="History" description="Every completed match, team score, and full recap." />
       </div>
       <div className="panel p-5">
-        <p className="eyebrow mb-3">Ministry Leaderboard</p>
+        <div className="mb-3 flex items-center justify-between">
+          <p className="eyebrow">Ministry Leaderboard</p>
+          <div className="flex gap-1.5">
+            {(['students', 'classes'] as const).map((b) => (
+              <button
+                key={b}
+                onClick={() => setBoard(b)}
+                className="rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide transition"
+                style={{
+                  background: board === b ? 'var(--gold)' : 'var(--ink-panel)',
+                  color: board === b ? '#000' : 'var(--ink-muted)',
+                }}
+              >
+                {b === 'students' ? 'Students' : 'Class vs Class'}
+              </button>
+            ))}
+          </div>
+        </div>
         {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
         {!loading && rows.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No quiz results recorded yet.</p>}
         <div className="space-y-1.5">
-          {rows.map((r, i) => (
-            <div key={r.student_id} className="flex items-center justify-between rounded-md px-3 py-2 text-sm odd:bg-[var(--ink-panel)]">
-              <span className="flex min-w-0 items-center gap-2">
-                <span className="w-6 shrink-0 font-bold text-[var(--ink-muted)]">{i + 1}</span>
-                <span className="truncate font-semibold">{r.full_name}</span>
-                {r.class_name && <span className="shrink-0 text-xs text-[var(--ink-faint)]">· {r.class_name}</span>}
-              </span>
-              <span className="shrink-0 font-bold text-[var(--gold)]">{r.total_points.toLocaleString()} pts</span>
-            </div>
-          ))}
+          {board === 'students'
+            ? rows.slice(0, 20).map((r, i) => (
+                <div key={r.student_id} className="flex items-center justify-between rounded-md px-3 py-2 text-sm odd:bg-[var(--ink-panel)]">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="w-6 shrink-0 font-bold text-[var(--ink-muted)]">{i + 1}</span>
+                    <span className="truncate font-semibold">{r.full_name}</span>
+                    {r.class_name && <span className="shrink-0 text-xs text-[var(--ink-faint)]">· {r.class_name}</span>}
+                  </span>
+                  <span className="shrink-0 font-bold text-[var(--gold)]">{r.total_points.toLocaleString()} pts</span>
+                </div>
+              ))
+            : classRows.map((c, i) => (
+                <div key={c.class_id} className="flex items-center justify-between rounded-md px-3 py-2 text-sm odd:bg-[var(--ink-panel)]">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="w-6 shrink-0 font-bold text-[var(--ink-muted)]">{i + 1}</span>
+                    <span className="truncate font-semibold">{c.class_name}</span>
+                    <span className="shrink-0 text-xs text-[var(--ink-faint)]">· {c.student_count} students</span>
+                  </span>
+                  <span className="shrink-0 font-bold text-[var(--gold)]">{c.total_points.toLocaleString()} pts</span>
+                </div>
+              ))}
         </div>
       </div>
     </div>
@@ -183,6 +289,155 @@ function QuizLink({ to, icon: Icon, title, description }: { to: string; icon: Lu
       <p className="font-display text-lg font-bold">{title}</p>
       <p className="text-sm text-[var(--ink-muted)]">{description}</p>
     </Link>
+  )
+}
+
+const BANK_CATEGORY_ICON: Record<DigitalBankFile['category'], LucideIcon> = {
+  song: Music,
+  video: Video,
+  doc: FileText,
+  note: FileText,
+  other: FileIcon,
+}
+
+function guessBankCategory(mimeType: string): DigitalBankFile['category'] {
+  if (mimeType.startsWith('audio/')) return 'song'
+  if (mimeType.startsWith('video/')) return 'video'
+  if (mimeType === 'application/pdf' || mimeType.startsWith('text/') || mimeType.includes('word') || mimeType.includes('document')) return 'doc'
+  return 'other'
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+/**
+ * Any file related to the ministry that doesn't belong in a question set or
+ * a Bible reading plan - songs, videos, docs, whatever. Stored locally in
+ * this browser's IndexedDB for now (not Supabase Storage), so it works
+ * offline like the rest of the quiz but doesn't sync across devices yet.
+ */
+function DigitalBankTab() {
+  const [files, setFiles] = useState<DigitalBankFile[]>([])
+  const [loading, setLoading] = useState(true)
+  const [uploading, setUploading] = useState(false)
+  const [filter, setFilter] = useState<'all' | DigitalBankFile['category']>('all')
+
+  const load = () => db.digitalBankFiles.orderBy('uploadedAt').reverse().toArray().then((rows) => { setFiles(rows); setLoading(false) })
+  useEffect(() => { load() }, [])
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const picked = e.target.files
+    if (!picked || picked.length === 0) return
+    setUploading(true)
+    try {
+      for (const file of Array.from(picked)) {
+        await db.digitalBankFiles.add({
+          name: file.name,
+          category: guessBankCategory(file.type),
+          mimeType: file.type || 'application/octet-stream',
+          size: file.size,
+          blob: file,
+          uploadedAt: Date.now(),
+        })
+      }
+      playClick()
+      haptics.success()
+      load()
+    } finally {
+      setUploading(false)
+      e.target.value = ''
+    }
+  }
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('Delete this file? This only removes it from this device/browser.')) return
+    await db.digitalBankFiles.delete(id)
+    haptics.tap()
+    load()
+  }
+
+  const visible = filter === 'all' ? files : files.filter((f) => f.category === filter)
+  const totalSize = files.reduce((sum, f) => sum + f.size, 0)
+
+  return (
+    <div className="space-y-4">
+      <div className="panel space-y-3 p-5">
+        <p className="eyebrow">Upload a File</p>
+        <p className="text-xs text-[var(--ink-muted)]">
+          Songs, videos, docs, anything related to the ministry. Stored locally on this device or browser for now, not shared across devices yet.
+        </p>
+        <label className="btn-solid inline-flex w-fit cursor-pointer items-center gap-2 px-4 py-2 text-sm">
+          <Upload className="h-4 w-4" />
+          {uploading ? 'Uploading…' : 'Choose Files'}
+          <input type="file" multiple className="hidden" onChange={handleUpload} disabled={uploading} />
+        </label>
+      </div>
+
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap gap-1.5">
+          {(['all', 'song', 'video', 'doc', 'other'] as const).map((c) => (
+            <button
+              key={c}
+              onClick={() => setFilter(c)}
+              className={`rounded-full px-3 py-1 text-xs font-semibold capitalize transition ${
+                filter === c ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'bg-[var(--ink-panel)] text-[var(--ink-muted)] hover:bg-[var(--ink-raised)]'
+              }`}
+            >
+              {c === 'song' ? 'Songs' : c === 'video' ? 'Videos' : c === 'doc' ? 'Docs' : c === 'other' ? 'Other' : 'All'}
+            </button>
+          ))}
+        </div>
+        <span className="text-xs text-[var(--ink-faint)]">
+          {files.length} file{files.length === 1 ? '' : 's'} · {formatBytes(totalSize)} on this device
+        </span>
+      </div>
+
+      {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
+      <div className="space-y-2">
+        {!loading && visible.length === 0 && <p className="text-sm text-[var(--ink-faint)]">No files here yet.</p>}
+        {visible.map((f) => {
+          const Icon = BANK_CATEGORY_ICON[f.category]
+          const download = () => {
+            if (!f.blob) return
+            const url = URL.createObjectURL(f.blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = f.name
+            a.click()
+            URL.revokeObjectURL(url)
+          }
+          return (
+            <div key={f.id} className="panel flex items-center justify-between gap-3 p-4">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-[var(--hairline-strong)] text-[var(--gold)]">
+                  <Icon className="h-5 w-5" strokeWidth={1.75} />
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate font-semibold">{f.name}</p>
+                  <p className="text-xs text-[var(--ink-faint)]">
+                    {formatBytes(f.size)} · {new Date(f.uploadedAt).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+              <div className="flex shrink-0 gap-2">
+                <button onClick={download} className="btn-outline flex items-center gap-1.5 px-3 py-1.5 text-sm">
+                  <Download className="h-3.5 w-3.5" /> Download
+                </button>
+                <button
+                  onClick={() => handleDelete(f.id!)}
+                  className="flex items-center gap-1.5 rounded-lg bg-red-500/10 px-3 py-1.5 text-sm text-red-700 transition hover:scale-105 hover:bg-red-500/20"
+                >
+                  <Trash2 className="h-3.5 w-3.5" /> Delete
+                </button>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
   )
 }
 
@@ -221,44 +476,32 @@ function ApplicationsTab() {
         ))}
       </div>
       {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
-      {!loading && apps.length === 0 && <p className="text-sm text-[var(--ink-muted)]">Nothing here.</p>}
-      <div className="space-y-2">
-        {apps.map((a) => (
-          <div key={a.id} className="panel p-5">
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <div>
-                <p className="font-bold">{a.full_name}</p>
-                <p className="text-sm text-[var(--ink-muted)]">
-                  {a.email} {a.phone && `· ${a.phone}`}
-                </p>
-              </div>
-              <span
-                className={`rounded px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${
-                  a.status === 'approved' ? 'bg-emerald-500/15 text-emerald-400' : a.status === 'rejected' ? 'bg-red-500/15 text-red-400' : 'bg-[var(--gold)]/15 text-[var(--gold)]'
-                }`}
-              >
-                {a.status}
-              </span>
-            </div>
-            {a.message && <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--fg)]/80">{a.message}</p>}
-            {a.status === 'pending' && (
-              <div className="mt-3 flex gap-2">
-                <button onClick={() => handle(a.id, true)} className="flex items-center gap-1.5 rounded-md bg-emerald-500/15 px-4 py-2 text-sm font-bold text-emerald-400 transition hover:bg-emerald-500/25">
-                  <Check className="h-4 w-4" /> Approve
-                </button>
-                <button onClick={() => handle(a.id, false)} className="flex items-center gap-1.5 rounded-md bg-red-500/15 px-4 py-2 text-sm font-bold text-red-400 transition hover:bg-red-500/25">
-                  <X className="h-4 w-4" /> Reject
-                </button>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+      {!loading && (
+        <DataList count={apps.length} empty="Nothing here." head={<span className="flex-1">Applicant</span>}>
+          {apps.map((a) => (
+            <DataRow key={a.id}>
+              <DataIdentity title={a.full_name} subtitle={`${a.email}${a.phone ? ` · ${a.phone}` : ''}`} />
+              <DataBadge tone={a.status === 'approved' ? 'good' : a.status === 'rejected' ? 'bad' : 'wait'}>{a.status}</DataBadge>
+              {a.message && <p className="w-full whitespace-pre-wrap text-sm text-[var(--fg)]/80">{a.message}</p>}
+              {a.status === 'pending' && (
+                <DataActions>
+                  <button onClick={() => handle(a.id, true)} className="flex items-center gap-1.5 rounded-md bg-emerald-500/15 px-4 py-2 text-sm font-bold text-emerald-700 transition hover:bg-emerald-500/25">
+                    <Check className="h-4 w-4" /> Approve
+                  </button>
+                  <button onClick={() => handle(a.id, false)} className="flex items-center gap-1.5 rounded-md bg-red-500/15 px-4 py-2 text-sm font-bold text-red-700 transition hover:bg-red-500/25">
+                    <X className="h-4 w-4" /> Reject
+                  </button>
+                </DataActions>
+              )}
+            </DataRow>
+          ))}
+        </DataList>
+      )}
     </div>
   )
 }
 
-function ClassesTab() {
+function ClassesTab({ highlightId }: { highlightId?: string | null }) {
   const [classes, setClasses] = useState<(ClassRow & { teacher_name: string })[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -267,23 +510,24 @@ function ClassesTab() {
   }, [])
 
   if (loading) return <p className="text-sm text-[var(--ink-muted)]">Loading…</p>
-  if (classes.length === 0) return <p className="text-sm text-[var(--ink-muted)]">No classes created yet.</p>
-
   return (
-    <div className="space-y-2">
+    <DataList
+      count={classes.length}
+      empty="No classes created yet."
+      head={<span className="flex-1">Class</span>}
+    >
       {classes.map((c) => (
-        <div key={c.id} className="panel flex flex-wrap items-center justify-between gap-2 p-4">
-          <div>
-            <p className="font-bold">{c.name}</p>
-            <p className="text-sm text-[var(--ink-muted)]">Taught by {c.teacher_name || 'Unknown'}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="rounded border border-[var(--hairline-strong)] px-2.5 py-1 font-mono text-xs">{c.join_code}</span>
-            {c.archived && <span className="rounded bg-[var(--fg)]/10 px-2.5 py-1 text-xs">Archived</span>}
-          </div>
-        </div>
+        <DataRow
+          key={c.id}
+          highlight={c.id === highlightId}
+          innerRef={c.id === highlightId ? (el) => el?.scrollIntoView({ block: 'center', behavior: 'smooth' }) : undefined}
+        >
+          <DataIdentity title={c.name} subtitle={`Taught by ${c.teacher_name || 'Unknown'}`} />
+          <span className="shrink-0 rounded border border-[var(--hairline-strong)] px-2.5 py-1 font-mono text-xs">{c.join_code}</span>
+          {c.archived && <span className="shrink-0 rounded bg-[var(--fg)]/10 px-2.5 py-1 text-xs">Archived</span>}
+        </DataRow>
       ))}
-    </div>
+    </DataList>
   )
 }
 
@@ -335,6 +579,144 @@ function SeasonsTab() {
                 Make active
               </button>
             )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/**
+ * The one shared ministry-wide events calendar (Children's Day, camps,
+ * Christmas party, memory verse challenges, ...) - admin edits it here;
+ * teachers and kids only ever see a read-only view of the same table.
+ */
+function MinistryCalendarTab() {
+  const [events, setEvents] = useState<MinistryEventRow[]>([])
+  const [loading, setLoading] = useState(true)
+  const [title, setTitle] = useState('')
+  const [eventDate, setEventDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [description, setDescription] = useState('')
+  const [editing, setEditing] = useState<MinistryEventRow | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  const load = () =>
+    listMinistryEvents()
+      .then((e) => { setEvents(e); setLoading(false) })
+      .catch((e) => { setError(e instanceof Error ? e.message : 'Could not load the calendar.'); setLoading(false) })
+  useEffect(() => { load() }, [])
+
+  const resetForm = () => {
+    setEditing(null)
+    setTitle('')
+    setEventDate(new Date().toISOString().slice(0, 10))
+    setDescription('')
+  }
+
+  const startEdit = (event: MinistryEventRow) => {
+    setEditing(event)
+    setTitle(event.title)
+    setEventDate(event.event_date)
+    setDescription(event.description ?? '')
+  }
+
+  const save = async () => {
+    if (!title.trim()) return setError('Give the event a name.')
+    setSaving(true)
+    setError('')
+    try {
+      if (editing) {
+        await updateMinistryEvent(editing.id, { title, event_date: eventDate, description })
+      } else {
+        await createMinistryEvent({ title, event_date: eventDate, description })
+      }
+      playClick()
+      haptics.success()
+      resetForm()
+      load()
+    } catch (e) {
+      // This used to be a bare try/finally, so a refused write (not an admin
+      // any more, offline, a dropped request) left the button springing back
+      // to "Add Event" with nothing saved and nothing said. Say it instead.
+      haptics.error()
+      setError(e instanceof Error ? e.message : 'Could not save the event.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const remove = async (id: string) => {
+    if (!confirm('Delete this event?')) return
+    try {
+      await deleteMinistryEvent(id)
+      haptics.tap()
+      load()
+    } catch (e) {
+      haptics.error()
+      setError(e instanceof Error ? e.message : 'Could not delete the event.')
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="panel space-y-3 p-5">
+        <p className="eyebrow">{editing ? 'Edit Event' : 'New Event'}</p>
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="e.g. Children's Day"
+          className="w-full rounded-md border border-[var(--hairline-strong)] bg-transparent px-4 py-2 outline-none focus:border-[var(--gold)]"
+        />
+        <input
+          type="date"
+          value={eventDate}
+          onChange={(e) => setEventDate(e.target.value)}
+          className="w-full rounded-md border border-[var(--hairline-strong)] bg-transparent px-4 py-2 outline-none focus:border-[var(--gold)]"
+        />
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Details (optional)"
+          rows={2}
+          className="w-full rounded-md border border-[var(--hairline-strong)] bg-transparent px-4 py-2 outline-none focus:border-[var(--gold)]"
+        />
+        <div className="flex gap-2">
+          <button onClick={save} disabled={saving} className="btn-solid text-sm">
+            {saving ? 'Saving…' : editing ? 'Save Changes' : 'Add Event'}
+          </button>
+          {editing && (
+            <button onClick={resetForm} className="btn-outline text-sm">
+              Cancel
+            </button>
+          )}
+        </div>
+        {error && <p className="text-sm font-semibold text-[#e05f5f]">{error}</p>}
+        <p className="text-xs text-[var(--ink-faint)]">Everything you add here shows up on the Teacher Portal calendar and on the children's Calendar app.</p>
+      </div>
+
+      {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
+      {!loading && events.length === 0 && (
+        <p className="text-sm text-[var(--ink-muted)]">Nothing on the calendar yet. Add the next Children's Day, camp or party above and the whole ministry sees it.</p>
+      )}
+      <div className="space-y-2">
+        {events.map((event) => (
+          <div key={event.id} className="panel flex items-start justify-between gap-3 px-4 py-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wide text-[var(--gold)]">
+                {new Date(event.event_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              </p>
+              <p className="font-semibold">{event.title}</p>
+              {event.description && <p className="mt-1 text-sm text-[var(--ink-muted)]">{event.description}</p>}
+            </div>
+            <div className="flex shrink-0 gap-1.5">
+              <button onClick={() => startEdit(event)} className="btn-outline px-3 py-1.5 text-xs">
+                Edit
+              </button>
+              <button onClick={() => remove(event.id)} className="rounded-md bg-red-500/15 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-500/25">
+                Delete
+              </button>
+            </div>
           </div>
         ))}
       </div>
@@ -528,6 +910,88 @@ function AdminsTab() {
             )}
           </div>
         ))}
+      </div>
+    </div>
+  )
+}
+
+const SAFETY_GUARANTEES: { icon: LucideIcon; title: string; body: string }[] = [
+  { icon: Lock, title: 'No public profiles, no random messaging', body: 'Children never appear on a public leaderboard, and cannot message each other directly - only their own assigned teacher.' },
+  { icon: Eye, title: 'Role separation enforced at the database', body: 'Teachers see only their own class, admins see across the ministry - enforced by row-level security, not just hidden UI.' },
+  { icon: Heart, title: 'Ears for You hides identity for real', body: "An anonymous message's real sender is removed from the data itself before it reaches a teacher or admin, not just hidden on screen." },
+  { icon: Users, title: 'Parents opt in - nothing auto-created', body: 'A parent account is never created without a parent explicitly signing up and linking with a code the child controls.' },
+]
+
+function SafetyTab() {
+  const [logs, setLogs] = useState<EarsAuditLogRow[]>([])
+  const [buddyLog, setBuddyLog] = useState<AiCompanionTeacherLogRow[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    Promise.all([listEarsAuditLog(50), listBibleBuddyTeacherLog(50)])
+      .then(([l, b]) => {
+        setLogs(l)
+        setBuddyLog(b)
+      })
+      .finally(() => setLoading(false))
+  }, [])
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <p className="eyebrow mb-3">What's Actually True</p>
+        <div className="space-y-2">
+          {SAFETY_GUARANTEES.map((g) => (
+            <div key={g.title} className="panel flex gap-3 p-4">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-[var(--hairline-strong)] text-[var(--gold)]">
+                <g.icon className="h-4 w-4" strokeWidth={1.75} />
+              </span>
+              <div>
+                <p className="text-sm font-bold">{g.title}</p>
+                <p className="mt-0.5 text-xs text-[var(--ink-muted)]">{g.body}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <Link to="/safety" target="_blank" className="mt-3 inline-block text-sm font-bold text-[var(--gold)] underline">
+          View the public Safety &amp; Privacy page ↗
+        </Link>
+      </div>
+
+      <div>
+        <p className="eyebrow mb-3">Audit Trail - Ears for You</p>
+        <p className="mb-2 text-xs text-[var(--ink-muted)]">Every acknowledge, reply, and escalation on a safeguarding message is recorded here with a timestamp.</p>
+        {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
+        {!loading && logs.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No activity logged yet.</p>}
+        <div className="space-y-1.5">
+          {logs.map((log) => (
+            <div key={log.id} className="flex items-center justify-between rounded-md px-3 py-2 text-sm odd:bg-[var(--ink-panel)]">
+              <span className="font-semibold capitalize">{log.action.replace(/_/g, ' ')}</span>
+              <span className="text-xs text-[var(--ink-faint)]">{new Date(log.created_at).toLocaleString()}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <p className="eyebrow mb-3">Audit Trail - Bible Buddy</p>
+        <p className="mb-2 text-xs text-[var(--ink-muted)]">Every question asked across the whole ministry, for safeguarding review. Anonymous ones never reveal who sent them.</p>
+        {!loading && buddyLog.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No questions logged yet.</p>}
+        <div className="space-y-2">
+          {buddyLog.map((m) => (
+            <div key={m.id} className="panel p-4">
+              <div className="flex items-start justify-between gap-2">
+                <p className="flex items-center gap-1.5 text-xs font-semibold text-[var(--ink-muted)]">
+                  {m.is_anonymous && <EyeOff className="h-3 w-3" />}
+                  {m.is_anonymous ? 'Anonymous' : m.student_name || 'A student'}
+                </p>
+                <p className="text-xs text-[var(--ink-faint)]">{new Date(m.created_at).toLocaleString()}</p>
+              </div>
+              <p className="mt-1.5 text-sm font-bold">{m.question}</p>
+              <p className="mt-1 text-sm text-[var(--fg)]/70">{m.answer}</p>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )

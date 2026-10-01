@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { db, getOrCreatePlayer, completeMatch, getMatchSessions } from '../db/db'
-import { buildLadder, pointsForLevel as ladderPoints, difficultyForLevel as ladderDifficulty } from '../lib/ladder'
-import { shuffleQuestionOptions } from '../lib/selectQuestions'
+import { buildLadder, pointsForLevel } from '../lib/ladder'
+import { shuffleOptions } from '../lib/selectQuestions'
 import * as sound from '../lib/sound'
 import { haptics } from '../lib/haptics'
 import Confetti from '../components/Confetti'
@@ -40,6 +40,10 @@ export default function Gameplay() {
   const config = location.state as GameConfig | undefined
 
   const [questions, setQuestions] = useState<Question[] | null>(null)
+  // The ladder's length follows however many questions this match actually
+  // has (a teacher's choice at setup, not a fixed 10) - built fresh once the
+  // real question count is known, rather than assumed up front.
+  const ladder = useMemo(() => buildLadder(questions?.length || 1), [questions])
   const [phase, setPhase] = useState<Phase>('loading')
   const [introStep, setIntroStep] = useState<3 | 2 | 1 | 0>(3)
   const [currentLevel, setCurrentLevel] = useState(1)
@@ -82,13 +86,6 @@ export default function Gameplay() {
   // extend the question currently being timed.
   const [timerSeconds, setTimerSeconds] = useState(() => config?.timerSecondsPerQuestion ?? 30)
 
-  // The ladder is as long as the quiz actually is - however many questions
-  // were chosen at setup, not a fixed 10.
-  const ladder = useMemo(() => buildLadder(questions?.length || 1), [questions])
-  const totalQuestions = ladder.length
-  const pointsForLevel = useCallback((level: number) => ladderPoints(level, ladder), [ladder])
-  const difficultyForLevel = (level: number) => ladderDifficulty(level, ladder)
-
   const questionStartRef = useRef<number>(Date.now())
   const turnStartRef = useRef<number>(Date.now())
 
@@ -104,7 +101,10 @@ export default function Gameplay() {
         return
       }
       const qs = await db.questions.bulkGet(match.questionIds)
-      setQuestions(qs.filter((q): q is NonNullable<typeof q> => !!q).map(shuffleQuestionOptions))
+      // Shuffled once here, when the match's questions are loaded, so the
+      // board, the 50/50 lifeline, the recorded answer and the recap all
+      // agree on where the correct option sits.
+      setQuestions(qs.filter((q): q is NonNullable<typeof q> => !!q).map(shuffleOptions))
       setTimeLeft(timerSeconds)
       setPhase('intro')
     })
@@ -140,8 +140,8 @@ export default function Gameplay() {
 
   // Ramps the music's intensity up for the last stretch of the ladder.
   useEffect(() => {
-    sound.setMusicIntensity(currentLevel >= totalQuestions - 2 ? 'intense' : 'calm')
-  }, [currentLevel, totalQuestions])
+    sound.setMusicIntensity(currentLevel >= ladder.length - 2 ? 'intense' : 'calm')
+  }, [currentLevel, ladder.length])
 
   // 3-2-1-GO intro sequence before this team's first question
   useEffect(() => {
@@ -194,13 +194,13 @@ export default function Gameplay() {
         seasonName: config.seasonName,
         points: pointsWon,
         correctCount,
-        totalQuestions,
+        totalQuestions: ladder.length,
         createdAt: Date.now(),
         synced: 0,
       })
       import('../lib/leaderboardSync').then((m) => m.syncPendingLeaderboard())
     },
-    [config, totalQuestions]
+    [config, ladder.length]
   )
 
   // Marathon: finishes just the one team this Gameplay mount is running.
@@ -224,7 +224,7 @@ export default function Gameplay() {
         outcome,
         levelReached: finalAnswers.length,
         pointsWon,
-        totalLevels: totalQuestions,
+        totalLevels: ladder.length,
         correctCount,
         wrongCount: finalAnswers.length - correctCount,
         lifelinesUsed,
@@ -238,7 +238,7 @@ export default function Gameplay() {
       import('../lib/sessionSync').then((m) => m.syncPendingSessions())
       navigate(`/results/${id}`, { replace: true })
     },
-    [config, lifelinesUsed, navigate, teamName, isLastTeam, queueLeaderboardSync, totalQuestions]
+    [config, lifelinesUsed, navigate, teamName, isLastTeam, queueLeaderboardSync, ladder.length]
   )
 
   // Rotational: the shared ladder is done (or ended early) - write every
@@ -267,7 +267,7 @@ export default function Gameplay() {
           outcome,
           levelReached: teamAnswers.length,
           pointsWon,
-          totalLevels: totalQuestions,
+          totalLevels: ladder.length,
           correctCount,
           wrongCount: teamAnswers.length - correctCount,
           lifelinesUsed,
@@ -282,7 +282,7 @@ export default function Gameplay() {
       import('../lib/sessionSync').then((m) => m.syncPendingSessions())
       navigate(`/match-results/${config.matchId}`, { replace: true })
     },
-    [config, lifelinesUsed, navigate, queueLeaderboardSync, totalQuestions]
+    [config, lifelinesUsed, navigate, queueLeaderboardSync, ladder.length]
   )
 
   const reveal = useCallback(
@@ -334,7 +334,7 @@ export default function Gameplay() {
         window.setTimeout(() => setPhase('feedback'), 300)
       }, 850)
     },
-    [activeTeamIndex, currentLevel, currentQuestion, ladder, pointsForLevel]
+    [activeTeamIndex, currentLevel, currentQuestion, ladder]
   )
 
   // Timer: ticks every second, getting faster and more alarming as it nears zero.
@@ -389,7 +389,7 @@ export default function Gameplay() {
         teamNumber={activeTeamIndex + 1}
         totalTeams={config.teamNames.length}
         questionNumber={turnsCompleted + 1}
-        totalQuestions={totalQuestions}
+        totalQuestions={ladder.length}
       />
     )
   }
@@ -444,7 +444,7 @@ export default function Gameplay() {
 
   const handleNext = () => {
     const justCompleted = turnsCompleted + 1
-    if (justCompleted >= totalQuestions) {
+    if (justCompleted >= ladder.length) {
       setTurnsCompleted(justCompleted)
       if (isRotational) finishRotationalMatch('completed', answersByTeam)
       else finishTurn('completed', answers)
@@ -519,7 +519,7 @@ export default function Gameplay() {
 
   const useAskChurch = () => {
     if (lifelinesUsed.askChurch || phase !== 'question') return
-    const difficulty = difficultyForLevel(currentLevel)
+    const difficulty = currentQuestion.difficulty
     const confidence = 45 + (5 - difficulty) * 9 + Math.random() * 10
     const remainingIndices = [0, 1, 2, 3].filter((i) => i !== currentQuestion.correctIndex && !disabledOptions.has(i))
     const poll = [0, 0, 0, 0]
@@ -539,7 +539,7 @@ export default function Gameplay() {
 
   const usePhoneFriend = () => {
     if (lifelinesUsed.phoneFriend || phase !== 'question') return
-    const difficulty = difficultyForLevel(currentLevel)
+    const difficulty = currentQuestion.difficulty
     const accuracy = 78 - (difficulty - 1) * 8
     const isRight = Math.random() * 100 < accuracy
     let index: number = currentQuestion.correctIndex
@@ -698,7 +698,7 @@ export default function Gameplay() {
           <div className="hex-fill flex min-h-[80px] flex-col items-center justify-center gap-1.5 px-6 py-3 text-center sm:min-h-[100px]">
             <div className="flex items-center gap-2 text-xs">
               <span className="rounded-full bg-black/30 px-3 py-1 font-bold">
-                Q{currentLevel} of {totalQuestions}
+                Q{currentLevel} of {ladder.length}
               </span>
               <span className="rounded-full bg-black/30 px-3 py-1">{currentQuestion.category}</span>
               {suspense && <span className="animate-pulse text-amber-300">● locking in…</span>}
@@ -792,7 +792,7 @@ export default function Gameplay() {
               onClick={handleNext}
               className="animate-pulse-glow rounded-xl bg-amber-400 px-6 py-3 font-bold text-purple-950 transition hover:scale-105"
             >
-              {turnsCompleted + 1 >= totalQuestions ? (isRotational ? 'Finish Match →' : `Finish ${teamName}'s Turn →`) : `Next Question →`}
+              {turnsCompleted + 1 >= ladder.length ? (isRotational ? 'Finish Match →' : `Finish ${teamName}'s Turn →`) : `Next Question →`}
             </button>
           </div>
         )}
@@ -917,12 +917,12 @@ function LiveScoreboard({
   xpTotals,
   ladder,
 }: {
-  ladder: LadderLevel[]
   config: GameConfig
   answersByTeam: Record<number, AnswerRecord[]>
   activeTeamIndex: number
   pastSessions: GameSession[]
   xpTotals: Record<number, number>
+  ladder: LadderLevel[]
 }) {
   return (
     <div className="space-y-2">
@@ -1091,13 +1091,13 @@ function SideStrip({
   xpTotals,
   ladder,
 }: {
-  ladder: LadderLevel[]
   config: GameConfig
   teamIdx: number
   activeTeamIndex: number
   answersByTeam: Record<number, AnswerRecord[]>
   pastSessions: GameSession[]
   xpTotals: Record<number, number>
+  ladder: LadderLevel[]
 }) {
   const name = config.teamNames[teamIdx]
   const isActive = teamIdx === activeTeamIndex

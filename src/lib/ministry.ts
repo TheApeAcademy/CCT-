@@ -1,7 +1,14 @@
 // Data layer for the Children's Ministry platform: teacher applications,
 // classes/roster, student profiles, leaderboard, messaging, and Ears for You.
 // Thin wrappers over Supabase so the pages stay focused on UI.
-import { supabase, JOIN_CLASS_FUNCTION_URL, STUDENT_REGISTER_FUNCTION_URL } from './supabase'
+import {
+  supabase,
+  JOIN_CLASS_FUNCTION_URL,
+  STUDENT_REGISTER_FUNCTION_URL,
+  AI_COMPANION_FUNCTION_URL,
+  RESET_PASSCODE_FUNCTION_URL,
+} from './supabase'
+import { setRememberMe } from './rememberMe'
 import type { AnswerRecord } from '../db/types'
 
 // ---------- shared types ----------
@@ -26,6 +33,8 @@ export interface RosterEntry {
   created_at: string
 }
 
+export type AvatarStatus = 'none' | 'pending' | 'approved' | 'rejected'
+
 export interface StudentRow {
   id: string
   class_id: string | null
@@ -39,6 +48,11 @@ export interface StudentRow {
   created_at: string
   full_name: string
   avatar_url: string | null
+  /** Only populated for a child looking at their own profile - see
+   * getMyStudentProfile. A picture waiting on a teacher is never returned to
+   * anybody else. */
+  pending_avatar_url?: string | null
+  avatar_status?: AvatarStatus
 }
 
 export interface TeacherApplication {
@@ -190,7 +204,7 @@ export async function removeRosterEntry(id: string) {
 export async function listStudentsInClass(classId: string): Promise<StudentRow[]> {
   const { data, error } = await supabase
     .from('students')
-    .select('id, class_id, username, student_code, date_of_birth, favorite_verse, favorite_quote, bio, total_points, created_at, profiles!inner(full_name, avatar_url)')
+    .select('id, class_id, username, student_code, date_of_birth, favorite_verse, favorite_quote, bio, total_points, created_at, profiles!students_id_fkey(full_name, avatar_url)')
     .eq('class_id', classId)
   if (error) throw error
   return (data ?? []).map((row: any) => ({
@@ -198,6 +212,75 @@ export async function listStudentsInClass(classId: string): Promise<StudentRow[]
     full_name: row.profiles?.full_name ?? '',
     avatar_url: row.profiles?.avatar_url ?? null,
   })) as StudentRow[]
+}
+
+// ---------- attendance ----------
+
+export interface AttendanceRow {
+  student_id: string
+  date: string
+  present: boolean
+}
+
+export async function listAttendanceForDate(classId: string, date: string): Promise<AttendanceRow[]> {
+  const { data, error } = await supabase.from('attendance').select('student_id, date, present').eq('class_id', classId).eq('date', date)
+  if (error) throw error
+  return (data ?? []) as AttendanceRow[]
+}
+
+export interface AttendanceHistory {
+  /** Every date this class has a register for, most recent first. */
+  dates: string[]
+  /** student_id -> date -> present. Absent from the map means never marked. */
+  byStudent: Record<string, Record<string, boolean>>
+}
+
+/**
+ * Every register this class has taken inside the window, in one query.
+ *
+ * Attendance was only ever readable one date at a time, which answers "who is
+ * here today" and nothing else. The question a teacher actually has is the one
+ * that needs weeks side by side: who has stopped coming. The shaping into runs
+ * and totals happens on the client - it is a handful of rows per class and no
+ * teacher needs it to be a database's problem.
+ */
+export async function listAttendanceHistory(classId: string, weeks = 16): Promise<AttendanceHistory> {
+  const since = new Date()
+  since.setDate(since.getDate() - weeks * 7)
+  const sinceKey = since.toISOString().slice(0, 10)
+
+  const { data, error } = await supabase
+    .from('attendance')
+    .select('student_id, date, present')
+    .eq('class_id', classId)
+    .gte('date', sinceKey)
+    .order('date', { ascending: false })
+  if (error) throw error
+
+  const rows = (data ?? []) as AttendanceRow[]
+  const dates: string[] = []
+  const seen = new Set<string>()
+  const byStudent: Record<string, Record<string, boolean>> = {}
+
+  for (const r of rows) {
+    if (!seen.has(r.date)) {
+      seen.add(r.date)
+      dates.push(r.date)
+    }
+    byStudent[r.student_id] ??= {}
+    byStudent[r.student_id][r.date] = r.present
+  }
+
+  return { dates, byStudent }
+}
+
+export async function saveAttendance(classId: string, date: string, records: { student_id: string; present: boolean }[]) {
+  const { data: auth } = await supabase.auth.getUser()
+  const { error } = await supabase.from('attendance').upsert(
+    records.map((r) => ({ class_id: classId, date, student_id: r.student_id, present: r.present, marked_by: auth.user?.id ?? null })),
+    { onConflict: 'class_id,student_id,date' },
+  )
+  if (error) throw error
 }
 
 export async function moveStudent(studentId: string, newClassId: string | null) {
@@ -259,6 +342,13 @@ export async function registerStudent(params: { full_name: string; guardian_phon
   })
   const body = await res.json()
   if (!res.ok) throw new Error(body.error ?? 'Could not create your account.')
+  // Every other sign-in path sets this; this one did not, so it inherited
+  // whatever the last person on this browser chose. If an adult had ever
+  // signed in here with "Remember me" unticked, the flag was still 0, and
+  // App.tsx signs a stored session straight back out on the next load - a
+  // child would make an account, get in, and be thrown out again. Somebody
+  // making a brand new account has not asked to be forgotten.
+  setRememberMe(true)
   const { error: signInError } = await supabase.auth.signInWithPassword({ email: body.email, password: params.passcode })
   if (signInError) throw signInError
   return body as { email: string; student_id: string; student_code: string }
@@ -281,6 +371,29 @@ export async function studentSignInByName(params: { full_name: string; passcode:
   if (signInError) throw new Error('Wrong passcode. Try again, or ask your teacher to help.')
 }
 
+/**
+ * Gives a child a new passcode when they have forgotten theirs. Called by a
+ * teacher (or an admin) from the class roster, because a student account has
+ * no email and so no reset link can ever be sent to it.
+ *
+ * The new passcode comes back exactly once, here, for the adult to hand over.
+ * It is not stored anywhere readable afterwards.
+ */
+export async function resetStudentPasscode(studentId: string): Promise<{ passcode: string; full_name: string }> {
+  const { data: session } = await supabase.auth.getSession()
+  const token = session.session?.access_token
+  if (!token) throw new Error('Not signed in.')
+
+  const res = await fetch(RESET_PASSCODE_FUNCTION_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ student_id: studentId }),
+  })
+  const body = await res.json()
+  if (!res.ok) throw new Error(body.error ?? 'Could not reset that passcode.')
+  return body as { passcode: string; full_name: string }
+}
+
 // ---------- student self-service ----------
 
 export async function getMyStudentProfile(): Promise<StudentRow | null> {
@@ -288,13 +401,81 @@ export async function getMyStudentProfile(): Promise<StudentRow | null> {
   if (!auth.user) return null
   const { data, error } = await supabase
     .from('students')
-    .select('id, class_id, username, student_code, date_of_birth, favorite_verse, favorite_quote, bio, total_points, created_at, profiles!inner(full_name, avatar_url)')
+    .select(
+      'id, class_id, username, student_code, date_of_birth, favorite_verse, favorite_quote, bio, total_points, created_at, profiles!students_id_fkey(full_name, avatar_url, pending_avatar_url, avatar_status)',
+    )
     .eq('id', auth.user.id)
     .maybeSingle()
   if (error) throw error
   if (!data) return null
   const row = data as any
-  return { ...row, full_name: row.profiles?.full_name ?? '', avatar_url: row.profiles?.avatar_url ?? null } as StudentRow
+  return {
+    ...row,
+    full_name: row.profiles?.full_name ?? '',
+    avatar_url: row.profiles?.avatar_url ?? null,
+    // Only a child's own profile carries these. A picture waiting on a
+    // teacher is shown back to the child who uploaded it, and to nobody else.
+    pending_avatar_url: row.profiles?.pending_avatar_url ?? null,
+    avatar_status: (row.profiles?.avatar_status ?? 'none') as AvatarStatus,
+  } as StudentRow
+}
+
+// ---------- search ----------
+
+export type SearchKind = 'student' | 'class' | 'assignment' | 'lecture' | 'teacher'
+
+export interface SearchResult {
+  kind: SearchKind
+  id: string
+  title: string
+  subtitle: string
+  class_id: string | null
+}
+
+/**
+ * One search across everything the person signed in is allowed to find.
+ *
+ * What each role can reach is decided inside ministry_search, not here, and
+ * not by which portal happens to be calling it: a teacher gets their own
+ * classes, an admin gets the ministry, a parent gets their own children. Ears
+ * for You threads and private conversations are not searchable at all - those
+ * belong in the screen built for reading them, where opening one is recorded.
+ */
+export async function ministrySearch(query: string): Promise<SearchResult[]> {
+  const q = query.trim()
+  if (q.length < 2) return []
+  const { data, error } = await supabase.rpc('ministry_search', { p_query: q })
+  if (error) throw error
+  return (data ?? []) as SearchResult[]
+}
+
+// ---------- checking what children upload ----------
+
+export interface PendingAvatar {
+  student_id: string
+  full_name: string
+  class_id: string | null
+  class_name: string | null
+  pending_avatar_url: string
+  current_avatar_url: string | null
+}
+
+/**
+ * Profile pictures waiting to be looked at. A teacher sees only children in
+ * their own classes; an admin sees all of them. The filtering is in the
+ * database function, not here.
+ */
+export async function listPendingAvatars(): Promise<PendingAvatar[]> {
+  const { data, error } = await supabase.rpc('list_pending_avatars')
+  if (error) throw error
+  return (data ?? []) as PendingAvatar[]
+}
+
+/** Approve puts the picture live for the class. Reject clears it and leaves
+ * whatever was approved before in place. */
+export async function reviewChildAvatar(studentId: string, approve: boolean): Promise<void> {
+  const { error } = await supabase.rpc('review_child_avatar', { p_student: studentId, p_approve: approve })
+  if (error) throw error
 }
 
 export async function updateMyStudentProfile(params: {
@@ -314,14 +495,18 @@ export async function updateMyStudentProfile(params: {
   if (error) throw error
 }
 
-export async function getMyClass(): Promise<(ClassRow & { teacher_name: string }) | null> {
+export async function getMyClass(): Promise<(ClassRow & { teacher_name: string; teacher_avatar: string | null }) | null> {
   const student = await getMyStudentProfile()
   if (!student?.class_id) return null
-  const { data, error } = await supabase.from('classes').select('*, profiles!classes_teacher_id_fkey(full_name)').eq('id', student.class_id).maybeSingle()
+  const { data, error } = await supabase
+    .from('classes')
+    .select('*, profiles!classes_teacher_id_fkey(full_name, avatar_url)')
+    .eq('id', student.class_id)
+    .maybeSingle()
   if (error) throw error
   if (!data) return null
   const row = data as any
-  return { ...row, teacher_name: row.profiles?.full_name ?? '' }
+  return { ...row, teacher_name: row.profiles?.full_name ?? '', teacher_avatar: row.profiles?.avatar_url ?? null }
 }
 
 // ---------- leaderboard ----------
@@ -330,6 +515,54 @@ export async function getLeaderboard(limit = 50): Promise<LeaderboardRow[]> {
   const { data, error } = await supabase.from('leaderboard').select('*').limit(limit)
   if (error) throw error
   return (data ?? []) as LeaderboardRow[]
+}
+
+export type LeaderboardRange = 'week' | 'month' | 'year' | 'all'
+
+export interface RankedLeaderboardRow {
+  student_id: string
+  full_name: string
+  avatar_url: string | null
+  class_id: string | null
+  class_name: string | null
+  points: number
+  games: number
+  streak: number
+}
+
+/**
+ * One row per child for a given window, carrying everything the board shows:
+ * points earned in that window, games played and the current reading streak.
+ * The window is worked out in the database so every client agrees on where a
+ * week starts.
+ */
+export async function getRankedLeaderboard(range: LeaderboardRange): Promise<RankedLeaderboardRow[]> {
+  const { data, error } = await supabase.rpc('get_leaderboard_ranked', { p_range: range })
+  if (error) throw error
+  return (data ?? []) as RankedLeaderboardRow[]
+}
+
+export interface ClassLeaderboardRow {
+  class_id: string
+  class_name: string
+  total_points: number
+  student_count: number
+}
+
+/** Rolls student rows up into class totals, for Feature 4's "Class vs Class" view. */
+export function aggregateClassLeaderboard(rows: LeaderboardRow[]): ClassLeaderboardRow[] {
+  const byClass = new Map<string, ClassLeaderboardRow>()
+  for (const r of rows) {
+    if (!r.class_id) continue
+    const existing = byClass.get(r.class_id)
+    if (existing) {
+      existing.total_points += r.total_points
+      existing.student_count += 1
+    } else {
+      byClass.set(r.class_id, { class_id: r.class_id, class_name: r.class_name ?? 'Unnamed Class', total_points: r.total_points, student_count: 1 })
+    }
+  }
+  return Array.from(byClass.values()).sort((a, b) => b.total_points - a.total_points)
 }
 
 export async function recordQuizAttempt(params: { class_id?: string | null; season_id?: string | null; set_name: string; points: number; correct_count: number; total_questions: number }) {
@@ -392,9 +625,15 @@ export async function recordQuizSession(params: {
   finishedAt: number
   answers: AnswerRecord[]
 }): Promise<string> {
-  const { data, error } = await supabase
+  // The id is minted here rather than read back from the insert. A match can
+  // be hosted on a screen nobody is signed in on, and a signed-out insert
+  // cannot use RETURNING once quiz_sessions stops being readable to the
+  // world - see 20260919120000_close_public_child_data.sql.
+  const id = crypto.randomUUID()
+  const { error } = await supabase
     .from('quiz_sessions')
     .insert({
+      id,
       student_id: params.studentId ?? null,
       player_name: params.playerName,
       set_name: params.setName,
@@ -408,10 +647,8 @@ export async function recordQuizSession(params: {
       finished_at: new Date(params.finishedAt).toISOString(),
       answers: params.answers,
     })
-    .select('id')
-    .single()
   if (error) throw error
-  return data.id as string
+  return id
 }
 
 export interface QuizHistoryRow {
@@ -485,7 +722,7 @@ export async function listMyConversations(): Promise<ConversationSummary[]> {
   if (!auth.user) return []
   const { data, error } = await supabase
     .from('conversations')
-    .select('id, teacher_id, student_id, teacher:profiles!conversations_teacher_id_fkey(full_name, avatar_url), student:students!inner(profiles!inner(full_name, avatar_url))')
+    .select('id, teacher_id, student_id, teacher:profiles!conversations_teacher_id_fkey(full_name, avatar_url), student:students!inner(profiles!students_id_fkey(full_name, avatar_url))')
     .or(`teacher_id.eq.${auth.user.id},student_id.eq.${auth.user.id}`)
   if (error) throw error
   return (data ?? []).map((row: any) => {
@@ -557,6 +794,25 @@ export async function listEarsInternalNotes(messageId: string): Promise<EarsNote
   const { data, error } = await supabase.from('ears_internal_notes').select('*').eq('message_id', messageId).order('created_at')
   if (error) throw error
   return (data ?? []) as EarsNoteRow[]
+}
+
+export interface EarsAuditLogRow {
+  id: string
+  action: string
+  detail: string | null
+  actor_id: string | null
+  created_at: string
+}
+
+/** Admin/assigned-teacher only (RLS on ears_audit_log) - the concrete evidence behind the Safety & Privacy guarantees. */
+export async function listEarsAuditLog(limit = 50): Promise<EarsAuditLogRow[]> {
+  const { data, error } = await supabase
+    .from('ears_audit_log')
+    .select('id, action, detail, actor_id, created_at')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  return (data ?? []) as EarsAuditLogRow[]
 }
 
 export async function acknowledgeEarsMessage(id: string) {
@@ -701,6 +957,27 @@ export async function listAssignments(classId: string): Promise<AssignmentRow[]>
   return (data ?? []) as AssignmentRow[]
 }
 
+// ---------- Sunday School calendar unlocks ----------
+// A teacher decides which Sundays are "taught" for their own class; kids
+// just read which dates are unlocked. Dates are plain 'YYYY-MM-DD' strings
+// (see sundayDateKey in content/sundaySchoolCalendar.ts).
+
+export async function listUnlockedSundays(classId: string): Promise<string[]> {
+  const { data, error } = await supabase.from('class_sunday_unlocks').select('sunday_date').eq('class_id', classId)
+  if (error) throw error
+  return (data ?? []).map((row: any) => row.sunday_date as string)
+}
+
+export async function unlockSunday(classId: string, dateKey: string) {
+  const { error } = await supabase.from('class_sunday_unlocks').upsert({ class_id: classId, sunday_date: dateKey }, { onConflict: 'class_id,sunday_date' })
+  if (error) throw error
+}
+
+export async function lockSunday(classId: string, dateKey: string) {
+  const { error } = await supabase.from('class_sunday_unlocks').delete().eq('class_id', classId).eq('sunday_date', dateKey)
+  if (error) throw error
+}
+
 export async function createAssignment(params: { class_id: string; title: string; instructions?: string; due_date?: string; max_score?: number }) {
   const { data: auth } = await supabase.auth.getUser()
   const { error } = await supabase.from('assignments').insert({ ...params, teacher_id: auth.user?.id })
@@ -715,7 +992,7 @@ export async function setAssignmentStatus(id: string, status: AssignmentStatus) 
 export async function listSubmissionsForAssignment(assignmentId: string): Promise<SubmissionRow[]> {
   const { data, error } = await supabase
     .from('assignment_submissions')
-    .select('*, students!inner(profiles!inner(full_name))')
+    .select('*, students!inner(profiles!students_id_fkey(full_name))')
     .eq('assignment_id', assignmentId)
   if (error) throw error
   return (data ?? []).map((row: any) => ({ ...row, full_name: row.students?.profiles?.full_name ?? '' })) as SubmissionRow[]
@@ -819,6 +1096,39 @@ export async function getMyBibleStreak(): Promise<number> {
   return (data as number) ?? 0
 }
 
+/**
+ * The days this child has finished a reading, as YYYY-MM-DD in their own
+ * timezone, for the last `days` days. The streak screen draws a week from
+ * this; the streak number itself still comes from get_my_bible_streak, which
+ * is the one definition of a streak.
+ */
+export async function listMyReadingDays(days = 14): Promise<Set<string>> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) return new Set()
+  const since = new Date()
+  since.setDate(since.getDate() - days)
+  const sinceIso = since.toISOString()
+
+  // Both sources, for the same reason compute_bible_streak counts both: a
+  // child's daily work goes into journey_progress, and student_bible_progress
+  // only ever holds rows from the reading plan. Reading one table gave a
+  // screen that argued with itself, a streak of 4 over a week with nothing
+  // ticked on it.
+  const [readings, lessons] = await Promise.all([
+    supabase.from('student_bible_progress').select('completed_at').eq('student_id', auth.user.id).gte('completed_at', sinceIso),
+    supabase.from('journey_progress').select('completed_at').eq('student_id', auth.user.id).gte('completed_at', sinceIso),
+  ])
+  if (readings.error) throw readings.error
+  if (lessons.error) throw lessons.error
+
+  const out = new Set<string>()
+  for (const row of [...(readings.data ?? []), ...(lessons.data ?? [])] as { completed_at: string }[]) {
+    const d = new Date(row.completed_at)
+    out.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`)
+  }
+  return out
+}
+
 export async function completeBibleReading(readingId: string) {
   const { error } = await supabase.rpc('complete_bible_reading', { p_reading_id: readingId })
   if (error) throw error
@@ -881,6 +1191,23 @@ export interface EarnedAchievement extends AchievementRow {
   earned_at: string
 }
 
+export interface BibleCharacterRow {
+  key: string
+  name: string
+  book: string
+  lesson_key: string
+  image: string
+  short_story: string
+  sort_order: number
+}
+
+/** The full character catalog - unlock state lives in achievements (code = "character_" + key), not here. */
+export async function listBibleCharacters(): Promise<BibleCharacterRow[]> {
+  const { data, error } = await supabase.from('bible_characters').select('*').order('sort_order')
+  if (error) throw error
+  return (data ?? []) as BibleCharacterRow[]
+}
+
 export async function listMyAchievements(): Promise<EarnedAchievement[]> {
   const { data: auth } = await supabase.auth.getUser()
   if (!auth.user) return []
@@ -898,4 +1225,346 @@ export async function listAllAchievements(): Promise<AchievementRow[]> {
   const { data, error } = await supabase.from('achievements').select('id, code, name, description, icon').eq('active', true).order('name')
   if (error) throw error
   return data ?? []
+}
+
+// ---------- private notes (Notebook / Diary / Prayer Journal) ----------
+// Always fully private to the student who wrote them - no teacher/admin
+// policy exists on this table at all, by design.
+
+export type NoteKind = 'notebook' | 'diary' | 'prayer'
+
+export interface PrivateNoteRow {
+  id: string
+  student_id: string
+  kind: NoteKind
+  title: string
+  body: string
+  created_at: string
+  updated_at: string
+}
+
+export async function listMyNotes(kind: NoteKind): Promise<PrivateNoteRow[]> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) return []
+  const { data, error } = await supabase
+    .from('private_notes')
+    .select('*')
+    .eq('student_id', auth.user.id)
+    .eq('kind', kind)
+    .order('updated_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as PrivateNoteRow[]
+}
+
+export async function createNote(kind: NoteKind, title: string, body: string): Promise<PrivateNoteRow> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) throw new Error('Not signed in')
+  const { data, error } = await supabase
+    .from('private_notes')
+    .insert({ student_id: auth.user.id, kind, title: title.trim(), body: body.trim() })
+    .select('*')
+    .single()
+  if (error) throw error
+  return data as PrivateNoteRow
+}
+
+export async function updateNote(id: string, title: string, body: string) {
+  const { error } = await supabase.from('private_notes').update({ title: title.trim(), body: body.trim(), updated_at: new Date().toISOString() }).eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteNote(id: string) {
+  const { error } = await supabase.from('private_notes').delete().eq('id', id)
+  if (error) throw error
+}
+
+// ---------- digital bank (vault) ----------
+// A private place for a kid to keep files that matter to them - finished
+// assignments, notes, photos, voice notes. Text notes are stored inline;
+// anything with an actual file goes to the private `vault` storage bucket,
+// under a folder named for the student's own auth id (RLS enforces that a
+// student can only read/write their own folder).
+
+export type VaultCategory = 'assignment' | 'note' | 'photo' | 'audio' | 'other'
+
+export interface VaultItemRow {
+  id: string
+  student_id: string
+  category: VaultCategory
+  title: string
+  note: string | null
+  file_path: string | null
+  file_type: string | null
+  file_size: number | null
+  created_at: string
+}
+
+export async function listMyVaultItems(): Promise<VaultItemRow[]> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) return []
+  const { data, error } = await supabase.from('vault_items').select('*').eq('student_id', auth.user.id).order('created_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as VaultItemRow[]
+}
+
+export async function addVaultNote(title: string, note: string): Promise<VaultItemRow> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) throw new Error('Not signed in')
+  const { data, error } = await supabase
+    .from('vault_items')
+    .insert({ student_id: auth.user.id, category: 'note', title: title.trim(), note: note.trim() })
+    .select('*')
+    .single()
+  if (error) throw error
+  return data as VaultItemRow
+}
+
+export async function uploadVaultFile(file: File, category: VaultCategory, title: string): Promise<VaultItemRow> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) throw new Error('Not signed in')
+  const path = `${auth.user.id}/${crypto.randomUUID()}-${file.name}`
+  const { error: uploadError } = await supabase.storage.from('vault').upload(path, file)
+  if (uploadError) throw uploadError
+  const { data, error } = await supabase
+    .from('vault_items')
+    .insert({
+      student_id: auth.user.id,
+      category,
+      title: title.trim() || file.name,
+      file_path: path,
+      file_type: file.type,
+      file_size: file.size,
+    })
+    .select('*')
+    .single()
+  if (error) throw error
+  return data as VaultItemRow
+}
+
+export async function getVaultFileUrl(path: string): Promise<string | null> {
+  const { data, error } = await supabase.storage.from('vault').createSignedUrl(path, 60 * 60)
+  if (error) return null
+  return data.signedUrl
+}
+
+export async function deleteVaultItem(item: VaultItemRow) {
+  if (item.file_path) await supabase.storage.from('vault').remove([item.file_path])
+  const { error } = await supabase.from('vault_items').delete().eq('id', item.id)
+  if (error) throw error
+}
+
+// ---------- ministry calendar ----------
+// One shared events calendar for the whole ministry (Children's Day, camps,
+// Christmas party, etc.) - admin-only to create/edit, everyone signed in
+// can read it. Separate from the per-class Sunday School lesson-unlock
+// calendar in class_sunday_unlocks, which is about individual lessons, not
+// ministry-wide events.
+
+export interface MinistryEventRow {
+  id: string
+  title: string
+  description: string | null
+  event_date: string
+  created_by: string | null
+  created_at: string
+}
+
+export async function listMinistryEvents(): Promise<MinistryEventRow[]> {
+  const { data, error } = await supabase.from('ministry_events').select('*').order('event_date', { ascending: true })
+  if (error) throw error
+  return (data ?? []) as MinistryEventRow[]
+}
+
+export async function createMinistryEvent(params: { title: string; event_date: string; description?: string }): Promise<MinistryEventRow> {
+  const { data: auth } = await supabase.auth.getUser()
+  const { data, error } = await supabase
+    .from('ministry_events')
+    .insert({
+      title: params.title.trim(),
+      event_date: params.event_date,
+      description: params.description?.trim() || null,
+      created_by: auth.user?.id ?? null,
+    })
+    .select('*')
+    .single()
+  if (error) throw error
+  return data as MinistryEventRow
+}
+
+export async function updateMinistryEvent(id: string, params: { title: string; event_date: string; description?: string }) {
+  const { error } = await supabase
+    .from('ministry_events')
+    .update({ title: params.title.trim(), event_date: params.event_date, description: params.description?.trim() || null })
+    .eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteMinistryEvent(id: string) {
+  const { error } = await supabase.from('ministry_events').delete().eq('id', id)
+  if (error) throw error
+}
+
+// ---------- parent dashboard ----------
+// Parents sign up on their own (normal email/password, no admin approval)
+// and link to a child with a short code the child already has - see
+// claim_parent_role()/link_child_by_code() in Supabase. Everything below
+// reads through RLS scoped to is_parent_of_student(), so a parent only
+// ever sees their own linked children's data.
+
+export interface ChildRow extends StudentRow {
+  class_name: string | null
+}
+
+/** Sets role="parent" for the signed-in account - a no-op if the role is already set, so an existing student/teacher/admin can't relabel itself. */
+export async function claimParentRole() {
+  const { error } = await supabase.rpc('claim_parent_role')
+  if (error) throw error
+}
+
+/** Called by a STUDENT to get (or generate, first time) their own parent-link code, shown on their profile. */
+export async function getOrCreateParentLinkCode(): Promise<string> {
+  const { data, error } = await supabase.rpc('get_or_create_parent_link_code')
+  if (error) throw error
+  return data as string
+}
+
+/** Called by a PARENT to link a child using the code above. */
+export async function linkChildByCode(code: string): Promise<{ student_id: string; full_name: string }> {
+  const { data, error } = await supabase.rpc('link_child_by_code', { p_code: code.trim() })
+  if (error) throw error
+  return data as { student_id: string; full_name: string }
+}
+
+export async function listMyChildren(): Promise<ChildRow[]> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) return []
+  const { data: links, error: linksError } = await supabase.from('parent_links').select('student_id').eq('parent_id', auth.user.id)
+  if (linksError) throw linksError
+  const ids = (links ?? []).map((l) => l.student_id)
+  if (ids.length === 0) return []
+
+  const { data, error } = await supabase
+    .from('students')
+    .select(
+      'id, class_id, username, student_code, date_of_birth, favorite_verse, favorite_quote, bio, total_points, created_at, profiles!students_id_fkey(full_name, avatar_url), classes(name)',
+    )
+    .in('id', ids)
+  if (error) throw error
+  return (data ?? []).map((row: any) => ({
+    ...row,
+    full_name: row.profiles?.full_name ?? '',
+    avatar_url: row.profiles?.avatar_url ?? null,
+    class_name: row.classes?.name ?? null,
+  })) as ChildRow[]
+}
+
+export async function getChildBibleStreak(studentId: string): Promise<number> {
+  const { data, error } = await supabase.rpc('compute_bible_streak', { p_student_id: studentId })
+  if (error) throw error
+  return (data as number) ?? 0
+}
+
+export async function listChildAchievements(studentId: string): Promise<EarnedAchievement[]> {
+  const { data, error } = await supabase
+    .from('student_achievements')
+    .select('earned_at, achievements!inner(id, code, name, description, icon)')
+    .eq('student_id', studentId)
+    .order('earned_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []).map((row: any) => ({ ...row.achievements, earned_at: row.earned_at })) as EarnedAchievement[]
+}
+
+export async function listChildAttendance(studentId: string, limit = 30): Promise<AttendanceRow[]> {
+  const { data, error } = await supabase
+    .from('attendance')
+    .select('student_id, date, present')
+    .eq('student_id', studentId)
+    .order('date', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  return (data ?? []) as AttendanceRow[]
+}
+
+export async function listChildQuizAttempts(studentId: string, sinceIso: string): Promise<{ created_at: string }[]> {
+  const { data, error } = await supabase.from('quiz_attempts').select('created_at').eq('student_id', studentId).gte('created_at', sinceIso)
+  if (error) throw error
+  return (data ?? []) as { created_at: string }[]
+}
+
+// ---------- Bible Buddy (AI companion) ----------
+// A tightly-scoped kid-facing AI, answered server-side (ai-companion edge
+// function - the API key never reaches the browser). Every Q&A is logged
+// for safeguarding review, with the same anonymous-identity masking as
+// Ears for You: a teacher/admin never gets the real identity for an
+// anonymous question through any path.
+
+export interface AiCompanionMessageRow {
+  id: string
+  question: string
+  answer: string
+  is_anonymous: boolean
+  created_at: string
+}
+
+export interface AiCompanionTeacherLogRow extends AiCompanionMessageRow {
+  class_id: string | null
+  student_id: string | null
+  student_name: string | null
+}
+
+export async function askBibleBuddy(question: string, isAnonymous: boolean): Promise<string> {
+  const { data: session } = await supabase.auth.getSession()
+  const token = session.session?.access_token
+  if (!token) throw new Error('Not signed in.')
+
+  const res = await fetch(AI_COMPANION_FUNCTION_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ question, is_anonymous: isAnonymous }),
+  })
+  const body = await res.json()
+  if (!res.ok) throw new Error(body.error ?? 'Bible Buddy could not answer that.')
+  return body.answer as string
+}
+
+export async function listMyBibleBuddyHistory(): Promise<AiCompanionMessageRow[]> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) return []
+  const { data, error } = await supabase
+    .from('ai_companion_messages')
+    .select('id, question, answer, is_anonymous, created_at')
+    .eq('student_id', auth.user.id)
+    .order('created_at', { ascending: true })
+  if (error) throw error
+  return (data ?? []) as AiCompanionMessageRow[]
+}
+
+/**
+ * What Bible Buddy said to one child, for that child's parent.
+ *
+ * Questions the child chose to ask privately are not here. The policy on the
+ * table drops them before this ever sees a row, so no filter is needed on
+ * this side, and none could be removed to get at them either. A parent gets
+ * exactly what a teacher gets, and a privately asked question stays the
+ * child's own.
+ */
+export async function listChildBibleBuddy(studentId: string, limit = 50): Promise<AiCompanionMessageRow[]> {
+  const { data, error } = await supabase
+    .from('ai_companion_messages')
+    .select('id, question, answer, is_anonymous, created_at')
+    .eq('student_id', studentId)
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  return (data ?? []) as AiCompanionMessageRow[]
+}
+
+export async function listBibleBuddyTeacherLog(limit = 50): Promise<AiCompanionTeacherLogRow[]> {
+  const { data, error } = await supabase
+    .from('ai_companion_teacher_log')
+    .select('id, class_id, student_id, student_name, question, answer, is_anonymous, created_at')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (error) throw error
+  return (data ?? []) as AiCompanionTeacherLogRow[]
 }

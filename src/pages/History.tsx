@@ -106,7 +106,7 @@ export default function History() {
   }
 
   return (
-    <div data-landing-theme="light" className="site-light-theme lp-page full-bleed px-4 py-6">
+    <div data-landing-theme="light" className="site-light-theme lp-page full-bleed -mb-6 flex-1 px-4 py-6">
       <div className="mx-auto max-w-3xl space-y-8">
       <h1 className="font-display text-3xl font-extrabold">🏆 History</h1>
 
@@ -202,7 +202,7 @@ export default function History() {
                       <p className="font-medium">{a.questionText}</p>
                       <p className={`mt-1 ${a.correct ? 'text-green-600' : 'text-red-600'}`}>
                         {a.correct ? '✓ Correct' : a.timedOut ? '⏰ Timed out' : '✗ Wrong'}
-                        {a.selectedIndex !== null && ` — answered: ${a.options[a.selectedIndex]}`}
+                        {a.selectedIndex !== null && ` - answered: ${a.options[a.selectedIndex]}`}
                       </p>
                       {!a.correct && (
                         <p className="mt-1 text-green-600/90">

@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import {
   GraduationCap,
   ClipboardList,
-  MessageCircle,
+  Smartphone,
   HeartHandshake,
   Settings,
   ArrowLeft,
@@ -17,14 +17,33 @@ import {
   FileText,
   Gamepad2,
   Trophy,
-  Database,
+  LayoutDashboard,
+  Users,
+  Calendar,
+  Lock,
+  ClipboardCheck,
+  Award,
+  Sparkles,
+  EyeOff,
+  Copy,
+  RotateCcw,
+  History as HistoryIcon,
+  AlertTriangle,
   type LucideIcon,
 } from 'lucide-react'
-import { supabase, signOut } from '../lib/supabase'
+import { supabase, signOut, type Profile } from '../lib/supabase'
 import { useMinistryAuth } from '../lib/useMinistryAuth'
 import AuthCard from '../components/ui/AuthCard'
 import TabBar from '../components/ui/TabBar'
-import DigitalBank from '../components/DigitalBank'
+import IsometricPhone from '../components/IsometricPhone'
+import { NotesSection, DigitalBankSection } from '../components/PersonalVault'
+import { DataList, DataRow, DataIdentity, DataNum, DataActions } from '../components/ui/DataList'
+import Sheet from '../components/ui/Sheet'
+import MinistryCalendarReadOnly from '../components/MinistryCalendarView'
+import AvatarReviewQueue from '../components/AvatarReviewQueue'
+import PortalSearch from '../components/PortalSearch'
+import { renderCertificatePng } from '../lib/certificate'
+import { SUNDAY_LESSON_THEMES, SUNDAYS_2026, sundayDateKey } from '../content/sundaySchoolCalendar'
 import {
   getMyTeacherApplication,
   submitTeacherApplication,
@@ -34,6 +53,7 @@ import {
   listStudentsInClass,
   moveStudent,
   enrollStudentByCode,
+  resetStudentPasscode,
   listLectures,
   createLecture,
   setLectureStatus,
@@ -42,6 +62,9 @@ import {
   setAssignmentStatus,
   listSubmissionsForAssignment,
   gradeSubmission,
+  listUnlockedSundays,
+  unlockSunday,
+  lockSunday,
   type LectureRow,
   type AssignmentRow,
   type SubmissionRow,
@@ -57,6 +80,14 @@ import {
   addEarsReply,
   addEarsInternalNote,
   getLeaderboard,
+  aggregateClassLeaderboard,
+  listAttendanceForDate,
+  listAttendanceHistory,
+  saveAttendance,
+  type SearchResult,
+  type AttendanceHistory,
+  listBibleBuddyTeacherLog,
+  type AiCompanionTeacherLogRow,
   type TeacherApplication,
   type ClassRow,
   type StudentRow,
@@ -87,7 +118,7 @@ export default function TeacherPortal() {
 
   if (loading) return <div className="py-20 text-center text-xl">Loading…</div>
   if (!session) return <AuthCard icon={GraduationCap} title="Teacher Portal" subtitle="Sign in, or create an account and apply to teach." />
-  if (profile?.role === 'teacher') return <TeacherDashboard />
+  if (profile?.role === 'teacher') return <TeacherDashboard profile={profile} />
   return <ApplicationGate onChange={refreshProfile} />
 }
 
@@ -100,6 +131,19 @@ function ApplicationGate({ onChange }: { onChange: () => void }) {
   useEffect(() => {
     load()
   }, [])
+
+  // The admin who approves an application is in another browser. Poll so the
+  // teacher sitting on the pending screen is let in without signing out and
+  // back in, which is what it used to take. onChange re-reads the profile
+  // role, load() re-reads the application row.
+  useEffect(() => {
+    const id = setInterval(() => {
+      load()
+      onChange()
+    }, 10000)
+    return () => clearInterval(id)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onChange])
 
   if (app === 'loading') return <div className="py-20 text-center text-xl">Loading…</div>
 
@@ -141,9 +185,15 @@ function StatusScreen({ icon: Icon, title, body }: { icon: typeof ClipboardList;
       </span>
       <h1 className="font-display text-2xl font-extrabold sm:text-3xl">{title}</h1>
       <p className="text-sm text-[var(--ink-muted)]">{body}</p>
-      <button onClick={() => signOut()} className="btn-outline">
-        Sign Out
-      </button>
+      <p className="text-xs text-[var(--ink-faint)]">This page is watching. If your account is approved while it is open, it will let you straight in.</p>
+      <div className="flex flex-wrap justify-center gap-2">
+        <button onClick={() => signOut()} className="btn-solid text-sm">
+          Sign In as a Teacher
+        </button>
+        <button onClick={() => signOut()} className="btn-outline text-sm">
+          Sign Out
+        </button>
+      </div>
     </div>
   )
 }
@@ -191,7 +241,7 @@ function ApplyForm({ onSubmitted }: { onSubmitted: () => void }) {
           rows={4}
           className={inputClass}
         />
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && <p className="text-sm text-red-700">{error}</p>}
         <button onClick={handleSubmit} disabled={submitting} className="btn-solid w-full py-3 text-base">
           {submitting ? 'Submitting…' : 'Submit Application'}
         </button>
@@ -202,11 +252,26 @@ function ApplyForm({ onSubmitted }: { onSubmitted: () => void }) {
 
 // ---------- main dashboard ----------
 
-type Tab = 'classes' | 'quiz' | 'digitalbank' | 'messages' | 'ears' | 'profile'
+type Tab = 'home' | 'chat' | 'classes' | 'quiz' | 'ears' | 'buddy' | 'calendar' | 'profile'
 
-function TeacherDashboard() {
-  const [tab, setTab] = useState<Tab>('classes')
+function TeacherDashboard({ profile }: { profile: Profile | null }) {
+  const [tab, setTab] = useState<Tab>('home')
   const [openClass, setOpenClass] = useState<ClassRow | null>(null)
+  // Which tab of the class screen to land on. A search for a lesson should
+  // open on Class Work, not drop the teacher on the roster to find it again.
+  const [openClassTab, setOpenClassTab] = useState<DetailTab>('students')
+
+  // A result is only worth showing if tapping it goes somewhere, so every
+  // kind this portal can return is handled here. Everything the teacher can
+  // find belongs to one of their classes, so all of it opens that class.
+  const goToResult = async (r: SearchResult) => {
+    if (!r.class_id) return
+    const klass = (await listMyClasses()).find((c) => c.id === r.class_id)
+    if (!klass) return
+    setOpenClassTab(r.kind === 'assignment' || r.kind === 'lecture' ? 'work' : 'students')
+    setOpenClass(klass)
+    setTab('classes')
+  }
 
   return (
     <div className="mx-auto max-w-4xl space-y-6">
@@ -220,6 +285,8 @@ function TeacherDashboard() {
         </button>
       </div>
 
+      <PortalSearch placeholder="Find a child, a class, a lesson…" onPick={goToResult} />
+
       <TabBar
         value={tab}
         onChange={(t) => {
@@ -227,20 +294,39 @@ function TeacherDashboard() {
           setOpenClass(null)
         }}
         items={[
+          { value: 'home', label: 'Home', icon: LayoutDashboard },
+          { value: 'chat', label: 'Chat', icon: Smartphone },
           { value: 'classes', label: 'Classes', icon: GraduationCap },
           { value: 'quiz', label: 'Quiz', icon: Gamepad2 },
-          { value: 'digitalbank', label: 'Digital Bank', icon: Database },
-          { value: 'messages', label: 'Messages', icon: MessageCircle },
           { value: 'ears', label: 'Ears for You', icon: HeartHandshake },
+          { value: 'buddy', label: 'Bible Buddy', icon: Sparkles },
+          { value: 'calendar', label: 'Ministry Calendar', icon: Calendar },
           { value: 'profile', label: 'Profile', icon: Settings },
         ]}
       />
 
-      {tab === 'classes' && (openClass ? <ClassDetail klass={openClass} onBack={() => setOpenClass(null)} /> : <ClassesTab onOpen={setOpenClass} />)}
+      {tab === 'home' && <TeacherHomeTab profile={profile} />}
+      {tab === 'chat' && <TeacherChatTab profile={profile} />}
+      {tab === 'classes' &&
+        (openClass ? (
+          <ClassDetail
+            klass={openClass}
+            teacherName={profile?.full_name ?? 'Your Teacher'}
+            initialTab={openClassTab}
+            onBack={() => setOpenClass(null)}
+          />
+        ) : (
+          <ClassesTab
+            onOpen={(c) => {
+              setOpenClassTab('students')
+              setOpenClass(c)
+            }}
+          />
+        ))}
       {tab === 'quiz' && <QuizTab />}
-      {tab === 'digitalbank' && <DigitalBank />}
-      {tab === 'messages' && <MessagesTab />}
       {tab === 'ears' && <EarsInboxTab />}
+      {tab === 'buddy' && <BibleBuddyLogTab />}
+      {tab === 'calendar' && <MinistryCalendarReadOnly />}
       {tab === 'profile' && <ProfileTab />}
     </div>
   )
@@ -249,15 +335,18 @@ function TeacherDashboard() {
 function QuizTab() {
   const [rows, setRows] = useState<LeaderboardRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [board, setBoard] = useState<'students' | 'classes'>('students')
 
   useEffect(() => {
-    Promise.all([listMyClasses(), getLeaderboard(500)])
+    Promise.all([listMyClasses(), getLeaderboard(1000)])
       .then(([classes, leaderboard]) => {
         const myClassIds = new Set(classes.map((c) => c.id))
         setRows(leaderboard.filter((r) => r.class_id && myClassIds.has(r.class_id)))
       })
       .finally(() => setLoading(false))
   }, [])
+
+  const classRows = useMemo(() => aggregateClassLeaderboard(rows), [rows])
 
   return (
     <div className="space-y-4">
@@ -267,20 +356,50 @@ function QuizTab() {
         <QuizLink to="/history" icon={Trophy} title="History" description="Every completed match, team score, and full recap." />
       </div>
       <div className="panel p-5">
-        <p className="eyebrow mb-3">Your Classes' Leaderboard</p>
+        <div className="mb-3 flex items-center justify-between">
+          <p className="eyebrow">Your Classes' Leaderboard</p>
+          {classRows.length > 1 && (
+            <div className="flex gap-1.5">
+              {(['students', 'classes'] as const).map((b) => (
+                <button
+                  key={b}
+                  onClick={() => setBoard(b)}
+                  className="rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wide transition"
+                  style={{
+                    background: board === b ? 'var(--gold)' : 'var(--ink-panel)',
+                    color: board === b ? '#000' : 'var(--ink-muted)',
+                  }}
+                >
+                  {b === 'students' ? 'Students' : 'Class vs Class'}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
         {!loading && rows.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No quiz results recorded yet for your students.</p>}
         <div className="space-y-1.5">
-          {rows.map((r, i) => (
-            <div key={r.student_id} className="flex items-center justify-between rounded-md px-3 py-2 text-sm odd:bg-[var(--ink-panel)]">
-              <span className="flex min-w-0 items-center gap-2">
-                <span className="w-6 shrink-0 font-bold text-[var(--ink-muted)]">{i + 1}</span>
-                <span className="truncate font-semibold">{r.full_name}</span>
-                {r.class_name && <span className="shrink-0 text-xs text-[var(--ink-faint)]">· {r.class_name}</span>}
-              </span>
-              <span className="shrink-0 font-bold text-[var(--gold)]">{r.total_points.toLocaleString()} pts</span>
-            </div>
-          ))}
+          {board === 'students' || classRows.length <= 1
+            ? rows.map((r, i) => (
+                <div key={r.student_id} className="flex items-center justify-between rounded-md px-3 py-2 text-sm odd:bg-[var(--ink-panel)]">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="w-6 shrink-0 font-bold text-[var(--ink-muted)]">{i + 1}</span>
+                    <span className="truncate font-semibold">{r.full_name}</span>
+                    {r.class_name && <span className="shrink-0 text-xs text-[var(--ink-faint)]">· {r.class_name}</span>}
+                  </span>
+                  <span className="shrink-0 font-bold text-[var(--gold)]">{r.total_points.toLocaleString()} pts</span>
+                </div>
+              ))
+            : classRows.map((c, i) => (
+                <div key={c.class_id} className="flex items-center justify-between rounded-md px-3 py-2 text-sm odd:bg-[var(--ink-panel)]">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="w-6 shrink-0 font-bold text-[var(--ink-muted)]">{i + 1}</span>
+                    <span className="truncate font-semibold">{c.class_name}</span>
+                    <span className="shrink-0 text-xs text-[var(--ink-faint)]">· {c.student_count} students</span>
+                  </span>
+                  <span className="shrink-0 font-bold text-[var(--gold)]">{c.total_points.toLocaleString()} pts</span>
+                </div>
+              ))}
         </div>
       </div>
     </div>
@@ -357,16 +476,28 @@ function ClassesTab({ onOpen }: { onOpen: (c: ClassRow) => void }) {
   )
 }
 
-type DetailTab = 'students' | 'work'
+type DetailTab = 'students' | 'work' | 'attendance'
 
-function ClassDetail({ klass, onBack }: { klass: ClassRow; onBack: () => void }) {
-  const [detailTab, setDetailTab] = useState<DetailTab>('students')
+function ClassDetail({
+  klass,
+  teacherName,
+  onBack,
+  initialTab = 'students',
+}: {
+  klass: ClassRow
+  teacherName: string
+  onBack: () => void
+  initialTab?: DetailTab
+}) {
+  const [detailTab, setDetailTab] = useState<DetailTab>(initialTab)
   const [students, setStudents] = useState<StudentRow[]>([])
   const [loading, setLoading] = useState(true)
   const [enrollCode, setEnrollCode] = useState('')
   const [enrollError, setEnrollError] = useState('')
   const [enrollSuccess, setEnrollSuccess] = useState('')
   const [enrolling, setEnrolling] = useState(false)
+  const [certificateFor, setCertificateFor] = useState<StudentRow | null>(null)
+  const [passcodeFor, setPasscodeFor] = useState<StudentRow | null>(null)
 
   const load = () => {
     listStudentsInClass(klass.id).then((s) => {
@@ -425,13 +556,13 @@ function ClassDetail({ klass, onBack }: { klass: ClassRow; onBack: () => void })
       </div>
 
       <div className="flex gap-1 rounded-md border border-[var(--hairline-strong)] p-1 w-fit">
-        {(['students', 'work'] as const).map((t) => (
+        {(['students', 'attendance', 'work'] as const).map((t) => (
           <button
             key={t}
             onClick={() => setDetailTab(t)}
             className={`rounded px-4 py-1.5 text-sm font-bold capitalize transition ${detailTab === t ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'text-[var(--fg)]/60 hover:text-[var(--fg)]'}`}
           >
-            {t === 'students' ? 'Students' : 'Class Work'}
+            {t === 'students' ? 'Students' : t === 'attendance' ? 'Attendance' : 'Class Work'}
           </button>
         ))}
       </div>
@@ -460,9 +591,9 @@ function ClassDetail({ klass, onBack }: { klass: ClassRow; onBack: () => void })
                 {enrolling ? 'Adding…' : 'Add'}
               </button>
             </div>
-            {enrollError && <p className="text-sm text-red-400">{enrollError}</p>}
+            {enrollError && <p className="text-sm text-red-700">{enrollError}</p>}
             {enrollSuccess && (
-              <p className="flex items-center gap-1.5 text-sm text-emerald-400">
+              <p className="flex items-center gap-1.5 text-sm text-emerald-700">
                 <Check className="h-4 w-4" /> {enrollSuccess}
               </p>
             )}
@@ -470,35 +601,470 @@ function ClassDetail({ klass, onBack }: { klass: ClassRow; onBack: () => void })
 
           <div className="space-y-3">
             <p className="eyebrow">Students ({students.length})</p>
-            {students.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No one has joined yet.</p>}
-            <div className="space-y-2">
+            <DataList
+              count={students.length}
+              empty="No one has joined yet."
+              head={<span className="flex-1">Child</span>}
+            >
               {students.map((s) => (
-                <div key={s.id} className="panel flex items-center justify-between gap-3 p-4">
-                  <div className="flex items-center gap-3">
-                    {s.avatar_url ? (
-                      <img src={s.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover" />
-                    ) : (
-                      <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--hairline-strong)] text-[var(--gold)]">
-                        <User className="h-5 w-5" strokeWidth={1.75} />
-                      </span>
-                    )}
-                    <div>
-                      <p className="font-semibold">{s.full_name}</p>
-                      <p className="text-xs text-[var(--ink-faint)]">{s.total_points.toLocaleString()} points</p>
-                    </div>
-                  </div>
-                  <button onClick={() => removeStudent(s.id)} className="rounded-md bg-red-500/15 px-3 py-1.5 text-xs font-bold text-red-400 hover:bg-red-500/25">
-                    Remove
-                  </button>
-                </div>
+                <DataRow key={s.id}>
+                  <DataIdentity
+                    avatarUrl={s.avatar_url}
+                    fallback={<User className="h-5 w-5" strokeWidth={1.75} />}
+                    title={s.full_name}
+                  />
+                  <DataNum>{s.total_points.toLocaleString()}</DataNum>
+                  <DataActions>
+                    <button
+                      onClick={() => setCertificateFor(s)}
+                      className="flex items-center gap-1.5 rounded-md bg-[var(--gold)]/15 px-3 py-1.5 text-xs font-bold text-[var(--gold)] hover:bg-[var(--gold)]/25"
+                    >
+                      <Award className="h-3.5 w-3.5" /> Certificate
+                    </button>
+                    {/* A child has no email, so no reset link can ever reach
+                        them. Forgetting a passcode used to mean losing the
+                        account for good; this is the way back, and it sits
+                        with the teacher because that is who a child asks. */}
+                    <button
+                      onClick={() => setPasscodeFor(s)}
+                      className="flex items-center gap-1.5 rounded-md bg-[var(--gold)]/10 px-3 py-1.5 text-xs font-bold text-[var(--fg)]/80 hover:bg-[var(--gold)]/20"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" /> New passcode
+                    </button>
+                    <button onClick={() => removeStudent(s.id)} className="rounded-md bg-red-500/15 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-500/25">
+                      Remove
+                    </button>
+                  </DataActions>
+                </DataRow>
               ))}
-            </div>
+            </DataList>
           </div>
         </>
       )}
 
+      {detailTab === 'attendance' && <AttendanceManager classId={klass.id} students={students} />}
       {detailTab === 'work' && <ClassWorkTab classId={klass.id} />}
+
+      {certificateFor && (
+        <CertificateModal student={certificateFor} className={klass.name} teacherName={teacherName} onClose={() => setCertificateFor(null)} />
+      )}
+
+      {passcodeFor && <PasscodeResetModal student={passcodeFor} onClose={() => setPasscodeFor(null)} />}
     </div>
+  )
+}
+
+function todayDateKey(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function AttendanceManager({ classId, students }: { classId: string; students: StudentRow[] }) {
+  const [view, setView] = useState<'register' | 'history'>('register')
+
+  return (
+    <div className="space-y-4">
+      <div className="flex w-fit gap-1 rounded-md border border-[var(--hairline-strong)] p-1">
+        <button
+          onClick={() => setView('register')}
+          className={`flex items-center gap-1.5 rounded px-3 py-1.5 text-sm font-bold transition ${view === 'register' ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'text-[var(--fg)]/60 hover:text-[var(--fg)]'}`}
+        >
+          <ClipboardCheck className="h-3.5 w-3.5" /> Take the register
+        </button>
+        <button
+          onClick={() => setView('history')}
+          className={`flex items-center gap-1.5 rounded px-3 py-1.5 text-sm font-bold transition ${view === 'history' ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'text-[var(--fg)]/60 hover:text-[var(--fg)]'}`}
+        >
+          <HistoryIcon className="h-3.5 w-3.5" /> Over the weeks
+        </button>
+      </div>
+
+      {view === 'register' ? (
+        <AttendanceRegister classId={classId} students={students} />
+      ) : (
+        <AttendanceOverWeeks classId={classId} students={students} />
+      )}
+    </div>
+  )
+}
+
+function AttendanceRegister({ classId, students }: { classId: string; students: StudentRow[] }) {
+  const [date, setDate] = useState(todayDateKey())
+  const [present, setPresent] = useState<Record<string, boolean>>({})
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    setLoading(true)
+    listAttendanceForDate(classId, date).then((rows) => {
+      const marked = new Map(rows.map((r) => [r.student_id, r.present]))
+      // Default to present for anyone not yet marked today - it's rarer to be absent.
+      setPresent(Object.fromEntries(students.map((s) => [s.id, marked.get(s.id) ?? true])))
+      setLoading(false)
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [classId, date, students.length])
+
+  const save = async () => {
+    setSaving(true)
+    setSaved(false)
+    try {
+      await saveAttendance(
+        classId,
+        date,
+        students.map((s) => ({ student_id: s.id, present: present[s.id] ?? true })),
+      )
+      haptics.success()
+      playClick()
+      setSaved(true)
+      window.setTimeout(() => setSaved(false), 2000)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const presentCount = Object.values(present).filter(Boolean).length
+
+  return (
+    <div className="space-y-4">
+      <div className="panel flex flex-wrap items-center justify-between gap-3 p-5">
+        <div className="flex items-center gap-2">
+          <ClipboardCheck className="h-4 w-4 text-[var(--gold)]" />
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={`${inputClass} w-auto py-2 text-sm`} />
+        </div>
+        <p className="text-sm text-[var(--ink-muted)]">
+          {presentCount} of {students.length} present
+        </p>
+      </div>
+
+      {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
+      {!loading && students.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No students in this class yet.</p>}
+
+      <div className="space-y-2">
+        {!loading && students.map((s) => (
+          <button
+            key={s.id}
+            onClick={() => setPresent((p) => ({ ...p, [s.id]: !p[s.id] }))}
+            className="panel flex w-full items-center justify-between gap-3 p-4 text-left"
+          >
+            <div className="flex items-center gap-3">
+              {s.avatar_url ? (
+                <img src={s.avatar_url} alt="" className="h-9 w-9 rounded-full object-cover" />
+              ) : (
+                <span className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--hairline-strong)] text-[var(--gold)]">
+                  <User className="h-4 w-4" strokeWidth={1.75} />
+                </span>
+              )}
+              <p className="font-semibold">{s.full_name}</p>
+            </div>
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-bold ${present[s.id] ? 'bg-emerald-500/20 text-emerald-700' : 'bg-red-500/15 text-red-700'}`}
+            >
+              {present[s.id] ? 'Present' : 'Absent'}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {!loading && students.length > 0 && (
+        <button onClick={save} disabled={saving} className="btn-solid w-full py-3 text-sm">
+          {saving ? 'Saving…' : saved ? 'Saved ✓' : 'Save Attendance'}
+        </button>
+      )}
+    </div>
+  )
+}
+
+/** "14 Sep" - short enough to head a narrow column. */
+function shortDate(key: string): string {
+  return new Date(`${key}T00:00:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+}
+
+interface AttendanceSummary {
+  student: StudentRow
+  /** present / marked, over every register in the window. */
+  presentCount: number
+  markedCount: number
+  /** How many registers in a row, counting back from the latest, they were marked absent. */
+  missedRun: number
+}
+
+function summarise(students: StudentRow[], history: AttendanceHistory): AttendanceSummary[] {
+  return students.map((student) => {
+    const marks = history.byStudent[student.id] ?? {}
+    let presentCount = 0
+    let markedCount = 0
+    let missedRun = 0
+    let runOpen = true
+
+    // dates are newest first, so walking them in order counts back from the
+    // most recent Sunday. A date the child was never marked on at all (they
+    // joined later, the register was taken before they enrolled) neither
+    // breaks the run nor counts toward it.
+    for (const date of history.dates) {
+      const mark = marks[date]
+      if (mark === undefined) continue
+      markedCount += 1
+      if (mark) {
+        presentCount += 1
+        runOpen = false
+      } else if (runOpen) {
+        missedRun += 1
+      }
+    }
+
+    return { student, presentCount, markedCount, missedRun }
+  })
+}
+
+/**
+ * Attendance across weeks, rather than one Sunday at a time.
+ *
+ * The register answers "who is here today". The question that actually needs
+ * answering is the one it cannot: which child has quietly stopped coming. So
+ * the run of missed Sundays leads, and the grid of every register sits under
+ * it as the working.
+ */
+function AttendanceOverWeeks({ classId, students }: { classId: string; students: StudentRow[] }) {
+  const [history, setHistory] = useState<AttendanceHistory | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    setLoading(true)
+    listAttendanceHistory(classId)
+      .then(setHistory)
+      .catch(() => setHistory(null))
+      .finally(() => setLoading(false))
+  }, [classId])
+
+  const summaries = useMemo(() => (history ? summarise(students, history) : []), [students, history])
+  const concerns = useMemo(
+    () => summaries.filter((s) => s.missedRun >= 2).sort((a, b) => b.missedRun - a.missedRun),
+    [summaries],
+  )
+
+  if (loading) return <p className="text-sm text-[var(--ink-muted)]">Loading…</p>
+  if (!history || history.dates.length === 0) {
+    return (
+      <p className="panel p-5 text-sm text-[var(--ink-muted)]">
+        No registers taken yet. Once you have marked a couple of Sundays, this is where the pattern shows up.
+      </p>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      {concerns.length > 0 && (
+        <div className="panel space-y-3 p-5">
+          <p className="flex items-center gap-2 font-display font-bold">
+            <AlertTriangle className="h-4 w-4 text-[var(--gold)]" />
+            Worth a phone call
+          </p>
+          <div className="space-y-2">
+            {concerns.map((c) => (
+              <div key={c.student.id} className="flex items-center justify-between gap-3 border-b border-[var(--hairline)] pb-2 last:border-b-0 last:pb-0">
+                <p className="font-semibold">{c.student.full_name}</p>
+                <span
+                  className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${c.missedRun >= 3 ? 'bg-red-500/15 text-red-700' : 'bg-[var(--gold)]/15 text-[var(--gold)]'}`}
+                >
+                  Missed the last {c.missedRun}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="panel overflow-hidden p-0">
+        {/* Wide on purpose - one column per register. The table scrolls
+            sideways inside this box so the page itself never does. */}
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr className="border-b border-[var(--hairline-strong)]">
+                <th className="sticky left-0 z-10 bg-[var(--ink-panel)] px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-[var(--ink-muted)]">
+                  Child
+                </th>
+                {history.dates.map((d) => (
+                  <th key={d} className="whitespace-nowrap px-3 py-3 text-center text-xs font-semibold text-[var(--ink-muted)]">
+                    {shortDate(d)}
+                  </th>
+                ))}
+                <th className="whitespace-nowrap px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-[var(--ink-muted)]">
+                  Came
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {summaries.map((s) => (
+                <tr key={s.student.id} className="border-b border-[var(--hairline)] last:border-b-0">
+                  <td className="sticky left-0 z-10 whitespace-nowrap bg-[var(--ink-panel)] px-4 py-2.5 font-semibold">{s.student.full_name}</td>
+                  {history.dates.map((d) => {
+                    const mark = history.byStudent[s.student.id]?.[d]
+                    return (
+                      <td key={d} className="px-3 py-2.5 text-center">
+                        <span
+                          aria-label={mark === undefined ? 'Not marked' : mark ? 'Present' : 'Absent'}
+                          title={mark === undefined ? 'Not marked' : mark ? 'Present' : 'Absent'}
+                          className={`inline-block h-2.5 w-2.5 rounded-full ${
+                            mark === undefined ? 'bg-[var(--hairline-strong)]' : mark ? 'bg-emerald-500' : 'bg-red-500'
+                          }`}
+                        />
+                      </td>
+                    )
+                  })}
+                  <td className="whitespace-nowrap px-4 py-2.5 text-right tabular-nums text-[var(--ink-muted)]">
+                    {s.presentCount} of {s.markedCount}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <p className="text-xs text-[var(--ink-faint)]">
+        Green is present, red is absent, grey means no register was taken for that child that day. Last {history.dates.length} registers.
+      </p>
+    </div>
+  )
+}
+
+/**
+ * Gives a child a brand new passcode when they have forgotten the old one.
+ *
+ * Confirms first, because the old passcode stops working the moment this
+ * runs, and a child signed in on a tablet somewhere gets logged out of an
+ * account they can no longer get back into unless the teacher actually hands
+ * the new one over. Shown once, here, then gone.
+ */
+function PasscodeResetModal({ student, onClose }: { student: StudentRow; onClose: () => void }) {
+  const [working, setWorking] = useState(false)
+  const [passcode, setPasscode] = useState('')
+  const [error, setError] = useState('')
+  const [copied, setCopied] = useState(false)
+
+  const run = async () => {
+    setWorking(true)
+    setError('')
+    try {
+      const result = await resetStudentPasscode(student.id)
+      setPasscode(result.passcode)
+      haptics.success()
+      playClick()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not reset that passcode.')
+      haptics.error()
+    } finally {
+      setWorking(false)
+    }
+  }
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(passcode)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Clipboard blocked. The passcode is already on screen to read out.
+    }
+  }
+
+  return (
+    <Sheet title={passcode ? 'New passcode' : `Reset ${student.full_name}'s passcode?`} onClose={onClose}>
+      {passcode ? (
+        <div className="space-y-3">
+          <p className="text-sm text-[var(--ink-muted)]">
+            Read this out to {student.full_name.split(' ')[0]} now. You will not be able to see it again.
+          </p>
+          <p
+            className="rounded-lg border border-[var(--hairline-strong)] bg-[var(--gold)]/10 py-4 text-center font-display text-2xl font-extrabold tracking-wide text-[var(--gold)]"
+          >
+            {passcode}
+          </p>
+          <button onClick={copy} className="btn-outline flex w-full items-center justify-center gap-1.5 py-2 text-sm">
+            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            {copied ? 'Copied' : 'Copy passcode'}
+          </button>
+          <button onClick={onClose} className="btn-solid w-full py-3 text-sm">
+            Done
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <p className="text-sm text-[var(--ink-muted)]">
+            Their old passcode stops working straight away, and they will be signed out on any device. Only do this with {student.full_name.split(' ')[0]} there
+            with you, so you can give them the new one.
+          </p>
+          {error && <p className="text-sm text-red-700">{error}</p>}
+          <button onClick={run} disabled={working} className="btn-solid w-full py-3 text-sm">
+            {working ? 'Resetting…' : 'Give them a new passcode'}
+          </button>
+          <button onClick={onClose} className="btn-outline w-full py-2 text-sm">
+            Cancel
+          </button>
+        </div>
+      )}
+    </Sheet>
+  )
+}
+
+function CertificateModal({
+  student,
+  className,
+  teacherName,
+  onClose,
+}: {
+  student: StudentRow
+  className: string
+  teacherName: string
+  onClose: () => void
+}) {
+  const [achievement, setAchievement] = useState(`For outstanding dedication and growth in ${className}.`)
+  const [url, setUrl] = useState<string | null>(null)
+  const [rendering, setRendering] = useState(false)
+
+  const generate = async () => {
+    setRendering(true)
+    try {
+      setUrl(
+        await renderCertificatePng({
+          studentName: student.full_name,
+          className,
+          teacherName,
+          achievement: achievement.trim() || 'For outstanding dedication and growth.',
+          churchName: "MFM Children's Ministry",
+          date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+        }),
+      )
+    } finally {
+      setRendering(false)
+    }
+  }
+
+  return (
+    <Sheet title={`Certificate for ${student.full_name}`} onClose={onClose} wide>
+      {url ? (
+        <div className="space-y-3">
+          <img src={url} alt="Certificate preview" className="w-full rounded-lg border border-[var(--hairline-strong)]" />
+          <a href={url} download={`${student.full_name.replace(/\s+/g, '-')}-certificate.png`} className="btn-solid block w-full text-center text-sm">
+            Download Certificate
+          </a>
+          <button onClick={() => setUrl(null)} className="btn-outline w-full py-2 text-sm">
+            Edit Text
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <label className="text-xs font-bold uppercase tracking-wide text-[var(--ink-muted)]">Achievement text</label>
+          <textarea value={achievement} onChange={(e) => setAchievement(e.target.value)} rows={3} className={`${inputClass} resize-none`} />
+          <button onClick={generate} disabled={rendering} className="btn-solid w-full py-3 text-sm">
+            {rendering ? 'Generating…' : 'Generate Certificate'}
+          </button>
+        </div>
+      )}
+    </Sheet>
   )
 }
 
@@ -524,7 +1090,14 @@ function ClassWorkTab({ classId }: { classId: string }) {
           </button>
         ))}
       </div>
-      {sub === 'lectures' ? <LecturesManager classId={classId} /> : <AssignmentsManager classId={classId} />}
+      {sub === 'lectures' ? (
+        <div className="space-y-6">
+          <LecturesManager classId={classId} />
+          <SundayCalendarManager classId={classId} />
+        </div>
+      ) : (
+        <AssignmentsManager classId={classId} />
+      )}
     </div>
   )
 }
@@ -582,7 +1155,7 @@ function LecturesManager({ classId }: { classId: string }) {
               </div>
               <span
                 className={`shrink-0 rounded px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${
-                  l.status === 'published' ? 'bg-emerald-500/15 text-emerald-400' : 'bg-[var(--fg)]/10 text-[var(--fg)]/60'
+                  l.status === 'published' ? 'bg-emerald-500/15 text-emerald-700' : 'bg-[var(--fg)]/10 text-[var(--fg)]/60'
                 }`}
               >
                 {l.status}
@@ -593,6 +1166,75 @@ function LecturesManager({ classId }: { classId: string }) {
             </button>
           </div>
         ))}
+      </div>
+    </div>
+  )
+}
+
+// The same themed weekly cards the kids see on their Sunday School tab -
+// here the teacher taps a card to unlock/lock it for their own class,
+// instead of it following an automatic date-based rule.
+function SundayCalendarManager({ classId }: { classId: string }) {
+  const [unlocked, setUnlocked] = useState<Set<string>>(new Set())
+  const [loading, setLoading] = useState(true)
+
+  const load = () => listUnlockedSundays(classId).then((dates) => { setUnlocked(new Set(dates)); setLoading(false) })
+  useEffect(() => {
+    load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [classId])
+
+  const toggle = async (dateKey: string) => {
+    haptics.tap()
+    if (unlocked.has(dateKey)) await lockSunday(classId, dateKey)
+    else await unlockSunday(classId, dateKey)
+    playClick()
+    load()
+  }
+
+  return (
+    <div>
+      <p className="eyebrow mb-3">Sunday School Calendar</p>
+      <p className="mb-3 text-sm text-[var(--ink-muted)]">Tap a Sunday to unlock it for your class - kids only see lessons you've unlocked.</p>
+      {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
+      <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))' }}>
+        {SUNDAYS_2026.map((date, i) => {
+          const theme = SUNDAY_LESSON_THEMES[i % SUNDAY_LESSON_THEMES.length]
+          const key = sundayDateKey(date)
+          const isUnlocked = unlocked.has(key)
+          const isMascotPng = theme.image.endsWith('.png')
+          return (
+            <button
+              key={key}
+              onClick={() => toggle(key)}
+              className="relative aspect-square overflow-hidden rounded-2xl text-left"
+              style={{ background: 'var(--ink-panel)' }}
+            >
+              {isMascotPng ? (
+                <div
+                  className="flex h-full w-full items-center justify-center"
+                  style={{ background: 'color-mix(in srgb, var(--lp-accent-bible, var(--gold)) 16%, var(--ink-panel))' }}
+                >
+                  <img src={theme.image} alt="" className={`h-2/3 w-2/3 object-contain ${isUnlocked ? '' : 'opacity-40'}`} />
+                </div>
+              ) : (
+                <img src={theme.image} alt="" className={`h-full w-full object-cover ${isUnlocked ? '' : 'opacity-40'}`} />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/5 to-transparent" />
+              <span
+                className={`absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full ${isUnlocked ? 'bg-emerald-500' : 'bg-black/55'}`}
+              >
+                {isUnlocked ? <Check className="h-3.5 w-3.5 text-white" /> : <Lock className="h-3 w-3 text-white/80" />}
+              </span>
+              <div className="absolute inset-x-0 bottom-0 p-2.5">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-white/70">
+                  {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                </p>
+                <p className="text-xs font-bold leading-tight text-white">{theme.title}</p>
+              </div>
+            </button>
+          )
+        })}
       </div>
     </div>
   )
@@ -657,7 +1299,7 @@ function AssignmentsManager({ classId }: { classId: string }) {
               </div>
               <span
                 className={`shrink-0 rounded px-2.5 py-1 text-xs font-bold uppercase tracking-wide ${
-                  a.status === 'published' ? 'bg-emerald-500/15 text-emerald-400' : a.status === 'closed' ? 'bg-[var(--fg)]/10 text-[var(--fg)]/60' : 'bg-[var(--gold)]/15 text-[var(--gold)]'
+                  a.status === 'published' ? 'bg-emerald-500/15 text-emerald-700' : a.status === 'closed' ? 'bg-[var(--fg)]/10 text-[var(--fg)]/60' : 'bg-[var(--gold)]/15 text-[var(--gold)]'
                 }`}
               >
                 {a.status}
@@ -712,7 +1354,7 @@ function SubmissionsView({ assignment, onBack }: { assignment: AssignmentRow; on
             {s.body && <p className="mt-2 whitespace-pre-wrap text-sm text-[var(--fg)]/80">{s.body}</p>}
             <p className="mt-1 text-xs text-[var(--ink-faint)]">Submitted {new Date(s.submitted_at).toLocaleString()}</p>
             {s.grade !== null ? (
-              <p className="mt-2 text-sm font-bold text-emerald-400">
+              <p className="mt-2 text-sm font-bold text-emerald-700">
                 Graded: {s.grade}
                 {assignment.max_score ? ` / ${assignment.max_score}` : ''}
               </p>
@@ -742,7 +1384,152 @@ function SubmissionsView({ assignment, onBack }: { assignment: AssignmentRow; on
   )
 }
 
-function MessagesTab() {
+interface UpcomingDue {
+  title: string
+  className: string
+  dueDate: string
+}
+
+// Home: the teacher's dashboard - classes and their student counts, quick
+// links into Quiz, a live Ears for You pending count, upcoming assignment
+// due dates across every class, and the teacher's own private Notes /
+// Digital Bank (same generic per-user tables the kids' Home phone uses).
+function TeacherHomeTab({ profile }: { profile: Profile | null }) {
+  const [classes, setClasses] = useState<ClassRow[]>([])
+  const [studentCounts, setStudentCounts] = useState<Record<string, number>>({})
+  const [upcoming, setUpcoming] = useState<UpcomingDue[]>([])
+  const [earsPending, setEarsPending] = useState(0)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    listMyClasses().then(async (list) => {
+      setClasses(list)
+      const counts: Record<string, number> = {}
+      const due: UpcomingDue[] = []
+      await Promise.all(
+        list.map(async (c) => {
+          const [students, assignments] = await Promise.all([listStudentsInClass(c.id), listAssignments(c.id)])
+          counts[c.id] = students.length
+          for (const a of assignments) {
+            if (a.due_date && new Date(a.due_date) >= new Date()) due.push({ title: a.title, className: c.name, dueDate: a.due_date })
+          }
+        }),
+      )
+      due.sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+      setStudentCounts(counts)
+      setUpcoming(due.slice(0, 5))
+      setLoading(false)
+    })
+    listEarsTeacherInbox().then((rows) => setEarsPending(rows.filter((r) => r.status === 'new').length))
+  }, [])
+
+  const totalStudents = Object.values(studentCounts).reduce((a, b) => a + b, 0)
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <p className="eyebrow">Teacher</p>
+        <h2 className="font-display text-2xl font-extrabold">Welcome back, {(profile?.full_name ?? 'Teacher').split(' ')[0]}!</h2>
+      </div>
+
+      {/* Sits above everything else and disappears the moment the queue is
+          empty. A picture a child has uploaded is not visible to their class
+          until this is dealt with, so it should not be somewhere a teacher
+          has to remember to go and look. */}
+      <AvatarReviewQueue />
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <DashboardCard icon={GraduationCap} label="Your Classes" value={String(classes.length)} accent="var(--lp-accent-class, #4caf6d)">
+          <div className="mt-3 space-y-1.5">
+            {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
+            {!loading && classes.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No classes yet.</p>}
+            {classes.map((c) => (
+              <div key={c.id} className="flex items-center justify-between text-sm">
+                <span className="truncate">{c.name}</span>
+                <span className="shrink-0 text-[var(--ink-muted)]">{studentCounts[c.id] ?? 0} students</span>
+              </div>
+            ))}
+          </div>
+        </DashboardCard>
+
+        <DashboardCard icon={Users} label="Total Students" value={String(totalStudents)} accent="#60a5fa" />
+
+        <DashboardCard icon={Gamepad2} label="Quizzes" accent="#a78bfa">
+          <div className="mt-2 space-y-1.5">
+            <Link to="/questions" onClick={() => playClick()} className="block text-sm font-bold text-[var(--gold)]">
+              Question Bank →
+            </Link>
+            <Link to="/setup" onClick={() => playClick()} className="block text-sm font-bold text-[var(--gold)]">
+              Host a Match →
+            </Link>
+            <Link to="/history" onClick={() => playClick()} className="block text-sm font-bold text-[var(--gold)]">
+              History →
+            </Link>
+          </div>
+        </DashboardCard>
+
+        <DashboardCard icon={HeartHandshake} label="Ears for You" value={String(earsPending)} accent="#fb7185">
+          <p className="mt-2 text-sm text-[var(--ink-muted)]">{earsPending > 0 ? 'New messages waiting.' : 'All caught up.'}</p>
+        </DashboardCard>
+
+        <DashboardCard icon={Calendar} label="Upcoming" accent="var(--gold)">
+          <div className="mt-2 space-y-2">
+            {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
+            {!loading && upcoming.length === 0 && <p className="text-sm text-[var(--ink-muted)]">Nothing due soon.</p>}
+            {upcoming.map((a, i) => (
+              <div key={i} className="text-sm">
+                <p className="truncate font-bold">{a.title}</p>
+                <p className="truncate text-[var(--ink-muted)]">
+                  {a.className} · Due {new Date(a.dueDate).toLocaleDateString()}
+                </p>
+              </div>
+            ))}
+          </div>
+        </DashboardCard>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="panel p-5">
+          <NotesSection kind="notebook" title="Notes" icon={FileText} accent="var(--gold)" placeholder="Jot something down…" />
+        </div>
+        <div className="panel p-5">
+          <DigitalBankSection />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function DashboardCard({
+  icon: Icon,
+  label,
+  value,
+  accent,
+  children,
+}: {
+  icon: LucideIcon
+  label: string
+  value?: string
+  accent: string
+  children?: ReactNode
+}) {
+  return (
+    <div className="panel p-5">
+      <div className="flex items-center justify-between">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: `color-mix(in srgb, ${accent} 18%, transparent)`, color: accent }}>
+          <Icon className="h-5 w-5" strokeWidth={2} />
+        </span>
+        {value !== undefined && <span className="font-display text-2xl font-extrabold">{value}</span>}
+      </div>
+      <p className="mt-3 eyebrow">{label}</p>
+      {children}
+    </div>
+  )
+}
+
+// Chat: a big isometric phone whose entire screen is the teacher's
+// messaging inbox - conversation list, then a thread once one is opened.
+function TeacherChatTab({ profile }: { profile: Profile | null }) {
   const [conversations, setConversations] = useState<ConversationSummary[]>([])
   const [open, setOpen] = useState<ConversationSummary | null>(null)
 
@@ -750,31 +1537,66 @@ function MessagesTab() {
     listMyConversations().then(setConversations)
   }, [])
 
-  if (open) return <ThreadView conversationId={open.id} title={open.other_name} onBack={() => setOpen(null)} />
-
   return (
     <div className="space-y-2">
-      {conversations.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No conversations yet. Students can message you once they join a class.</p>}
-      {conversations.map((c) => (
-        <button key={c.id} onClick={() => setOpen(c)} className="panel panel-interactive flex w-full items-center gap-3 p-4 text-left">
-          {c.other_avatar ? (
-            <img src={c.other_avatar} alt="" className="h-10 w-10 rounded-full object-cover" />
+      <div className="flex items-end justify-center rounded-3xl p-6" style={{ background: '#5b21b6', minHeight: 140 }}>
+        <p className="font-display text-lg font-extrabold text-white drop-shadow-md">Welcome back, {(profile?.full_name ?? 'Teacher').split(' ')[0]}!</p>
+      </div>
+      <IsometricPhone accent="var(--lp-accent-class)">
+      <div className="flex flex-1 flex-col overflow-hidden px-4 pb-5">
+        <div className="flex items-center gap-3 pb-4">
+          {profile?.avatar_url ? (
+            <img src={profile.avatar_url} alt="" className="h-11 w-11 shrink-0 rounded-full object-cover ring-2 ring-white/30" />
           ) : (
-            <span className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--hairline-strong)] text-[var(--gold)]">
-              <User className="h-5 w-5" strokeWidth={1.75} />
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-lg font-extrabold text-white ring-2 ring-white/30">
+              {(profile?.full_name ?? '?').charAt(0).toUpperCase()}
             </span>
           )}
-          <p className="font-semibold">{c.other_name}</p>
-        </button>
-      ))}
+          <div className="min-w-0">
+            <p className="truncate font-display text-base font-extrabold text-white">{profile?.full_name ?? 'Teacher'}</p>
+            <p className="text-xs text-white/50">{open ? open.other_name : 'Messages'}</p>
+          </div>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {open ? (
+            <PhoneThread conversationId={open.id} onBack={() => setOpen(null)} />
+          ) : (
+            <div className="space-y-2">
+              {conversations.length === 0 && <p className="pt-8 text-center text-sm text-white/40">No conversations yet.</p>}
+              {conversations.map((c) => (
+                <button
+                  key={c.id}
+                  onClick={() => {
+                    playClick()
+                    setOpen(c)
+                  }}
+                  className="flex w-full items-center gap-3 rounded-2xl bg-white/5 p-3 text-left transition hover:bg-white/10"
+                >
+                  {c.other_avatar ? (
+                    <img src={c.other_avatar} alt="" className="h-9 w-9 shrink-0 rounded-full object-cover" />
+                  ) : (
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/10 text-sm font-bold text-white">
+                      {c.other_name.charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                  <p className="truncate text-sm font-semibold text-white">{c.other_name}</p>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      </IsometricPhone>
     </div>
   )
 }
 
-function ThreadView({ conversationId, title, onBack }: { conversationId: string; title: string; onBack: () => void }) {
+function PhoneThread({ conversationId, onBack }: { conversationId: string; onBack: () => void }) {
   const [messages, setMessages] = useState<MessageRow[]>([])
   const [draft, setDraft] = useState('')
   const [myId, setMyId] = useState<string | null>(null)
+  const bottomRef = useRef<HTMLDivElement>(null)
 
   const load = () => listMessages(conversationId).then(setMessages)
   useEffect(() => {
@@ -782,6 +1604,11 @@ function ThreadView({ conversationId, title, onBack }: { conversationId: string;
     supabase.auth.getUser().then(({ data }) => setMyId(data.user?.id ?? null))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId])
+
+  // Land on the newest message, not the oldest one.
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ block: 'end' })
+  }, [messages.length])
 
   const send = async () => {
     if (!draft.trim()) return
@@ -792,29 +1619,32 @@ function ThreadView({ conversationId, title, onBack }: { conversationId: string;
   }
 
   return (
-    <div className="space-y-4">
-      <button onClick={onBack} className="flex items-center gap-1.5 text-sm text-[var(--ink-muted)] hover:text-[var(--fg)]">
-        <ArrowLeft className="h-4 w-4" /> Back to messages
+    <div className="flex h-full flex-col">
+      <button onClick={onBack} className="mb-2 flex items-center gap-1 text-xs font-bold text-white/60 transition hover:text-white">
+        <ArrowLeft className="h-3.5 w-3.5" /> Back
       </button>
-      <h3 className="font-display text-lg font-bold">{title}</h3>
-      <div className="panel space-y-2 p-4">
+      <div className="flex-1 space-y-2 overflow-y-auto pb-2">
         {messages.map((m) => (
-          <div key={m.id} className={`max-w-[80%] rounded-md px-3 py-2 text-sm ${m.sender_id === myId ? 'ml-auto bg-[var(--gold)]/15 text-right' : 'bg-[var(--fg)]/5'}`}>
+          <div
+            key={m.id}
+            className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${m.sender_id === myId ? 'ml-auto bg-[var(--gold)] text-black' : 'bg-white/10 text-white'}`}
+          >
             {m.body}
           </div>
         ))}
-        {messages.length === 0 && <p className="text-center text-sm text-[var(--ink-faint)]">No messages yet.</p>}
+        {messages.length === 0 && <p className="pt-6 text-center text-xs text-white/40">No messages yet.</p>}
+        <div ref={bottomRef} />
       </div>
-      <div className="flex gap-2">
+      <div className="flex gap-2 pt-2">
         <input
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          placeholder="Write a message…"
-          className={inputClass}
+          placeholder="Message…"
           onKeyDown={(e) => e.key === 'Enter' && send()}
+          className="flex-1 rounded-full bg-white/10 px-3 py-2 text-sm text-white outline-none placeholder:text-white/40"
         />
-        <button onClick={send} className="btn-solid flex shrink-0 items-center gap-1.5 text-sm">
-          <Send className="h-4 w-4" /> Send
+        <button onClick={send} aria-label="Send message" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[var(--gold)] text-black">
+          <Send className="h-4 w-4" />
         </button>
       </div>
     </div>
@@ -824,9 +1654,9 @@ function ThreadView({ conversationId, title, onBack }: { conversationId: string;
 const EARS_STATUS_STYLE: Record<EarsStatus, string> = {
   new: 'bg-[var(--gold)]/15 text-[var(--gold)]',
   acknowledged: 'bg-[var(--fg)]/10 text-[var(--fg)]/60',
-  in_progress: 'bg-sky-500/15 text-sky-400',
-  escalated: 'bg-red-500/15 text-red-400',
-  resolved: 'bg-emerald-500/15 text-emerald-400',
+  in_progress: 'bg-sky-500/15 text-sky-700',
+  escalated: 'bg-red-500/15 text-red-700',
+  resolved: 'bg-emerald-500/15 text-emerald-700',
 }
 
 function EarsInboxTab() {
@@ -863,6 +1693,40 @@ function EarsInboxTab() {
             </div>
             <p className="mt-2 line-clamp-2 whitespace-pre-wrap text-sm text-[var(--fg)]/80">{m.body}</p>
           </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function BibleBuddyLogTab() {
+  const [items, setItems] = useState<AiCompanionTeacherLogRow[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    listBibleBuddyTeacherLog(50).then(setItems).finally(() => setLoading(false))
+  }, [])
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-[var(--ink-muted)]">
+        Every question your students ask Bible Buddy, for safeguarding review. Anonymous ones never reveal who sent them.
+      </p>
+      {loading && <p className="text-sm text-[var(--ink-muted)]">Loading…</p>}
+      {!loading && items.length === 0 && <p className="text-sm text-[var(--ink-muted)]">No questions logged yet.</p>}
+      <div className="space-y-3">
+        {items.map((m) => (
+          <div key={m.id} className="panel p-5">
+            <div className="flex items-start justify-between gap-2">
+              <p className="flex items-center gap-1.5 text-sm font-semibold text-[var(--ink-muted)]">
+                {m.is_anonymous && <EyeOff className="h-3.5 w-3.5" />}
+                {m.is_anonymous ? 'Anonymous' : m.student_name || 'A student'}
+              </p>
+              <p className="text-xs text-[var(--ink-faint)]">{new Date(m.created_at).toLocaleString()}</p>
+            </div>
+            <p className="mt-2 text-sm font-bold">{m.question}</p>
+            <p className="mt-1 text-sm text-[var(--fg)]/70">{m.answer}</p>
+          </div>
         ))}
       </div>
     </div>
@@ -908,6 +1772,7 @@ function EarsDetail({ message, onBack }: { message: EarsMessageRow; onBack: () =
     await setEarsStatus(message.id, s)
     setStatus(s)
     haptics.tap()
+    load()
   }
 
   const escalate = async () => {
@@ -917,6 +1782,7 @@ function EarsDetail({ message, onBack }: { message: EarsMessageRow; onBack: () =
     setEscalating(false)
     setEscalateReason('')
     haptics.success()
+    load()
   }
 
   return (
@@ -940,7 +1806,7 @@ function EarsDetail({ message, onBack }: { message: EarsMessageRow; onBack: () =
           </button>
         ))}
         {!escalating ? (
-          <button onClick={() => setEscalating(true)} className="rounded-md bg-red-500/15 px-3 py-1.5 text-xs font-bold text-red-400 hover:bg-red-500/25">
+          <button onClick={() => setEscalating(true)} className="rounded-md bg-red-500/15 px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-500/25">
             Escalate to Admin
           </button>
         ) : null}
@@ -948,10 +1814,10 @@ function EarsDetail({ message, onBack }: { message: EarsMessageRow; onBack: () =
 
       {escalating && (
         <div className="panel space-y-2 p-4">
-          <p className="text-sm font-bold text-red-400">Why does this need admin attention?</p>
+          <p className="text-sm font-bold text-red-700">Why does this need admin attention?</p>
           <input value={escalateReason} onChange={(e) => setEscalateReason(e.target.value)} placeholder="Reason" className={`${inputClass} py-2 text-sm`} />
           <div className="flex gap-2">
-            <button onClick={escalate} className="rounded-md bg-red-500/15 px-4 py-2 text-sm font-bold text-red-400 hover:bg-red-500/25">
+            <button onClick={escalate} className="rounded-md bg-red-500/15 px-4 py-2 text-sm font-bold text-red-700 hover:bg-red-500/25">
               Confirm Escalation
             </button>
             <button onClick={() => setEscalating(false)} className="btn-outline px-4 py-2 text-sm">
@@ -983,7 +1849,7 @@ function EarsDetail({ message, onBack }: { message: EarsMessageRow; onBack: () =
       </div>
 
       <div className="space-y-2">
-        <p className="eyebrow">Internal Notes &mdash; not visible to the student</p>
+        <p className="eyebrow">Internal Notes, not visible to the student</p>
         {notes.map((n) => (
           <div key={n.id} className="rounded-md border border-[var(--fg)]/10 bg-[var(--fg)]/5 p-3 text-sm text-[var(--fg)]/70">
             {n.body}
@@ -1053,7 +1919,7 @@ function ProfileTab() {
       </div>
       <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Full name" className={inputClass} />
       {saved && (
-        <p className="flex items-center gap-1.5 text-sm text-emerald-400">
+        <p className="flex items-center gap-1.5 text-sm text-emerald-700">
           <Check className="h-4 w-4" /> Saved
         </p>
       )}

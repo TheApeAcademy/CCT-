@@ -1,6 +1,6 @@
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
-import { Radio } from 'lucide-react'
+import { Radio, Volume2, VolumeX } from 'lucide-react'
 import { setMuted, isMuted, playToggle, playNav, playClick } from '../lib/sound'
 import { haptics } from '../lib/haptics'
 import StageBackground from './StageBackground'
@@ -9,6 +9,7 @@ import SiteFooter from './SiteFooter'
 import ThemeToggle from './ThemeToggle'
 import InstallAppButton from './InstallAppButton'
 import { useLandingTheme } from '../lib/landingTheme'
+import { useAutoHideNav } from '../lib/useAutoHideNav'
 
 const MFM_LIVE_URL = 'https://www.mountainoffire.org/live'
 
@@ -24,12 +25,14 @@ const dropdowns = [
       { to: '/#wuye', label: 'MFM Wuye' },
       { to: '/#leadership', label: 'Leadership' },
       { to: '/#ministry', label: "Children's Ministry" },
+      { to: '/safety', label: 'Safety & Privacy' },
     ],
   },
   {
     key: 'what',
     label: 'What We Do',
     items: [
+      { to: '/features', label: 'Everything Inside' },
       { to: '/setup', label: 'New Match' },
       { to: '/training', label: 'Training Mode' },
       { to: '/seasons', label: 'Seasons' },
@@ -54,6 +57,11 @@ export default function Layout() {
   const navRef = useRef<HTMLDivElement>(null)
   const location = useLocation()
   const isHome = location.pathname === '/'
+  // The "Everything Inside" showcase is the landing page's companion: same
+  // full-bleed bands, same --lp-* tokens, same light/dark toggle. Every
+  // other route stays on the app's plain dark tokens.
+  const isFeatures = location.pathname === '/features'
+  const isLandingStyle = isHome || isFeatures
   // The live quiz experience (ground rules -> gameplay -> results) wants the
   // full viewport, not the site's padded max-w-6xl column, and the header
   // should stay out of the way until the player actually scrolls instead of
@@ -74,7 +82,10 @@ export default function Layout() {
   // down. It solidifies once scrolled so nav stays legible over page content
   // and reachable without scrolling back to top. Every other route keeps the
   // header solid immediately since there's no hero photo to float over.
+  // Light only applies where the theme applies at all.
+  const isLight = !isFullscreenQuiz && theme === 'light'
   const solidHeader = scrolled || !isHome
+  const autoHidden = useAutoHideNav()
 
   useEffect(() => {
     setMenuOpen(false)
@@ -113,12 +124,27 @@ export default function Layout() {
   }
 
   return (
-    <div data-landing-theme={isHome ? theme : undefined} className="relative min-h-screen text-white">
+    <div
+      // Every route carries the theme now. It used to be landing-only, which
+      // is why a parent landing on their dashboard got a dark page inside an
+      // otherwise light site with no way to change it. The quiz stage opts
+      // out: it is painted as a dark stage on purpose.
+      //
+      // Both token systems have to move together. data-landing-theme re-points
+      // the --lp-* landing tokens; .site-light-theme re-points the --ink-*/--fg
+      // app tokens that every non-landing page actually paints from. Setting
+      // only the first gives a half lit page: landing panels turn light while
+      // the chrome around them stays dark.
+      data-landing-theme={isFullscreenQuiz ? undefined : theme}
+      className={`relative flex min-h-screen flex-col ${
+        isLight ? 'site-light-theme text-[var(--fg)]' : 'text-white'
+      }`}
+    >
       <StageBackground />
       <header
         className={`fixed inset-x-0 top-0 z-40 transition-all duration-300 ${
           solidHeader ? 'site-header' : 'border-b border-transparent bg-transparent'
-        } ${isFullscreenQuiz && !scrolled ? '-translate-y-full' : 'translate-y-0'}`}
+        } ${(isFullscreenQuiz && !scrolled) || autoHidden ? '-translate-y-full' : 'translate-y-0'}`}
       >
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <div className="flex min-w-0 shrink-0 items-center gap-2">
@@ -203,17 +229,22 @@ export default function Layout() {
               Join
             </NavLink>
 
-            {isHome && <ThemeToggle theme={theme} onToggle={toggleTheme} />}
+            {/* On every route now, not just the landing pages. A page with no
+                way to leave dark mode was the complaint; the quiz stage is the
+                one exception, since it is a deliberately dark stage and its
+                header is hidden while a match runs anyway. */}
+            {!isFullscreenQuiz && <ThemeToggle theme={theme} onToggle={toggleTheme} />}
 
             <InstallAppButton className="hidden sm:block" />
 
             <button
+              type="button"
               onClick={toggleMute}
-              className="btn-outline !border-0 !bg-transparent p-2 text-base"
+              className="nav-icon-btn"
               title={muted ? 'Unmute sounds' : 'Mute sounds'}
               aria-label={muted ? 'Unmute sounds' : 'Mute sounds'}
             >
-              {muted ? '🔇' : '🔊'}
+              {muted ? <VolumeX className="h-4 w-4" strokeWidth={2} /> : <Volume2 className="h-4 w-4" strokeWidth={2} />}
             </button>
 
             <button
@@ -276,13 +307,22 @@ export default function Layout() {
       </header>
       {showBack && isFullscreenQuiz && <BackButton dark className="fixed left-3 top-3 z-50" />}
       <main
-        className={`relative z-10 ${
+        className={`relative z-10 w-full flex-1 ${
           isFullscreenQuiz
-            ? 'flex min-h-[100dvh] w-full flex-col px-0 pb-0 pt-0'
-            : `mx-auto max-w-6xl px-4 pb-6 ${isHome ? 'pt-0' : 'pt-24 sm:pt-28'}`
+            ? 'flex min-h-[100dvh] flex-col px-0 pb-0 pt-0'
+            : `mx-auto flex max-w-6xl flex-col px-4 ${
+                isLandingStyle ? 'pb-0 pt-0' : 'pb-6 pt-24 sm:pt-28'
+              }`
         }`}
       >
-        <div key={location.pathname} className={isFullscreenQuiz ? 'animate-page-in flex flex-1 flex-col' : 'animate-page-in'}>
+        {/* No bottom padding on the landing routes. Both of them end in a
+            full-bleed band that runs into the footer, and the 24px here showed
+            the page's own background as a dark strip between the two. */}
+        {/* Always a stretching column, so a page that sets flex-1 on its own
+            wrapper (the light-themed quiz admin pages) runs its background all
+            the way down to the footer instead of leaving a dark orphan strip
+            above it on a tall screen. */}
+        <div key={location.pathname} className="animate-page-in flex flex-1 flex-col">
           <Outlet />
         </div>
       </main>

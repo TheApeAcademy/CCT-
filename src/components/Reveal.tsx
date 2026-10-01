@@ -3,17 +3,30 @@ import type { ReactNode } from 'react'
 
 type Direction = 'up' | 'left' | 'right' | 'none'
 
-const DISTANCE = 28
+const DISTANCE = 16
 
-function variantsFor(direction: Direction, reduced: boolean): Variants {
+/**
+ * A3, from the Awwwards reference: motion starts from a visible resting
+ * state. Two things were wrong with the old version.
+ *
+ * It parked every section at opacity 0 until an observer fired, so the page
+ * at rest was blank - that is what a link preview, a screenshot and anyone
+ * whose scroll listener has not run yet actually sees, and it is a page that
+ * looks broken rather than a page that looks considered.
+ *
+ * And it slid sections in horizontally, 28px past the right edge, which is
+ * what made the whole landing page draggable sideways on a phone. A single
+ * short vertical settle reads as more confident than four directions of
+ * travel, so `direction` is kept for the call sites but every section now
+ * rises the same small distance.
+ */
+function variantsFor(_direction: Direction, reduced: boolean): Variants {
   if (reduced) {
-    return { hidden: { opacity: 0 }, show: { opacity: 1, transition: { duration: 0.2 } } }
+    return { hidden: { opacity: 1 }, show: { opacity: 1 } }
   }
-  const offset =
-    direction === 'up' ? { y: DISTANCE } : direction === 'left' ? { x: -DISTANCE } : direction === 'right' ? { x: DISTANCE } : {}
   return {
-    hidden: { opacity: 0, ...offset },
-    show: { opacity: 1, x: 0, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } },
+    hidden: { opacity: 0.62, y: DISTANCE },
+    show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.16, 1, 0.3, 1] } },
   }
 }
 

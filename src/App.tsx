@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, Suspense, lazy } from 'react'
-import { HashRouter, Routes, Route } from 'react-router-dom'
+import { HashRouter, Routes, Route, Link } from 'react-router-dom'
 import Layout from './components/Layout'
 import PortalShell from './components/PortalShell'
 import KidsShell from './components/KidsShell'
@@ -17,6 +17,7 @@ import History from './pages/History'
 import Seasons from './pages/Seasons'
 import Anthem from './pages/Anthem'
 import Training from './pages/Training'
+import Safety from './pages/Safety'
 
 // These are the only screens that need the network (Supabase accounts,
 // classes, messaging). Lazy load them so the @supabase/supabase-js bundle
@@ -24,7 +25,12 @@ import Training from './pages/Training'
 const AdminPortal = lazy(() => import('./pages/AdminPortal'))
 const TeacherPortal = lazy(() => import('./pages/TeacherPortal'))
 const StudentPortal = lazy(() => import('./pages/StudentPortal'))
+const ParentPortal = lazy(() => import('./pages/ParentPortal'))
 const JoinClass = lazy(() => import('./pages/JoinClass'))
+
+// Only ever reached from a link in a password reset email, and it talks to
+// Supabase, so it stays out of the entry chunk like the portals do.
+const ResetPassword = lazy(() => import('./pages/ResetPassword'))
 
 // The landing page carries its own motion libraries (framer-motion, gsap)
 // for its cinematic hero/scroll choreography. Lazy load it too so that
@@ -32,8 +38,35 @@ const JoinClass = lazy(() => import('./pages/JoinClass'))
 // screens (Training, Gameplay, ...) have to download and parse.
 const Home = lazy(() => import('./pages/Home'))
 
+// The "Everything Inside" showcase shares Home's motion/scroll-reveal
+// libraries and display font weights, so it gets its own lazy chunk for
+// the same reason Home does.
+const Features = lazy(() => import('./pages/Features'))
+
 function LazyFallback() {
   return <div className="py-20 text-center text-xl">Loading…</div>
+}
+
+/** Nothing at this address. Kept inside <Layout /> so the header, the back
+ * button and the footer all still work from here. */
+function NotFound() {
+  return (
+    <div className="mx-auto max-w-md space-y-4 py-16 text-center">
+      <img src="/feature-rocket.png" alt="" className="mx-auto w-28 opacity-80" />
+      <h1 className="font-display text-3xl font-extrabold">This page went missing</h1>
+      <p className="text-sm text-[var(--ink-muted)]">
+        That address does not match anything in the app. It may have been an old link, or a typo.
+      </p>
+      <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+        <Link to="/" className="btn-solid inline-flex">
+          Back to Home
+        </Link>
+        <Link to="/features" className="btn-outline inline-flex">
+          See Everything Inside
+        </Link>
+      </div>
+    </div>
+  )
 }
 
 function App() {
@@ -136,6 +169,27 @@ function App() {
             <Route path="seasons" element={<Seasons />} />
             <Route path="anthem" element={<Anthem />} />
             <Route path="training" element={<Training />} />
+            <Route path="safety" element={<Safety />} />
+            <Route
+              path="reset-password"
+              element={
+                <Suspense fallback={<LazyFallback />}>
+                  <ResetPassword />
+                </Suspense>
+              }
+            />
+            <Route
+              path="features"
+              element={
+                <Suspense fallback={<LazyFallback />}>
+                  <Features />
+                </Suspense>
+              }
+            />
+            {/* Anything else under the public site (a stale bookmark, a typo
+                in the hash) lands here instead of rendering an empty page
+                below the header. */}
+            <Route path="*" element={<NotFound />} />
           </Route>
 
           {/* Admin, Teacher, and Kids are deliberately NOT nested under the
@@ -171,7 +225,17 @@ function App() {
               }
             />
           </Route>
-          <Route path="join" element={<KidsShell eyebrow="Create Your Account" />}>
+          <Route path="parent" element={<PortalShell eyebrow="Parent Dashboard" />}>
+            <Route
+              index
+              element={
+                <Suspense fallback={<LazyFallback />}>
+                  <ParentPortal />
+                </Suspense>
+              }
+            />
+          </Route>
+          <Route path="join" element={<KidsShell eyebrow="Create Your Account" bare />}>
             <Route
               index
               element={

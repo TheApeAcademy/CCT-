@@ -123,7 +123,7 @@ export default function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
               <p data-hero-el="quote" className="mx-auto mt-6 max-w-xl text-base italic leading-relaxed text-white/90 sm:text-lg">
                 &ldquo;{slide.quote.text}&rdquo;
                 <span className="mt-2 block text-sm italic text-white/60 sm:text-base">
-                  &mdash; {slide.quote.source}
+                  &ndash; {slide.quote.source}
                 </span>
               </p>
             )}

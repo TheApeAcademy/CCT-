@@ -49,6 +49,9 @@ const dropdowns = [
   },
 ] as const
 
+/** Routes whose page draws its own chrome (Claude Design handoff screens). */
+const DESIGN_SCREENS = new Set(['/'])
+
 export default function Layout() {
   const [muted, setMutedState] = useState(isMuted())
   const [menuOpen, setMenuOpen] = useState(false)
@@ -121,6 +124,16 @@ export default function Layout() {
     setMenuOpen((v) => !v)
     playClick()
     haptics.tap()
+  }
+
+  // Screens rebuilt from the Claude Design handoff bring their own header and
+  // footer (each prototype has its own chrome), so the site shell steps aside.
+  if (DESIGN_SCREENS.has(location.pathname)) {
+    return (
+      <div key={location.pathname} className="min-h-screen">
+        <Outlet />
+      </div>
+    )
   }
 
   return (

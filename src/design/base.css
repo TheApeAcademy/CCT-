@@ -69,7 +69,7 @@ body:has([data-dc-screen])::before {
 [data-dc-screen] :is(input, textarea, select, button) {
   line-height: normal;
 }
-[data-dc-screen] :is(h1, h2, h3) {
+[data-dc-screen] :where(h1, h2, h3) {
   letter-spacing: inherit;
 }
 [data-dc-screen] input,

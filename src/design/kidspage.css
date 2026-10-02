@@ -1,0 +1,125 @@
+/* The kids' full-page apps from the Claude Design handoff (Bible Heroes,
+   Bible Helper, Reading Plan, Achievements, Avatar Studio): one shell, the
+   Village back link, the night/day sky. Each page tints its own glow. */
+[data-dc-screen='kidspage'] {
+  --bg: #0d0618;
+  --card: rgba(32, 20, 56, 0.94);
+  --hair: rgba(255, 255, 255, 0.1);
+  --hair2: rgba(255, 255, 255, 0.14);
+  --ink: #ffffff;
+  --body: rgba(236, 230, 250, 0.82);
+  --muted: rgba(236, 230, 250, 0.6);
+  --faint: rgba(236, 230, 250, 0.4);
+  --hdr: rgba(13, 6, 24, 0.85);
+  --sh: rgba(0, 0, 0, 0.4);
+  --track: rgba(255, 255, 255, 0.08);
+  --lockbg: #1c1232;
+  --field: rgba(0, 0, 0, 0.25);
+  --starop: 1;
+  --sunop: 0;
+  --moonop: 1;
+}
+[data-dc-screen='kidspage'][data-sky='day'] {
+  --bg: #f7f2ff;
+  --card: #ffffff;
+  --hair: rgba(22, 11, 42, 0.1);
+  --hair2: rgba(22, 11, 42, 0.14);
+  --ink: #160b2a;
+  --body: rgba(22, 11, 42, 0.78);
+  --muted: rgba(22, 11, 42, 0.56);
+  --faint: rgba(22, 11, 42, 0.4);
+  --hdr: rgba(247, 242, 255, 0.85);
+  --sh: rgba(60, 30, 110, 0.18);
+  --track: rgba(22, 11, 42, 0.08);
+  --lockbg: #e9e1f7;
+  --field: #f6f2fd;
+  --glow: rgba(255, 201, 60, 0.35) !important;
+  --starop: 0;
+  --sunop: 1;
+  --moonop: 0;
+}
+[data-dc-screen='kidspage'] a {
+  color: #c86be0;
+  text-decoration: none;
+}
+[data-dc-screen='kidspage'] a:hover {
+  color: #e08cf5;
+}
+/* The prototypes run on content-box; form controls stay border-box as the
+   browser's own stylesheet has them. */
+[data-dc-screen='kidspage'] [style]:not(input, textarea, button, select) {
+  box-sizing: content-box;
+}
+.kp-village {
+  transition: background 0.2s;
+}
+.kp-village:hover {
+  background: var(--track) !important;
+}
+.kp-sky {
+  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.kp-sky:hover {
+  transform: rotate(-30deg) scale(1.08);
+}
+.kp-3d:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--sh3) !important;
+}
+
+@keyframes kp-bob {
+  0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+  50% { transform: translateY(-10px) rotate(calc(var(--r, 0deg) + 3deg)); }
+}
+@keyframes kp-twinkle {
+  0%, 100% { opacity: 0.15; transform: scale(0.6); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+@keyframes kp-drift {
+  0% { transform: translateX(-30vw); }
+  100% { transform: translateX(130vw); }
+}
+@keyframes kp-up {
+  0% { opacity: 0; transform: translateY(30px); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes kp-pop {
+  0% { transform: scale(0.4); opacity: 0; }
+  60% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); }
+}
+@keyframes kp-shakepack {
+  0%, 100% { transform: rotate(0) scale(1); }
+  20% { transform: rotate(-6deg) scale(1.03); }
+  40% { transform: rotate(6deg) scale(1.05); }
+  60% { transform: rotate(-4deg) scale(1.07); }
+  80% { transform: rotate(4deg) scale(1.08); }
+}
+@keyframes kp-rays {
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+@keyframes kp-reveal {
+  0% { transform: translateY(80px) scale(0.3) rotateY(180deg); opacity: 0; }
+  60% { transform: translateY(-10px) scale(1.06) rotateY(0); opacity: 1; }
+  100% { transform: none; opacity: 1; }
+}
+@keyframes kp-shine {
+  0% { transform: translateX(-120%) skewX(-20deg); }
+  100% { transform: translateX(220%) skewX(-20deg); }
+}
+@keyframes kp-burst {
+  0% { transform: translate(0, 0) scale(0.4); opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) scale(1) rotate(260deg); opacity: 0; }
+}
+@keyframes kp-dots {
+  0%, 80%, 100% { opacity: 0.2; }
+  40% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-dc-screen='kidspage'] *,
+  [data-dc-screen='kidspage'] *::before,
+  [data-dc-screen='kidspage'] *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

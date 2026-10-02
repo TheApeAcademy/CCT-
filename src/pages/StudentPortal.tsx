@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, MouseEvent as ReactMouseEvent, ReactNode } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import {
@@ -46,7 +46,7 @@ import MinistryCalendarReadOnly from '../components/MinistryCalendarView'
 import { SUNDAY_LESSON_THEMES, SUNDAYS_2026, sundayDateKey } from '../content/sundaySchoolCalendar'
 import { bibleComUrl } from '../lib/bibleLink'
 import { getMyJourneyProgress } from '../lib/journey'
-import { CharacterCollectionGallery, CharacterRevealModal } from '../components/CharacterCollection'
+import { BibleCharactersPage, CharacterRevealModal } from '../components/CharacterCollection'
 import { lessonArt } from '../content/bibleBookArt'
 import StreakScreen from '../components/StreakScreen'
 import PrayerGlobe from '../components/PrayerGlobe'
@@ -146,6 +146,9 @@ function KidsMessage({ title, body, children }: { title: string; body?: string; 
 type Tab = KidsTab
 type Klass = ClassRow & { teacher_name: string; teacher_avatar: string | null }
 type AppKey = 'chat' | 'friends' | 'badges' | 'bank' | 'prayer' | 'diary' | 'calendar' | 'collection' | 'world' | 'buddy'
+/** The full-page kids' apps from the handoff, laid over the whole dashboard. */
+type KidsPageKey = 'characters'
+const OpenPage = createContext<(page: KidsPageKey) => void>(() => {})
 type Go = (id: Tab) => (e?: ReactMouseEvent) => void
 
 const DISPLAY = "'Bricolage Grotesque', sans-serif"
@@ -521,6 +524,17 @@ function Dashboard() {
     else go('home')()
   }
 
+  const [page, setPage] = useState<KidsPageKey | null>(null)
+  const openPage = useCallback((key: KidsPageKey) => {
+    playNav()
+    setPage(key)
+  }, [])
+  /** The pages' Village link: back to the map, closing any room on the way. */
+  const closePage = () => {
+    setPage(null)
+    if (mounted) backToMap()
+  }
+
   const active = PLACES.find((p) => p.id === tab) ?? PLACES[6]
   const R = ROOMS[tab]
   const eyebrowFor: Record<Tab, string> = {
@@ -551,6 +565,7 @@ function Dashboard() {
   ]
 
   return (
+    <OpenPage.Provider value={openPage}>
     <div
       data-dc-screen="kids"
       // The legacy pieces still nested in here (the Bible Journey, the
@@ -932,10 +947,6 @@ function Dashboard() {
                 app={homeApp}
                 setApp={setHomeApp}
                 openApp={openApp}
-                onOpenJourney={() => {
-                  setOpenJourney(true)
-                  go('bible')()
-                }}
               />
             )}
             {tab === 'class' && <ClassRoom klass={klass} student={student} boom={boom} />}
@@ -985,6 +996,19 @@ function Dashboard() {
         </div>
       )}
 
+      {page === 'characters' && (
+        <BibleCharactersPage
+          achievements={achievements}
+          points={student?.total_points ?? 0}
+          onExit={closePage}
+          onGoToJourney={() => {
+            setPage(null)
+            setOpenJourney(true)
+            go('bible')()
+          }}
+        />
+      )}
+
       {revealCharacter && (
         <CharacterRevealModal
           character={revealCharacter}
@@ -997,6 +1021,7 @@ function Dashboard() {
         />
       )}
     </div>
+    </OpenPage.Provider>
   )
 }
 
@@ -1047,7 +1072,6 @@ function HomeRoom({
   app,
   setApp,
   openApp,
-  onOpenJourney,
 }: {
   student: StudentRow | null
   klass: Klass | null
@@ -1058,7 +1082,6 @@ function HomeRoom({
   app: AppKey | null
   setApp: (k: AppKey | null) => void
   openApp: (k: AppKey) => void
-  onOpenJourney: () => void
 }) {
   const stat = (label: string, value: string, color: string) => (
     <div style={{ padding: 24, ...quietCard }}>
@@ -1187,7 +1210,7 @@ function HomeRoom({
           </span>
           <ArrowRight style={{ position: 'relative', width: 18, height: 18, color: 'rgba(255,255,255,.75)', flexShrink: 0 }} />
         </button>
-        <Tablet app={app} setApp={setApp} klass={klass} achievements={achievements} go={go} onOpenJourney={onOpenJourney} />
+        <Tablet app={app} setApp={setApp} klass={klass} achievements={achievements} go={go} />
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
@@ -1299,14 +1322,12 @@ function Tablet({
   klass,
   achievements,
   go,
-  onOpenJourney,
 }: {
   app: AppKey | null
   setApp: (k: AppKey | null) => void
   klass: Klass | null
   achievements: EarnedAchievement[]
   go: Go
-  onOpenJourney: () => void
 }) {
   const [wob, setWob] = useState<'l' | 'r' | null>(null)
   const nudge = (dir: 'l' | 'r') => {
@@ -1399,7 +1420,7 @@ function Tablet({
                   </button>
                   <p style={{ margin: 0, fontFamily: DISPLAY, fontWeight: 800, fontSize: 16, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</p>
                 </div>
-                <TabletApp app={app} klass={klass} achievements={achievements} go={go} onOpenJourney={onOpenJourney} onClose={() => setApp(null)} />
+                <TabletApp app={app} klass={klass} achievements={achievements} go={go} onClose={() => setApp(null)} />
               </div>
             )}
             <div style={{ position: 'absolute', left: '50%', bottom: 5, width: 56, height: 4, transform: 'translateX(-50%)', borderRadius: 999, background: 'rgba(255,255,255,.6)', zIndex: 5 }} />
@@ -1429,6 +1450,19 @@ function AppIcon({ icon: Icon, from, to }: { icon: LucideIcon; from: string; to:
       <span style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 30% 20%,rgba(255,255,255,.5),transparent 55%)' }} />
       <Icon style={{ position: 'relative', width: 24, height: 24, color: '#fff' }} strokeWidth={2.25} />
     </span>
+  )
+}
+
+/** The tablet's gold "open the full app" button. */
+function TabLink({ onClick, children }: { onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{ marginTop: 6, padding: 12, borderRadius: 14, border: 'none', background: '#f2c94c', color: '#1a0f2e', fontFamily: 'inherit', fontWeight: 800, fontSize: 13, textAlign: 'center', cursor: 'pointer' }}
+    >
+      {children}
+    </button>
   )
 }
 
@@ -1469,16 +1503,15 @@ function TabletApp({
   klass,
   achievements,
   go,
-  onOpenJourney,
   onClose,
 }: {
   app: AppKey
   klass: Klass | null
   achievements: EarnedAchievement[]
   go: Go
-  onOpenJourney: () => void
   onClose: () => void
 }) {
+  const openPage = useContext(OpenPage)
   if (app === 'chat') {
     return klass ? (
       <ChatScreen teacherId={klass.teacher_id} teacherName={klass.teacher_name} />
@@ -1513,8 +1546,19 @@ function TabletApp({
       return body(<NotesSection kind="diary" title="Diary" icon={PenLine} accent="var(--lp-accent-anthem)" placeholder="Dear diary…" />)
     case 'calendar':
       return body(<MinistryCalendarReadOnly dark />)
-    case 'collection':
-      return body(<CharacterCollectionGallery achievements={achievements} onGoToJourney={onOpenJourney} />)
+    case 'collection': {
+      const heroes = achievements.filter((a) => a.code.startsWith('character_'))
+      return body(
+        <>
+          {heroes.length === 0 ? (
+            <p style={tabletEmpty}>No heroes yet. Finish a Bible Journey lesson to unlock your first.</p>
+          ) : (
+            heroes.slice(0, 4).map((a) => <TabRow key={a.id} col="#fbcfe8" lead={(a.name.replace(/^.*?:\s*/, '')[0] ?? '?').toUpperCase()} t={a.name.replace(/^.*?:\s*/, '')} s={a.description ?? undefined} />)
+          )}
+          <TabLink onClick={() => openPage('characters')}>See all heroes</TabLink>
+        </>,
+      )
+    }
     case 'world':
       return body(<PrayerGlobe />)
     case 'buddy':
@@ -2910,6 +2954,7 @@ function ProfileRoom({
   boom: () => void
   openApp: (k: AppKey) => void
 }) {
+  const openPage = useContext(OpenPage)
   const [bio, setBio] = useState(student.bio ?? '')
   const [verse, setVerse] = useState(student.favorite_verse ?? '')
   const [quote, setQuote] = useState(student.favorite_quote ?? '')
@@ -3048,10 +3093,7 @@ function ProfileRoom({
       <div style={{ marginBottom: 18 }}>
         <button
           type="button"
-          onClick={() => {
-            playClick()
-            openApp('collection')
-          }}
+          onClick={() => openPage('characters')}
           className="kv-lift"
           style={{
             position: 'relative',

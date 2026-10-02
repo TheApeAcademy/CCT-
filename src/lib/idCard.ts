@@ -104,7 +104,7 @@ export async function renderIdCardPng(data: IdCardData): Promise<string> {
   ctx.stroke()
 
   // name
-  ctx.font = 'bold 40px "Baloo 2", Georgia, sans-serif'
+  ctx.font = 'bold 40px "Bricolage Grotesque", Georgia, sans-serif'
   ctx.fillStyle = '#ffffff'
   ctx.fillText(data.fullName, W / 2, avatarCenterY + avatarRadius + 60)
 

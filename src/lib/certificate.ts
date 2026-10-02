@@ -45,7 +45,7 @@ export async function renderCertificatePng(data: CertificateData): Promise<strin
   ctx.fillStyle = '#3d3d3d'
   ctx.fillText('This certificate is proudly presented to', W / 2, 250)
 
-  ctx.font = 'bold 58px "Baloo 2", Georgia, sans-serif'
+  ctx.font = 'bold 58px "Bricolage Grotesque", Georgia, sans-serif'
   ctx.fillStyle = '#0b2e1a'
   ctx.fillText(data.studentName, W / 2, 340)
 

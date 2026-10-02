@@ -1,0 +1,82 @@
+/* Claude Design handoff (2026-10-02): the shared base every rebuilt screen
+   sits on. Each screen keeps its own keyframes in its own file, prefixed
+   with the screen's name, because the prototypes reuse names like `pop`
+   and `up` with different curves per screen.
+
+   Brand palette and surfaces, straight from the handoff README. Screens
+   that switch between night and day (the landing page) paint from the
+   --dc-* surface tokens; screens that only exist in one theme use the
+   values the prototype draws them with. */
+:root {
+  --dc-violet: #c13bff;
+  --dc-deep: #8a1fb0;
+  --dc-deeper: #5a0f78;
+  --dc-gold: #ffd84d;
+  --dc-gold-2: #ffc93c;
+  --dc-mint: #2fe0b5;
+  --dc-mint-2: #13b48c;
+  --dc-coral: #ff8a3d;
+  --dc-pink: #ff4fa3;
+  --dc-blue: #4f7bff;
+  --dc-red: #ff5b6b;
+  --dc-ears: #f2c94c;
+
+  --dc-display: 'Bricolage Grotesque', system-ui, sans-serif;
+  --dc-body: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --dc-mono: 'Share Tech Mono', ui-monospace, monospace;
+
+  --dc-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dc-enter: cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+
+/* Night surface (default) */
+[data-dc-theme] {
+  --dc-bg: #0d0618;
+  --dc-card: rgba(32, 20, 56, 0.85);
+  --dc-hair: rgba(255, 255, 255, 0.1);
+  --dc-hair-strong: rgba(255, 255, 255, 0.14);
+  --dc-ink: #ffffff;
+  --dc-text: rgba(236, 230, 250, 0.82);
+  --dc-muted: rgba(236, 230, 250, 0.6);
+  color: var(--dc-text);
+  font-family: var(--dc-body);
+}
+
+/* Day surface */
+[data-dc-theme='day'] {
+  --dc-bg: #f7f2ff;
+  --dc-card: #ffffff;
+  --dc-hair: rgba(22, 11, 42, 0.1);
+  --dc-hair-strong: rgba(22, 11, 42, 0.16);
+  --dc-ink: #160b2a;
+  --dc-text: rgba(22, 11, 42, 0.78);
+  --dc-muted: rgba(22, 11, 42, 0.56);
+}
+
+/* A rebuilt screen owns its own ground, so the old app-wide vignette (drawn
+   for the dark quiz stage) stays off underneath it. */
+body:has([data-dc-screen])::before {
+  content: none;
+}
+
+[data-dc-screen] {
+  -webkit-font-smoothing: antialiased;
+  font-family: var(--dc-body);
+}
+[data-dc-screen] :is(h1, h2, h3) {
+  letter-spacing: inherit;
+}
+[data-dc-screen] input,
+[data-dc-screen] textarea,
+[data-dc-screen] select,
+[data-dc-screen] button {
+  font-family: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-dc-screen],
+  [data-dc-screen] * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

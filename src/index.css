@@ -32,8 +32,8 @@
 
 :root {
   color-scheme: dark;
-  --font-display: 'Baloo 2', system-ui, sans-serif;
-  --font-body: 'Nunito', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-display: 'Bricolage Grotesque', system-ui, sans-serif;
+  --font-body: 'Plus Jakarta Sans', system-ui, 'Segoe UI', Roboto, sans-serif;
   --radius-control: 10px;
   --radius-panel: 14px;
   --radius-surface: 20px;

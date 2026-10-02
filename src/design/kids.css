@@ -1,0 +1,187 @@
+/* Kids Dashboard (/student) - Claude Design handoff, Kids Dashboard.dc.html.
+   Keyframes carry a kv- prefix: the prototypes reuse names like `bob` and
+   `ring` with different curves per screen. */
+[data-dc-screen='kids'] {
+  color: rgba(236, 230, 250, 0.82);
+}
+[data-dc-screen='kids'] a {
+  color: #c86be0;
+  text-decoration: none;
+}
+[data-dc-screen='kids'] a:hover {
+  color: #e08cf5;
+}
+[data-dc-screen='kids'] :is(input, textarea)::placeholder {
+  color: rgba(236, 230, 250, 0.4);
+}
+/* The prototype runs on the browser default content-box, and its sizes
+   (max-width:1100px plus padding, min-height plus padding) assume it.
+   Inline-styled boxes ported from it keep that; boxes that set their own
+   box-sizing inline still win. Form controls stay border-box, as the
+   browser's own stylesheet has them in the prototype. */
+[data-dc-screen='kids'] [style*='padding']:not(input, textarea, button, select) {
+  box-sizing: content-box;
+}
+html:has([data-dc-screen='kids']),
+body:has([data-dc-screen='kids']) {
+  background: #0d0618;
+}
+
+/* the village */
+.kv-place {
+  transition:
+    filter 0.25s,
+    scale 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.kv-place:hover {
+  filter: brightness(1.15) drop-shadow(0 0 18px rgba(255, 216, 77, 0.9));
+  scale: 1.08;
+}
+.kv-dock {
+  scrollbar-width: none;
+}
+.kv-dock::-webkit-scrollbar {
+  display: none;
+}
+.kv-dockbtn {
+  transition:
+    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+    background 0.2s;
+}
+.kv-dockbtn:hover {
+  transform: translateY(-6px) scale(1.08);
+}
+.kv-quest:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+.kv-island-back {
+  transition: background 0.2s;
+}
+.kv-island-back:hover {
+  background: rgba(255, 255, 255, 0.22) !important;
+}
+
+/* My House */
+.kv-idcard {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.kv-idcard:hover {
+  transform: scale(1.04) rotate(-1deg);
+}
+.kv-app {
+  transition: transform 0.2s;
+}
+.kv-app:hover {
+  transform: scale(1.07);
+}
+.kv-app:active {
+  transform: scale(0.9);
+}
+.kv-tablet-scroll {
+  scrollbar-width: none;
+}
+.kv-tablet-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* shared lift for the big colour tiles */
+.kv-lift {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.kv-lift:hover {
+  transform: translateY(-5px) rotate(var(--rot, 0deg));
+}
+[data-dc-screen='kids'] a.kv-lift:hover,
+[data-dc-screen='kids'] a.kv-hov:hover {
+  color: inherit;
+}
+.kv-hov {
+  transition: border-color 0.2s;
+}
+.kv-hov:hover {
+  border-color: var(--hov) !important;
+}
+.kv-grow {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.kv-grow:hover {
+  transform: translateY(-2px) scale(1.02);
+}
+.kv-sunday {
+  transition: transform 0.25s;
+}
+.kv-sunday:hover {
+  transform: scale(1.02);
+}
+.kv-row:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+.kv-3d-mint:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 #0b7a5e !important;
+}
+.kv-chips {
+  scrollbar-width: none;
+}
+.kv-chips::-webkit-scrollbar {
+  display: none;
+}
+.kv-field {
+  transition: border-color 0.2s;
+}
+.kv-field:focus {
+  border-color: var(--focus, #b56bd9) !important;
+}
+
+@keyframes kv-bob {
+  0%, 100% { transform: translateY(0) rotate(var(--r, 0deg)); }
+  50% { transform: translateY(-8px) rotate(calc(var(--r, 0deg) + 2deg)); }
+}
+@keyframes kv-hop {
+  0%, 100% { transform: translate(-50%, -100%) translateY(0); }
+  50% { transform: translate(-50%, -100%) translateY(-10px); }
+}
+@keyframes kv-cloud {
+  0% { transform: translateX(-40vw); }
+  100% { transform: translateX(140vw); }
+}
+@keyframes kv-roomIn {
+  0% { opacity: 0; transform: translateY(30px); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes kv-burst {
+  0% { transform: translate(0, 0) scale(0.4); opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) scale(1) rotate(260deg); opacity: 0; }
+}
+@keyframes kv-ping {
+  0% { box-shadow: 0 0 0 0 rgba(255, 79, 107, 0.8); }
+  100% { box-shadow: 0 0 0 10px rgba(255, 79, 107, 0); }
+}
+@keyframes kv-flame {
+  0%, 100% { transform: scale(1) rotate(-4deg); }
+  50% { transform: scale(1.15) rotate(4deg); }
+}
+@keyframes kv-rise {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+@keyframes kv-sheetUp {
+  from { transform: translateY(100%); }
+  to { transform: none; }
+}
+@keyframes kv-appIn {
+  0% { opacity: 0; transform: scale(0.94); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes kv-shineCard {
+  0%, 100% { transform: translateX(-120%); }
+  50% { transform: translateX(120%); }
+}
+@keyframes kv-islandIn {
+  0% { opacity: 0; transform: translateY(-14px) scaleX(0.4); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes kv-ring {
+  0% { transform: translate(-50%, -50%) scale(0.6); opacity: 0.9; }
+  100% { transform: translate(-50%, -50%) scale(1.8); opacity: 0; }
+}

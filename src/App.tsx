@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback, Suspense, lazy } from 'react'
 import { HashRouter, Routes, Route, Link, Outlet } from 'react-router-dom'
 import Layout from './components/Layout'
 import PortalShell from './components/PortalShell'
-import KidsShell from './components/KidsShell'
 import SplashScreen from './components/SplashScreen'
 import { db, ensureSeedData } from './db/db'
 import { unlockAudio } from './lib/sound'
@@ -215,7 +214,7 @@ function App() {
               }
             />
           </Route>
-          <Route path="student" element={<KidsShell eyebrow="Children's Dashboard" />}>
+          <Route path="student" element={<Outlet />}>
             <Route
               index
               element={

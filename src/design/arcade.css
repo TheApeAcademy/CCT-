@@ -1,0 +1,130 @@
+/* Bible Arcade (the Games building) - Claude Design handoff, Bible Arcade.dc.html. */
+[data-dc-screen='arcade'] {
+  --bg: #0d0618;
+  --card: rgba(32, 20, 56, 0.85);
+  --hair: rgba(255, 255, 255, 0.1);
+  --hair2: rgba(255, 255, 255, 0.14);
+  --ink: #ffffff;
+  --body: rgba(236, 230, 250, 0.82);
+  --muted: rgba(236, 230, 250, 0.6);
+  --faint: rgba(236, 230, 250, 0.4);
+  --hdr: rgba(13, 6, 24, 0.85);
+  --sh: rgba(0, 0, 0, 0.4);
+  --track: rgba(255, 255, 255, 0.08);
+  --glow: rgba(255, 79, 163, 0.25);
+  --tile: #241640;
+  --lockbg: #2a1b47;
+  --field: rgba(0, 0, 0, 0.25);
+  --starop: 1;
+}
+[data-dc-screen='arcade'][data-sky='day'] {
+  --bg: #f7f2ff;
+  --card: #ffffff;
+  --hair: rgba(22, 11, 42, 0.1);
+  --hair2: rgba(22, 11, 42, 0.14);
+  --ink: #160b2a;
+  --body: rgba(22, 11, 42, 0.78);
+  --muted: rgba(22, 11, 42, 0.56);
+  --faint: rgba(22, 11, 42, 0.4);
+  --hdr: rgba(247, 242, 255, 0.85);
+  --sh: rgba(60, 30, 110, 0.18);
+  --track: rgba(22, 11, 42, 0.07);
+  --glow: rgba(255, 201, 60, 0.35);
+  --tile: #ffffff;
+  --lockbg: #efe8f8;
+  --field: #f6f2fd;
+  --starop: 0;
+}
+[data-dc-screen='arcade'] a {
+  color: #c86be0;
+  text-decoration: none;
+}
+/* The prototype runs on content-box; form controls stay border-box as the
+   browser's own stylesheet has them. */
+[data-dc-screen='arcade'] [style]:not(input, textarea, button, select) {
+  box-sizing: content-box;
+}
+
+.ar-village:hover {
+  background: var(--track);
+}
+[data-dc-screen='arcade'] a.ar-village:hover {
+  color: var(--ink);
+}
+.ar-tile {
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.ar-tile:hover {
+  transform: translateY(-5px) scale(1.01);
+}
+[data-dc-screen='arcade'] a.ar-tile,
+[data-dc-screen='arcade'] a.ar-tile:hover {
+  color: #fff;
+}
+.ar-tile .ar-zoom {
+  transition: transform 0.6s;
+}
+.ar-tile:hover .ar-zoom {
+  transform: scale(1.06);
+}
+.ar-game {
+  transition:
+    transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+    border-color 0.2s;
+}
+.ar-game:hover {
+  transform: translateY(-3px);
+  border-color: var(--c1) !important;
+}
+.ar-word:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--hair2) !important;
+}
+.ar-soon {
+  scrollbar-width: thin;
+}
+@media (max-width: 760px) {
+  [data-bento] {
+    grid-template-areas: 'live live' 'prac prac' 'super bank' !important;
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+@keyframes ar-twinkle {
+  0%, 100% { opacity: 0.15; transform: scale(0.6); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+@keyframes ar-up {
+  0% { opacity: 0; transform: translateY(24px); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes ar-pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); }
+}
+@keyframes ar-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
+}
+@keyframes ar-drain {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+@keyframes ar-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes ar-burst {
+  0% { transform: translate(0, 0) scale(0.4); opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) scale(1) rotate(260deg); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-dc-screen='arcade'] *,
+  [data-dc-screen='arcade'] *::before,
+  [data-dc-screen='arcade'] *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

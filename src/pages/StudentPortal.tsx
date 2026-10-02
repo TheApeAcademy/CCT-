@@ -5,9 +5,7 @@ import {
   ArrowLeft,
   ArrowRight,
   Trophy,
-  Dumbbell,
   Music,
-  Gamepad2,
   Send,
   Sparkles,
   Share2,
@@ -17,16 +15,7 @@ import {
   BookOpenText,
   Flame,
   Award,
-  Grid3x3,
   Layers,
-  Shuffle,
-  PencilLine,
-  Puzzle,
-  Palette,
-  Music2,
-  Mic2,
-  Dice5,
-  Brain,
   Bot,
   Globe,
   Lock,
@@ -51,6 +40,7 @@ import {
 import { supabase, signOut } from '../lib/supabase'
 import { useMinistryAuth } from '../lib/useMinistryAuth'
 import BibleJourneyPanel from '../components/BibleJourney'
+import BibleArcade from '../components/BibleArcade'
 import { NotesSection, DigitalBankSection } from '../components/PersonalVault'
 import MinistryCalendarReadOnly from '../components/MinistryCalendarView'
 import { SUNDAY_LESSON_THEMES, SUNDAYS_2026, sundayDateKey } from '../content/sundaySchoolCalendar'
@@ -968,7 +958,7 @@ function Dashboard() {
             {tab === 'messages' &&
               (klass ? <MessagesRoom teacherId={klass.teacher_id} teacherName={klass.teacher_name} teacherAvatar={klass.teacher_avatar} /> : <MessagesLockedRoom code={student?.student_code ?? null} />)}
             {tab === 'ears' && <EarsRoom klass={klass} />}
-            {tab === 'game' && <GamesRoom />}
+            {tab === 'game' && <BibleArcade points={student?.total_points ?? 0} onExit={backToMap} />}
           </div>
         </div>
       )}
@@ -3523,82 +3513,6 @@ function EarsHistoryItem({ message }: { message: EarsMessageRow }) {
           <p style={{ margin: 0, color: '#fff' }}>{r.body}</p>
         </div>
       ))}
-    </div>
-  )
-}
-
-// ---------------------------------------------------------------------------
-// Games
-// ---------------------------------------------------------------------------
-
-const GAMES_SOON: [string, LucideIcon][] = [
-  ['Bible Word Search', Grid3x3],
-  ['Memory Match', Layers],
-  ['Verse Scramble', Shuffle],
-  ['Story Builder', PencilLine],
-  ['Bible Bingo', Puzzle],
-  ['Coloring Book', Palette],
-  ['Sing-Along', Music2],
-  ['Guess the Sound', Mic2],
-  ['Roll & Answer', Dice5],
-  ['Brain Teasers', Brain],
-]
-
-function GamesRoom() {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,320px),1fr))', gap: 16 }}>
-        <div style={{ position: 'relative', overflow: 'hidden', padding: 28, borderRadius: 28, background: 'linear-gradient(150deg,#2b1250,#14082a)', border: '1px solid rgba(255,255,255,.14)', color: '#fff', minHeight: 240 }}>
-          <img src="/feature-quiz.png" alt="" style={{ position: 'absolute', right: -10, bottom: -10, width: 150, opacity: 0.9, ['--r' as string]: '-8deg', animation: 'kv-bob 4s ease-in-out infinite' } as CSSProperties} />
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 12px', borderRadius: 999, background: 'rgba(255,79,107,.18)', color: '#ff8a96', fontSize: 11, fontWeight: 800, letterSpacing: '.12em' }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ff4f6b', animation: 'kv-ping 1.4s infinite' }} />
-            AVAILABLE NOW
-          </span>
-          <p style={{ margin: '14px 0 0', fontFamily: DISPLAY, fontWeight: 800, fontSize: 30, lineHeight: 1, letterSpacing: '-.03em', maxWidth: 260 }}>Bible Quiz Live Match</p>
-          <p style={{ position: 'relative', margin: '12px 0 0', fontSize: 15, lineHeight: 1.55, color: 'rgba(236,230,250,.75)', maxWidth: 280 }}>
-            Ask your teacher to start a live match on the big screen for your class! When they do, you&apos;ll join from here.
-          </p>
-        </div>
-        <Link
-          to="/training"
-          onClick={() => playClick()}
-          className="kv-lift"
-          style={{ position: 'relative', overflow: 'hidden', padding: 28, borderRadius: 28, background: 'linear-gradient(150deg,#19c99b,#07665a)', color: '#fff', minHeight: 240, display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}
-        >
-          <span style={{ width: 56, height: 56, borderRadius: 18, background: 'rgba(255,255,255,.18)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Dumbbell style={{ width: 28, height: 28, color: '#fff' }} />
-          </span>
-          <p style={{ margin: 'auto 0 0', paddingTop: 30, fontFamily: DISPLAY, fontWeight: 800, fontSize: 30, lineHeight: 1, letterSpacing: '-.03em' }}>Practice Bible Quiz</p>
-          <p style={{ margin: '10px 0 0', fontSize: 15, lineHeight: 1.55, opacity: 0.9 }}>Unlimited solo practice, no pressure, no timer.</p>
-        </Link>
-      </div>
-      <p style={{ ...eyebrow, margin: '6px 0 0' }}>More Games Coming Soon</p>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: 12 }}>
-        {GAMES_SOON.map(([t, Icon]) => (
-          <div key={t} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, padding: '20px 12px', borderRadius: 22, background: 'rgba(255,255,255,.03)', border: '1px dashed rgba(255,255,255,.14)', textAlign: 'center' }}>
-            <span style={{ width: 46, height: 46, borderRadius: 14, background: 'rgba(255,255,255,.06)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Icon style={{ width: 22, height: 22, color: 'rgba(236,230,250,.5)' }} />
-            </span>
-            <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: 'rgba(236,230,250,.8)' }}>{t}</p>
-            <span style={{ padding: '3px 9px', borderRadius: 999, background: 'rgba(255,255,255,.06)', fontSize: 10, fontWeight: 800, letterSpacing: '.1em', color: 'rgba(236,230,250,.5)' }}>COMING SOON</span>
-          </div>
-        ))}
-      </div>
-      <a
-        href="https://id.superbook.cbn.com/games"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="kv-hov"
-        style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '20px 22px', borderRadius: 24, background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.1)', color: '#fff', ['--hov' as string]: '#ff4fa3' } as CSSProperties}
-      >
-        <span style={{ width: 48, height: 48, borderRadius: 16, background: 'linear-gradient(135deg,#ff6bb5,#d12a7a)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <Gamepad2 style={{ width: 24, height: 24, color: '#fff' }} />
-        </span>
-        <span style={{ flex: 1 }}>
-          <span style={{ display: 'block', fontWeight: 800, fontSize: 17 }}>SuperBook Games ↗</span>
-          <span style={{ display: 'block', fontSize: 14, color: 'rgba(236,230,250,.6)', marginTop: 2 }}>Tap through to more Bible games and adventures on SuperBook.</span>
-        </span>
-      </a>
     </div>
   )
 }

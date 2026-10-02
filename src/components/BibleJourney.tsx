@@ -8,6 +8,7 @@ import { getMyJourneyProgress, completeJourneyLesson, type JourneyProgressRow } 
 import { getMyStudentProfile, getMyBibleStreak } from '../lib/ministry'
 import { playClick } from '../lib/sound'
 import { haptics } from '../lib/haptics'
+import { loadKidsSky, saveKidsSky } from '../lib/kidsSky'
 import '../design/journey.css'
 
 // Bible Journey, rebuilt from the Claude Design handoff (Bible Journey v2).
@@ -20,7 +21,6 @@ import '../design/journey.css'
 const DISPLAY = "'Bricolage Grotesque', sans-serif"
 const HEARTS = 5
 const LESSON_POINTS = 15
-const SKY_KEY = 'mfm-journey-sky'
 
 const OT: [string, string[]][] = [
   ['The Law', ['Genesis', 'Exodus', 'Leviticus', 'Numbers', 'Deuteronomy']],
@@ -88,18 +88,10 @@ function buildSteps(lesson: JourneyLesson): Step[] {
 
 const bookFor = (title: string): JourneyBook | undefined => getJourneyBook(slugifyBookTitle(title))
 
-const loadSky = (): 'night' | 'day' => {
-  try {
-    return localStorage.getItem(SKY_KEY) === 'day' ? 'day' : 'night'
-  } catch {
-    return 'night'
-  }
-}
-
 type Screen = { name: 'map' } | { name: 'path'; book: string } | { name: 'lesson'; book: string; lessonKey: string }
 
 export default function BibleJourneyPanel({ onExit }: { onExit: () => void }) {
-  const [sky, setSky] = useState(loadSky)
+  const [sky, setSky] = useState(loadKidsSky)
   const [screen, setScreen] = useState<Screen>({ name: 'map' })
   const [sel, setSel] = useState('Genesis')
   const [progress, setProgress] = useState<JourneyProgressRow[]>([])
@@ -139,11 +131,7 @@ export default function BibleJourneyPanel({ onExit }: { onExit: () => void }) {
     const next = sky === 'night' ? 'day' : 'night'
     setSky(next)
     playClick()
-    try {
-      localStorage.setItem(SKY_KEY, next)
-    } catch {
-      /* the toggle still works for this visit */
-    }
+    saveKidsSky(next)
   }
 
   const go = (s: Screen) => {

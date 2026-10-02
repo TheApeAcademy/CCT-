@@ -19,7 +19,7 @@
    Inline-styled boxes ported from it keep that; boxes that set their own
    box-sizing inline still win. Form controls stay border-box, as the
    browser's own stylesheet has them in the prototype. */
-[data-dc-screen='kids'] [style*='padding']:not(input, textarea, button, select) {
+[data-dc-screen='kids'] [style]:not(input, textarea, button, select) {
   box-sizing: content-box;
 }
 html:has([data-dc-screen='kids']),

@@ -1,0 +1,107 @@
+/* Bible Journey - Claude Design handoff, Bible Journey v2.dc.html.
+   Night is the default sky; the toggle swaps to the warm day sky. */
+[data-dc-screen='journey'] {
+  --bg: #0d0618;
+  --card: rgba(32, 20, 56, 0.88);
+  --hair: rgba(255, 255, 255, 0.1);
+  --hair2: rgba(255, 255, 255, 0.16);
+  --ink: #fff;
+  --body: rgba(236, 230, 250, 0.82);
+  --muted: rgba(236, 230, 250, 0.6);
+  --faint: rgba(236, 230, 250, 0.35);
+  --hdr: rgba(13, 6, 24, 0.85);
+  --track: rgba(255, 255, 255, 0.08);
+  --lock: #2a1d44;
+  --glow: rgba(255, 138, 61, 0.22);
+  --starop: 1;
+}
+[data-dc-screen='journey'][data-sky='day'] {
+  --bg: #fff8f0;
+  --card: #fff;
+  --hair: rgba(22, 11, 42, 0.1);
+  --hair2: rgba(22, 11, 42, 0.16);
+  --ink: #160b2a;
+  --body: rgba(22, 11, 42, 0.78);
+  --muted: rgba(22, 11, 42, 0.56);
+  --faint: rgba(22, 11, 42, 0.35);
+  --hdr: rgba(255, 248, 240, 0.88);
+  --track: rgba(22, 11, 42, 0.07);
+  --lock: #ece4f6;
+  --glow: rgba(255, 201, 60, 0.35);
+  --starop: 0;
+}
+[data-dc-screen='journey'] a {
+  color: #ff8a3d;
+  text-decoration: none;
+}
+[data-dc-screen='journey'] a:hover {
+  color: #ffab70;
+}
+/* The prototype runs on content-box; form controls stay border-box as the
+   browser's own stylesheet has them. */
+[data-dc-screen='journey'] [style]:not(input, textarea, button, select) {
+  box-sizing: content-box;
+}
+
+/* The book card and stats ride along beside the path on wide screens. Once
+   the map stacks into one column they would pin over the path, so there
+   they scroll away instead (the prototype pins them at every width). */
+.jv-side {
+  position: sticky;
+}
+@media (max-width: 699px) {
+  .jv-side {
+    position: static;
+  }
+}
+.jv-press:active {
+  transform: translateY(4px);
+}
+.jv-3d:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 var(--sh) !important;
+}
+
+@keyframes jv-twinkle {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 1; }
+}
+@keyframes jv-up {
+  0% { opacity: 0; transform: translateY(18px); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes jv-pop {
+  0% { transform: scale(0.5); opacity: 0; }
+  60% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); }
+}
+@keyframes jv-bounce {
+  0%, 100% { transform: translate(-50%, 0); }
+  50% { transform: translate(-50%, -6px); }
+}
+@keyframes jv-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 138, 61, 0.6); }
+  100% { box-shadow: 0 0 0 18px rgba(255, 138, 61, 0); }
+}
+@keyframes jv-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
+}
+@keyframes jv-heartOut {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.4); }
+  100% { transform: scale(0.8); opacity: 0.3; }
+}
+@keyframes jv-burst {
+  0% { transform: translate(0, 0) scale(0.4); opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) scale(1) rotate(260deg); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-dc-screen='journey'] *,
+  [data-dc-screen='journey'] *::before,
+  [data-dc-screen='journey'] *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

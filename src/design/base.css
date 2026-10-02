@@ -59,9 +59,15 @@ body:has([data-dc-screen])::before {
   content: none;
 }
 
+/* The prototypes are plain HTML, so they sit on the browser's own
+   line-height, not Tailwind preflight's 1.5. */
 [data-dc-screen] {
   -webkit-font-smoothing: antialiased;
   font-family: var(--dc-body);
+  line-height: normal;
+}
+[data-dc-screen] :is(input, textarea, select, button) {
+  line-height: normal;
 }
 [data-dc-screen] :is(h1, h2, h3) {
   letter-spacing: inherit;

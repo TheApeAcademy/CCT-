@@ -1,79 +1,167 @@
-import { useEffect, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, Check, Copy, KeyRound, PartyPopper, Phone, Sparkles, User } from 'lucide-react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { ArrowLeft, Check, Copy, KeyRound, PartyPopper, Phone, Sparkles, User, type LucideIcon } from 'lucide-react'
 import { registerStudent, studentSignInByName } from '../lib/ministry'
 import { playClick, playNav } from '../lib/sound'
 import { haptics } from '../lib/haptics'
 import { setRememberMe } from '../lib/supabase'
 import { getRememberedStudent, saveRememberedStudent, clearRememberedStudent } from '../lib/rememberedStudent'
-import FloatingArt from '../components/FloatingArt'
 import { clearKidsDashboardState } from '../lib/kidsDashboardState'
-// Landing page's playful display face for the big student code / step
-// numbers - safe to pull in here since /join is already its own lazy
-// route, never loaded by the offline quiz.
+import '../design/join.css'
+
+// Join, rebuilt from the Claude Design handoff (Join.dc.html): light,
+// Apple-style, one question at a time. The flows and the copy are the same
+// as before; only the look and the motion changed.
 
 type Mode = 'new' | 'returning'
 
-// One field shape for the whole page (C2). The ring on focus belongs to
-// .apple-field in index.css, so a field does not change size when it is
-// tapped the way a 2px border swap does.
-const inputClass = 'apple-field'
+const INK = '#160b2a'
+const MUTED = 'rgba(22,11,42,.56)'
+const DISPLAY = "'Bricolage Grotesque',sans-serif"
+
+const card: CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 12,
+  padding: 24,
+  borderRadius: 22,
+  background: '#fff',
+  border: '1px solid rgba(22,11,42,.08)',
+  borderTop: '3px solid #c13bff',
+  boxShadow: '0 24px 50px -30px rgba(110,40,160,.45)',
+}
 
 export default function JoinClass() {
   const [params, setParams] = useSearchParams()
-  // Which half of the page opens first. It used to always be the sign up
-  // form, so the Sign In button on the kids sign in page landed a returning
-  // child on "I'm new here" and read as being bounced back to the sign up
-  // page. Two things move it now: ?mode= in the URL, which is what the two
-  // buttons on that page pass, and a passcode already remembered on this
-  // device, because a child who has signed in here before is not new.
+  // ?mode= from the kids sign-in buttons wins; otherwise a child who has
+  // signed in on this device before lands on the returning half.
   const [remembered] = useState(() => Boolean(getRememberedStudent()))
-  // Read from the URL rather than held in state, and the tabs write to the
-  // URL. Held in state it was set once on mount, so arriving from the other
-  // button without a remount left the wrong half open.
   const urlMode = params.get('mode')
   const mode: Mode = urlMode === 'returning' || urlMode === 'new' ? urlMode : remembered ? 'returning' : 'new'
   const setMode = (next: Mode) => setParams({ mode: next }, { replace: true })
+  const isNew = mode === 'new'
 
   return (
-    <div className="relative mx-auto max-w-md space-y-8">
-      {/* The mark, one line of type, and nothing else - which is the whole
-          of Apple's own sign-in page. The shell above renders no logo on
-          this route, so this is the only one on the screen. */}
-      <div className="text-center">
-        <FloatingArt className="mx-auto w-28 sm:w-32">
-          <img src="/children-ministry-logo-splash.png" alt="MFM Children's Ministry" className="w-full" />
-        </FloatingArt>
-        <h1 className="lp-heading mt-5 font-display text-2xl font-extrabold leading-tight sm:text-3xl">
-          Know the Word. Play the Quiz. Grow in Faith.
-        </h1>
-        <p className="mt-2 text-sm text-[var(--lp-muted)]">The Ultimate Bible Quiz Adventure</p>
-      </div>
+    <div
+      data-dc-screen="join"
+      data-screen-label="Join"
+      style={{
+        position: 'relative',
+        minHeight: '100vh',
+        background: 'radial-gradient(ellipse 70% 45% at 50% 0%,rgba(193,59,255,.14),transparent 65%),#f7f3fd',
+        color: 'rgba(22,11,42,.78)',
+        padding: 'clamp(28px,6vh,64px) 16px 60px',
+        boxSizing: 'border-box',
+        colorScheme: 'light',
+      }}
+    >
+      <div style={{ maxWidth: 448, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 32 }}>
+        <div style={{ textAlign: 'center' }}>
+          <Link
+            to="/"
+            style={{ display: 'block', width: 'clamp(112px,26vw,128px)', margin: '0 auto', animation: 'join-float 5s ease-in-out infinite' }}
+          >
+            <img
+              src="/children-ministry-logo-splash.png"
+              alt="MFM Children's Ministry"
+              style={{ width: '100%', display: 'block', filter: 'drop-shadow(0 14px 20px rgba(110,40,160,.25))' }}
+            />
+          </Link>
+          <h1
+            style={{
+              margin: '20px 0 0',
+              fontFamily: DISPLAY,
+              fontWeight: 800,
+              fontSize: 'clamp(24px,5vw,30px)',
+              lineHeight: 1.15,
+              letterSpacing: '-.02em',
+              color: INK,
+              textWrap: 'balance',
+            }}
+          >
+            Know the Word. Play the Quiz. Grow in Faith.
+          </h1>
+          <p style={{ margin: '8px 0 0', fontSize: 14, color: MUTED }}>The Ultimate Bible Quiz Adventure</p>
+        </div>
 
-      <div className="apple-segmented" role="tablist">
-        <button type="button" role="tab" aria-selected={mode === 'new'} onClick={() => setMode('new')} className="apple-segment">
-          I&apos;m new here
-        </button>
-        <button
-          type="button"
-          role="tab"
-          aria-selected={mode === 'returning'}
-          onClick={() => setMode('returning')}
-          className="apple-segment"
+        <div
+          role="tablist"
+          style={{
+            position: 'relative',
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            padding: 4,
+            borderRadius: 14,
+            background: 'rgba(22,11,42,.06)',
+          }}
         >
-          I&apos;ve signed up before
-        </button>
+          <span
+            aria-hidden
+            style={{
+              position: 'absolute',
+              top: 4,
+              bottom: 4,
+              left: 4,
+              width: 'calc(50% - 4px)',
+              borderRadius: 10,
+              background: '#fff',
+              boxShadow: '0 2px 8px rgba(22,11,42,.12)',
+              transform: `translateX(${isNew ? '0' : '100%'})`,
+              transition: 'transform .35s cubic-bezier(.34,1.3,.64,1)',
+            }}
+          />
+          <SegButton active={isNew} onClick={() => setMode('new')}>
+            I&apos;m new here
+          </SegButton>
+          <SegButton active={!isNew} onClick={() => setMode('returning')}>
+            I&apos;ve signed up before
+          </SegButton>
+        </div>
+
+        {isNew ? <NewStudentFlow /> : <ReturningStudentFlow />}
+
+        <p style={{ margin: '0 auto', maxWidth: 384, textAlign: 'center', fontSize: 14, fontStyle: 'italic', color: MUTED }}>
+          &ldquo;Thy word have I hid in mine heart, that I might not sin against thee.&rdquo;
+          <span
+            style={{
+              display: 'block',
+              marginTop: 4,
+              fontStyle: 'normal',
+              fontSize: 12,
+              fontWeight: 800,
+              letterSpacing: '.06em',
+              textTransform: 'uppercase',
+              color: '#d12a7a',
+            }}
+          >
+            Psalm 119:11
+          </span>
+        </p>
       </div>
-
-      {mode === 'new' ? <NewStudentFlow /> : <ReturningStudentFlow />}
-
-      <p className="mx-auto max-w-sm text-center text-sm italic text-[var(--lp-muted)]">
-        &ldquo;Thy word have I hid in mine heart, that I might not sin against thee.&rdquo;
-        <span className="mt-1 block not-italic text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--lp-accent-compete)' }}>
-          Psalm 119:11
-        </span>
-      </p>
     </div>
+  )
+}
+
+function SegButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      style={{
+        position: 'relative',
+        padding: 11,
+        border: 'none',
+        background: 'none',
+        fontWeight: 800,
+        fontSize: 14,
+        color: active ? INK : 'rgba(22,11,42,.5)',
+        cursor: 'pointer',
+      }}
+    >
+      {children}
+    </button>
   )
 }
 
@@ -83,16 +171,11 @@ type Step = 'name' | 'phone' | 'passcode' | 'confirm' | 'generating' | 'done'
 
 const STEP_ORDER: Step[] = ['name', 'phone', 'passcode', 'confirm', 'generating', 'done']
 
-// One accent for the whole sign-up, not a different colour at every step.
-// Six accents down one flow made each panel look like a different product.
-const ACCENT = 'var(--hero-accent)'
-
 // Kids don't pick a passcode - it's built from their own first name so it's
 // easy to remember: first name + "mfm" + three random digits (e.g.
 // "joshmfm472"). The passcode IS the account password, so the random part
 // has to be long enough that knowing a child's name isn't enough to guess
-// their way into their messages and their Ears for You entries. One digit
-// meant ten tries; three means a thousand.
+// their way into their messages and their Ears for You entries.
 /** The stable part of a passcode: the child's first name, lowercased. */
 function passcodeBase(fullName: string): string {
   const firstName = fullName.trim().split(/\s+/)[0] ?? ''
@@ -103,6 +186,26 @@ function generatePasscode(fullName: string): string {
   return `${passcodeBase(fullName)}${String(Math.floor(Math.random() * 1000)).padStart(3, '0')}`
 }
 
+const QUESTIONS: Record<'name' | 'phone' | 'passcode' | 'confirm', { icon: LucideIcon; q: string; hint: string }> = {
+  name: { icon: User, q: "What's your name?", hint: '' },
+  phone: { icon: Phone, q: "Parent or guardian's phone number?", hint: 'Optional, in case we ever need to reach home.' },
+  passcode: { icon: KeyRound, q: "Here's your passcode", hint: "We made it from your name so it's easy to remember." },
+  confirm: { icon: KeyRound, q: 'Type your passcode again', hint: 'Just to make sure you saved it right.' },
+}
+
+const CONFETTI_COLS = ['#ffc93c', '#ff4fa3', '#4f7bff', '#2fe0b5', '#c13bff', '#ff8a3d']
+const CONFETTI = Array.from({ length: 36 }, (_, i) => {
+  const a = (i / 36) * Math.PI * 2
+  const d = 150 + ((i * 37) % 160)
+  return {
+    dx: Math.round(Math.cos(a) * d),
+    dy: Math.round(Math.sin(a) * d - 70),
+    s: 8 + (i % 5),
+    h: 10 + (i % 9),
+    col: CONFETTI_COLS[i % 6],
+  }
+})
+
 function NewStudentFlow() {
   const navigate = useNavigate()
   const [step, setStep] = useState<Step>('name')
@@ -112,8 +215,18 @@ function NewStudentFlow() {
   const [confirmPasscode, setConfirmPasscode] = useState('')
   const [passcodeCopied, setPasscodeCopied] = useState(false)
   const [error, setError] = useState('')
+  const [errN, setErrN] = useState(0)
+  const [confetti, setConfetti] = useState(false)
+  const confettiTimer = useRef<number | undefined>(undefined)
+  useEffect(() => () => window.clearTimeout(confettiTimer.current), [])
 
-  const progress = ((STEP_ORDER.indexOf(step) + 1) / STEP_ORDER.length) * 100
+  const progress = Math.round(((STEP_ORDER.indexOf(step) + 1) / STEP_ORDER.length) * 100)
+
+  const fail = (msg: string) => {
+    setError(msg)
+    setErrN((n) => n + 1)
+    haptics.error()
+  }
 
   const advance = (next: Step) => {
     setError('')
@@ -138,17 +251,34 @@ function NewStudentFlow() {
     setError('')
     try {
       // The Student Code this returns still exists (teachers use it to add a
-      // kid to their class from the roster) - it just isn't shown here
-      // anymore. Kids can find it on their profile / ID card once signed in.
+      // kid to their class from the roster) - it just isn't shown here.
+      // Kids find it on their profile / ID card once signed in.
       await registerStudent({ full_name: fullName, guardian_phone: guardianPhone || undefined, passcode })
       haptics.success()
       setStep('done')
+      setConfetti(true)
+      confettiTimer.current = window.setTimeout(() => setConfetti(false), 1500)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not create your account. Try again.')
-      haptics.error()
       setStep('confirm')
+      fail(e instanceof Error ? e.message : 'Could not create your account. Try again.')
     }
   }
+
+  const next = () => {
+    if (step === 'name') {
+      if (fullName.trim().length < 2) return fail('Please enter your full name.')
+      return advance('phone')
+    }
+    if (step === 'phone') return goToPasscode()
+    if (step === 'passcode') return advance('confirm')
+    if (step === 'confirm') {
+      if (confirmPasscode !== passcode) return fail("That doesn't match. Tap back to see it again.")
+      void submit()
+    }
+  }
+
+  const prev: Partial<Record<Step, Step>> = { phone: 'name', passcode: 'phone', confirm: 'passcode' }
+  const back = prev[step]
 
   const copyPasscode = async () => {
     try {
@@ -157,188 +287,267 @@ function NewStudentFlow() {
       playClick()
       window.setTimeout(() => setPasscodeCopied(false), 2000)
     } catch {
-      // clipboard unavailable — the passcode is already visible on screen
+      // clipboard unavailable - the passcode is already visible on screen
     }
   }
 
+  const onEnter = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') next()
+  }
+
+  const nextLabel =
+    step === 'phone'
+      ? guardianPhone.trim()
+        ? 'Continue'
+        : 'Skip for now'
+      : step === 'passcode'
+        ? "I've saved it"
+        : step === 'confirm'
+          ? 'Create My Account'
+          : 'Continue'
+
+  const isStepPanel = step === 'name' || step === 'phone' || step === 'passcode' || step === 'confirm'
+  const Q = isStepPanel ? QUESTIONS[step] : null
+  const StepIcon = Q?.icon ?? User
+
   return (
-    <div className="animate-page-in space-y-4">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {step !== 'generating' && (
-        <div className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--lp-bg-panel)]">
+        <div style={{ height: 6, borderRadius: 999, background: 'rgba(22,11,42,.07)', overflow: 'hidden' }}>
           <div
-            className="h-full rounded-full transition-all duration-500"
-            style={{ width: `${progress}%`, background: ACCENT }}
+            style={{
+              height: '100%',
+              width: `${progress}%`,
+              borderRadius: 999,
+              background: 'linear-gradient(90deg,#c13bff,#8a1fb0)',
+              transition: 'width .5s cubic-bezier(.34,1.2,.64,1)',
+            }}
           />
         </div>
       )}
 
-      {step === 'name' && (
-        <StepPanel icon={User} accent={ACCENT} question="What's your name?">
-          <input
-            autoFocus
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            placeholder="Your full name"
-            className={inputClass}
-            onKeyDown={(e) => e.key === 'Enter' && fullName.trim().length >= 2 && advance('phone')}
-          />
-          {error && <p className="text-sm text-red-500">{error}</p>}
-          <button
-            onClick={() => {
-              if (fullName.trim().length < 2) return setError('Please enter your full name.')
-              advance('phone')
+      {isStepPanel && Q && (
+        <div
+          key={`${step}-${errN}`}
+          style={{ ...card, animation: error ? 'join-shake .4s' : 'join-pageIn .4s cubic-bezier(.2,.9,.2,1) both' }}
+        >
+          <span
+            style={{
+              width: 40,
+              height: 40,
+              borderRadius: 12,
+              background: 'rgba(193,59,255,.14)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              animation: 'join-pop .45s both',
             }}
-            className="lp-btn-solid w-full py-3 text-base"
           >
-            Continue
-          </button>
-        </StepPanel>
-      )}
-
-      {step === 'phone' && (
-        <StepPanel icon={Phone} accent={ACCENT} question="Parent or guardian's phone number?" hint="Optional, in case we ever need to reach home.">
-          <input
-            autoFocus
-            value={guardianPhone}
-            onChange={(e) => setGuardianPhone(e.target.value)}
-            placeholder="Optional"
-            type="tel"
-            className={inputClass}
-            onKeyDown={(e) => e.key === 'Enter' && goToPasscode()}
-          />
-          <div className="flex gap-2">
-            <button onClick={() => advance('name')} className="lp-btn-outline px-4 py-3">
-              <ArrowLeft className="h-4 w-4" />
-            </button>
-            <button onClick={goToPasscode} className="lp-btn-solid flex-1 py-3 text-base">
-              {guardianPhone.trim() ? 'Continue' : 'Skip for now'}
-            </button>
+            <StepIcon aria-hidden style={{ width: 20, height: 20, color: '#8a1fb0' }} />
+          </span>
+          <div>
+            <p style={{ margin: 0, fontFamily: DISPLAY, fontWeight: 800, fontSize: 19, color: INK }}>{Q.q}</p>
+            {Q.hint && <p style={{ margin: '2px 0 0', fontSize: 14, color: MUTED }}>{Q.hint}</p>}
           </div>
-        </StepPanel>
-      )}
 
-      {step === 'passcode' && (
-        <StepPanel icon={KeyRound} accent={ACCENT} question="Here's your passcode" hint="We made it from your name so it's easy to remember.">
-          <div className="apple-field py-5 text-center">
-            <p
-              className="font-display text-3xl font-extrabold tracking-widest"
-              style={{ fontFamily: 'var(--font-display)', color: ACCENT }}
-            >
-              {passcode}
-            </p>
-          </div>
-          <button onClick={copyPasscode} className="lp-btn-outline mx-auto flex items-center gap-1.5 px-4 py-2 text-xs">
-            {passcodeCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-            {passcodeCopied ? 'Copied' : 'Copy passcode'}
-          </button>
-          <p className="text-sm text-[var(--lp-muted)]">
-            Copy it or write it down somewhere safe. Even though it&apos;s easy to remember, you&apos;ll need it,
-            with your name, to sign in next time.
-          </p>
-          {error && <p className="text-sm text-red-500">{error}</p>}
-          <div className="flex gap-2">
-            <button onClick={() => advance('phone')} className="lp-btn-outline px-4 py-3">
-              <ArrowLeft className="h-4 w-4" />
-            </button>
-            <button onClick={() => advance('confirm')} className="lp-btn-solid flex-1 py-3 text-base">
-              I&apos;ve saved it
-            </button>
-          </div>
-        </StepPanel>
-      )}
-
-      {step === 'confirm' && (
-        <StepPanel icon={KeyRound} accent={ACCENT} question="Type your passcode again" hint="Just to make sure you saved it right.">
-          <input
-            autoFocus
-            value={confirmPasscode}
-            onChange={(e) => setConfirmPasscode(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))}
-            type="text"
-            autoCapitalize="off"
-            autoCorrect="off"
-            spellCheck={false}
-            placeholder="Type your passcode"
-            className={`${inputClass} text-center text-xl tracking-wide`}
-            onKeyDown={(e) => e.key === 'Enter' && confirmPasscode && submit()}
-          />
-          {error && <p className="text-sm text-red-500">{error}</p>}
-          <div className="flex gap-2">
-            <button onClick={() => advance('passcode')} className="lp-btn-outline px-4 py-3">
-              <ArrowLeft className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => {
-                if (confirmPasscode !== passcode) return setError("That doesn't match. Tap back to see it again.")
-                submit()
+          {step === 'name' && (
+            <input
+              autoFocus
+              className="join-field"
+              value={fullName}
+              onChange={(e) => {
+                setFullName(e.target.value)
+                setError('')
               }}
-              className="lp-btn-solid flex-1 py-3 text-base"
-            >
-              Create My Account
+              onKeyDown={onEnter}
+              placeholder="Your full name"
+            />
+          )}
+          {step === 'phone' && (
+            <input
+              autoFocus
+              className="join-field"
+              value={guardianPhone}
+              onChange={(e) => setGuardianPhone(e.target.value)}
+              onKeyDown={onEnter}
+              type="tel"
+              placeholder="Optional"
+            />
+          )}
+          {step === 'passcode' && (
+            <>
+              <div
+                style={{
+                  padding: 20,
+                  borderRadius: 12,
+                  background: '#f4f0fa',
+                  boxShadow: 'inset 0 0 0 1px rgba(22,11,42,.1)',
+                  textAlign: 'center',
+                }}
+              >
+                <p
+                  style={{
+                    margin: 0,
+                    fontFamily: DISPLAY,
+                    fontWeight: 800,
+                    fontSize: 30,
+                    letterSpacing: '.12em',
+                    color: '#8a1fb0',
+                    animation: 'join-pop .5s both',
+                    userSelect: 'text',
+                    overflowWrap: 'anywhere',
+                  }}
+                >
+                  {passcode}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={copyPasscode}
+                style={{
+                  alignSelf: 'center',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '8px 16px',
+                  borderRadius: 999,
+                  border: '1px solid rgba(22,11,42,.16)',
+                  background: '#fff',
+                  color: INK,
+                  fontWeight: 800,
+                  fontSize: 12,
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {passcodeCopied ? (
+                  <Check aria-hidden style={{ width: 14, height: 14 }} />
+                ) : (
+                  <Copy aria-hidden style={{ width: 14, height: 14 }} />
+                )}
+                {passcodeCopied ? 'Copied' : 'Copy passcode'}
+              </button>
+              <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: MUTED }}>
+                Copy it or write it down somewhere safe. Even though it&apos;s easy to remember, you&apos;ll need it,
+                with your name, to sign in next time.
+              </p>
+            </>
+          )}
+          {step === 'confirm' && (
+            <input
+              autoFocus
+              className="join-field join-field-code"
+              value={confirmPasscode}
+              onChange={(e) => {
+                setConfirmPasscode(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))
+                setError('')
+              }}
+              onKeyDown={onEnter}
+              type="text"
+              autoCapitalize="off"
+              autoCorrect="off"
+              spellCheck={false}
+              placeholder="Type your passcode"
+            />
+          )}
+
+          {error && <p style={{ margin: 0, fontSize: 14, color: '#d6334a' }}>{error}</p>}
+          <div style={{ display: 'flex', gap: 8 }}>
+            {back && (
+              <button
+                type="button"
+                onClick={() => advance(back)}
+                aria-label="Back"
+                style={{
+                  padding: '0 16px',
+                  borderRadius: 12,
+                  border: '1px solid rgba(22,11,42,.16)',
+                  background: '#fff',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                }}
+              >
+                <ArrowLeft aria-hidden style={{ width: 16, height: 16, color: INK }} />
+              </button>
+            )}
+            <button type="button" onClick={next} className="join-cta" style={{ flex: 1 }}>
+              {nextLabel}
             </button>
           </div>
-        </StepPanel>
+        </div>
       )}
 
       {step === 'generating' && (
-        <div className="lp-panel flex flex-col items-center gap-3 p-8 text-center">
-          <Sparkles className="h-8 w-8 animate-pulse" strokeWidth={1.5} style={{ color: 'var(--hero-accent)' }} />
-          <p className="lp-heading font-display text-lg font-bold">Almost ready&hellip;</p>
-          <p className="text-sm text-[var(--lp-muted)]">Setting up your space.</p>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 10,
+            padding: 32,
+            borderRadius: 22,
+            background: '#fff',
+            border: '1px solid rgba(22,11,42,.08)',
+            textAlign: 'center',
+          }}
+        >
+          <Sparkles aria-hidden style={{ width: 32, height: 32, color: '#c13bff', animation: 'join-pulse 1.2s ease-in-out infinite' }} />
+          <p style={{ margin: 0, fontFamily: DISPLAY, fontWeight: 800, fontSize: 18, color: INK }}>Almost ready&hellip;</p>
+          <p style={{ margin: 0, fontSize: 14, color: MUTED }}>Setting up your space.</p>
         </div>
       )}
 
       {step === 'done' && (
-        <div className="animate-page-in space-y-4">
-          <div className="lp-panel lp-panel-accented space-y-3 p-6 text-center" style={{ ['--card-accent' as string]: ACCENT }}>
-            <PartyPopper className="mx-auto h-10 w-10" style={{ color: ACCENT }} strokeWidth={1.75} />
-            <p className="lp-heading font-display text-xl font-bold">You&apos;re all set, {fullName.trim().split(/\s+/)[0]}!</p>
-            <p className="text-sm text-[var(--lp-muted)]">
-              Your Student Code is waiting on your profile once you&apos;re in, and that&apos;s what you&apos;ll give
-              your teacher to get added to your class.
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, animation: 'join-pageIn .5s both' }}>
+          <div style={{ ...card, display: 'block', textAlign: 'center' }}>
+            <PartyPopper
+              aria-hidden
+              style={{ display: 'block', margin: '0 auto', width: 44, height: 44, color: '#c13bff', animation: 'join-pop .6s both' }}
+            />
+            <p style={{ margin: '12px 0 0', fontFamily: DISPLAY, fontWeight: 800, fontSize: 22, color: INK }}>
+              You&apos;re all set, {fullName.trim().split(/\s+/)[0]}!
+            </p>
+            <p style={{ margin: '6px 0 0', fontSize: 14, lineHeight: 1.55, color: MUTED }}>
+              Your Student Code is waiting on your profile once you&apos;re in, and that&apos;s what you&apos;ll give your
+              teacher to get added to your class.
             </p>
           </div>
           <button
+            type="button"
+            className="join-cta"
             onClick={() => {
               playNav()
               clearKidsDashboardState()
               navigate('/student')
             }}
-            className="lp-btn-solid w-full py-3 text-base"
           >
             Welcome! Let&apos;s go
           </button>
         </div>
       )}
-    </div>
-  )
-}
 
-function StepPanel({
-  icon: Icon,
-  accent,
-  question,
-  hint,
-  children,
-}: {
-  icon: typeof User
-  accent: string
-  question: string
-  hint?: string
-  children: React.ReactNode
-}) {
-  return (
-    <div className="lp-panel lp-panel-accented space-y-3 p-6" style={{ ['--card-accent' as string]: accent }}>
-      <span
-        className="lp-icon-chip flex h-10 w-10 items-center justify-center rounded-xl"
-        style={{ ['--card-accent' as string]: accent, background: 'color-mix(in srgb, ' + accent + ' 16%, transparent)' }}
-      >
-        <Icon className="h-5 w-5" strokeWidth={1.75} style={{ color: accent }} />
-      </span>
-      <div>
-        <p className="lp-heading font-display text-lg font-bold">{question}</p>
-        {hint && <p className="text-sm text-[var(--lp-muted)]">{hint}</p>}
-      </div>
-      {children}
+      {confetti && (
+        <div aria-hidden style={{ position: 'fixed', left: '50%', top: '40%', pointerEvents: 'none', zIndex: 100 }}>
+          {CONFETTI.map((c, i) => (
+            <span
+              key={i}
+              style={
+                {
+                  position: 'absolute',
+                  width: c.s,
+                  height: c.h,
+                  borderRadius: 3,
+                  background: c.col,
+                  '--dx': `${c.dx}px`,
+                  '--dy': `${c.dy}px`,
+                  animation: 'join-burst 1.4s cubic-bezier(.2,.8,.3,1) forwards',
+                } as CSSProperties
+              }
+            />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
@@ -347,26 +556,25 @@ function StepPanel({
 
 function ReturningStudentFlow() {
   const navigate = useNavigate()
-  const [fullName, setFullName] = useState('')
-  const [passcode, setPasscode] = useState('')
-  const [error, setError] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [rememberMe, setRememberMeChecked] = useState(true)
-
   // Prefills from whatever was saved here last time "Remember me" was
   // checked - a kid shouldn't have to retype their passcode on a device
   // they already signed into before.
-  useEffect(() => {
-    const remembered = getRememberedStudent()
-    if (remembered) {
-      setFullName(remembered.fullName)
-      setPasscode(remembered.passcode)
-    }
-  }, [])
+  const [fullName, setFullName] = useState(() => getRememberedStudent()?.fullName ?? '')
+  const [passcode, setPasscode] = useState(() => getRememberedStudent()?.passcode ?? '')
+  const [error, setError] = useState('')
+  const [errN, setErrN] = useState(0)
+  const [submitting, setSubmitting] = useState(false)
+  const [rememberMe, setRememberMeChecked] = useState(true)
+
+  const fail = (msg: string) => {
+    setError(msg)
+    setErrN((n) => n + 1)
+    haptics.error()
+  }
 
   const submit = async () => {
-    if (!fullName.trim()) return setError('Enter your name.')
-    if (!passcode.trim()) return setError('Enter your passcode.')
+    if (!fullName.trim()) return fail('Enter your name.')
+    if (!passcode.trim()) return fail('Enter your passcode.')
     setSubmitting(true)
     setError('')
     setRememberMe(rememberMe)
@@ -381,41 +589,88 @@ function ReturningStudentFlow() {
       haptics.success()
       navigate('/student')
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not sign in.')
-      haptics.error()
+      fail(e instanceof Error ? e.message : 'Could not sign in.')
     } finally {
       setSubmitting(false)
     }
   }
 
+  const onKey = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') void submit()
+  }
+
   return (
-    <div className="lp-panel lp-panel-accented space-y-3 p-6" style={{ ['--card-accent' as string]: 'var(--hero-accent)' }}>
-      <label className="block text-sm font-bold text-[var(--lp-heading)]">Your name</label>
+    <div key={errN} style={{ ...card, animation: errN ? 'join-shake .4s' : 'join-pageIn .4s both' }}>
+      <label htmlFor="join-r-name" style={{ fontSize: 14, fontWeight: 800, color: INK }}>
+        Your name
+      </label>
       <input
+        id="join-r-name"
+        className="join-field"
         value={fullName}
-        onChange={(e) => setFullName(e.target.value)}
+        onChange={(e) => {
+          setFullName(e.target.value)
+          setError('')
+        }}
+        onKeyDown={onKey}
         placeholder="Your full name"
-        className={inputClass}
-        onKeyDown={(e) => e.key === 'Enter' && submit()}
       />
-      <label className="block text-sm font-bold text-[var(--lp-heading)]">Your passcode</label>
+      <label htmlFor="join-r-pass" style={{ fontSize: 14, fontWeight: 800, color: INK }}>
+        Your passcode
+      </label>
       <input
+        id="join-r-pass"
+        className="join-field join-field-code"
         value={passcode}
-        onChange={(e) => setPasscode(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))}
+        onChange={(e) => {
+          setPasscode(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))
+          setError('')
+        }}
+        onKeyDown={onKey}
         type="text"
         autoCapitalize="off"
         autoCorrect="off"
         spellCheck={false}
         placeholder="e.g. joshmfm7"
-        className={`${inputClass} text-center text-xl tracking-wide`}
-        onKeyDown={(e) => e.key === 'Enter' && submit()}
       />
-      <label className="flex items-center gap-2 text-sm text-[var(--lp-muted)]">
-        <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMeChecked(e.target.checked)} className="h-4 w-4" />
+      <button
+        type="button"
+        role="checkbox"
+        aria-checked={rememberMe}
+        onClick={() => setRememberMeChecked((v) => !v)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: 0,
+          border: 'none',
+          background: 'none',
+          fontSize: 14,
+          color: MUTED,
+          cursor: 'pointer',
+          textAlign: 'left',
+        }}
+      >
+        <span
+          style={{
+            width: 18,
+            height: 18,
+            borderRadius: 5,
+            border: `2px solid ${rememberMe ? '#8a1fb0' : 'rgba(22,11,42,.3)'}`,
+            background: rememberMe ? '#8a1fb0' : '#fff',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all .2s',
+            boxSizing: 'border-box',
+          }}
+        >
+          <Check aria-hidden style={{ width: 12, height: 12, color: '#fff', opacity: rememberMe ? 1 : 0 }} strokeWidth={3} />
+        </span>
         Remember me on this device
-      </label>
-      {error && <p className="text-sm text-red-500">{error}</p>}
-      <button onClick={submit} disabled={submitting} className="lp-btn-solid w-full py-3 text-base">
+      </button>
+      {error && <p style={{ margin: 0, fontSize: 14, color: '#d6334a' }}>{error}</p>}
+      <button type="button" onClick={submit} disabled={submitting} className="join-cta">
         {submitting ? 'Signing in…' : 'Sign In'}
       </button>
     </div>

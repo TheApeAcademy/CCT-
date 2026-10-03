@@ -204,16 +204,14 @@ function App() {
               }
             />
           </Route>
-          <Route path="teacher" element={<PortalShell eyebrow="Teacher Portal" />}>
-            <Route
-              index
-              element={
-                <Suspense fallback={<LazyFallback />}>
-                  <TeacherPortal />
-                </Suspense>
-              }
-            />
-          </Route>
+          <Route
+            path="teacher"
+            element={
+              <Suspense fallback={<LazyFallback />}>
+                <TeacherPortal />
+              </Suspense>
+            }
+          />
           <Route path="student" element={<Outlet />}>
             <Route
               index

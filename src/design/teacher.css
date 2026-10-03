@@ -175,3 +175,19 @@
     min-height: 0 !important;
   }
 }
+
+/* The sidebar shrinks to icons on a phone, so the count sits on the icon. */
+@media (max-width: 640px) {
+  .tp-badge {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    min-width: 17px !important;
+    height: 17px !important;
+    padding: 0 4px !important;
+    font-size: 10px !important;
+  }
+  .tp-who {
+    display: none;
+  }
+}

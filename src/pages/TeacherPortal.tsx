@@ -251,7 +251,7 @@ function TeacherDashboard({ profile, onProfile }: { profile: Profile; onProfile:
               <Icon style={{ flexShrink: 0, width: 20, height: 20 }} strokeWidth={2} />
               <span style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</span>
               {id === 'ears' && earsNew > 0 && (
-                <span style={{ minWidth: 20, height: 20, padding: '0 6px', boxSizing: 'border-box', borderRadius: 999, background: '#ff4f6b', color: '#fff', fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'tp-ping 1.6s infinite' }}>{earsNew}</span>
+                <span className="tp-badge" style={{ minWidth: 20, height: 20, padding: '0 6px', boxSizing: 'border-box', borderRadius: 999, background: '#ff4f6b', color: '#fff', fontSize: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'tp-ping 1.6s infinite' }}>{earsNew}</span>
               )}
             </button>
           )
@@ -262,7 +262,7 @@ function TeacherDashboard({ profile, onProfile }: { profile: Profile; onProfile:
           ) : (
             <span style={{ flexShrink: 0, width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,#19c99b,#07665a)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: '#fff' }}>{first(profile.full_name)[0]}</span>
           )}
-          <span style={{ minWidth: 0, fontSize: 13, lineHeight: 1.2 }}>
+          <span className="tp-who" style={{ minWidth: 0, fontSize: 13, lineHeight: 1.2 }}>
             <span style={{ display: 'block', fontWeight: 800, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{profile.full_name || 'Teacher'}</span>
             <span style={{ display: 'block', color: 'rgba(236,230,250,.5)', whiteSpace: 'nowrap' }}>Teacher</span>
           </span>

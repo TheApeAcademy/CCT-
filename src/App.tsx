@@ -224,16 +224,17 @@ function App() {
               }
             />
           </Route>
-          <Route path="parent" element={<PortalShell eyebrow="Parent Dashboard" />}>
-            <Route
-              index
-              element={
-                <Suspense fallback={<LazyFallback />}>
-                  <ParentPortal />
-                </Suspense>
-              }
-            />
-          </Route>
+          {/* The parent pages from the design handoff draw their own chrome
+              once a parent is signed in; sign-in itself still sits in the
+              portal shell (see ParentPortal). */}
+          <Route
+            path="parent/*"
+            element={
+              <Suspense fallback={<LazyFallback />}>
+                <ParentPortal />
+              </Suspense>
+            }
+          />
           {/* The handoff's Join screen is the whole page: no header, no footer,
               the logo itself links home. */}
           <Route path="join" element={<Outlet />}>

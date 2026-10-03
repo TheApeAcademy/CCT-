@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, type ReactNode } from 'react'
 import { Link, Outlet } from 'react-router-dom'
 import BackButton from './BackButton'
 import ThemeToggle from './ThemeToggle'
@@ -27,7 +27,7 @@ const NotificationBell = lazy(() => import('./NotificationBell'))
  * data-kid-surface: the Duolingo button and heading rules belong to the
  * screens a child taps, not to a teacher's register.
  */
-export default function PortalShell({ eyebrow }: { eyebrow: string }) {
+export default function PortalShell({ eyebrow, children }: { eyebrow: string; children?: ReactNode }) {
   const autoHidden = useAutoHideNav()
   // This shell used to be pinned to light, so an admin or a teacher had no
   // dark mode at all, on the portal or on the sign in page it wraps. It reads
@@ -66,7 +66,7 @@ export default function PortalShell({ eyebrow }: { eyebrow: string }) {
         </div>
       </header>
       <main className="relative z-10 mx-auto max-w-5xl px-4 py-8">
-        <Outlet />
+        {children ?? <Outlet />}
       </main>
       <footer className="relative mx-auto max-w-5xl px-4 pb-8 pt-4 text-center">
         <Link to="/" className="text-xs text-[var(--lp-faint)] transition hover:text-[var(--lp-muted)]">

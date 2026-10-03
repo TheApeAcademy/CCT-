@@ -51,6 +51,7 @@ import { lessonArt } from '../content/bibleBookArt'
 import StreakScreen from '../components/StreakScreen'
 import PrayerJournalPage from '../components/PrayerJournal'
 import ReadingPlanPage from '../components/ReadingPlan'
+import AchievementsPage from '../components/Achievements'
 import { listMyPrayers, type Prayer } from '../lib/prayerJournal'
 import { getCountryForOffset } from '../content/prayerCountries'
 import BibleHelperPage from '../components/BibleHelper'
@@ -150,7 +151,7 @@ type Tab = KidsTab
 type Klass = ClassRow & { teacher_name: string; teacher_avatar: string | null }
 type AppKey = 'chat' | 'friends' | 'badges' | 'bank' | 'prayer' | 'diary' | 'calendar' | 'collection' | 'world' | 'buddy'
 /** The full-page kids' apps from the handoff, laid over the whole dashboard. */
-type KidsPageKey = 'characters' | 'helper' | 'prayer' | 'reading'
+type KidsPageKey = 'characters' | 'helper' | 'prayer' | 'reading' | 'achievements'
 const OpenPage = createContext<(page: KidsPageKey) => void>(() => {})
 type Go = (id: Tab) => (e?: ReactMouseEvent) => void
 
@@ -967,7 +968,7 @@ function Dashboard() {
             )}
             {tab === 'leaderboard' && <LeaderboardRoom myId={student?.id ?? null} />}
             {tab === 'profile' && (
-              <CardRoom student={student} state={studentState} klass={klass} onSaved={load} onRetry={load} boom={boom} openApp={openApp} />
+              <CardRoom student={student} state={studentState} klass={klass} onSaved={load} onRetry={load} boom={boom} />
             )}
             {tab === 'messages' &&
               (klass ? <MessagesRoom teacherId={klass.teacher_id} teacherName={klass.teacher_name} teacherAvatar={klass.teacher_avatar} /> : <MessagesLockedRoom code={student?.student_code ?? null} />)}
@@ -1036,6 +1037,8 @@ function Dashboard() {
       )}
 
       {page === 'reading' && <ReadingPlanPage onExit={closePage} />}
+
+      {page === 'achievements' && <AchievementsPage achievements={achievements} points={student?.total_points ?? 0} heroTotal={characterCatalog.length} onExit={closePage} />}
 
       {revealCharacter && (
         <CharacterRevealModal
@@ -1256,7 +1259,7 @@ function HomeRoom({
             <p style={eyebrow}>My Badges</p>
             <button
               type="button"
-              onClick={() => openApp('badges')}
+              onClick={() => openPage('achievements')}
               style={{ border: 'none', background: 'none', padding: 0, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13, fontWeight: 800, color: '#ffd84d' }}
             >
               See all →
@@ -2912,7 +2915,6 @@ function CardRoom({
   onSaved,
   onRetry,
   boom,
-  openApp,
 }: {
   student: StudentRow | null
   state: 'loading' | 'ready' | 'error'
@@ -2920,9 +2922,8 @@ function CardRoom({
   onSaved: () => void
   onRetry: () => void
   boom: () => void
-  openApp: (k: AppKey) => void
 }) {
-  if (state === 'ready' && student) return <ProfileRoom student={student} klass={klass} onSaved={onSaved} boom={boom} openApp={openApp} />
+  if (state === 'ready' && student) return <ProfileRoom student={student} klass={klass} onSaved={onSaved} boom={boom} />
   if (state === 'loading') {
     return (
       <div style={{ padding: 26, textAlign: 'center', ...quietCard }}>
@@ -2995,13 +2996,11 @@ function ProfileRoom({
   klass,
   onSaved,
   boom,
-  openApp,
 }: {
   student: StudentRow
   klass: Klass | null
   onSaved: () => void
   boom: () => void
-  openApp: (k: AppKey) => void
 }) {
   const openPage = useContext(OpenPage)
   const [bio, setBio] = useState(student.bio ?? '')
@@ -3137,7 +3136,7 @@ function ProfileRoom({
     <>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,260px),1fr))', gap: 14, marginBottom: 18 }}>
         {linkCard('Avatar Studio', 'Choose a new photo for your card.', 'linear-gradient(135deg,#d08af0,#8a1fb0)', SmilePlus, () => fileRef.current?.click())}
-        {linkCard('Achievements', 'Your badges and your level.', 'linear-gradient(135deg,#ffd84d,#f0a400)', Trophy, () => openApp('badges'))}
+        {linkCard('Achievements', 'Your badges and your level.', 'linear-gradient(135deg,#ffd84d,#f0a400)', Trophy, () => openPage('achievements'))}
       </div>
       <div style={{ marginBottom: 18 }}>
         <button

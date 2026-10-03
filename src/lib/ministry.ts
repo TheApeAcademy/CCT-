@@ -1259,6 +1259,24 @@ export async function listAllAchievements(): Promise<AchievementRow[]> {
   return data ?? []
 }
 
+/** What the Achievements page measures badges against. A count it could not read is null. */
+export interface MyBadgeStats {
+  readings: number | null
+  lessons: number | null
+  quizzes: number | null
+}
+
+export async function getMyBadgeStats(): Promise<MyBadgeStats> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) return { readings: null, lessons: null, quizzes: null }
+  const count = async (table: string) => {
+    const { count: n, error } = await supabase.from(table).select('*', { count: 'exact', head: true }).eq('student_id', auth.user!.id)
+    return error ? null : (n ?? 0)
+  }
+  const [readings, lessons, quizzes] = await Promise.all([count('student_bible_progress'), count('journey_progress'), count('quiz_attempts')])
+  return { readings, lessons, quizzes }
+}
+
 // ---------- private notes (Notebook / Diary / Prayer Journal) ----------
 // Always fully private to the student who wrote them - no teacher/admin
 // policy exists on this table at all, by design.

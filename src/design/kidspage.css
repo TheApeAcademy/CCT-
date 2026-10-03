@@ -216,3 +216,22 @@
   60% { transform: scale(1.15); }
   100% { transform: scale(1); }
 }
+
+/* Achievements */
+[data-dc-screen='kidspage'][data-page='trophy'] {
+  --card: rgba(32, 20, 56, 0.85);
+}
+[data-dc-screen='kidspage'][data-page='trophy'][data-sky='day'] {
+  --bg: #fffaf0;
+  --card: #ffffff;
+  --hdr: rgba(255, 250, 240, 0.86);
+  --track: rgba(22, 11, 42, 0.07);
+  --lockbg: #efe8f8;
+  --glow: rgba(255, 201, 60, 0.4) !important;
+}
+@keyframes kp-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes kp-ring {
+  from { stroke-dashoffset: 339; }
+}

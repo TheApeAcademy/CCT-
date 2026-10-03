@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { db } from '../db/db'
 import type { GameSession, Match, GameConfig } from '../db/types'
@@ -7,6 +7,8 @@ import Fireworks from '../components/Fireworks'
 import CountUp from '../components/CountUp'
 import * as sound from '../lib/sound'
 import { haptics } from '../lib/haptics'
+import QuizStage from '../components/quizshow/QuizStage'
+import { card, display, eyebrow, ghostBtn, goldBtn, mono, teamColour } from '../components/quizshow/kit'
 
 export default function Results() {
   const { sessionId } = useParams()
@@ -49,12 +51,17 @@ export default function Results() {
     })
   }, [sessionId])
 
-  if (!session) return <div className="py-20 text-center text-xl">Loading results…</div>
+  if (!session) {
+    return (
+      <QuizStage step="results">
+        <div style={{ padding: '80px 0', textAlign: 'center', fontSize: 20 }}>Loading results…</div>
+      </QuizStage>
+    )
+  }
 
   const isPerfect = session.correctCount === session.totalLevels
   const endedEarly = session.outcome === 'ended_early'
-  const emoji = isPerfect ? '👑' : endedEarly ? '🚪' : session.correctCount >= session.totalLevels / 2 ? '🌟' : '💫'
-  const title = isPerfect ? 'PERFECT SCORE!' : endedEarly ? 'Turn Ended' : "Turn Complete!"
+  const title = isPerfect ? 'Perfect score!' : endedEarly ? 'Turn ended' : 'Turn complete!'
   const encouragement = isPerfect
     ? 'Every single question, nailed it. Legendary run!'
     : endedEarly
@@ -62,6 +69,7 @@ export default function Results() {
       : session.correctCount >= session.totalLevels / 2
         ? 'Great job! Solid round of trivia.'
         : 'Nice try! Every question is a chance to learn something new.'
+  const colour = teamColour(session.teamIndex ?? 0)
 
   const hasNextTeam = !!match && session.teamIndex !== undefined && session.teamIndex < match.teamNames.length - 1
 
@@ -92,127 +100,89 @@ export default function Results() {
     navigate('/play', { state: config })
   }
 
+  const linkBtn: CSSProperties = { ...ghostBtn, fontSize: 16, padding: '15px 26px' }
+
   return (
-    <div className="mx-auto max-w-3xl space-y-6 px-4 py-8 text-center">
+    <QuizStage step="results">
       <Confetti active={showConfetti} />
       <Fireworks active={showFireworks} />
-
-      <div>
+      <div style={{ width: '100%', maxWidth: 820, margin: '0 auto', textAlign: 'center', animation: 'qs-up .5s both' }}>
+        <p style={{ margin: '20px 0 0', fontSize: 13, fontWeight: 800, letterSpacing: '.2em', color: '#ffd84d' }}>
+          {match && match.teamNames.length > 1 ? `TEAM ${(session.teamIndex ?? 0) + 1} OF ${match.teamNames.length}` : 'YOUR RESULT'}
+        </p>
         {session.playerPhoto ? (
-          <img
-            src={session.playerPhoto}
-            alt=""
-            className="animate-crown-bounce mx-auto mb-2 h-24 w-24 rounded-full object-cover shadow-xl shadow-black/40 ring-4 ring-amber-400/60"
-          />
+          <img src={session.playerPhoto} alt="" style={{ display: 'block', margin: '18px auto 0', width: 96, height: 96, borderRadius: '50%', objectFit: 'cover', border: `4px solid ${isPerfect ? '#ffd84d' : colour}`, animation: 'qs-pop .6s both' }} />
         ) : (
-          <p className="animate-crown-bounce text-6xl drop-shadow-[0_0_25px_rgba(250,204,21,0.5)]">{emoji}</p>
+          <span style={{ display: 'block', margin: '18px auto 0', width: 80, height: 80, borderRadius: '50%', background: colour, border: `4px solid ${isPerfect ? '#ffd84d' : '#fff'}`, animation: 'qs-pop .6s both' }} />
         )}
-        <h1 className="mt-2 font-display text-4xl font-extrabold sm:text-5xl">
-          {isPerfect ? (
-            <span className="bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-200 bg-clip-text text-transparent animate-shimmer">
-              {title}
-            </span>
-          ) : (
-            title
-          )}
-        </h1>
-        <p className="mt-1 text-xl text-white/80">{session.playerName}</p>
-        {match && (
-          <p className="text-sm text-white/40">
-            Team {(session.teamIndex ?? 0) + 1} of {match.teamNames.length}
+        <h1 style={{ margin: '14px 0 0', fontFamily: display, fontWeight: 800, fontSize: 'clamp(40px,6vw,72px)', lineHeight: 0.95, letterSpacing: '-.04em', color: isPerfect ? '#ffd84d' : '#fff' }}>{title}</h1>
+        <p style={{ margin: '8px 0 0', fontFamily: display, fontWeight: 800, fontSize: 22, color: '#fff', overflowWrap: 'anywhere' }}>{session.playerName}</p>
+        <p style={{ margin: '6px 0 0', color: 'rgba(236,230,250,.6)' }}>{encouragement}</p>
+
+        <div style={{ ...card, marginTop: 26 }}>
+          <p style={eyebrow}>SCORE</p>
+          <p style={{ margin: '6px 0 0', fontFamily: mono, fontSize: 'clamp(48px,7vw,72px)', lineHeight: 1, color: '#ffd84d', textShadow: '0 0 18px rgba(255,216,77,.5)' }}>
+            <CountUp value={session.pointsWon} />
           </p>
-        )}
-        <p className="mt-1 text-sm text-white/50">{encouragement}</p>
-      </div>
+          <p style={{ margin: '8px 0 0' }}>
+            {session.correctCount} of {session.totalLevels} correct
+          </p>
+        </div>
 
-      <div className="rounded-3xl bg-gradient-to-br from-purple-800/60 to-indigo-900/60 p-8 shadow-2xl">
-        <p className="text-sm uppercase tracking-wide text-white/60">Score</p>
-        <p className="font-display text-5xl font-extrabold text-amber-300">
-          <CountUp value={session.pointsWon} /> 👑
-        </p>
-        <p className="mt-2 text-white/70">
-          {session.correctCount} of {session.totalLevels} correct
-        </p>
-      </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,150px),1fr))', gap: 12, marginTop: 12 }}>
+          <Stat label="Correct" value={session.correctCount} />
+          <Stat label="Wrong" value={session.wrongCount} />
+          <Stat label="Time played" value={`${minutes}:${seconds.toString().padStart(2, '0')}`} />
+          <Stat label="Lifelines used" value={Object.values(session.lifelinesUsed).filter(Boolean).length} />
+        </div>
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <Stat label="Correct" value={session.correctCount} />
-        <Stat label="Wrong" value={session.wrongCount} />
-        <Stat label="Time Played" value={`${minutes}:${seconds.toString().padStart(2, '0')}`} />
-        <Stat label="Lifelines Used" value={Object.values(session.lifelinesUsed).filter(Boolean).length} />
-      </div>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 10, flexWrap: 'wrap', marginTop: 26 }}>
+          {hasNextTeam ? (
+            <button type="button" className="qs-gold" onClick={handleNextTeam} style={{ ...goldBtn, padding: '15px 26px', fontSize: 16, boxShadow: '0 5px 0 #8a5a00' }}>
+              Next: {match!.teamNames[(session.teamIndex ?? 0) + 1]} →
+            </button>
+          ) : match ? (
+            <Link to={`/match-results/${match.id}`} onClick={() => sound.playClick()} className="qs-gold" style={{ ...goldBtn, padding: '15px 26px', fontSize: 16, boxShadow: '0 5px 0 #8a5a00', color: '#1a0f2e' }}>
+              See the final results
+            </Link>
+          ) : null}
+          <Link to="/setup" onClick={() => sound.playClick()} style={linkBtn}>
+            New setup
+          </Link>
+          <Link to="/history" onClick={() => sound.playClick()} style={linkBtn}>
+            Match history
+          </Link>
+        </div>
 
-      <div className="rounded-2xl bg-white/5 p-5 text-left">
-        <h2 className="mb-3 text-center text-lg font-bold">Question Recap</h2>
-        <div className="space-y-2">
-          {session.answers.map((a, i) => (
-            <div
-              key={i}
-              className="animate-page-in rounded-xl bg-black/20 p-3 text-sm"
-              style={{ animationDelay: `${i * 60}ms` }}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-white/50">Q{a.level}</p>
-                  <p className="font-medium">{a.questionText}</p>
+        <div style={{ ...card, marginTop: 26, textAlign: 'left' }}>
+          <p style={eyebrow}>QUESTION RECAP</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
+            {session.answers.map((a, i) => (
+              <div key={i} style={{ padding: '14px 16px', borderRadius: 16, background: 'rgba(0,0,0,.2)', animation: 'qs-up .4s both', animationDelay: `${i * 60}ms` }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                  <span style={{ minWidth: 0 }}>
+                    <span style={{ display: 'block', fontSize: 12, fontWeight: 800, letterSpacing: '.1em', color: 'rgba(236,230,250,.5)' }}>QUESTION {a.level}</span>
+                    <span style={{ display: 'block', marginTop: 4, fontWeight: 700, color: '#fff' }}>{a.questionText}</span>
+                  </span>
+                  <span style={{ flexShrink: 0, padding: '4px 10px', borderRadius: 999, background: a.correct ? 'rgba(47,224,181,.16)' : 'rgba(255,91,107,.14)', color: a.correct ? '#5cf0c8' : '#ff8a96', fontSize: 12, fontWeight: 800, whiteSpace: 'nowrap' }}>
+                    {a.correct ? '✓ Correct' : a.timedOut ? 'Timed out' : '✗ Wrong'}
+                  </span>
                 </div>
-                <span
-                  className={`shrink-0 rounded-full px-3 py-1 font-bold ${a.correct ? 'bg-green-500/30 text-green-300' : 'bg-red-500/30 text-red-300'}`}
-                >
-                  {a.correct ? '✓ Correct' : a.timedOut ? '⏰ Timed out' : '✗ Wrong'}
-                </span>
+                {!a.correct && <p style={{ margin: '6px 0 0', fontSize: 14, color: '#5cf0c8' }}>Answer: {a.options[a.correctIndex]}</p>}
               </div>
-              {!a.correct && (
-                <p className="mt-2 text-green-300/90">
-                  ✓ Correct answer: <span className="font-semibold">{a.options[a.correctIndex]}</span>
-                </p>
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
-
-      <div className="flex flex-wrap justify-center gap-4">
-        {hasNextTeam ? (
-          <button
-            onClick={handleNextTeam}
-            className="animate-pulse-glow rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-500 px-8 py-4 text-lg font-bold text-purple-950 shadow-lg shadow-amber-400/20 transition hover:scale-105"
-          >
-            ▶ Next: {match!.teamNames[(session.teamIndex ?? 0) + 1]}
-          </button>
-        ) : match ? (
-          <Link
-            to={`/match-results/${match.id}`}
-            onClick={() => sound.playClick()}
-            className="animate-pulse-glow rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-500 px-8 py-4 text-lg font-bold text-purple-950 shadow-lg shadow-amber-400/20 transition hover:scale-105"
-          >
-            🏆 View Match Results
-          </Link>
-        ) : null}
-        <Link
-          to="/setup"
-          onClick={() => sound.playClick()}
-          className="rounded-2xl bg-white/10 px-8 py-4 text-lg font-bold transition hover:scale-105 hover:bg-white/20"
-        >
-          🎮 New Game
-        </Link>
-        <Link
-          to="/history"
-          onClick={() => sound.playClick()}
-          className="rounded-2xl bg-white/10 px-8 py-4 text-lg font-bold transition hover:scale-105 hover:bg-white/20"
-        >
-          📜 History
-        </Link>
-      </div>
-    </div>
+    </QuizStage>
   )
 }
 
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-2xl border border-white/5 bg-white/5 p-4 shadow-lg shadow-black/20 transition hover:bg-white/10">
-      <div className="font-display text-2xl font-extrabold text-amber-300">{value}</div>
-      <div className="text-xs uppercase tracking-wide text-white/60">{label}</div>
+    <div style={{ padding: 16, borderRadius: 20, background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.1)' }}>
+      <div style={{ fontFamily: display, fontWeight: 800, fontSize: 28, color: '#ffd84d' }}>{value}</div>
+      <div style={{ marginTop: 2, fontSize: 11, fontWeight: 800, letterSpacing: '.1em', textTransform: 'uppercase', color: 'rgba(236,230,250,.6)' }}>{label}</div>
     </div>
   )
 }

@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { Square, Volume2 } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import type { GameConfig } from '../db/types'
 import { playNav, playWhoosh, playClick, playDramaticSting, playFanfare } from '../lib/sound'
 import { haptics } from '../lib/haptics'
+import QuizStage from '../components/quizshow/QuizStage'
+import { display, ghostBtn, goldBtn } from '../components/quizshow/kit'
 
 const RULES = [
   'Listen carefully while the question is being read aloud.',
@@ -63,52 +66,60 @@ export default function GroundRules() {
   const navigate = useNavigate()
   const config = location.state as GameConfig | undefined
 
-  const [open, setOpen] = useState(false)
+  // Which rule is being read aloud right now: -1 before reading starts.
+  const [ruleI, setRuleI] = useState(-1)
   const [speaking, setSpeaking] = useState(false)
+  const speakingRef = useRef(false)
 
   useEffect(() => {
     if (!config) navigate('/setup', { replace: true })
   }, [config, navigate])
 
   useEffect(() => {
+    playFanfare()
+    playWhoosh()
     return () => {
+      speakingRef.current = false
       if (typeof window !== 'undefined' && window.speechSynthesis) window.speechSynthesis.cancel()
     }
   }, [])
 
   if (!config) return null
 
-  const raiseCurtain = () => {
-    setOpen(true)
-    playFanfare()
-    playWhoosh()
-    haptics.tap()
+  const stop = () => {
+    speakingRef.current = false
+    window.speechSynthesis?.cancel()
+    setSpeaking(false)
   }
 
+  // Each rule is spoken on its own so the card being read lights up, the
+  // same natural-voice pick as before, still plain Web Speech and offline.
   const readAloud = async () => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return
-    if (speaking) {
-      window.speechSynthesis.cancel()
-      setSpeaking(false)
-      return
-    }
+    if (speaking) return stop()
     playClick()
-    const voices = await getVoicesAsync()
-    const text = `Welcome to ${config.setName}. Before we begin, here are our ground rules. ${RULES.join(' ')} Let's begin!`
-    const utterance = new SpeechSynthesisUtterance(text)
-    const voice = pickNaturalVoice(voices)
-    if (voice) utterance.voice = voice
-    utterance.rate = 1
-    utterance.pitch = 1
-    utterance.onend = () => setSpeaking(false)
-    utterance.onerror = () => setSpeaking(false)
+    haptics.tap()
+    const voice = pickNaturalVoice(await getVoicesAsync())
     window.speechSynthesis.cancel()
-    window.speechSynthesis.speak(utterance)
+    speakingRef.current = true
     setSpeaking(true)
+    const lines = [`Welcome to ${config.setName}. Before we begin, here are our ground rules.`, ...RULES.map((r, i) => `Rule ${i + 1}. ${r}`), "Let's begin!"]
+    const say = (i: number) => {
+      if (!speakingRef.current) return
+      if (i >= lines.length) return stop()
+      setRuleI(i === 0 ? -1 : Math.min(i - 1, RULES.length - 1))
+      const u = new SpeechSynthesisUtterance(lines[i])
+      if (voice) u.voice = voice
+      u.rate = 0.95
+      u.onend = () => window.setTimeout(() => say(i + 1), 300)
+      u.onerror = () => stop()
+      window.speechSynthesis.speak(u)
+    }
+    say(0)
   }
 
   const beginQuiz = () => {
-    if (typeof window !== 'undefined' && window.speechSynthesis) window.speechSynthesis.cancel()
+    stop()
     playDramaticSting()
     playNav()
     haptics.success()
@@ -116,71 +127,36 @@ export default function GroundRules() {
   }
 
   return (
-    <div className="relative flex w-full flex-1 flex-col items-center justify-center overflow-hidden px-4 py-8 text-center">
-      {/* Stage revealed behind the curtain: a real photo backdrop, edge to edge - no rounded card, no max-width. */}
-      <div className="absolute inset-0 -z-10 overflow-hidden">
-        <img src="/hero-quiz.jpg" alt="" aria-hidden="true" className="h-full w-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-b from-indigo-950/90 via-purple-950/85 to-indigo-950/95" />
-        <div
-          className="animate-spotlight-1 absolute -left-1/4 -top-1/4 h-[60vmax] w-[60vmax] rounded-full opacity-30 blur-3xl"
-          style={{ background: 'radial-gradient(circle, rgba(250,204,21,0.3) 0%, transparent 65%)' }}
-        />
-      </div>
-
-      <div className={`relative z-10 mx-auto w-full max-w-7xl space-y-[2.5vh] transition-opacity duration-500 ${open ? 'opacity-100' : 'opacity-0'}`}>
-        <div>
-          <p className="text-lg font-bold uppercase tracking-[0.3em] text-amber-300/90 sm:text-2xl">Ground Rules</p>
-          <h1 className="font-display font-extrabold leading-tight" style={{ fontSize: 'clamp(2rem, min(5vw, 7vh), 5rem)' }}>
-            Before We Begin...
-          </h1>
-          <p className="mt-2 text-lg text-white/60 sm:text-2xl">{config.setName}</p>
+    <QuizStage step="rules">
+      <div style={{ width: '100%', maxWidth: 880, margin: '0 auto', textAlign: 'center', animation: 'qs-up .5s both' }}>
+        <p style={{ margin: '20px 0 0', fontSize: 13, fontWeight: 800, letterSpacing: '.2em', color: '#ffd84d' }}>BEFORE WE BEGIN</p>
+        <h1 style={{ margin: '10px 0 0', fontFamily: display, fontWeight: 800, fontSize: 'clamp(44px,7vw,92px)', lineHeight: 0.92, letterSpacing: '-.045em', color: '#fff' }}>Ground Rules</h1>
+        <p style={{ margin: '12px 0 0', fontSize: 16, color: 'rgba(236,230,250,.6)' }}>{config.setName}</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 28, textAlign: 'left' }}>
+          {RULES.map((t, i) => {
+            const on = ruleI === i
+            const idle = ruleI < 0
+            return (
+              <div
+                key={i}
+                style={{ display: 'flex', alignItems: 'center', gap: 18, padding: '18px 22px', borderRadius: 22, background: on ? 'rgba(255,216,77,.14)' : 'rgba(255,255,255,.05)', border: `1px solid ${on ? '#ffd84d' : 'rgba(255,255,255,.1)'}`, opacity: idle || on || i < ruleI ? 1 : 0.45, transform: `scale(${on ? 1.03 : 1})`, transition: 'all .5s cubic-bezier(.34,1.56,.64,1)', animation: 'qs-up .5s both', animationDelay: `${i * 80}ms` }}
+              >
+                <span style={{ flexShrink: 0, width: 48, height: 48, borderRadius: 16, background: on || idle ? '#ffd84d' : 'rgba(255,255,255,.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: display, fontWeight: 800, fontSize: 22, color: '#1a0f2e' }}>{i + 1}</span>
+                <span style={{ fontSize: 'clamp(17px,2.2vw,22px)', fontWeight: 700, lineHeight: 1.4, color: '#fff' }}>{t}</span>
+              </div>
+            )
+          })}
         </div>
-
-        {/* Sized off the viewport (whichever of width/height is tighter) so
-            the rules read from the back of the room on a projector or TV,
-            yet all six still fit on one screen without scrolling. */}
-        <ul
-          className="mx-auto w-full space-y-[1.2vh] rounded-3xl border border-white/10 bg-black/35 px-[3vw] py-[3vh] text-left font-semibold leading-snug"
-          style={{ fontSize: 'clamp(1.15rem, min(2.6vw, 4.1vh), 3.25rem)' }}
-        >
-          {RULES.map((rule, i) => (
-            <li key={i} className="animate-page-in flex items-start gap-[0.6em]" style={{ animationDelay: `${i * 90}ms` }}>
-              <span className="shrink-0 text-amber-300">✦</span>
-              <span>{rule}</span>
-            </li>
-          ))}
-        </ul>
-
-        <div className="flex flex-wrap justify-center gap-3">
-          <button
-            onClick={readAloud}
-            className="rounded-2xl bg-white/10 px-8 py-4 text-xl font-semibold transition hover:scale-105 hover:bg-white/20 sm:text-2xl"
-          >
-            {speaking ? '⏹ Stop Reading' : '🔊 Read Rules Aloud'}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 10, flexWrap: 'wrap', marginTop: 28 }}>
+          <button type="button" onClick={readAloud} style={ghostBtn}>
+            {speaking ? <Square style={{ width: 18, height: 18 }} /> : <Volume2 style={{ width: 18, height: 18 }} />}
+            {speaking ? 'Stop' : 'Read aloud'}
           </button>
-          <button
-            onClick={beginQuiz}
-            className="animate-pulse-glow rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-500 px-10 py-4 text-xl font-bold sm:text-2xl text-purple-950 shadow-lg shadow-amber-400/20 transition hover:scale-105"
-          >
-            Let's Begin the Quiz! →
+          <button type="button" className="qs-gold" onClick={beginQuiz} style={goldBtn}>
+            Let’s play!
           </button>
         </div>
       </div>
-
-      {/* Two velvet curtain panels that part on click, revealing the stage above. */}
-      {!open && (
-        <button onClick={raiseCurtain} className="absolute inset-0 z-20 flex cursor-pointer items-center justify-center" aria-label="Raise the curtain">
-          <div className="curtain-panel curtain-panel-left" />
-          <div className="curtain-panel curtain-panel-right" />
-          <div className="relative z-10 flex flex-col items-center gap-3 text-center">
-            <img src="/feature-quiz.png" alt="" aria-hidden="true" className="h-24 w-24 object-contain drop-shadow-[0_10px_25px_rgba(0,0,0,0.5)]" />
-            <p className="font-display text-2xl font-extrabold text-amber-200 drop-shadow-lg">Tap to Raise the Curtain</p>
-            <p className="text-sm text-white/70">and reveal the ground rules for {config.setName}</p>
-          </div>
-        </button>
-      )}
-      {open && <div className="curtain-panel curtain-panel-left curtain-open-left pointer-events-none z-0" />}
-      {open && <div className="curtain-panel curtain-panel-right curtain-open-right pointer-events-none z-0" />}
-    </div>
+    </QuizStage>
   )
 }

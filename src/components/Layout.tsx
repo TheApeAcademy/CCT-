@@ -50,7 +50,8 @@ const dropdowns = [
 ] as const
 
 /** Routes whose page draws its own chrome (Claude Design handoff screens). */
-const DESIGN_SCREENS = new Set(['/'])
+const DESIGN_SCREENS = new Set(['/', '/setup', '/ground-rules', '/play'])
+const isDesignScreen = (path: string) => DESIGN_SCREENS.has(path) || path.startsWith('/results/') || path.startsWith('/match-results/')
 
 export default function Layout() {
   const [muted, setMutedState] = useState(isMuted())
@@ -128,7 +129,7 @@ export default function Layout() {
 
   // Screens rebuilt from the Claude Design handoff bring their own header and
   // footer (each prototype has its own chrome), so the site shell steps aside.
-  if (DESIGN_SCREENS.has(location.pathname)) {
+  if (isDesignScreen(location.pathname)) {
     return (
       <div key={location.pathname} className="min-h-screen">
         <Outlet />

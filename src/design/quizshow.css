@@ -1,0 +1,197 @@
+/* Quiz Show (/setup, /ground-rules, /play, /results) - Claude Design handoff,
+   Quiz Show.dc.html. A dark game-show stage with spotlights and stars. The
+   shared tokens are re-pointed to the stage palette so the panels and
+   buttons the quiz still builds with Tailwind (settings, lifeline panels,
+   the picker, the recap) take the same look. */
+[data-dc-screen='quizshow'] {
+  color-scheme: dark;
+  --ink: #0d0618;
+  --ink-raised: #1d0f33;
+  --ink-panel: rgba(255, 255, 255, 0.05);
+  --hairline: rgba(255, 255, 255, 0.1);
+  --hairline-strong: rgba(255, 255, 255, 0.16);
+  --ink-muted: rgba(236, 230, 250, 0.6);
+  --ink-faint: rgba(236, 230, 250, 0.45);
+  --gold: #ffd84d;
+  --gold-ink: #1a0f2e;
+  --fg: #ffffff;
+  --radius-panel: 26px;
+  --radius-control: 14px;
+  --qs-dim: rgba(236, 230, 250, 0.6);
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(ellipse 80% 55% at 50% -5%, rgba(193, 59, 255, 0.45), transparent 60%),
+    radial-gradient(ellipse 50% 40% at 50% 110%, rgba(255, 216, 77, 0.12), transparent 60%),
+    #0d0618;
+  color: rgba(236, 230, 250, 0.85);
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+[data-dc-screen='quizshow'] a {
+  color: #ffd84d;
+  text-decoration: none;
+}
+[data-dc-screen='quizshow'] :is(input, textarea, select) {
+  font-family: inherit;
+}
+[data-dc-screen='quizshow'] :is(input, textarea)::placeholder {
+  color: rgba(236, 230, 250, 0.4);
+}
+[data-dc-screen='quizshow'] svg {
+  display: inline-block;
+}
+[data-dc-screen='quizshow'] [style]:not([class]):not(input, textarea, button, select) {
+  box-sizing: content-box;
+}
+
+[data-dc-screen='quizshow'] .panel {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: none;
+}
+[data-dc-screen='quizshow'] .btn-solid {
+  background: linear-gradient(180deg, #ffe066, #f0a400);
+  color: #1a0f2e;
+  border-radius: 14px;
+}
+[data-dc-screen='quizshow'] .btn-outline {
+  border-color: rgba(255, 255, 255, 0.25);
+  border-radius: 14px;
+  color: #fff;
+}
+[data-dc-screen='quizshow'] .eyebrow {
+  color: #ffd84d;
+}
+[data-dc-screen='quizshow'] .text-red-600 {
+  color: #ff8a96;
+}
+[data-dc-screen='quizshow'] .text-emerald-600 {
+  color: #5cf0c8;
+}
+
+/* Design pieces */
+.qs-field {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(0, 0, 0, 0.25);
+  color: #fff;
+  font-weight: 700;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.qs-field:focus {
+  border-color: #ffd84d;
+}
+.qs-field option {
+  color: #000;
+}
+.qs-gold {
+  transition:
+    transform 0.12s,
+    box-shadow 0.12s;
+}
+.qs-gold:active:not(:disabled) {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 #8a5a00 !important;
+}
+.qs-opt:not(:disabled):hover {
+  border-color: rgba(255, 216, 77, 0.6) !important;
+}
+.qs-noscroll {
+  scrollbar-width: none;
+}
+.qs-noscroll::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes qs-twinkle {
+  0%,
+  100% {
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@keyframes qs-up {
+  0% {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes qs-pop {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes qs-reveal {
+  0% {
+    opacity: 0;
+    transform: scale(0.6) rotateX(70deg);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes qs-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 216, 77, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 14px rgba(255, 216, 77, 0);
+  }
+}
+@keyframes qs-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+@keyframes qs-rise {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+@keyframes qs-spot {
+  0% {
+    transform: translateX(-30%) rotate(-12deg);
+  }
+  100% {
+    transform: translateX(30%) rotate(12deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-dc-screen='quizshow'] * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

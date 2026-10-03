@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
+import { useEffect, useMemo, useRef, useState, useCallback, type CSSProperties } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { db, getOrCreatePlayer, completeMatch, getMatchSessions } from '../db/db'
 import { buildLadder, pointsForLevel } from '../lib/ladder'
@@ -7,7 +7,10 @@ import * as sound from '../lib/sound'
 import { haptics } from '../lib/haptics'
 import Confetti from '../components/Confetti'
 import CountUp from '../components/CountUp'
-import type { AnswerRecord, GameConfig, GameOutcome, GameSession, LadderLevel, LifelinesUsed, Question } from '../db/types'
+import QuizStage from '../components/quizshow/QuizStage'
+import { display, goldBtn, mono, teamColour } from '../components/quizshow/kit'
+import { Pause, Phone, Settings, Split, Users, type LucideIcon } from 'lucide-react'
+import type { AnswerRecord, GameConfig, GameOutcome, GameSession, LifelinesUsed, Question } from '../db/types'
 
 type Phase =
   | 'loading'
@@ -179,7 +182,6 @@ export default function Gameplay() {
   const teamName = config?.teamNames[activeTeamIndex] ?? ''
   const isLastTeam = config ? config.teamIndex >= config.teamNames.length - 1 : false
   const answers = answersByTeam[activeTeamIndex] ?? []
-  const runningScore = answers.reduce((sum, a) => sum + (a.correct ? a.points : 0), 0)
 
   const queueLeaderboardSync = useCallback(
     async (teamIdx: number, playerName: string, pointsWon: number, correctCount: number) => {
@@ -378,47 +380,54 @@ export default function Gameplay() {
 
   if (!config) return null
   if (!questions || phase === 'loading' || !currentQuestion) {
-    return <div className="py-20 text-center text-xl">Loading game…</div>
+    return (
+      <QuizStage step="play">
+        <div style={{ padding: '80px 0', textAlign: 'center', fontSize: 20 }}>Loading game…</div>
+      </QuizStage>
+    )
   }
 
   if (phase === 'switching') {
     return (
-      <NextUpReveal
-        teamName={teamName}
-        teamPhoto={config.teamPhotos?.[activeTeamIndex]}
-        teamNumber={activeTeamIndex + 1}
-        totalTeams={config.teamNames.length}
-        questionNumber={turnsCompleted + 1}
-        totalQuestions={ladder.length}
-      />
+      <QuizStage step="play">
+        <NextUpReveal
+          teamName={teamName}
+          teamPhoto={config.teamPhotos?.[activeTeamIndex]}
+          teamNumber={activeTeamIndex + 1}
+          totalTeams={config.teamNames.length}
+          questionNumber={turnsCompleted + 1}
+          totalQuestions={ladder.length}
+        />
+      </QuizStage>
     )
   }
 
   if (phase === 'intro') {
     return (
-      <IntroCountdown
-        teamName={teamName}
-        teamPhoto={config.teamPhotos?.[activeTeamIndex]}
-        teamNumber={activeTeamIndex + 1}
-        totalTeams={config.teamNames.length}
-        step={introStep}
-      />
+      <QuizStage step="play">
+        <IntroCountdown
+          teamName={teamName}
+          teamPhoto={config.teamPhotos?.[activeTeamIndex]}
+          teamNumber={activeTeamIndex + 1}
+          totalTeams={config.teamNames.length}
+          step={introStep}
+        />
+      </QuizStage>
     )
   }
 
   if (phase === 'paused') {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-6 py-24 text-center">
-        <p className="text-6xl">⏸️</p>
-        <h1 className="font-display text-3xl font-extrabold">Paused</h1>
-        <p className="text-white/60">Nothing's ticking while you're here. Resume whenever you're ready.</p>
-        <button
-          onClick={handleResume}
-          className="rounded-2xl bg-gradient-to-r from-amber-400 to-yellow-500 px-10 py-4 text-xl font-bold text-purple-950 shadow-lg shadow-amber-400/20 transition hover:scale-105"
-        >
-          ▶ Resume
-        </button>
-      </div>
+      <QuizStage step="play">
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18, padding: '80px 0', textAlign: 'center', animation: 'qs-up .4s both' }}>
+          <p style={{ margin: 0, fontSize: 13, fontWeight: 800, letterSpacing: '.2em', color: '#ffd84d' }}>PAUSED</p>
+          <h1 style={{ margin: 0, fontFamily: display, fontWeight: 800, fontSize: 'clamp(40px,6vw,72px)', lineHeight: 0.95, letterSpacing: '-.04em', color: '#fff' }}>Take a breath</h1>
+          <p style={{ margin: 0, color: 'rgba(236,230,250,.6)' }}>Nothing is ticking while you're here. Resume whenever you're ready.</p>
+          <button type="button" className="qs-gold" onClick={handleResume} style={goldBtn}>
+            Resume
+          </button>
+        </div>
+      </QuizStage>
     )
   }
 
@@ -563,302 +572,254 @@ export default function Gameplay() {
   const optionLabel = (i: number) => String.fromCharCode(65 + i)
   const showResult = revealed && (phase === 'locked' || phase === 'feedback')
   const suspense = phase === 'locked' && !revealed
-  const isHeadToHead = config.teamNames.length === 2
+  const inLifeline = phase === 'lifeline-audience' || phase === 'lifeline-friend'
+  const lastAnswer = answers[answers.length - 1]
+  const tc = teamColour(activeTeamIndex)
+  const ticking = phase === 'question'
+  const urgent = ticking && timeLeft <= 5
+  const clockCol = urgent ? '#ff5b6b' : '#2fe0b5'
+  const clockText = timeLeft >= 60 ? `${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, '0')}` : `00:${String(Math.max(0, timeLeft)).padStart(2, '0')}`
+  const usedLevels = new Set(isRotational ? Object.values(answersByTeam).flat().map((a) => a.level) : answers.map((a) => a.level))
+  const teamAnswersFor = (idx: number) => answersByTeam[idx] ?? pastSessions.find((s) => s.teamIndex === idx)?.answers ?? []
+  const roundBtn: CSSProperties = { flexShrink: 0, height: 40, minWidth: 40, padding: '0 12px', borderRadius: 999, border: '1px solid rgba(255,255,255,.16)', background: 'rgba(255,255,255,.06)', color: '#fff', fontFamily: 'inherit', fontWeight: 800, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }
+  const lifelines: [keyof LifelinesUsed, string, LucideIcon, () => void][] = [
+    ['fiftyFifty', '50 / 50', Split, useFiftyFifty],
+    ['askChurch', 'Ask the Church', Users, useAskChurch],
+    ['phoneFriend', 'Ask a Friend', Phone, usePhoneFriend],
+  ]
+  const finalStep = turnsCompleted + 1 >= ladder.length
 
   return (
-    <div
-      className={`relative flex flex-1 gap-1 px-1 py-2 sm:gap-3 sm:px-3 sm:py-3 ${shake ? 'animate-screen-shake' : ''} ${
-        isHeadToHead ? 'w-full' : 'mx-auto w-full max-w-6xl'
-      }`}
-    >
+    <QuizStage step="play">
       <Confetti active={showConfetti} />
-      {flash && (
-        <div className={`pointer-events-none fixed inset-0 z-40 ${flash === 'green' ? 'animate-flash-green' : 'animate-flash-red'}`} />
-      )}
+      {flash && <div className={`pointer-events-none fixed inset-0 z-40 ${flash === 'green' ? 'animate-flash-green' : 'animate-flash-red'}`} />}
 
-      {isHeadToHead && (
-        <SideStrip
-          config={config}
-          teamIdx={0}
-          activeTeamIndex={activeTeamIndex}
-          answersByTeam={answersByTeam}
-          pastSessions={pastSessions}
-          xpTotals={xpTotals}
-          ladder={ladder}
-        />
-      )}
-
-      <div className={`flex flex-1 flex-col justify-center gap-2 ${isHeadToHead ? 'mx-auto w-full max-w-2xl' : ''}`}>
-        {phase === 'question' && <TimerBar timeLeft={timeLeft} total={timerSeconds} />}
-
-        {isHeadToHead ? (
-          <div className="flex justify-end gap-2">
-            {(phase === 'question' || phase === 'picking') && (
-              <button
-                onClick={handlePause}
-                className="shrink-0 rounded-full bg-white/10 px-3 py-2 text-sm hover:bg-white/20"
-                aria-label="Pause"
-              >
-                ⏸️
-              </button>
-            )}
-            <button
-              onClick={() => setShowSettings(true)}
-              className="shrink-0 rounded-full bg-white/10 px-3 py-2 text-sm hover:bg-white/20"
-              aria-label="Quiz settings"
-            >
-              ⚙️
-            </button>
-            <button onClick={handleQuit} className="shrink-0 rounded-full bg-white/10 px-4 py-2 text-sm hover:bg-white/20">
-              {isRotational ? 'End Match' : 'End Turn'}
-            </button>
-          </div>
-        ) : (
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-3">
-              {config.teamPhotos?.[activeTeamIndex] && (
-                <img
-                  src={config.teamPhotos[activeTeamIndex]}
-                  alt=""
-                  className="h-11 w-11 shrink-0 rounded-full object-cover shadow-lg shadow-black/40 ring-2 ring-amber-400/60"
-                />
+      <div className={shake ? 'animate-screen-shake' : ''} style={{ display: 'flex', flexWrap: 'wrap', gap: 20, alignItems: 'flex-start' }}>
+        <div style={{ flex: '2 1 560px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
+            <div key={`${turnsCompleted}-${activeTeamIndex}`} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px 10px 10px', borderRadius: 999, background: 'rgba(255,255,255,.06)', border: `2px solid ${tc}`, animation: 'qs-pop .45s both', minWidth: 0 }}>
+              {config.teamPhotos?.[activeTeamIndex] ? (
+                <img src={config.teamPhotos[activeTeamIndex]} alt="" style={{ flexShrink: 0, width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
+              ) : (
+                <span style={{ flexShrink: 0, width: 36, height: 36, borderRadius: '50%', background: tc }} />
               )}
-              <div>
-                <p className="text-sm text-white/60">
-                  Team {activeTeamIndex + 1} of {config.teamNames.length}
-                </p>
-                <p className="font-display text-xl font-bold">{teamName}</p>
+              <span style={{ minWidth: 0 }}>
+                <span style={{ display: 'block', fontSize: 11, fontWeight: 800, letterSpacing: '.14em', color: 'rgba(236,230,250,.6)' }}>
+                  NOW PLAYING{config.teamNames.length > 1 ? ` · TEAM ${activeTeamIndex + 1} OF ${config.teamNames.length}` : ''}
+                </span>
+                <span style={{ display: 'block', fontFamily: display, fontWeight: 800, fontSize: 22, color: '#fff', overflowWrap: 'anywhere' }}>{teamName}</span>
+              </span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 20px', borderRadius: 20, background: '#07020f', border: `2px solid ${urgent ? 'rgba(255,91,107,.6)' : 'rgba(255,255,255,.12)'}`, boxShadow: 'inset 0 0 20px rgba(0,0,0,.8)' }}>
+                <span role="timer" aria-label={`${timeLeft} seconds left`} style={{ fontFamily: mono, fontSize: 'clamp(44px,6vw,64px)', lineHeight: 1, letterSpacing: '.06em', color: phase === 'picking' ? 'rgba(236,230,250,.35)' : clockCol, textShadow: phase === 'picking' ? 'none' : `0 0 18px ${clockCol}`, animation: urgent ? 'qs-blink .5s infinite' : 'none' }}>
+                  {phase === 'picking' ? `00:${String(timerSeconds).padStart(2, '0')}` : clockText}
+                </span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {(phase === 'question' || phase === 'picking') && (
+                    <button type="button" onClick={handlePause} aria-label="Pause" title="Pause" style={roundBtn}>
+                      <Pause style={{ width: 16, height: 16 }} />
+                    </button>
+                  )}
+                  <button type="button" onClick={() => setShowSettings(true)} aria-label="Quiz settings" title="Quiz settings" style={roundBtn}>
+                    <Settings style={{ width: 16, height: 16 }} />
+                  </button>
+                </div>
+                <button type="button" onClick={handleQuit} style={roundBtn}>
+                  {isRotational ? 'End match' : 'End turn'}
+                </button>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <p className="text-sm text-white/60">Score</p>
-                <p className="text-lg font-bold text-amber-300">
-                  <CountUp value={runningScore} durationMs={500} /> 👑
-                </p>
+          </div>
+
+          {showSettings && (
+            <SettingsPanel
+              sfxMuted={sfxMuted}
+              musicMuted={musicMuted}
+              musicVolume={musicVolume}
+              timerSeconds={timerSeconds}
+              onToggleSfx={() => {
+                const next = !sfxMuted
+                sound.setMuted(next)
+                setSfxMuted(next)
+              }}
+              onToggleMusic={() => {
+                const next = !musicMuted
+                sound.setMusicMuted(next)
+                setMusicMuted(next)
+              }}
+              onSetMusicVolume={(v) => {
+                sound.setMusicVolume(v)
+                setMusicVolumeState(v)
+              }}
+              onSetTimer={setTimerSeconds}
+              onClose={() => setShowSettings(false)}
+            />
+          )}
+
+          {phase === 'picking' ? (
+            <QuestionPicker levels={ladder.map((l) => l.level)} usedLevels={usedLevels} onPick={handlePickLevel} pointsForLevel={pointsForLevel} />
+          ) : (
+            <div key={currentLevel} style={{ position: 'relative', overflow: 'hidden', padding: 'clamp(22px,3.5vw,36px)', borderRadius: 30, background: 'linear-gradient(160deg,rgba(60,25,110,.9),rgba(20,8,42,.95))', border: '1px solid rgba(255,255,255,.14)', boxShadow: '0 40px 80px -40px rgba(0,0,0,.9)', animation: 'qs-reveal .6s cubic-bezier(.2,.9,.2,1) both' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
+                <span style={{ fontSize: 13, fontWeight: 800, letterSpacing: '.16em', color: '#ffd84d' }}>
+                  QUESTION {currentLevel} OF {ladder.length}
+                  {currentQuestion.category ? <span style={{ color: 'rgba(236,230,250,.55)' }}> · {currentQuestion.category.toUpperCase()}</span> : null}
+                  {suspense && <span style={{ marginLeft: 10, color: '#fff', animation: 'qs-blink .8s infinite' }}>LOCKING IN…</span>}
+                </span>
+                <span style={{ display: 'flex', gap: 4 }} title={`Level ${currentQuestion.difficulty} of 5`}>
+                  {[1, 2, 3, 4, 5].map((d) => (
+                    <span key={d} style={{ width: 10, height: 10, borderRadius: 3, background: d <= currentQuestion.difficulty ? '#ffd84d' : 'rgba(255,255,255,.12)' }} />
+                  ))}
+                </span>
               </div>
-              {(phase === 'question' || phase === 'picking') && (
-                <button onClick={handlePause} className="rounded-full bg-white/10 px-3 py-2 text-sm hover:bg-white/20" aria-label="Pause">
-                  ⏸️
+              <p style={{ margin: '16px 0 0', fontFamily: display, fontWeight: 800, fontSize: 'clamp(28px,4vw,50px)', lineHeight: 1.08, letterSpacing: '-.025em', color: '#fff', textWrap: 'balance' }}>{currentQuestion.text}</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,260px),1fr))', gap: 12, marginTop: 26 }}>
+                {currentQuestion.options.map((opt, i) => {
+                  const hidden = disabledOptions.has(i)
+                  const isSelected = selectedIndex === i
+                  const right = showResult && i === currentQuestion.correctIndex
+                  const wrong = showResult && isSelected && !right
+                  const held = suspense && isSelected
+                  const bd = right ? '#2fe0b5' : wrong ? '#ff5b6b' : held ? '#ffd84d' : 'rgba(255,255,255,.14)'
+                  const bg = right ? 'rgba(47,224,181,.2)' : wrong ? 'rgba(255,91,107,.16)' : held ? 'rgba(255,216,77,.16)' : 'rgba(255,255,255,.05)'
+                  const chipBg = right ? '#2fe0b5' : wrong ? '#ff5b6b' : held ? '#ffd84d' : 'rgba(255,255,255,.12)'
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      className={`qs-opt${held ? ' animate-drumroll' : ''}`}
+                      disabled={phase !== 'question' || hidden}
+                      onClick={() => handleSelect(i)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '18px 20px', borderRadius: 20, border: `2px solid ${bd}`, background: bg, color: '#fff', fontFamily: 'inherit', fontWeight: 800, fontSize: 'clamp(17px,1.8vw,21px)', textAlign: 'left', cursor: phase === 'question' ? 'pointer' : 'default', visibility: hidden ? 'hidden' : 'visible', opacity: showResult && !right && !wrong ? 0.35 : 1, transform: right ? 'scale(1.03)' : 'none', boxShadow: right ? '0 0 40px rgba(47,224,181,.45)' : 'none', transition: 'all .45s cubic-bezier(.34,1.56,.64,1)' }}
+                    >
+                      <span style={{ flexShrink: 0, width: 40, height: 40, borderRadius: 12, background: chipBg, color: right || held ? '#05261d' : '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: display, fontSize: 18 }}>{optionLabel(i)}</span>
+                      <span style={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>{opt}</span>
+                      {audiencePoll && !showResult && !hidden && <span style={{ fontSize: 15, color: '#ffd84d' }}>{audiencePoll[i]}%</span>}
+                    </button>
+                  )
+                })}
+              </div>
+              {friendHint && !showResult && phase !== 'feedback' && (
+                <p style={{ margin: '16px 0 0', padding: '14px 18px', borderRadius: 16, background: 'rgba(79,123,255,.16)', border: '1px solid rgba(127,160,255,.35)', fontSize: 16, animation: 'qs-up .4s both' }}>
+                  Your friend says: “{friendHint.line}{' '}
+                  <strong style={{ color: '#ffd84d' }}>
+                    {optionLabel(friendHint.index)}: {currentQuestion.options[friendHint.index]}
+                  </strong>
+                  ”
+                </p>
+              )}
+              {phase === 'lifeline-audience' && <p style={{ margin: '16px 0 0', fontSize: 14, color: 'rgba(236,230,250,.7)' }}>Ask the Church says: the percentages are on each answer. The clock waits while the room looks.</p>}
+              {phase === 'feedback' && lastAnswer && (
+                <div style={{ margin: '16px 0 0', padding: '14px 18px', borderRadius: 16, background: lastAnswer.correct ? 'rgba(47,224,181,.14)' : 'rgba(255,91,107,.12)', border: `1px solid ${lastAnswer.correct ? 'rgba(47,224,181,.4)' : 'rgba(255,91,107,.35)'}`, animation: 'qs-up .4s both' }}>
+                  <p style={{ margin: 0, fontWeight: 800, fontSize: 17, color: '#fff' }}>
+                    {timedOut
+                      ? `Time's up! The answer was ${optionLabel(currentQuestion.correctIndex)}: ${currentQuestion.options[currentQuestion.correctIndex]}`
+                      : lastAnswer.correct
+                        ? `Correct! +${pointsForLevel(currentLevel)} points`
+                        : `Not quite. The answer was ${optionLabel(currentQuestion.correctIndex)}: ${currentQuestion.options[currentQuestion.correctIndex]}`}
+                  </p>
+                  {currentQuestion.funFact && <p style={{ margin: '6px 0 0', fontSize: 15, color: 'rgba(236,230,250,.8)' }}>{currentQuestion.funFact}</p>}
+                </div>
+              )}
+            </div>
+          )}
+
+          {phase !== 'picking' && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {lifelines
+                  .filter(([key]) => config.lifelines[key])
+                  .map(([key, label, Icon, use]) => {
+                    const used = lifelinesUsed[key]
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={use}
+                        disabled={used || phase !== 'question'}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 16px', borderRadius: 999, border: '1px solid rgba(255,216,77,.4)', background: 'rgba(255,216,77,.08)', color: '#ffd84d', fontFamily: 'inherit', fontWeight: 800, fontSize: 14, cursor: used || phase !== 'question' ? 'default' : 'pointer', opacity: used ? 0.35 : 1, textDecoration: used ? 'line-through' : 'none', whiteSpace: 'nowrap' }}
+                      >
+                        <Icon style={{ width: 16, height: 16 }} />
+                        {label}
+                      </button>
+                    )
+                  })}
+              </div>
+              {inLifeline && (
+                <button type="button" onClick={dismissLifelinePanel} style={{ padding: '15px 26px', borderRadius: 16, border: 'none', background: '#fff', color: '#1a0f2e', fontFamily: 'inherit', fontWeight: 800, fontSize: 16, cursor: 'pointer', whiteSpace: 'nowrap', animation: 'qs-pop .4s both' }}>
+                  Back to the question
                 </button>
               )}
-              <button
-                onClick={() => setShowSettings(true)}
-                className="rounded-full bg-white/10 px-3 py-2 text-sm hover:bg-white/20"
-                aria-label="Quiz settings"
-              >
-                ⚙️
-              </button>
-              <button onClick={handleQuit} className="rounded-full bg-white/10 px-4 py-2 text-sm hover:bg-white/20">
-                {isRotational ? 'End Match' : 'End Turn'}
-              </button>
+              {phase === 'feedback' && (
+                <button type="button" onClick={handleNext} style={{ padding: '15px 26px', borderRadius: 16, border: 'none', background: '#fff', color: '#1a0f2e', fontFamily: 'inherit', fontWeight: 800, fontSize: 16, cursor: 'pointer', whiteSpace: 'nowrap', animation: 'qs-pop .4s both' }}>
+                  {finalStep ? (isRotational ? 'See results' : `Finish ${teamName}'s turn`) : 'Next question →'}
+                </button>
+              )}
             </div>
-          </div>
-        )}
-
-        {showSettings && (
-          <SettingsPanel
-            sfxMuted={sfxMuted}
-            musicMuted={musicMuted}
-            musicVolume={musicVolume}
-            timerSeconds={timerSeconds}
-            onToggleSfx={() => {
-              const next = !sfxMuted
-              sound.setMuted(next)
-              setSfxMuted(next)
-            }}
-            onToggleMusic={() => {
-              const next = !musicMuted
-              sound.setMusicMuted(next)
-              setMusicMuted(next)
-            }}
-            onSetMusicVolume={(v) => {
-              sound.setMusicVolume(v)
-              setMusicVolumeState(v)
-            }}
-            onSetTimer={setTimerSeconds}
-            onClose={() => setShowSettings(false)}
-          />
-        )}
-
-        {phase === 'picking' && (
-          <QuestionPicker
-            levels={ladder.map((l) => l.level)}
-            usedLevels={
-              new Set(isRotational ? Object.values(answersByTeam).flat().map((a) => a.level) : answers.map((a) => a.level))
-            }
-            onPick={handlePickLevel}
-            pointsForLevel={pointsForLevel}
-          />
-        )}
-
-        {phase !== 'picking' && (
-          <>
-        <div className="hex-frame mx-auto w-full max-w-3xl">
-          <div className="hex-fill flex min-h-[80px] flex-col items-center justify-center gap-1.5 px-6 py-3 text-center sm:min-h-[100px]">
-            <div className="flex items-center gap-2 text-xs">
-              <span className="rounded-full bg-black/30 px-3 py-1 font-bold">
-                Q{currentLevel} of {ladder.length}
-              </span>
-              <span className="rounded-full bg-black/30 px-3 py-1">{currentQuestion.category}</span>
-              {suspense && <span className="animate-pulse text-amber-300">● locking in…</span>}
-            </div>
-            <p className="font-display text-lg font-bold leading-snug sm:text-xl">{currentQuestion.text}</p>
-          </div>
+          )}
         </div>
 
-        <div className="grid gap-2 sm:grid-cols-2">
-          {currentQuestion.options.map((opt, i) => {
-            const isDisabled = disabledOptions.has(i)
-            const isSelected = selectedIndex === i
-            const isCorrectAnswer = i === currentQuestion.correctIndex
-
-            let fillClasses = 'from-indigo-800/80 to-indigo-950/80'
-            let borderClass = 'border-white/20'
-            if (isDisabled) fillClasses = 'from-slate-800/40 to-slate-900/40'
-            if (suspense && isSelected) {
-              fillClasses = 'from-amber-500/70 to-amber-600/70'
-              borderClass = 'border-amber-200'
-            }
-            if (showResult) {
-              if (isCorrectAnswer) {
-                fillClasses = 'from-green-600/90 to-green-800/90'
-                borderClass = 'border-green-200'
-              } else if (isSelected) {
-                fillClasses = 'from-red-600/90 to-red-800/90'
-                borderClass = 'border-red-200'
-              } else {
-                fillClasses = 'from-slate-800/40 to-slate-900/40'
-                borderClass = 'border-white/10'
-              }
-            }
-
-            return (
-              <button
-                key={i}
-                disabled={phase !== 'question' || isDisabled}
-                onClick={() => handleSelect(i)}
-                className={`hex-pill flex items-center gap-3 border-2 bg-gradient-to-br px-5 py-2.5 text-left text-base font-semibold text-white transition-all duration-300 ${fillClasses} ${borderClass} ${
-                  isDisabled ? 'opacity-30' : ''
-                } ${phase === 'question' && !isDisabled ? 'cursor-pointer hover:scale-[1.02] hover:brightness-110' : ''} ${
-                  suspense && isSelected ? 'animate-drumroll' : ''
-                }`}
-              >
-                <span className="shrink-0 text-amber-300">◆</span>
-                <span className="shrink-0 font-bold">{optionLabel(i)}:</span>
-                <span className="truncate">{opt}</span>
-                {showResult && isCorrectAnswer && <span className="ml-auto shrink-0 text-xl">✅</span>}
-                {showResult && isSelected && !isCorrectAnswer && <span className="ml-auto shrink-0 text-xl">❌</span>}
-              </button>
-            )
-          })}
-        </div>
-
-        <div className="flex flex-wrap gap-2">
-          <LifelineButton label="50/50" icon="✂️" used={lifelinesUsed.fiftyFifty} available={config.lifelines.fiftyFifty} onClick={useFiftyFifty} />
-          <LifelineButton
-            label="Ask the Church"
-            icon="🙋"
-            used={lifelinesUsed.askChurch}
-            available={config.lifelines.askChurch}
-            onClick={useAskChurch}
-          />
-          <LifelineButton
-            label="Ask a Friend"
-            icon="📞"
-            used={lifelinesUsed.phoneFriend}
-            available={config.lifelines.phoneFriend}
-            onClick={usePhoneFriend}
-          />
-        </div>
-          </>
-        )}
-
-        {phase === 'feedback' && (
-          <div
-            className={`animate-page-in rounded-2xl p-3 text-center ring-1 ${
-              answers[answers.length - 1]?.correct ? 'bg-green-900/40 ring-green-400/30' : 'bg-red-900/30 ring-red-400/30'
-            }`}
-          >
-            <p className="mb-2 font-display text-lg font-bold">
-              {timedOut
-                ? "⏰ Time's up!"
-                : answers[answers.length - 1]?.correct
-                  ? `✅ Correct! +${pointsForLevel(currentLevel).toLocaleString()} points`
-                  : `❌ Not quite. The correct answer was ${optionLabel(currentQuestion.correctIndex)}: ${currentQuestion.options[currentQuestion.correctIndex]}`}
-            </p>
-            {currentQuestion.funFact && <p className="mb-3 text-sm text-white/70">💡 {currentQuestion.funFact}</p>}
-            <button
-              onClick={handleNext}
-              className="animate-pulse-glow rounded-xl bg-amber-400 px-6 py-3 font-bold text-purple-950 transition hover:scale-105"
-            >
-              {turnsCompleted + 1 >= ladder.length ? (isRotational ? 'Finish Match →' : `Finish ${teamName}'s Turn →`) : `Next Question →`}
-            </button>
-          </div>
-        )}
-
-        {phase === 'lifeline-audience' && audiencePoll && (
-          <LifelinePanel onDismiss={dismissLifelinePanel} title="🙋 Ask the Church says...">
-            <div className="space-y-2">
-              {currentQuestion.options.map((_opt, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <span className="w-6 shrink-0 font-bold">{optionLabel(i)}</span>
-                  <div className="h-6 flex-1 overflow-hidden rounded-full bg-white/10">
-                    <div
-                      className="h-full rounded-full bg-gradient-to-r from-amber-400 to-yellow-300 transition-all duration-700"
-                      style={{ width: `${audiencePoll[i]}%` }}
-                    />
+        <aside style={{ flex: '1 1 300px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ padding: 18, borderRadius: 24, background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.1)' }}>
+            <p style={{ margin: '0 0 10px', fontSize: 12, fontWeight: 800, letterSpacing: '.14em', color: '#ffd84d' }}>SCOREBOARD</p>
+            {config.teamNames.map((name, idx) => {
+              const on = idx === activeTeamIndex
+              const teamAnswers = teamAnswersFor(idx)
+              const pts = teamAnswers.reduce((sum, a) => sum + (a.correct ? a.points : 0), 0)
+              const own = isRotational ? ladder.filter((l) => (l.level - 1) % config.teamNames.length === idx) : ladder
+              const photo = config.teamPhotos?.[idx]
+              return (
+                <div key={idx} style={{ padding: '10px 12px', marginTop: 6, borderRadius: 14, background: on ? 'rgba(255,255,255,.08)' : 'transparent', border: `1px solid ${on ? teamColour(idx) : 'rgba(255,255,255,.08)'}`, transition: 'all .3s' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    {photo ? <img src={photo} alt="" style={{ flexShrink: 0, width: 28, height: 28, borderRadius: 8, objectFit: 'cover', border: `2px solid ${teamColour(idx)}` }} /> : <span style={{ flexShrink: 0, width: 10, height: 28, borderRadius: 4, background: teamColour(idx) }} />}
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: 'block', fontWeight: 800, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
+                      {config.teamStudentIds?.[idx] && xpTotals[idx] !== undefined && <span style={{ display: 'block', fontSize: 11, color: 'rgba(236,230,250,.45)' }}>{xpTotals[idx].toLocaleString()} all-time points</span>}
+                    </span>
+                    <span style={{ fontFamily: mono, fontSize: 24, color: '#ffd84d' }}>
+                      <CountUp value={pts} durationMs={500} />
+                    </span>
                   </div>
-                  <span className="w-12 shrink-0 text-right text-sm">{audiencePoll[i]}%</span>
+                  {own.length <= 30 && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 8 }}>
+                      {own.map((l) => {
+                        const a = teamAnswers.find((rec) => rec.level === l.level)
+                        return <span key={l.level} title={`Q${l.level}`} style={{ width: 9, height: 9, borderRadius: '50%', border: `1px solid ${!a ? 'rgba(255,255,255,.3)' : a.correct ? '#2fe0b5' : '#ff5b6b'}`, background: !a ? 'transparent' : a.correct ? '#2fe0b5' : '#ff5b6b' }} />
+                      })}
+                    </div>
+                  )}
                 </div>
-              ))}
+              )
+            })}
+          </div>
+          <div style={{ padding: 18, borderRadius: 24, background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.1)' }}>
+            <p style={{ margin: '0 0 10px', fontSize: 12, fontWeight: 800, letterSpacing: '.14em', color: '#ffd84d' }}>THE LADDER</p>
+            <div className="qs-noscroll" style={{ display: 'flex', flexDirection: 'column-reverse', gap: 4, maxHeight: 460, overflowY: 'auto' }}>
+              {ladder.map((l) => {
+                const now = phase !== 'picking' && l.level === currentLevel
+                const done = usedLevels.has(l.level) && !now
+                return (
+                  <div key={l.level} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '7px 12px', borderRadius: 10, background: now ? '#ffd84d' : done ? 'rgba(47,224,181,.16)' : l.isMilestone ? 'rgba(193,59,255,.16)' : 'rgba(255,255,255,.04)', color: now ? '#1a0f2e' : done ? '#5cf0c8' : 'rgba(236,230,250,.6)', fontWeight: 800, fontSize: 13, animation: now ? 'qs-glow 1.6s infinite' : 'none' }}>
+                    <span>{l.level}</span>
+                    <span>{l.isMilestone ? (l.level === ladder.length ? 'CHAMPION' : 'MILESTONE') : `${l.level * l.points} pts`}</span>
+                  </div>
+                )
+              })}
             </div>
-          </LifelinePanel>
-        )}
-
-        {phase === 'lifeline-friend' && friendHint && (
-          <LifelinePanel onDismiss={dismissLifelinePanel} title="📞 Ask a Friend">
-            <p className="text-lg">
-              "{friendHint.line}{' '}
-              <span className="font-bold text-amber-300">
-                {optionLabel(friendHint.index)}: {currentQuestion.options[friendHint.index]}
-              </span>
-              "
-            </p>
-          </LifelinePanel>
-        )}
+          </div>
+        </aside>
       </div>
-
-      {isHeadToHead ? (
-        <SideStrip
-          config={config}
-          teamIdx={1}
-          activeTeamIndex={activeTeamIndex}
-          answersByTeam={answersByTeam}
-          pastSessions={pastSessions}
-          xpTotals={xpTotals}
-          ladder={ladder}
-        />
-      ) : (
-        <div className="hidden shrink-0 lg:flex lg:w-[220px] lg:flex-col lg:justify-center lg:gap-2">
-          <LiveScoreboard
-            config={config}
-            answersByTeam={answersByTeam}
-            activeTeamIndex={activeTeamIndex}
-            pastSessions={pastSessions}
-            xpTotals={xpTotals}
-            ladder={ladder}
-          />
-        </div>
-      )}
-    </div>
+    </QuizStage>
   )
 }
 
 /**
- * "Pick your next question" - a numbered grid standing in for a physical
+ * "Pick your next question" - a numbered board standing in for a physical
  * board of numbered question cards. A contestant taps any number still in
- * play; whichever one they answered already shows crossed out and disabled,
+ * play; whichever one was answered already shows crossed out and disabled,
  * so the room can see at a glance what's left in the pool.
  */
 function QuestionPicker({
@@ -873,98 +834,27 @@ function QuestionPicker({
   pointsForLevel: (level: number) => number
 }) {
   return (
-    <div className="animate-page-in mx-auto w-full max-w-3xl rounded-2xl border border-white/10 bg-white/5 p-4 text-center">
-      <p className="mb-3 font-display text-lg font-bold">Pick your next question</p>
-      <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
+    <div style={{ padding: 'clamp(22px,3.5vw,36px)', borderRadius: 30, background: 'linear-gradient(160deg,rgba(60,25,110,.9),rgba(20,8,42,.95))', border: '1px solid rgba(255,255,255,.14)', textAlign: 'center', animation: 'qs-up .4s both' }}>
+      <p style={{ margin: 0, fontSize: 13, fontWeight: 800, letterSpacing: '.16em', color: '#ffd84d' }}>PICK A NUMBER</p>
+      <p style={{ margin: '10px 0 0', fontFamily: display, fontWeight: 800, fontSize: 'clamp(26px,3.4vw,40px)', color: '#fff' }}>Which question next?</p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(76px,1fr))', gap: 10, marginTop: 22 }}>
         {levels.map((level) => {
           const used = usedLevels.has(level)
           return (
             <button
               key={level}
+              type="button"
+              className="qs-opt"
               disabled={used}
               onClick={() => onPick(level)}
-              className={`flex flex-col items-center justify-center gap-0.5 rounded-xl border-2 px-2 py-3 font-bold transition ${
-                used
-                  ? 'border-white/10 bg-white/5 text-white/30 line-through'
-                  : 'border-amber-400/40 bg-gradient-to-br from-indigo-800/80 to-indigo-950/80 text-white hover:scale-105 hover:border-amber-300 hover:brightness-110'
-              }`}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: '14px 6px', borderRadius: 16, border: `2px solid ${used ? 'rgba(255,255,255,.08)' : 'rgba(255,216,77,.4)'}`, background: used ? 'rgba(255,255,255,.03)' : 'rgba(255,255,255,.06)', color: used ? 'rgba(255,255,255,.3)' : '#fff', fontFamily: display, fontWeight: 800, fontSize: 24, cursor: used ? 'default' : 'pointer', textDecoration: used ? 'line-through' : 'none' }}
             >
-              <span className="text-xl">{level}</span>
-              {!used && <span className="text-[10px] font-normal text-amber-300">{pointsForLevel(level).toLocaleString()}</span>}
+              {level}
+              {!used && <span style={{ fontFamily: 'inherit', fontSize: 11, color: '#ffd84d' }}>{pointsForLevel(level)} pts</span>}
             </button>
           )
         })}
       </div>
-    </div>
-  )
-}
-
-/**
- * Every contestant in the match, live: name, running points, and a row of
- * small circles - one per question - filled green/red as they're answered
- * and left hollow/transparent for whatever hasn't been reached yet. Looks
- * answers up by their recorded ladder level (not array position), since in
- * rotational mode a team's own answers are a sparse subset of the shared
- * ladder rather than one-per-level in order like marathon mode. Teams that
- * already finished their turn (marathon only) show their final completed
- * row from pastSessions; everyone else shows their live answersByTeam.
- */
-function LiveScoreboard({
-  config,
-  answersByTeam,
-  activeTeamIndex,
-  pastSessions,
-  xpTotals,
-  ladder,
-}: {
-  config: GameConfig
-  answersByTeam: Record<number, AnswerRecord[]>
-  activeTeamIndex: number
-  pastSessions: GameSession[]
-  xpTotals: Record<number, number>
-  ladder: LadderLevel[]
-}) {
-  return (
-    <div className="space-y-2">
-      {config.teamNames.map((name, idx) => {
-        const isCurrent = idx === activeTeamIndex
-        const finished = pastSessions.find((s) => s.teamIndex === idx)
-        const teamAnswers = answersByTeam[idx] ?? finished?.answers ?? []
-        const correctCount = teamAnswers.filter((a) => a.correct).length
-        const isLinked = !!config.teamStudentIds?.[idx]
-        return (
-          <div key={idx} className={`rounded-xl p-3 ${isCurrent ? 'bg-amber-400/10 ring-1 ring-amber-400/40' : 'bg-white/5'}`}>
-            <div className="flex items-center justify-between gap-2 text-sm">
-              <span className={`truncate font-bold ${isCurrent ? 'text-amber-300' : 'text-white/80'}`}>{name}</span>
-              <span className="shrink-0 font-bold text-amber-300">
-                {correctCount}/{ladder.length} ✓
-              </span>
-            </div>
-            {isLinked && xpTotals[idx] !== undefined && (
-              <p className="text-right text-xs text-white/40">🏆 {xpTotals[idx].toLocaleString()} all-time</p>
-            )}
-            <div className="mt-2 flex flex-wrap gap-1">
-              {ladder.map((l) => {
-                const a = teamAnswers.find((rec) => rec.level === l.level)
-                const state = !a ? 'pending' : a.correct ? 'correct' : 'wrong'
-                return (
-                  <span
-                    key={l.level}
-                    title={`Q${l.level}`}
-                    className={`h-3 w-3 rounded-full border ${
-                      state === 'correct'
-                        ? 'border-green-300 bg-green-500'
-                        : state === 'wrong'
-                          ? 'border-red-300 bg-red-500'
-                          : 'border-white/30 bg-transparent'
-                    }`}
-                  />
-                )
-              })}
-            </div>
-          </div>
-        )
-      })}
     </div>
   )
 }
@@ -1068,275 +958,6 @@ function NextUpReveal({
   )
 }
 
-/**
- * The prominent, always-visible (including on mobile) head-to-head display
- * for a 2-contestant rotational match: both names/photos, running points,
- * and each one's row of pending/correct/wrong circles side by side, live.
- */
-/**
- * One contestant's own vertical strip for a 2-player head-to-head match -
- * not boxed in a card, just laid directly against the side of the screen:
- * their all-time XP at the very top, name and photo (falling back to the
- * ministry logo, never blank, if no photo was set), then their per-question
- * circles stretching down the full height of the strip (a real flex-1
- * column, not a fixed-size cluster) to match the question+options block
- * beside it, and their correct-answer total at the very bottom.
- */
-function SideStrip({
-  config,
-  teamIdx,
-  activeTeamIndex,
-  answersByTeam,
-  pastSessions,
-  xpTotals,
-  ladder,
-}: {
-  config: GameConfig
-  teamIdx: number
-  activeTeamIndex: number
-  answersByTeam: Record<number, AnswerRecord[]>
-  pastSessions: GameSession[]
-  xpTotals: Record<number, number>
-  ladder: LadderLevel[]
-}) {
-  const name = config.teamNames[teamIdx]
-  const isActive = teamIdx === activeTeamIndex
-  const finished = pastSessions.find((s) => s.teamIndex === teamIdx)
-  const teamAnswers = answersByTeam[teamIdx] ?? finished?.answers ?? []
-  const correctCount = teamAnswers.filter((a) => a.correct).length
-  const isLinked = !!config.teamStudentIds?.[teamIdx]
-  const photo = config.teamPhotos?.[teamIdx]
-
-  // In rotational (incl. 1v1) mode the shared ladder alternates between
-  // teams, so this contestant only ever answers their own slice of it -
-  // showing the full ladder here left every circle that belonged to the
-  // other team's turn permanently hollow. Marathon mode has no such split:
-  // each team plays the whole ladder on their own turn, so every circle
-  // here is genuinely theirs.
-  const ownLevels =
-    config.mode === 'rotational'
-      ? ladder.filter((l) => (l.level - 1) % config.teamNames.length === teamIdx)
-      : ladder
-
-  return (
-    <div className="flex w-20 shrink-0 flex-col items-center text-center sm:w-32 lg:w-40">
-      {isLinked && xpTotals[teamIdx] !== undefined && (
-        <p className="text-[10px] font-bold text-white/40">🏆 {xpTotals[teamIdx].toLocaleString()}</p>
-      )}
-      {photo ? (
-        <PassportPhoto src={photo} active={isActive} />
-      ) : (
-        <PersonSilhouette active={isActive} />
-      )}
-      <p className={`mt-1.5 w-full break-words px-0.5 text-sm font-extrabold leading-tight [overflow-wrap:anywhere] sm:text-base lg:text-lg ${isActive ? 'text-amber-300' : 'text-white/90'}`}>
-        {name}
-      </p>
-
-      {/* Capped to roughly half the strip's height, not stretched to match
-          the whole center column - tight, fixed gaps between circles rather
-          than justify-evenly spreading them across all available space. */}
-      <div className="my-2 flex max-h-[46vh] flex-1 flex-col items-center justify-center gap-2.5 overflow-y-auto">
-        {ownLevels.map((l) => {
-          const a = teamAnswers.find((rec) => rec.level === l.level)
-          const state = !a ? 'pending' : a.correct ? 'correct' : 'wrong'
-          return (
-            <span
-              key={l.level}
-              title={`Q${l.level}`}
-              className={`h-4 w-4 shrink-0 rounded-full border-2 ${
-                state === 'correct'
-                  ? 'border-green-200 bg-green-500'
-                  : state === 'wrong'
-                    ? 'border-red-200 bg-red-500'
-                    : 'border-white/40 bg-transparent'
-              } ${isActive ? 'shadow-[0_0_10px_rgba(250,204,21,0.6)]' : ''}`}
-            />
-          )
-        })}
-      </div>
-
-      <p className="text-sm font-extrabold text-amber-300">
-        TOTAL: <CountUp value={correctCount} durationMs={400} />
-      </p>
-    </div>
-  )
-}
-
-/**
- * 1v1 contestant photo as a passport photo: a 3:4 portrait rectangle on a
- * white border, not a circle. The active contestant's frame glows gold.
- */
-function PassportPhoto({ src, active }: { src: string; active: boolean }) {
-  return (
-    <div
-      className={`mt-1 w-14 shrink-0 rounded-[3px] bg-white p-[3px] shadow-lg shadow-black/50 transition sm:w-24 lg:w-28 ${
-        active ? 'ring-2 ring-amber-400 shadow-[0_0_18px_rgba(250,204,21,0.55)]' : 'opacity-85'
-      }`}
-    >
-      <img src={src} alt="" className="aspect-[3/4] w-full rounded-[1px] object-cover" />
-    </div>
-  )
-}
-
-/** No-photo fallback: a plain person silhouette in the same passport frame, so an empty slot reads as "no photo set" not as a branding mark. */
-function PersonSilhouette({ active }: { active: boolean }) {
-  return (
-    <div
-      className={`mt-1 flex aspect-[3/4] w-14 shrink-0 items-end justify-center overflow-hidden rounded-[3px] border-[3px] border-white/80 bg-slate-300/20 sm:w-24 lg:w-28 ${
-        active ? 'ring-2 ring-amber-400' : ''
-      }`}
-    >
-      <svg viewBox="0 0 24 24" className="h-4/5 w-4/5 fill-white/50" aria-hidden="true">
-        <circle cx="12" cy="8" r="4" />
-        <path d="M4 20c0-4.4 3.6-8 8-8s8 3.6 8 8v1H4z" />
-      </svg>
-    </div>
-  )
-}
-
-function TimerBar({ timeLeft, total }: { timeLeft: number; total: number }) {
-  void total
-  const urgent = timeLeft <= 6
-  const alarming = timeLeft <= 3
-  const mm = Math.floor(timeLeft / 60)
-  const ss = timeLeft % 60
-  const display = timeLeft >= 60 ? `${mm}:${ss.toString().padStart(2, '0')}` : ss.toString().padStart(2, '0')
-
-  // Purely cosmetic fast-ticking milliseconds, decoupled from the real
-  // once-a-second countdown above (which is what actually times the
-  // question out) - just makes the clock read as live rather than static.
-  const [ms, setMs] = useState(999)
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      setMs((m) => (m <= 0 ? 999 : m - 33))
-    }, 33)
-    return () => window.clearInterval(id)
-  }, [])
-
-  const colorClass = alarming ? 'text-red-500' : urgent ? 'text-red-400' : 'text-amber-300'
-
-  return (
-    <div key={alarming ? timeLeft : 'calm'} className={`flex justify-center ${alarming ? 'animate-screen-shake' : ''}`}>
-      <div
-        className={`rounded-2xl border-2 bg-black px-8 py-4 shadow-inner shadow-black/80 transition-colors ${
-          urgent ? 'border-red-500/70' : 'border-amber-400/50'
-        }`}
-      >
-        <div className={`flex items-end gap-2 ${alarming ? 'animate-bounce' : urgent ? 'animate-pulse' : ''} ${colorClass}`}>
-          <SevenSegmentClock text={display} size={1.5} />
-          <SevenSegmentClock text={`.${ms.toString().padStart(3, '0')}`} size={0.6} />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-const SEVEN_SEG_MAP: Record<string, string> = {
-  '0': 'abcdef',
-  '1': 'bc',
-  '2': 'abged',
-  '3': 'abgcd',
-  '4': 'fgbc',
-  '5': 'afgcd',
-  '6': 'afgecd',
-  '7': 'abc',
-  '8': 'abcdefg',
-  '9': 'abcdfg',
-}
-
-/**
- * A genuine seven-segment LCD-style readout - each digit built from real
- * segment bars (lit vs unlit, both rendered so the "unlit" segments show
- * faintly like a real display) rather than just a bold monospace font.
- * `:` renders as two stacked dots and `.` as a single one, both baseline-
- * aligned with the digits beside them.
- */
-function SevenSegmentClock({ text, size = 1 }: { text: string; size?: number }) {
-  return (
-    <div className="flex items-end gap-[3px]">
-      {text.split('').map((ch, i) => {
-        if (ch === ':') return <SevenSegColon key={i} size={size} />
-        if (ch === '.') return <SevenSegDot key={i} size={size} />
-        return <SevenSegDigit key={i} lit={SEVEN_SEG_MAP[ch] ?? ''} size={size} />
-      })}
-    </div>
-  )
-}
-
-function SevenSegDigit({ lit, size }: { lit: string; size: number }) {
-  const w = 26 * size
-  const h = 46 * size
-  const t = 5.5 * size
-  const half = h / 2
-  const vH = half - t
-  const has = (s: string) => lit.includes(s)
-  const bar = (on: boolean, style: React.CSSProperties) => (
-    <div
-      style={{ position: 'absolute', borderRadius: t / 2, ...style, background: on ? 'currentColor' : 'rgba(255,255,255,0.07)' }}
-    />
-  )
-  return (
-    <div style={{ position: 'relative', width: w, height: h }}>
-      {bar(has('a'), { top: 0, left: t / 2, width: w - t, height: t })}
-      {bar(has('g'), { top: half - t / 2, left: t / 2, width: w - t, height: t })}
-      {bar(has('d'), { top: h - t, left: t / 2, width: w - t, height: t })}
-      {bar(has('f'), { top: t, left: 0, width: t, height: vH })}
-      {bar(has('b'), { top: t, left: w - t, width: t, height: vH })}
-      {bar(has('e'), { top: half, left: 0, width: t, height: vH })}
-      {bar(has('c'), { top: half, left: w - t, width: t, height: vH })}
-    </div>
-  )
-}
-
-function SevenSegColon({ size }: { size: number }) {
-  const d = 6 * size
-  const h = 46 * size
-  return (
-    <div style={{ position: 'relative', width: d, height: h }}>
-      <div style={{ position: 'absolute', top: h * 0.28, left: 0, width: d, height: d, borderRadius: 999, background: 'currentColor' }} />
-      <div style={{ position: 'absolute', top: h * 0.62, left: 0, width: d, height: d, borderRadius: 999, background: 'currentColor' }} />
-    </div>
-  )
-}
-
-function SevenSegDot({ size }: { size: number }) {
-  const d = 6 * size
-  const h = 46 * size
-  return (
-    <div style={{ position: 'relative', width: d, height: h }}>
-      <div style={{ position: 'absolute', bottom: 0, left: 0, width: d, height: d, borderRadius: 999, background: 'currentColor' }} />
-    </div>
-  )
-}
-
-function LifelineButton({
-  label,
-  icon,
-  used,
-  available,
-  onClick,
-}: {
-  label: string
-  icon: string
-  used: boolean
-  available: boolean
-  onClick: () => void
-}) {
-  if (!available) return null
-  return (
-    <button
-      onClick={onClick}
-      disabled={used}
-      className={`flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
-        used ? 'bg-white/5 text-white/30 line-through' : 'bg-white/10 hover:bg-white/20 hover:scale-105'
-      }`}
-    >
-      <span>{icon}</span>
-      {label}
-    </button>
-  )
-}
-
 const SETTINGS_TIMER_OPTIONS = [15, 20, 30, 45, 60]
 
 /**
@@ -1371,7 +992,7 @@ function SettingsPanel({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4" onClick={onClose}>
       <div
-        className="w-full max-w-sm rounded-2xl bg-indigo-950 p-5 shadow-2xl"
+        className="w-full max-w-sm rounded-[26px] border border-white/10 bg-[#1d0f33] p-5 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
@@ -1457,18 +1078,6 @@ function SettingsPanel({
           </div>
         </div>
       </div>
-    </div>
-  )
-}
-
-function LifelinePanel({ title, children, onDismiss }: { title: string; children: React.ReactNode; onDismiss: () => void }) {
-  return (
-    <div className="animate-page-in rounded-2xl bg-indigo-950/60 p-5">
-      <h3 className="mb-3 font-display text-lg font-bold">{title}</h3>
-      {children}
-      <button onClick={onDismiss} className="mt-4 w-full rounded-xl bg-amber-400 py-2 font-bold text-purple-950 transition hover:scale-[1.02]">
-        Got it, back to the question
-      </button>
     </div>
   )
 }

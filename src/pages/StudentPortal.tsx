@@ -49,7 +49,9 @@ import { getMyJourneyProgress } from '../lib/journey'
 import { BibleCharactersPage, CharacterRevealModal } from '../components/CharacterCollection'
 import { lessonArt } from '../content/bibleBookArt'
 import StreakScreen from '../components/StreakScreen'
-import PrayerGlobe from '../components/PrayerGlobe'
+import PrayerJournalPage from '../components/PrayerJournal'
+import { listMyPrayers, type Prayer } from '../lib/prayerJournal'
+import { getCountryForOffset } from '../content/prayerCountries'
 import BibleHelperPage from '../components/BibleHelper'
 import {
   getMyStudentProfile,
@@ -147,7 +149,7 @@ type Tab = KidsTab
 type Klass = ClassRow & { teacher_name: string; teacher_avatar: string | null }
 type AppKey = 'chat' | 'friends' | 'badges' | 'bank' | 'prayer' | 'diary' | 'calendar' | 'collection' | 'world' | 'buddy'
 /** The full-page kids' apps from the handoff, laid over the whole dashboard. */
-type KidsPageKey = 'characters' | 'helper'
+type KidsPageKey = 'characters' | 'helper' | 'prayer'
 const OpenPage = createContext<(page: KidsPageKey) => void>(() => {})
 type Go = (id: Tab) => (e?: ReactMouseEvent) => void
 
@@ -1023,6 +1025,15 @@ function Dashboard() {
         />
       )}
 
+      {page === 'prayer' && (
+        <PrayerJournalPage
+          onExit={() => {
+            setPage(null)
+            go('home')()
+          }}
+        />
+      )}
+
       {revealCharacter && (
         <CharacterRevealModal
           character={revealCharacter}
@@ -1157,7 +1168,7 @@ function HomeRoom({
       fg: '#fff',
       rot: '-1deg',
       art: <ExploreIcon icon={HandHeart} />,
-      onClick: () => openApp('prayer'),
+      onClick: () => openPage('prayer'),
     },
   ]
 
@@ -1467,6 +1478,27 @@ function AppIcon({ icon: Icon, from, to }: { icon: LucideIcon; from: string; to:
 }
 
 /** The tablet's gold "open the full app" button. */
+/** The tablet's peek at the Prayer Journal: the two newest prayers. */
+function TabPrayers({ onOpen }: { onOpen: () => void }) {
+  const [rows, setRows] = useState<Prayer[] | null>(null)
+  useEffect(() => {
+    listMyPrayers()
+      .then((r) => setRows(r.prayers.slice(0, 2)))
+      .catch(() => setRows([]))
+  }, [])
+  const when = (iso: string) => {
+    const d = Math.floor((Date.now() - new Date(iso).getTime()) / 864e5)
+    return d <= 0 ? 'Today' : d === 1 ? 'Yesterday' : `${d} days ago`
+  }
+  return (
+    <>
+      {rows && rows.length === 0 && <p style={tabletEmpty}>No prayers yet. Write your first one in your journal.</p>}
+      {rows?.map((p) => <TabRow key={p.id} col="#f9a8d4" lead="♥" t={p.text} s={when(p.at)} tail={p.answered ? 'Answered' : 'Praying'} />)}
+      <TabLink onClick={onOpen}>Open my Prayer Journal</TabLink>
+    </>
+  )
+}
+
 function TabLink({ onClick, children }: { onClick: () => void; children: ReactNode }) {
   return (
     <button
@@ -1550,7 +1582,7 @@ function TabletApp({
     case 'bank':
       return body(<DigitalBankSection />)
     case 'prayer':
-      return body(<NotesSection kind="prayer" title="Prayer Journal" icon={Heart} accent="var(--lp-accent-bible)" placeholder="What's on your heart today?" />)
+      return body(<TabPrayers onOpen={() => openPage('prayer')} />)
     case 'diary':
       return body(<NotesSection kind="diary" title="Diary" icon={PenLine} accent="var(--lp-accent-anthem)" placeholder="Dear diary…" />)
     case 'calendar':
@@ -1568,8 +1600,19 @@ function TabletApp({
         </>,
       )
     }
-    case 'world':
-      return body(<PrayerGlobe />)
+    case 'world': {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      return body(
+        <>
+          {[0, 1].map((d) => {
+            const c = getCountryForOffset(today, d)
+            return <TabRow key={d} col="#93c5fd" lead={c.code} t={c.name} s={c.focus} tail={d === 0 ? 'Today' : undefined} />
+          })}
+          <TabLink onClick={() => openPage('prayer')}>Open the prayer globe</TabLink>
+        </>,
+      )
+    }
     case 'buddy':
       return body(
         <>

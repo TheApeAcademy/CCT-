@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { Map as MapIcon, Moon, Sun } from 'lucide-react'
+import { Map as MapIcon, Moon, Sun, type LucideIcon } from 'lucide-react'
 import { playClick } from '../lib/sound'
 import { loadKidsSky, saveKidsSky, type KidsSky } from '../lib/kidsSky'
 import { rng, type ConfettiPiece } from '../design/kidsConfetti'
@@ -39,6 +39,10 @@ export default function KidsPage({
   starCount = 36,
   page: pageKey,
   mainBorderBox = false,
+  backLabel = 'Village',
+  backIcon: BackIcon = MapIcon,
+  glowAt = '50% 0%',
+  sunMoon = { right: '3%', top: 74, size: 80, fixed: false },
 }: {
   label: string
   glow: string
@@ -58,6 +62,13 @@ export default function KidsPage({
   page?: string
   /** Count the main padding inside its width, as some prototypes do. */
   mainBorderBox?: boolean
+  /** The way back: the map by default, My House for the house's own apps. */
+  backLabel?: string
+  backIcon?: LucideIcon
+  /** Where the top glow sits. */
+  glowAt?: string
+  /** Where the moon (and the sun, 4px larger) hangs. */
+  sunMoon?: { right: string; top: number; size: number; fixed: boolean }
 }) {
   const [sky, setSky] = useState<KidsSky>(loadKidsSky)
   const [stars] = useState(() => {
@@ -96,7 +107,7 @@ export default function KidsPage({
           overflowX: 'hidden',
           overscrollBehavior: 'contain',
           ['--glow' as string]: glow,
-          background: 'radial-gradient(ellipse 60% 40% at 50% 0%,var(--glow),transparent 60%),var(--bg)',
+          background: `radial-gradient(ellipse 60% 40% at ${glowAt},var(--glow),transparent 60%),var(--bg)`,
           color: 'var(--body)',
           fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
           WebkitFontSmoothing: 'antialiased',
@@ -112,8 +123,8 @@ export default function KidsPage({
         ))}
         {celestial && (
           <>
-            <div style={{ position: 'absolute', right: '3%', top: 74, width: 80, height: 80, borderRadius: '50%', background: '#fff6d8', boxShadow: 'inset -22px -8px 0 #e3d6a8,0 0 60px rgba(255,246,216,.45)', opacity: 'var(--moonop)', transition: 'opacity .6s', pointerEvents: 'none' }} />
-            <div style={{ position: 'absolute', right: '3%', top: 74, width: 84, height: 84, borderRadius: '50%', background: 'radial-gradient(circle at 40% 40%,#ffe98a,#ffc93c)', boxShadow: '0 0 0 16px rgba(255,201,60,.22),0 0 80px rgba(255,201,60,.6)', opacity: 'var(--sunop)', transition: 'opacity .6s', pointerEvents: 'none' }} />
+            <div style={{ position: sunMoon.fixed ? 'fixed' : 'absolute', right: sunMoon.right, top: sunMoon.top, width: sunMoon.size, height: sunMoon.size, borderRadius: '50%', background: '#fff6d8', boxShadow: `inset ${sunMoon.fixed ? -20 : -22}px -8px 0 #e3d6a8,0 0 60px rgba(255,246,216,.45)`, opacity: 'var(--moonop)', transition: 'opacity .6s', pointerEvents: 'none' }} />
+            <div style={{ position: sunMoon.fixed ? 'fixed' : 'absolute', right: sunMoon.right, top: sunMoon.top, width: sunMoon.size + 4, height: sunMoon.size + 4, borderRadius: '50%', background: 'radial-gradient(circle at 40% 40%,#ffe98a,#ffc93c)', boxShadow: sunMoon.fixed ? '0 0 0 16px rgba(255,201,60,.2),0 0 80px rgba(255,201,60,.55)' : '0 0 0 16px rgba(255,201,60,.22),0 0 80px rgba(255,201,60,.6)', opacity: 'var(--sunop)', transition: 'opacity .6s', pointerEvents: 'none' }} />
             <div style={{ position: 'fixed', inset: 0, opacity: 'var(--sunop)', transition: 'opacity .6s', pointerEvents: 'none', overflow: 'hidden' }}>
               <div style={{ position: 'absolute', top: '30%', left: 0, width: 280, height: 80, borderRadius: '50%', background: '#fff', filter: 'blur(16px)', opacity: 0.85, animation: 'kp-drift 80s linear infinite' }} />
             </div>
@@ -131,8 +142,8 @@ export default function KidsPage({
               }}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 16px 10px 12px', borderRadius: 999, border: '1px solid var(--hair2)', background: 'transparent', color: 'var(--ink)', fontFamily: 'inherit', fontWeight: 800, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}
             >
-              <MapIcon style={{ width: 18, height: 18 }} strokeWidth={2} />
-              Village
+              <BackIcon style={{ width: 18, height: 18 }} strokeWidth={2} />
+              {backLabel}
             </button>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <button

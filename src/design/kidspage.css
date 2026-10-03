@@ -160,3 +160,23 @@
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-8px); }
 }
+
+/* Prayer Journal */
+.kp-field:focus {
+  border-color: #6f9bff !important;
+}
+.kp-ghost:hover {
+  background: var(--track) !important;
+}
+.kp-trash:hover {
+  color: #ff5b6b !important;
+}
+@keyframes kp-fall {
+  0% { transform: translateY(-160px) scale(0.4) rotate(0); opacity: 0; }
+  70% { opacity: 1; }
+  100% { transform: translateY(0) scale(1) rotate(200deg); opacity: 1; }
+}
+@keyframes kp-breathe {
+  0%, 100% { transform: scale(0.72); }
+  50% { transform: scale(1); }
+}

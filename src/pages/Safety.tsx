@@ -1,69 +1,41 @@
-import { ShieldCheck, Lock, Eye, Users, Heart } from 'lucide-react'
+import { MessageCircle, Ear, UserCheck, Image, Lock, ShieldCheck, Database, HeartHandshake, ClipboardList } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import PublicShell, { IconTile } from '../components/public/PublicShell'
+import { card, cardTitle, cardText, grid } from '../components/public/kit'
 
-const GUARANTEES: { icon: LucideIcon; title: string; body: string }[] = [
-  {
-    icon: Lock,
-    title: 'No public profiles, no random messaging',
-    body: 'Children never appear on a public leaderboard visible outside the ministry, and there is no way for a child to message another child directly. Every conversation a child has is with their own assigned teacher.',
-  },
-  {
-    icon: Eye,
-    title: 'Role separation, enforced at the database, not just the screen',
-    body: "A teacher can only ever see their own class. An admin can see across the ministry. A child can only see their own data. These aren't just hidden buttons - they're enforced by database security rules (row-level security) that hold even if someone tried to call the system directly, bypassing the app entirely.",
-  },
-  {
-    icon: Heart,
-    title: '"Ears for You" protects a child’s identity when they ask it to',
-    body: 'When a child sends a message anonymously, the real identity is never returned to a teacher or admin by any path - not just hidden by the screen, removed from the data itself before it ever reaches them. Only the message is visible.',
-  },
-  {
-    icon: Users,
-    title: 'Parents opt in - nothing is created without them',
-    body: "A parent account is never auto-created when a child signs up. A parent creates their own account, on their own device, and links to their child using a code only the child can see and choose to share. There's no unclaimed account sitting around waiting for anyone to \"discover\" it.",
-  },
-  {
-    icon: ShieldCheck,
-    title: 'Sensitive actions are logged',
-    body: 'Actions around a safeguarding conversation (a message being read, acknowledged, replied to, or escalated) are recorded with who did it and when, so there is always a real record - not just a promise - of who saw what.',
-  },
+// The design's six cards first, each checked against what the app really
+// does, then the three guarantees the old page carried that the design did
+// not, so nothing the ministry promised before is dropped.
+const GUARANTEES: [string, string, LucideIcon][] = [
+  ['Teacher-only messaging', 'Children can only message their own Sunday school teacher. There is no child-to-child chat and no public profile.', MessageCircle],
+  ['Ears for You', 'Worries go privately to the teacher and can be sent anonymously. An anonymous message never carries the child’s name to anyone, by any path.', Ear],
+  ['Approved teachers', 'Every teacher applies and is reviewed by a ministry admin before they can see children.', UserCheck],
+  ['Photo review', 'Profile photos are checked by a teacher before anyone else can see them.', Image],
+  ['No personal details', 'Children sign in with a name and passcode. No email or phone is needed from them.', Lock],
+  ['Bible Buddy guard rails', 'The AI helper stays on Bible topics and points worried children to a trusted adult.', ShieldCheck],
+  ['Rules held by the database', 'A teacher sees only their own class, an admin sees the ministry, and a child sees only their own data. Database security rules enforce this even if someone bypasses the app.', Database],
+  ['Parents opt in', 'A parent account is never created for a child. A parent signs up on their own device and links using a code only the child can see and choose to share.', HeartHandshake],
+  ['Sensitive actions are logged', 'When a safeguarding message is read, acknowledged, replied to or escalated, the app records who did it and when.', ClipboardList],
 ]
 
 export default function Safety() {
   return (
-    <div className="mx-auto max-w-3xl space-y-8 px-4 py-16">
-      <div className="text-center">
-        <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-md border border-[var(--hairline-strong)] text-[var(--gold)]">
-          <ShieldCheck className="h-6 w-6" strokeWidth={1.75} />
-        </span>
-        <h1 className="mt-3 font-display text-3xl font-extrabold sm:text-4xl">Safety &amp; Privacy</h1>
-        <p className="mx-auto mt-3 max-w-xl text-sm text-[var(--ink-muted)] sm:text-base">
-          Here is exactly how this platform protects the children who use it - not a marketing summary, but the actual guarantees built into
-          the system.
-        </p>
-      </div>
-
-      <div className="space-y-4">
-        {GUARANTEES.map((g) => (
-          <div key={g.title} className="panel flex gap-4 p-5">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-[var(--hairline-strong)] text-[var(--gold)]">
-              <g.icon className="h-5 w-5" strokeWidth={1.75} />
-            </span>
-            <div>
-              <p className="font-display font-bold">{g.title}</p>
-              <p className="mt-1 text-sm text-[var(--ink-muted)]">{g.body}</p>
-            </div>
+    <PublicShell eyebrow="Safety" title="Safe by design" sub="How we keep every child safe on the platform." accent="#2fe0b5">
+      <div style={grid(300)}>
+        {GUARANTEES.map(([t, s, Icon]) => (
+          <div key={t} style={card}>
+            <IconTile col="#2fe0b5" size={46}>
+              <Icon style={{ width: 22, height: 22 }} strokeWidth={2} />
+            </IconTile>
+            <p style={{ ...cardTitle, margin: '14px 0 0', fontSize: 20 }}>{t}</p>
+            <p style={cardText}>{s}</p>
           </div>
         ))}
       </div>
-
-      <div className="panel p-6 text-center">
-        <p className="font-display text-lg font-bold">Have a concern?</p>
-        <p className="mt-1 text-sm text-[var(--ink-muted)]">
-          If you ever have a safeguarding concern about a child on this platform, contact the ministry directly - do not wait on an app
-          feature to raise it.
-        </p>
+      <div style={{ ...card, marginTop: 16, background: 'rgba(47,224,181,.08)', borderColor: 'rgba(47,224,181,.3)' }}>
+        <p style={{ ...cardTitle, margin: 0, fontSize: 20 }}>Have a concern?</p>
+        <p style={cardText}>If you ever have a safeguarding concern about a child on this platform, contact the ministry directly. Do not wait on an app feature to raise it.</p>
       </div>
-    </div>
+    </PublicShell>
   )
 }

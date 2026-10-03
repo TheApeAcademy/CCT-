@@ -1,209 +1,130 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight, Sparkles, Users, HeartHandshake, ShieldCheck, Lock, type LucideIcon } from 'lucide-react'
-import Reveal, { RevealStagger, RevealItem } from '../components/Reveal'
-import ScrollProgressBar from '../components/ScrollProgressBar'
-import ColorSprinkles from '../components/ColorSprinkles'
-import FloatingArt from '../components/FloatingArt'
-import { SHOWCASE_GROUPS, COMING_SOON, type ShowcaseFeature } from '../content/featureShowcase'
+import { SHOWCASE_GROUPS, COMING_SOON } from '../content/featureShowcase'
 import { showcaseIcon } from '../content/showcaseIcons'
 import { playClick } from '../lib/sound'
-// The landing page's third display face, for the eyebrows and the big
-// numbers in the stat strip - same as Home, loaded with this page's chunk.
+import PublicShell, { IconTile } from '../components/public/PublicShell'
+import { card, display, grid } from '../components/public/kit'
 
-const TOTAL_FEATURES = SHOWCASE_GROUPS.reduce((sum, g) => sum + g.features.length, 0)
+// The design's eight picture cards. Each one only links where a visitor who
+// is not signed in can actually go: the children's features open the child
+// sign-up, the rest their own public door.
+const PICTURES: [string, string, string, string, string][] = [
+  ['Kids Village', 'A playful map where every building is a feature.', '/village/home-brickbuilding.png', '/join', '#c13bff'],
+  ['Bible Journey', 'Duolingo-style lessons through Genesis.', '/village/bible-book.png', '/join', '#ff8a3d'],
+  ['Live Quiz Show', 'The big-screen quiz with teams and lifelines.', '/feature-quiz.png', '/setup', '#ffd84d'],
+  ['Games', 'Live matches, practice and mini games.', '/village/game-rocket.png', '/training', '#ff4fa3'],
+  ['Ears for You', 'A safe place to share worries with a teacher.', '/village/ears-hearttree.png', '/join', '#4f7bff'],
+  ['Digital ID Card', 'A shareable card for every child.', '/village/profile-card.png', '/join', '#b56bd9'],
+  ['Teacher Portal', 'Classes, lectures, assignments and quiz hosting.', '/village/class-house1.png', '/teacher', '#19c99b'],
+  ['Leaderboard', 'Points for every quiz answer, reading and assignment.', '/feature-leaderboard.png', '/join', '#e0a400'],
+]
+
+const GROUP_COLOUR: Record<string, string> = { children: '#c13bff', teachers: '#19c99b', admins: '#ffd84d', parents: '#4f9bff' }
 
 export default function Features() {
   return (
-    <div className="lp-page full-bleed relative space-y-0">
-      <ScrollProgressBar />
-
-      {/* ---------- hero ---------- */}
-      <div className="lp-band lp-blob-bg full-bleed isolate px-4 pb-14 pt-28 sm:pb-20 sm:pt-36">
-        <ColorSprinkles />
-        <div className="mx-auto max-w-4xl text-center">
-          <Reveal>
-            <FloatingArt className="mx-auto w-24 sm:w-32">
-              <img src="/feature-rocket.png" alt="" className="w-full drop-shadow-lg" />
-            </FloatingArt>
-            <p className="lp-eyebrow mt-4 justify-center" style={{ ['--card-accent' as string]: 'var(--lp-accent-achievements)' }}>
-              Everything Inside
-            </p>
-            <h1 className="lp-heading mt-3 text-balance font-display text-4xl font-extrabold leading-[1.05] sm:text-6xl">
-              One app. Four doors.
-            </h1>
-            <p className="mx-auto mt-5 max-w-2xl text-base leading-relaxed text-[var(--lp-body)] sm:text-lg">
-              Children, teachers, ministry admins and parents each get their own way in, and each one sees only what
-              belongs to them. Here is every single thing that is already built, and the few honest things that are not.
-            </p>
-          </Reveal>
-
-          <Reveal delay={0.08}>
-            <div className="lp-stat-strip mx-auto mt-9 max-w-xl grid-cols-3">
-              <div className="lp-stat-cell">
-                <p className="lp-stat-value">4</p>
-                <p className="lp-stat-label">Portals</p>
-              </div>
-              <div className="lp-stat-cell">
-                <p className="lp-stat-value">{TOTAL_FEATURES}</p>
-                <p className="lp-stat-label">Features Built</p>
-              </div>
-              <div className="lp-stat-cell">
-                <p className="lp-stat-value">0</p>
-                <p className="lp-stat-label">Public Profiles</p>
-              </div>
-            </div>
-          </Reveal>
-        </div>
+    <PublicShell eyebrow="Features" title="Everything inside" sub="All the ways children, parents and teachers use the app." accent="#ff8a3d">
+      <div style={grid(260)}>
+        {PICTURES.map(([t, s, img, to, col]) => (
+          <Link key={t} to={to} onClick={() => playClick()} className="pb-lift" style={{ ['--pb-col' as string]: col, display: 'flex', flexDirection: 'column', gap: 12, padding: 22, borderRadius: 26, background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.1)', color: '#fff' }}>
+            <img src={img} alt="" style={{ height: 80, alignSelf: 'flex-start', objectFit: 'contain', filter: 'drop-shadow(0 10px 14px rgba(0,0,0,.4))' }} />
+            <span style={{ fontFamily: display, fontWeight: 800, fontSize: 21 }}>{t}</span>
+            <span style={{ fontSize: 14, lineHeight: 1.5, color: 'rgba(236,230,250,.7)' }}>{s}</span>
+          </Link>
+        ))}
       </div>
 
-      {/* ---------- one band per audience ---------- */}
-      {SHOWCASE_GROUPS.map((group, i) => (
-        <div
-          key={group.key}
-          className={`${i % 2 === 0 ? 'lp-band-alt' : 'lp-band'} full-bleed px-4 lp-rhythm`}
-        >
-          <div className="mx-auto max-w-6xl">
-            <Reveal>
-              <p className="lp-eyebrow" style={{ ['--card-accent' as string]: group.accent }}>
-                {group.eyebrow}
-              </p>
-              <h2 className="lp-heading mt-3 text-balance font-display text-2xl font-extrabold leading-tight sm:text-4xl">
-                {group.title}
-              </h2>
-              <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-[var(--lp-body)] sm:text-base">{group.intro}</p>
-              {group.cta && (
-                <Link
-                  to={group.cta.to}
-                  onClick={() => playClick()}
-                  className="lp-btn-solid mt-6 inline-flex !px-6 !py-3 !text-[15px]"
-                  style={{ ['--lp-accent-fill' as string]: group.accent, ['--lp-accent-fill-hover' as string]: group.accent }}
-                >
-                  {group.cta.label}
-                </Link>
-              )}
-            </Reveal>
-
-            <RevealStagger className="mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {group.features.map((f) => (
-                <FeatureCard key={f.title} feature={f} accent={group.accent} />
-              ))}
-            </RevealStagger>
-          </div>
-        </div>
-      ))}
-
-      {/* ---------- honest about what is not built yet ---------- */}
-      <div className="lp-band-deep full-bleed px-4 lp-rhythm-compact">
-        <div className="mx-auto max-w-6xl">
-          <Reveal className="text-center">
-            <p className="lp-eyebrow justify-center" style={{ ['--card-accent' as string]: 'var(--lp-accent-compete)' }}>
-              Not Built Yet
-            </p>
-            <h2 className="lp-heading mt-2 font-display text-2xl font-extrabold sm:text-3xl">Still on the way</h2>
-            <p className="mx-auto mt-3 max-w-lg text-[15px] leading-relaxed" style={{ color: 'var(--lp-band-deep-body)' }}>
-              These are real plans, not marketing. They are listed here so nothing above has to be vague.
-            </p>
-          </Reveal>
-          <RevealStagger className="mt-7 grid grid-cols-1 gap-3 sm:grid-cols-3">
-            {COMING_SOON.map((c) => {
-              const Icon = showcaseIcon(c.icon)
-              return (
-                <RevealItem key={c.title} className="h-full">
-                  <div className="flex h-full items-start gap-3 rounded-2xl border border-dashed border-white/25 bg-white/5 p-5">
-                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white/70">
-                      <Icon className="h-4 w-4" strokeWidth={1.75} />
-                    </span>
-                    <div>
-                      <p className="font-display text-base font-bold text-white">{c.title}</p>
-                      <p className="mt-1 text-sm leading-relaxed" style={{ color: 'var(--lp-band-deep-body)' }}>
-                        {c.description}
-                      </p>
-                    </div>
+      {SHOWCASE_GROUPS.map((group) => {
+        const col = GROUP_COLOUR[group.key] ?? '#ffd84d'
+        return (
+          <section key={group.key} style={{ marginTop: 64 }}>
+            <span style={{ display: 'inline-flex', padding: '7px 14px', borderRadius: 999, border: '1px solid rgba(255,255,255,.16)', fontSize: 12, fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase', color: col }}>{group.eyebrow}</span>
+            <h2 style={{ margin: '14px 0 0', fontFamily: display, fontWeight: 800, fontSize: 'clamp(28px,3.4vw,42px)', lineHeight: 1, letterSpacing: '-.03em', color: '#fff' }}>{group.title}</h2>
+            <p style={{ margin: '12px 0 0', maxWidth: 640, fontSize: 16, lineHeight: 1.6 }}>{group.intro}</p>
+            {group.cta && (
+              <Link to={group.cta.to} onClick={() => playClick()} style={{ display: 'inline-flex', marginTop: 18, padding: '12px 22px', borderRadius: 999, background: col, color: '#1a0f2e', fontWeight: 800, fontSize: 14 }}>
+                {group.cta.label}
+              </Link>
+            )}
+            <div style={{ ...grid(280), marginTop: 22 }}>
+              {group.features.map((f) => {
+                const Icon = showcaseIcon(f.icon)
+                const inner = (
+                  <>
+                    <IconTile col={col} size={44}>
+                      <Icon style={{ width: 22, height: 22 }} strokeWidth={2} />
+                    </IconTile>
+                    <p style={{ margin: '14px 0 0', fontFamily: display, fontWeight: 800, fontSize: 19, color: '#fff' }}>{f.title}</p>
+                    <p style={{ margin: '6px 0 0', fontSize: 14, lineHeight: 1.55 }}>{f.description}</p>
+                    {f.to ? (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 10, fontSize: 12, fontWeight: 800, color: col }}>
+                        Open it <ArrowRight style={{ width: 12, height: 12 }} strokeWidth={2.5} />
+                      </span>
+                    ) : (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 10, fontSize: 12, fontWeight: 700, color: 'rgba(236,230,250,.5)' }}>
+                        <Lock style={{ width: 12, height: 12 }} strokeWidth={2.25} /> {f.where}
+                      </span>
+                    )}
+                  </>
+                )
+                return f.to ? (
+                  <Link key={f.title} to={f.to} onClick={() => playClick()} className="pb-lift" style={{ ...card, ['--pb-col' as string]: col, display: 'block', padding: 22, color: 'inherit' }}>
+                    {inner}
+                  </Link>
+                ) : (
+                  <div key={f.title} style={{ ...card, padding: 22 }}>
+                    {inner}
                   </div>
-                </RevealItem>
-              )
-            })}
-          </RevealStagger>
+                )
+              })}
+            </div>
+          </section>
+        )
+      })}
+
+      <section style={{ marginTop: 64 }}>
+        <span style={{ display: 'inline-flex', padding: '7px 14px', borderRadius: 999, border: '1px solid rgba(255,255,255,.16)', fontSize: 12, fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase', color: '#ff8a3d' }}>Not built yet</span>
+        <h2 style={{ margin: '14px 0 0', fontFamily: display, fontWeight: 800, fontSize: 'clamp(28px,3.4vw,42px)', lineHeight: 1, letterSpacing: '-.03em', color: '#fff' }}>Still on the way</h2>
+        <p style={{ margin: '12px 0 0', maxWidth: 640, fontSize: 16, lineHeight: 1.6 }}>These are real plans, not marketing. They are listed here so nothing above has to be vague.</p>
+        <div style={{ ...grid(260), marginTop: 22 }}>
+          {COMING_SOON.map((c) => {
+            const Icon = showcaseIcon(c.icon)
+            return (
+              <div key={c.title} style={{ ...card, padding: 22, borderStyle: 'dashed', borderColor: 'rgba(255,255,255,.22)' }}>
+                <IconTile col="#ffffff" size={40}>
+                  <Icon style={{ width: 18, height: 18 }} strokeWidth={2} />
+                </IconTile>
+                <p style={{ margin: '12px 0 0', fontFamily: display, fontWeight: 800, fontSize: 18, color: '#fff' }}>{c.title}</p>
+                <p style={{ margin: '6px 0 0', fontSize: 14, lineHeight: 1.55 }}>{c.description}</p>
+              </div>
+            )
+          })}
         </div>
-      </div>
+      </section>
 
-      {/* ---------- final CTA: the four doors, together ---------- */}
-      <div className="stage-glow full-bleed border-t border-[var(--hairline)] px-4 lp-rhythm text-center">
-        <Reveal>
-          <p className="eyebrow justify-center">Pick Your Door</p>
-          <h2 className="mt-2 font-display text-3xl font-extrabold text-white sm:text-4xl">Which one are you?</h2>
-          <p className="mx-auto mt-3 max-w-md text-sm text-[var(--ink-muted)] sm:text-base">
-            Each portal is its own separate way in, with its own sign-in. There is no shared navigation between them,
-            and that is deliberate.
-          </p>
-          <div className="mt-7 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <DoorLink to="/join" icon={Sparkles} label="I'm a Child" sub="Sign up with a name and a passcode" />
-            <DoorLink to="/teacher" icon={Users} label="I'm a Teacher" sub="Apply to teach a Sunday School class" />
-            <DoorLink to="/parent" icon={HeartHandshake} label="I'm a Parent" sub="Follow your child's progress" />
-            <DoorLink to="/admin" icon={ShieldCheck} label="I'm an Admin" sub="Oversee the whole ministry" />
-          </div>
-        </Reveal>
-      </div>
-    </div>
+      <section style={{ marginTop: 64, textAlign: 'center' }}>
+        <h2 style={{ margin: 0, fontFamily: display, fontWeight: 800, fontSize: 'clamp(28px,3.4vw,42px)', lineHeight: 1, letterSpacing: '-.03em', color: '#fff' }}>Which one are you?</h2>
+        <p style={{ margin: '12px auto 0', maxWidth: 480, fontSize: 16, lineHeight: 1.6 }}>Each portal is its own separate way in, with its own sign-in.</p>
+        <div style={{ ...grid(220), marginTop: 22 }}>
+          <DoorLink to="/join" icon={Sparkles} label="I'm a Child" sub="Sign up with a name and a passcode" col="#c13bff" />
+          <DoorLink to="/teacher" icon={Users} label="I'm a Teacher" sub="Apply to teach a Sunday School class" col="#19c99b" />
+          <DoorLink to="/parent" icon={HeartHandshake} label="I'm a Parent" sub="Follow your child's progress" col="#4f9bff" />
+          <DoorLink to="/admin" icon={ShieldCheck} label="I'm an Admin" sub="Oversee the whole ministry" col="#ffd84d" />
+        </div>
+      </section>
+    </PublicShell>
   )
 }
 
-function FeatureCard({ feature, accent }: { feature: ShowcaseFeature; accent: string }) {
-  const Icon = showcaseIcon(feature.icon)
-  const body = (
-    <>
-      <span className="lp-icon-chip shrink-0">
-        <Icon className="h-5 w-5" strokeWidth={1.75} />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="lp-heading font-display text-base font-bold">{feature.title}</p>
-        <p className="mt-1 text-sm leading-relaxed text-[var(--lp-muted)]">{feature.description}</p>
-        {feature.to ? (
-          <span className="mt-2.5 inline-flex items-center gap-1 text-xs font-extrabold" style={{ color: accent }}>
-            Open it <ArrowRight className="h-3 w-3" strokeWidth={2.5} />
-          </span>
-        ) : (
-          <span className="mt-2.5 inline-flex items-center gap-1 text-xs font-bold text-[var(--lp-faint)]">
-            <Lock className="h-3 w-3" strokeWidth={2.25} /> {feature.where}
-          </span>
-        )}
-      </div>
-    </>
-  )
-
-  const className = 'lp-panel lp-panel-accented flex h-full items-start gap-3.5 p-5'
-  const style = { ['--card-accent' as string]: accent }
-
-  if (feature.to) {
-    return (
-      <RevealItem className="h-full">
-        <Link to={feature.to} onClick={() => playClick()} className={`${className} lp-panel-interactive`} style={style}>
-          {body}
-        </Link>
-      </RevealItem>
-    )
-  }
+function DoorLink({ to, icon: Icon, label, sub, col }: { to: string; icon: LucideIcon; label: string; sub: string; col: string }) {
   return (
-    <RevealItem className="h-full">
-      <div className={className} style={style}>
-        {body}
-      </div>
-    </RevealItem>
-  )
-}
-
-function DoorLink({ to, icon: Icon, label, sub }: { to: string; icon: LucideIcon; label: string; sub: string }) {
-  return (
-    <Link
-      to={to}
-      onClick={() => playClick()}
-      className="flex flex-col items-center gap-2 rounded-2xl border border-[var(--hairline-strong)] bg-white/5 p-5 text-center transition hover:scale-[1.03] hover:bg-white/10"
-    >
-      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[var(--gold)]/15 text-[var(--gold)]">
-        <Icon className="h-5 w-5" strokeWidth={1.75} />
-      </span>
-      <p className="font-display text-base font-extrabold text-white">{label}</p>
-      <p className="text-xs leading-snug text-[var(--ink-muted)]">{sub}</p>
+    <Link to={to} onClick={() => playClick()} className="pb-lift" style={{ ...card, ['--pb-col' as string]: col, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, padding: 22, color: '#fff' }}>
+      <IconTile col={col} size={46}>
+        <Icon style={{ width: 22, height: 22 }} strokeWidth={2} />
+      </IconTile>
+      <span style={{ fontFamily: display, fontWeight: 800, fontSize: 18 }}>{label}</span>
+      <span style={{ fontSize: 13, lineHeight: 1.45, color: 'rgba(236,230,250,.6)' }}>{sub}</span>
     </Link>
   )
 }

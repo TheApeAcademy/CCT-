@@ -50,7 +50,7 @@ const dropdowns = [
 ] as const
 
 /** Routes whose page draws its own chrome (Claude Design handoff screens). */
-const DESIGN_SCREENS = new Set(['/', '/setup', '/ground-rules', '/play'])
+const DESIGN_SCREENS = new Set(['/', '/setup', '/ground-rules', '/play', '/training', '/questions', '/history', '/seasons', '/anthem', '/features', '/safety'])
 const isDesignScreen = (path: string) => DESIGN_SCREENS.has(path) || path.startsWith('/results/') || path.startsWith('/match-results/')
 
 export default function Layout() {

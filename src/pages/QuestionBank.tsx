@@ -4,6 +4,8 @@ import { db, ensureSeedData, ensureActiveSeason, exportQuestionSet, importQuesti
 import { playClick } from '../lib/sound'
 import { haptics } from '../lib/haptics'
 import type { Question, QuestionSet } from '../db/types'
+import PublicShell from '../components/public/PublicShell'
+import { card, display, field, label, pill } from '../components/public/kit'
 
 const emptyForm = {
   text: '',
@@ -16,7 +18,7 @@ const emptyForm = {
   groups: [] as string[],
 }
 
-const inputClass = 'w-full rounded-md border border-[var(--hairline-strong)] bg-transparent px-3 py-2 outline-none focus:border-[var(--gold)]'
+const inputClass = 'w-full rounded-xl border border-[var(--hairline-strong)] bg-black/25 px-3 py-2.5 text-white outline-none focus:border-[var(--gold)]'
 
 export default function QuestionBank() {
   useEffect(() => {
@@ -35,6 +37,10 @@ export default function QuestionBank() {
   const [newGroupName, setNewGroupName] = useState('')
   const [groupFilter, setGroupFilter] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const [level, setLevel] = useState(0)
+  const [openId, setOpenId] = useState<number | null>(null)
+  const [formOpen, setFormOpen] = useState(false)
+  const formRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // A scratch "cart" of picked questions - persisted (not just this
@@ -71,6 +77,7 @@ export default function QuestionBank() {
 
   const visibleQuestions = useMemo(() => {
     let list = groupFilter ? questions.filter((q) => q.groups?.includes(groupFilter)) : questions
+    if (level) list = list.filter((q) => q.difficulty === level)
     const q = search.trim().toLowerCase()
     if (q) {
       list = list.filter(
@@ -82,12 +89,13 @@ export default function QuestionBank() {
       )
     }
     return list
-  }, [questions, groupFilter, search])
+  }, [questions, groupFilter, search, level])
 
   const resetForm = () => {
     setForm(emptyForm)
     setEditingId(null)
     setError('')
+    setFormOpen(false)
   }
 
   const handleCreateSet = async () => {
@@ -111,6 +119,8 @@ export default function QuestionBank() {
   }
 
   const startEdit = (q: Question) => {
+    setFormOpen(true)
+    window.setTimeout(() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 30)
     setEditingId(q.id!)
     setForm({
       text: q.text,
@@ -236,99 +246,81 @@ export default function QuestionBank() {
     }
   }
 
-  return (
-    <div data-landing-theme="light" className={`site-light-theme lp-page full-bleed -mb-6 flex-1 px-4 py-6 ${builderItems.length > 0 ? 'pb-24' : ''}`}>
-      <div className="mx-auto grid max-w-5xl gap-6 lg:grid-cols-[280px_1fr]">
-      <aside className="space-y-3">
-        <h2 className="font-display text-lg font-bold">Question Sets</h2>
-        <div className="space-y-2">
-          {sets.map((set) => (
-            <div
-              key={set.id}
-              className={`group flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm cursor-pointer transition hover:scale-[1.02] ${
-                selectedSetId === set.id ? 'bg-[var(--gold)] text-[var(--gold-ink)] font-semibold' : 'bg-[var(--ink-panel)] hover:bg-[var(--ink-raised)]'
-              }`}
-              onClick={() => {
-                if (selectedSetId !== set.id) playClick()
-                setSelectedSetId(set.id!)
-                resetForm()
-              }}
-            >
-              <span className="min-w-0 flex-1 truncate">
-                {set.name}
-                {seasonName(set.seasonId) && <span className="ml-1 text-[10px] font-normal opacity-70">· {seasonName(set.seasonId)}</span>}
-              </span>
-              {!set.isStarter && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleDeleteSet(set)
-                  }}
-                  className="opacity-0 group-hover:opacity-100 text-xs text-red-600 hover:text-red-700"
-                  title="Delete set"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
+  const btn = (solid: boolean) => ({ padding: '10px 16px', borderRadius: 999, border: solid ? 'none' : '1px solid rgba(255,255,255,.22)', background: solid ? '#ffd84d' : 'transparent', color: solid ? '#1a0f2e' : '#fff', fontFamily: 'inherit', fontWeight: 800, fontSize: 13, cursor: 'pointer', whiteSpace: 'nowrap' as const })
 
-        {creatingSet ? (
-          <div className="space-y-2">
-            <input
-              autoFocus
-              value={newSetName}
-              onChange={(e) => setNewSetName(e.target.value)}
-              placeholder="New set name"
-              className={`${inputClass} text-sm`}
-              onKeyDown={(e) => e.key === 'Enter' && handleCreateSet()}
-            />
-            <div className="flex gap-2">
-              <button onClick={handleCreateSet} className="btn-solid flex-1 py-1.5 text-sm">
+  return (
+    <PublicShell eyebrow="Question Bank" title="Every question, one place" sub="Browse the questions used in quiz matches, by difficulty and Bible book. Teachers can add, edit and pick questions here too." accent="#ffd84d">
+      <div style={{ paddingBottom: builderItems.length > 0 ? 80 : 0 }}>
+        <div style={{ ...card, marginTop: 28, padding: 18 }}>
+          <p style={label}>QUESTION SETS</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
+            {sets.map((set) => {
+              const on = selectedSetId === set.id
+              return (
+                <span key={set.id} style={{ display: 'inline-flex', alignItems: 'center', borderRadius: 999, border: `1px solid ${on ? '#ffd84d' : 'rgba(255,255,255,.16)'}`, background: on ? '#ffd84d' : 'transparent', maxWidth: '100%' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!on) playClick()
+                      setSelectedSetId(set.id!)
+                      setOpenId(null)
+                      resetForm()
+                    }}
+                    style={{ padding: '9px 14px', border: 'none', background: 'transparent', color: on ? '#1a0f2e' : '#fff', fontFamily: 'inherit', fontWeight: 800, fontSize: 13, cursor: 'pointer', textAlign: 'left', minWidth: 0, overflowWrap: 'anywhere' }}
+                  >
+                    {set.name}
+                    {seasonName(set.seasonId) && <span style={{ fontWeight: 600, opacity: 0.65 }}> · {seasonName(set.seasonId)}</span>}
+                  </button>
+                  {!set.isStarter && (
+                    <button type="button" onClick={() => handleDeleteSet(set)} title="Delete set" aria-label={`Delete ${set.name}`} style={{ padding: '9px 12px 9px 0', border: 'none', background: 'transparent', color: on ? '#1a0f2e' : '#ff8a96', fontFamily: 'inherit', fontWeight: 800, fontSize: 12, cursor: 'pointer' }}>
+                      ✕
+                    </button>
+                  )}
+                </span>
+              )
+            })}
+          </div>
+          {creatingSet ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+              <input autoFocus value={newSetName} onChange={(e) => setNewSetName(e.target.value)} placeholder="New set name" className="pb-field" style={{ ...field, flex: '1 1 220px', padding: '10px 16px', fontSize: 14 }} onKeyDown={(e) => e.key === 'Enter' && handleCreateSet()} />
+              <button type="button" onClick={handleCreateSet} style={btn(true)}>
                 Add
               </button>
-              <button onClick={() => setCreatingSet(false)} className="btn-outline flex-1 py-1.5 text-sm">
+              <button type="button" onClick={() => setCreatingSet(false)} style={btn(false)}>
                 Cancel
               </button>
             </div>
-          </div>
-        ) : (
-          <button
-            onClick={() => setCreatingSet(true)}
-            className="w-full rounded-lg border border-dashed border-[var(--hairline-strong)] py-2 text-sm text-[var(--ink-muted)] transition hover:scale-[1.02] hover:bg-[var(--ink-panel)]"
-          >
-            + New question set
-          </button>
-        )}
-
-        <div className="mt-4 space-y-2 border-t border-[var(--hairline)] pt-4">
-          <button
-            onClick={handleExport}
-            disabled={!selectedSetId}
-            className="btn-outline w-full py-2 text-sm disabled:opacity-40"
-          >
-            ⬇ Export selected set
-          </button>
-          <button onClick={handleImportClick} className="btn-outline w-full py-2 text-sm">
-            ⬆ Import set from file
-          </button>
-          <input ref={fileInputRef} type="file" accept="application/json" className="hidden" onChange={handleImportFile} />
+          ) : (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12 }}>
+              <button type="button" onClick={() => setCreatingSet(true)} style={{ ...btn(false), borderStyle: 'dashed' }}>
+                + New question set
+              </button>
+              <button type="button" onClick={handleExport} disabled={!selectedSetId} style={{ ...btn(false), opacity: selectedSetId ? 1 : 0.4 }}>
+                ⬇ Export this set
+              </button>
+              <button type="button" onClick={handleImportClick} style={btn(false)}>
+                ⬆ Import a set
+              </button>
+              <input ref={fileInputRef} type="file" accept="application/json" className="hidden" onChange={handleImportFile} />
+            </div>
+          )}
         </div>
-      </aside>
 
-      <section className="space-y-6">
         {!selectedSet ? (
-          <p className="text-[var(--ink-muted)]">Create a question set to get started.</p>
+          <p style={{ margin: '20px 0 0', color: 'rgba(236,230,250,.55)' }}>Create a question set to get started.</p>
         ) : (
           <>
-            <div>
-              <h2 className="font-display text-2xl font-bold">{selectedSet.name}</h2>
-              <p className="text-sm text-[var(--ink-muted)]">{questions.length} question{questions.length === 1 ? '' : 's'}</p>
-            </div>
-
-            <div className="panel p-5">
-              <h3 className="mb-3 font-display font-bold">{editingId ? 'Edit question' : 'Add a question'}</h3>
+            <div ref={formRef} style={{ ...card, marginTop: 14, padding: 18, scrollMarginTop: 90 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                <p style={{ margin: 0, fontFamily: display, fontWeight: 800, fontSize: 20, color: '#fff' }}>{editingId ? 'Edit question' : `Add to ${selectedSet.name}`}</p>
+                {!formOpen && (
+                  <button type="button" onClick={() => setFormOpen(true)} style={btn(true)}>
+                    + Add a question
+                  </button>
+                )}
+              </div>
+              {formOpen && (
+                <div className="mt-4">
               {error && <p className="mb-2 text-sm text-red-600">{error}</p>}
               <div className="grid gap-3">
                 <textarea
@@ -444,133 +436,124 @@ export default function QuestionBank() {
                   <button onClick={handleSubmit} className="btn-solid px-5 py-2">
                     {editingId ? 'Save changes' : 'Add question'}
                   </button>
-                  {editingId && (
-                    <button onClick={resetForm} className="btn-outline px-5 py-2">
-                      Cancel
-                    </button>
-                  )}
+                  <button onClick={resetForm} className="btn-outline px-5 py-2">
+                    {editingId ? 'Cancel' : 'Close'}
+                  </button>
                 </div>
+              </div>
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginTop: 24 }}>
+              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search questions…" className="pb-field" style={{ ...field, flex: '1 1 260px' }} />
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {['All', 'Level 1', 'Level 2', 'Level 3', 'Level 4', 'Level 5'].map((name, i) => (
+                  <button key={name} type="button" onClick={() => setLevel(i)} style={pill(level === i)}>
+                    {name}
+                  </button>
+                ))}
               </div>
             </div>
 
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="🔍 Search this set's questions, categories, references, or answers…"
-              className={inputClass}
-            />
-
             {allGroups.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-sm font-semibold text-[var(--ink-muted)]">Filter by group:</span>
-                <button
-                  onClick={() => setGroupFilter(null)}
-                  className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                    groupFilter === null ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'bg-[var(--ink-panel)] text-[var(--ink-muted)] hover:bg-[var(--ink-raised)]'
-                  }`}
-                >
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 10 }}>
+                <span style={{ fontSize: 13, fontWeight: 800, color: 'rgba(236,230,250,.55)' }}>Group:</span>
+                <button type="button" onClick={() => setGroupFilter(null)} style={{ ...pill(groupFilter === null), padding: '7px 12px', fontSize: 12 }}>
                   All
                 </button>
                 {allGroups.map((g) => (
-                  <button
-                    key={g}
-                    onClick={() => setGroupFilter(g)}
-                    className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                      groupFilter === g ? 'bg-[var(--gold)] text-[var(--gold-ink)]' : 'bg-[var(--ink-panel)] text-[var(--ink-muted)] hover:bg-[var(--ink-raised)]'
-                    }`}
-                  >
+                  <button key={g} type="button" onClick={() => setGroupFilter(g)} style={{ ...pill(groupFilter === g), padding: '7px 12px', fontSize: 12 }}>
                     {g}
                   </button>
                 ))}
               </div>
             )}
 
-            <div className="space-y-2">
-              {visibleQuestions.map((q, i) => (
-                <div
-                  key={q.id}
-                  className="panel animate-page-in flex items-start justify-between gap-3 p-4 transition hover:bg-[var(--ink-raised)]"
-                  style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}
-                >
-                  <button
-                    onClick={() => toggleBuilderItem(q.id!)}
-                    title={builderIds.has(q.id!) ? 'Remove from quiz' : 'Add to quiz'}
-                    className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold transition hover:scale-110 ${
-                      builderIds.has(q.id!) ? 'bg-emerald-500 text-white' : 'bg-[var(--ink-panel)] text-[var(--ink-muted)] hover:bg-[var(--gold)]/20'
-                    }`}
-                  >
-                    {builderIds.has(q.id!) ? '✓' : '+'}
-                  </button>
-                  <div className="flex-1">
-                    <div className="mb-1 flex flex-wrap gap-2 text-xs">
-                      <span className="rounded-full bg-[var(--hero-accent)]/15 px-2 py-0.5 text-[var(--hero-accent)]">{q.category}</span>
-                      <span className="rounded-full bg-[var(--gold)]/15 px-2 py-0.5 text-[var(--gold)]">Difficulty {q.difficulty}</span>
-                      {q.reference && <span className="rounded-full bg-[var(--ink-panel)] px-2 py-0.5 text-[var(--ink-muted)]">📖 {q.reference}</span>}
-                      {q.groups?.map((g) => (
-                        <span key={g} className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-emerald-700">
-                          {g}
+            <p style={{ margin: '16px 0 0', fontSize: 13, fontWeight: 800, color: 'rgba(236,230,250,.55)' }}>
+              {visibleQuestions.length} question{visibleQuestions.length === 1 ? '' : 's'}
+              {visibleQuestions.length !== questions.length ? ` of ${questions.length}` : ''} in {selectedSet.name}
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 10 }}>
+              {visibleQuestions.map((q) => {
+                const open = openId === q.id
+                const picked = builderIds.has(q.id!)
+                return (
+                  <div key={q.id} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '18px 20px', borderRadius: 20, border: `1px solid ${open ? '#2fe0b5' : 'rgba(255,255,255,.1)'}`, background: 'rgba(255,255,255,.04)', transition: 'border-color .2s' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <button
+                        type="button"
+                        aria-expanded={open}
+                        onClick={() => setOpenId(open ? null : q.id!)}
+                        style={{ flex: 1, minWidth: 0, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px 12px', padding: 0, border: 'none', background: 'transparent', color: '#fff', fontFamily: 'inherit', textAlign: 'left', cursor: 'pointer' }}
+                      >
+                        <span aria-label={`Level ${q.difficulty}`} style={{ display: 'flex', gap: 3, color: '#ffd84d', fontSize: 12, letterSpacing: 1 }}>
+                          {'●'.repeat(q.difficulty)}
+                          {'○'.repeat(5 - q.difficulty)}
                         </span>
-                      ))}
+                        <span style={{ flex: '1 1 220px', minWidth: 0, fontWeight: 800, fontSize: 16, overflowWrap: 'anywhere' }}>{q.text}</span>
+                        <span style={{ fontSize: 12, fontWeight: 800, color: 'rgba(236,230,250,.5)', whiteSpace: 'nowrap' }}>{q.reference || q.category}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleBuilderItem(q.id!)}
+                        title={picked ? 'Remove from quiz' : 'Add to quiz'}
+                        aria-label={picked ? 'Remove from quiz' : 'Add to quiz'}
+                        style={{ flexShrink: 0, width: 32, height: 32, borderRadius: '50%', border: picked ? 'none' : '1px solid rgba(255,255,255,.2)', background: picked ? '#2fe0b5' : 'transparent', color: picked ? '#03231b' : '#fff', fontFamily: 'inherit', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}
+                      >
+                        {picked ? '✓' : '+'}
+                      </button>
                     </div>
-                    <p className="font-medium">{q.text}</p>
-                    <p className="mt-1 text-sm text-[var(--ink-muted)]">
-                      ✓ {q.options[q.correctIndex]}
-                    </p>
+                    {open && (
+                      <>
+                        <span style={{ display: 'block', padding: '10px 14px', borderRadius: 12, background: 'rgba(47,224,181,.12)', color: '#5cf0c8', fontWeight: 800, fontSize: 14 }}>Answer: {q.options[q.correctIndex]}</span>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, fontSize: 12 }}>
+                          <span style={{ padding: '4px 10px', borderRadius: 999, background: 'rgba(193,59,255,.16)', color: '#e0a8ff', fontWeight: 700 }}>{q.category}</span>
+                          {q.reference && <span style={{ padding: '4px 10px', borderRadius: 999, background: 'rgba(255,255,255,.06)', color: 'rgba(236,230,250,.7)', fontWeight: 700 }}>📖 {q.reference}</span>}
+                          {q.groups?.map((g) => (
+                            <span key={g} style={{ padding: '4px 10px', borderRadius: 999, background: 'rgba(47,224,181,.12)', color: '#5cf0c8', fontWeight: 700 }}>
+                              {g}
+                            </span>
+                          ))}
+                        </div>
+                        <p style={{ margin: 0, fontSize: 14, color: 'rgba(236,230,250,.6)' }}>Options: {q.options.join(' · ')}</p>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <button type="button" onClick={() => startEdit(q)} style={{ ...btn(false), padding: '8px 14px', fontSize: 12 }}>
+                            Edit
+                          </button>
+                          <button type="button" onClick={() => handleDeleteQuestion(q.id!)} style={{ ...btn(false), padding: '8px 14px', fontSize: 12, color: '#ff8a96', borderColor: 'rgba(255,138,150,.4)' }}>
+                            Delete
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
-                  <div className="flex shrink-0 gap-2">
-                    <button onClick={() => startEdit(q)} className="btn-outline px-3 py-1.5 text-sm">
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeleteQuestion(q.id!)}
-                      className="rounded-lg bg-red-500/10 px-3 py-1.5 text-sm text-red-600 transition hover:scale-105 hover:bg-red-500/20"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
               {visibleQuestions.length === 0 && (
-                <p className="text-sm text-[var(--ink-faint)]">
-                  {search.trim()
-                    ? `No questions match "${search.trim()}".`
-                    : groupFilter
-                      ? `No questions in "${groupFilter}" yet.`
-                      : 'No questions yet. Add one above.'}
+                <p style={{ margin: 0, fontSize: 14, color: 'rgba(236,230,250,.5)' }}>
+                  {search.trim() ? `No questions match "${search.trim()}".` : groupFilter ? `No questions in "${groupFilter}" yet.` : level ? `No level ${level} questions in this set.` : 'No questions yet. Add one above.'}
                 </p>
               )}
             </div>
           </>
         )}
-      </section>
       </div>
 
       {builderItems.length > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--hairline-strong)] bg-[var(--ink)] p-3 shadow-2xl">
-          <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-3">
-            <span className="shrink-0 rounded-full bg-[var(--gold)] px-3 py-1.5 text-sm font-bold text-[var(--gold-ink)]">
-              {builderItems.length} picked
-            </span>
-            <input
-              value={buildingQuizName}
-              onChange={(e) => setBuildingQuizName(e.target.value)}
-              placeholder="New quiz name, e.g. Christmas Special"
-              className={`${inputClass} min-w-0 flex-1`}
-              onKeyDown={(e) => e.key === 'Enter' && handleCreateQuizFromBuilder()}
-            />
-            <button
-              onClick={handleCreateQuizFromBuilder}
-              disabled={!buildingQuizName.trim() || buildingQuiz}
-              className="btn-solid shrink-0 px-4 py-2 text-sm disabled:opacity-40"
-            >
-              {buildingQuiz ? 'Creating…' : 'Create Quiz'}
+        <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 40, padding: 12, background: 'rgba(13,6,24,.92)', borderTop: '1px solid rgba(255,255,255,.12)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)' }}>
+          <div style={{ maxWidth: 1240, margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
+            <span style={{ flexShrink: 0, padding: '8px 14px', borderRadius: 999, background: '#2fe0b5', color: '#03231b', fontWeight: 800, fontSize: 13 }}>{builderItems.length} picked</span>
+            <input value={buildingQuizName} onChange={(e) => setBuildingQuizName(e.target.value)} placeholder="New quiz name, e.g. Christmas Special" className="pb-field" style={{ ...field, flex: '1 1 200px', minWidth: 0, padding: '10px 16px', fontSize: 14 }} onKeyDown={(e) => e.key === 'Enter' && handleCreateQuizFromBuilder()} />
+            <button type="button" onClick={handleCreateQuizFromBuilder} disabled={!buildingQuizName.trim() || buildingQuiz} style={{ ...btn(true), opacity: !buildingQuizName.trim() || buildingQuiz ? 0.4 : 1 }}>
+              {buildingQuiz ? 'Creating…' : 'Create quiz'}
             </button>
-            <button onClick={clearBuilder} className="btn-outline shrink-0 px-3 py-2 text-sm">
+            <button type="button" onClick={clearBuilder} style={btn(false)}>
               Clear
             </button>
           </div>
         </div>
       )}
-    </div>
+    </PublicShell>
   )
 }

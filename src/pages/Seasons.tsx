@@ -1,13 +1,18 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db, ensureActiveSeason, createSeason, setActiveSeason } from '../db/db'
 import { playClick } from '../lib/sound'
 import { haptics } from '../lib/haptics'
+import PublicShell from '../components/public/PublicShell'
+import { display, field, grid } from '../components/public/kit'
+
+const monthYear = (t: number) => new Date(t).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })
 
 export default function Seasons() {
   const seasons = useLiveQuery(() => db.seasons.orderBy('createdAt').reverse().toArray(), []) ?? []
   const sets = useLiveQuery(() => db.questionSets.toArray(), []) ?? []
   const matches = useLiveQuery(() => db.matches.toArray(), []) ?? []
+  const sessions = useLiveQuery(() => db.gameSessions.toArray(), []) ?? []
 
   const [newName, setNewName] = useState('')
   const [creating, setCreating] = useState(false)
@@ -15,6 +20,22 @@ export default function Seasons() {
   useEffect(() => {
     ensureActiveSeason()
   }, [])
+
+  // The design's top three per season, from the matches actually played on
+  // this device: each team's points added up across the season's matches.
+  const topBySeason = useMemo(() => {
+    const seasonOfMatch = new Map(matches.map((m) => [m.id, m.seasonId]))
+    const out = new Map<number, [string, number][]>()
+    for (const season of seasons) {
+      const totals = new Map<string, number>()
+      for (const s of sessions) {
+        const inSeason = s.matchId !== undefined ? seasonOfMatch.get(s.matchId) === season.id : s.seasonName === season.name
+        if (inSeason) totals.set(s.playerName, (totals.get(s.playerName) ?? 0) + s.pointsWon)
+      }
+      out.set(season.id!, [...totals.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3))
+    }
+    return out
+  }, [seasons, sessions, matches])
 
   const handleCreate = async () => {
     const name = newName.trim()
@@ -33,44 +54,37 @@ export default function Seasons() {
     haptics.tap()
   }
 
-  const countsFor = (seasonId?: number) => ({
-    sets: sets.filter((s) => s.seasonId === seasonId).length,
-    matches: matches.filter((m) => m.seasonId === seasonId).length,
-  })
+  const btn = (solid: boolean) => ({ padding: '11px 18px', borderRadius: 999, border: solid ? 'none' : '1px solid rgba(255,255,255,.25)', background: solid ? '#ffd84d' : 'transparent', color: solid ? '#1a0f2e' : '#fff', fontFamily: 'inherit', fontWeight: 800, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' as const })
 
   return (
-    <div data-landing-theme="light" className="site-light-theme lp-page full-bleed -mb-6 flex-1 px-4 py-6">
-      <div className="mx-auto max-w-2xl space-y-6">
-      <div>
-        <h1 className="font-display text-3xl font-extrabold">🗓️ Seasons</h1>
-        <p className="mt-1 text-sm text-[var(--ink-muted)]">
-          Run the Bible quiz in seasons, e.g. "Season 1: Junior Church 2026". Question sets and matches are tagged
-          with whichever season is active when they're created, so History and results can be grouped by season.
-        </p>
-      </div>
-
-      <div className="panel space-y-3 p-5">
-        {seasons.length === 0 && <p className="text-sm text-[var(--ink-faint)]">Setting up your first season…</p>}
+    <PublicShell eyebrow="Seasons" title="Quiz seasons" sub="Seasons run for a few months. Question sets and matches are tagged with whichever season is live when they are made." accent="#ff4fa3">
+      <div style={grid(320)}>
+        {seasons.length === 0 && <p style={{ margin: 0, color: 'rgba(236,230,250,.55)' }}>Setting up your first season…</p>}
         {seasons.map((season) => {
-          const counts = countsFor(season.id)
+          const live = season.isActive
+          const top = topBySeason.get(season.id!) ?? []
+          const setCount = sets.filter((s) => s.seasonId === season.id).length
+          const matchCount = matches.filter((m) => m.seasonId === season.id).length
           return (
-            <div
-              key={season.id}
-              className={`flex flex-wrap items-center justify-between gap-3 rounded-xl px-4 py-3 transition ${
-                season.isActive ? 'bg-[var(--gold)]/15 ring-1 ring-[var(--gold)]/40' : 'bg-[var(--ink-raised)]'
-              }`}
-            >
-              <div>
-                <p className="font-display text-lg font-bold">
-                  {season.name} {season.isActive && <span className="ml-1 text-xs font-semibold text-[var(--gold)]">● ACTIVE</span>}
-                </p>
-                <p className="text-xs text-[var(--ink-faint)]">
-                  {counts.sets} question set{counts.sets === 1 ? '' : 's'} · {counts.matches} match{counts.matches === 1 ? '' : 'es'}
-                </p>
+            <div key={season.id} style={{ position: 'relative', overflow: 'hidden', padding: 24, borderRadius: 28, background: live ? 'linear-gradient(160deg,rgba(255,79,163,.28),rgba(40,10,60,.9))' : 'rgba(255,255,255,.05)', border: `1px solid ${live ? 'rgba(255,79,163,.5)' : 'rgba(255,255,255,.1)'}` }}>
+              <span style={{ display: 'inline-flex', padding: '5px 11px', borderRadius: 999, background: live ? '#ff4fa3' : 'rgba(255,255,255,.1)', color: live ? '#fff' : 'rgba(236,230,250,.7)', fontSize: 11, fontWeight: 800, letterSpacing: '.1em' }}>{live ? 'LIVE' : 'FINISHED'}</span>
+              <p style={{ margin: '14px 0 0', fontFamily: display, fontWeight: 800, fontSize: 26, color: '#fff', overflowWrap: 'anywhere' }}>{season.name}</p>
+              <p style={{ margin: '4px 0 0', fontSize: 14, color: 'rgba(236,230,250,.65)' }}>
+                Started {monthYear(season.createdAt)} · {setCount} set{setCount === 1 ? '' : 's'} · {matchCount} match{matchCount === 1 ? '' : 'es'}
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 16 }}>
+                {top.length === 0 && <p style={{ margin: 0, padding: '10px 12px', borderRadius: 14, background: 'rgba(0,0,0,.2)', fontSize: 14, color: 'rgba(236,230,250,.55)' }}>No matches played yet.</p>}
+                {top.map(([n, p], i) => (
+                  <div key={n} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 14, background: 'rgba(0,0,0,.2)' }}>
+                    <span style={{ width: 22, fontFamily: display, fontWeight: 800, color: i === 0 ? '#ffd84d' : 'rgba(236,230,250,.6)' }}>{i + 1}</span>
+                    <span style={{ flex: 1, minWidth: 0, fontWeight: 800, color: '#fff', overflowWrap: 'anywhere' }}>{n}</span>
+                    <span style={{ fontWeight: 800, color: '#ffd84d' }}>{p}</span>
+                  </div>
+                ))}
               </div>
-              {!season.isActive && (
-                <button onClick={() => handleActivate(season.id!)} className="btn-outline px-4 py-2 text-sm">
-                  Make active
+              {!live && (
+                <button type="button" onClick={() => handleActivate(season.id!)} style={{ ...btn(false), marginTop: 16 }}>
+                  Make live
                 </button>
               )}
             </div>
@@ -78,34 +92,31 @@ export default function Seasons() {
         })}
       </div>
 
-      {creating ? (
-        <div className="panel space-y-2 p-5">
-          <input
-            autoFocus
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            placeholder='e.g. "Season 2: Summer 2026"'
-            className="w-full rounded-md border border-[var(--hairline-strong)] bg-transparent px-4 py-3 outline-none focus:border-[var(--gold)]"
-            onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
-          />
-          <div className="flex gap-2">
-            <button onClick={handleCreate} className="btn-solid flex-1 py-2">
-              Create &amp; make active
+      <div style={{ marginTop: 20 }}>
+        {creating ? (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+            <input
+              autoFocus
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder='e.g. "Season 2: Summer 2026"'
+              className="pb-field"
+              style={{ ...field, flex: '1 1 260px' }}
+              onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+            />
+            <button type="button" onClick={handleCreate} style={btn(true)}>
+              Create and make live
             </button>
-            <button onClick={() => setCreating(false)} className="btn-outline flex-1 py-2">
+            <button type="button" onClick={() => setCreating(false)} style={btn(false)}>
               Cancel
             </button>
           </div>
-        </div>
-      ) : (
-        <button
-          onClick={() => setCreating(true)}
-          className="w-full rounded-2xl border border-dashed border-[var(--hairline-strong)] py-3 text-sm text-[var(--ink-muted)] transition hover:scale-[1.01] hover:bg-[var(--ink-panel)]"
-        >
-          + Start a new season
-        </button>
-      )}
+        ) : (
+          <button type="button" onClick={() => setCreating(true)} style={{ ...btn(false), borderStyle: 'dashed' }}>
+            + Start a new season
+          </button>
+        )}
       </div>
-    </div>
+    </PublicShell>
   )
 }

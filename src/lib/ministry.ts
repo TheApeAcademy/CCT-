@@ -872,6 +872,65 @@ export async function listAllTeachers(): Promise<Array<{ id: string; full_name: 
   return data ?? []
 }
 
+export interface ClassStats {
+  children: number
+  points: number
+  /** Share of register marks that were "present" over the last 12 weeks; null when no register was taken. */
+  attendance: number | null
+}
+
+/** Per-class numbers for the admin's All Classes table, worked out from the children and the registers. */
+export async function getClassStats(): Promise<Map<string, ClassStats>> {
+  const since = new Date()
+  since.setDate(since.getDate() - 84)
+  const [kids, marks] = await Promise.all([
+    supabase.from('students').select('class_id, total_points').not('class_id', 'is', null),
+    supabase.from('attendance').select('class_id, present').gte('date', since.toISOString().slice(0, 10)),
+  ])
+  if (kids.error) throw kids.error
+  if (marks.error) throw marks.error
+  const out = new Map<string, ClassStats & { seen: number; here: number }>()
+  const row = (id: string) => {
+    let r = out.get(id)
+    if (!r) out.set(id, (r = { children: 0, points: 0, attendance: null, seen: 0, here: 0 }))
+    return r
+  }
+  for (const k of kids.data ?? []) {
+    const r = row(k.class_id as string)
+    r.children += 1
+    r.points += (k.total_points as number) ?? 0
+  }
+  for (const m of marks.data ?? []) {
+    const r = row(m.class_id as string)
+    r.seen += 1
+    if (m.present) r.here += 1
+  }
+  for (const r of out.values()) r.attendance = r.seen ? Math.round((r.here / r.seen) * 100) : null
+  return out
+}
+
+/** How many quiz results were recorded under each season. */
+export async function countAttemptsBySeason(): Promise<Map<string, number>> {
+  const { data, error } = await supabase.from('quiz_attempts').select('season_id').not('season_id', 'is', null)
+  if (error) throw error
+  const out = new Map<string, number>()
+  for (const r of data ?? []) out.set(r.season_id as string, (out.get(r.season_id as string) ?? 0) + 1)
+  return out
+}
+
+/** How many different children have ticked off at least one reading in each plan. */
+export async function countReadersByPlan(): Promise<Map<string, number>> {
+  const { data, error } = await supabase.from('student_bible_progress').select('plan_id, student_id')
+  if (error) throw error
+  const sets = new Map<string, Set<string>>()
+  for (const r of data ?? []) {
+    const id = r.plan_id as string
+    if (!sets.has(id)) sets.set(id, new Set())
+    sets.get(id)!.add(r.student_id as string)
+  }
+  return new Map(Array.from(sets, ([k, v]) => [k, v.size]))
+}
+
 export async function listSeasons(): Promise<SeasonRow[]> {
   const { data, error } = await supabase.from('seasons').select('*').order('created_at', { ascending: false })
   if (error) throw error

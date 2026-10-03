@@ -1,0 +1,184 @@
+/* Admin Portal (/admin) - Claude Design handoff, Admin Portal.dc.html.
+   The teacher workspace's layout in the admin's night-blue. The shared
+   tokens are re-pointed here too, so the avatar queue and search inside
+   take the same look. */
+[data-dc-screen='admin'] {
+  color-scheme: dark;
+  --ink: #070b18;
+  --ink-raised: #0f1630;
+  --ink-panel: rgba(255, 255, 255, 0.04);
+  --hairline: rgba(255, 255, 255, 0.08);
+  --hairline-strong: rgba(255, 255, 255, 0.16);
+  --ink-muted: rgba(220, 230, 255, 0.55);
+  --ink-faint: rgba(220, 230, 255, 0.45);
+  --gold: #6f9bff;
+  --gold-ink: #ffffff;
+  --fg: #ffffff;
+  --radius-panel: 22px;
+  --radius-control: 12px;
+  --ap-body: rgba(220, 230, 255, 0.82);
+  --ap-dim: rgba(220, 230, 255, 0.55);
+  --ap-card: rgba(255, 255, 255, 0.04);
+  --ap-line: rgba(255, 255, 255, 0.1);
+  min-height: 100vh;
+  display: flex;
+  background:
+    radial-gradient(ellipse 60% 40% at 80% 0%, rgba(79, 123, 255, 0.22), transparent 60%),
+    #070b18;
+  color: var(--ap-body);
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+[data-dc-screen='admin'] a {
+  color: #9db8ff;
+  text-decoration: none;
+}
+[data-dc-screen='admin'] a:hover {
+  color: #fff;
+}
+[data-dc-screen='admin'] :is(input, textarea, select) {
+  font-family: inherit;
+}
+[data-dc-screen='admin'] :is(input, textarea)::placeholder {
+  color: rgba(220, 230, 255, 0.4);
+}
+[data-dc-screen='admin'] svg {
+  display: inline-block;
+}
+[data-dc-screen='admin'] input[type='date'] {
+  color-scheme: dark;
+}
+
+/* The prototype runs on content-box. Only the design's own inline-styled
+   pieces follow it; the Tailwind-built screens inside keep border-box. */
+[data-dc-screen='admin'] [style]:not([class]):not(input, textarea, button, select) {
+  box-sizing: content-box;
+}
+
+/* The shared classes, in the design's colours. */
+[data-dc-screen='admin'] .panel {
+  background: var(--ap-card);
+  border: 1px solid var(--ap-line);
+  box-shadow: none;
+}
+[data-dc-screen='admin'] .panel-interactive:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+[data-dc-screen='admin'] .btn-solid {
+  background: #6f9bff;
+  color: #fff;
+  border-radius: 12px;
+}
+[data-dc-screen='admin'] .btn-solid:hover {
+  background: #8db0ff;
+}
+[data-dc-screen='admin'] .btn-outline {
+  border-color: rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  color: #fff;
+}
+[data-dc-screen='admin'] .btn-outline:hover {
+  border-color: #6f9bff;
+  background: rgba(111, 155, 255, 0.1);
+}
+[data-dc-screen='admin'] .eyebrow {
+  color: var(--ap-dim);
+}
+[data-dc-screen='admin'] .text-red-700 {
+  color: #ff8a96;
+}
+[data-dc-screen='admin'] .text-emerald-700 {
+  color: #5cf0c8;
+}
+[data-dc-screen='admin'] .text-sky-700 {
+  color: #9db8ff;
+}
+[data-dc-screen='admin'] .sheet-panel {
+  background: #0f1630;
+  color: #fff;
+}
+
+/* Design pieces */
+.ap-field {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 13px 15px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(0, 0, 0, 0.25);
+  color: #fff;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.ap-field:focus {
+  border-color: #6f9bff;
+}
+.ap-tab:hover {
+  background: rgba(255, 255, 255, 0.07) !important;
+}
+.ap-row:hover {
+  background: rgba(255, 255, 255, 0.03) !important;
+}
+[data-dc-screen='admin'] .ap-navlink {
+  color: rgba(220, 230, 255, 0.6);
+}
+[data-dc-screen='admin'] .ap-navlink:hover {
+  color: #fff;
+}
+.ap-noscroll {
+  scrollbar-width: none;
+}
+.ap-noscroll::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes ap-up {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes ap-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@keyframes ap-ping {
+  0% {
+    box-shadow: 0 0 0 0 rgba(255, 79, 107, 0.7);
+  }
+  100% {
+    box-shadow: 0 0 0 8px rgba(255, 79, 107, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-dc-screen='admin'] * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+
+/* The sidebar shrinks to icons on a phone, so the count sits on the icon. */
+@media (max-width: 640px) {
+  .ap-badge {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    min-width: 17px !important;
+    height: 17px !important;
+    padding: 0 4px !important;
+    font-size: 10px !important;
+  }
+  .ap-who {
+    display: none;
+  }
+}

@@ -1,7 +1,6 @@
 import { useEffect, useState, useCallback, Suspense, lazy } from 'react'
 import { HashRouter, Routes, Route, Link, Outlet } from 'react-router-dom'
 import Layout from './components/Layout'
-import PortalShell from './components/PortalShell'
 import SplashScreen from './components/SplashScreen'
 import { db, ensureSeedData } from './db/db'
 import { unlockAudio } from './lib/sound'
@@ -194,16 +193,14 @@ function App() {
           {/* Admin, Teacher, and Kids are deliberately NOT nested under the
               public site's <Layout /> — each is its own link with its own
               chrome, no shared nav between them. */}
-          <Route path="admin" element={<PortalShell eyebrow="Admin Control Centre" />}>
-            <Route
-              index
-              element={
-                <Suspense fallback={<LazyFallback />}>
-                  <AdminPortal />
-                </Suspense>
-              }
-            />
-          </Route>
+          <Route
+            path="admin"
+            element={
+              <Suspense fallback={<LazyFallback />}>
+                <AdminPortal />
+              </Suspense>
+            }
+          />
           <Route
             path="teacher"
             element={

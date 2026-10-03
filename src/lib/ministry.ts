@@ -1541,6 +1541,26 @@ export async function listChildQuizAttempts(studentId: string, sinceIso: string)
   return (data ?? []) as { created_at: string }[]
 }
 
+export interface ChildQuizRow {
+  id: string
+  set_name: string | null
+  correct_count: number
+  total_questions: number
+  created_at: string
+}
+
+/** A linked child's quiz rounds since a date, newest first - for the parent's scores lists. */
+export async function listChildQuizzes(studentId: string, sinceIso: string): Promise<ChildQuizRow[]> {
+  const { data, error } = await supabase
+    .from('quiz_attempts')
+    .select('id, set_name, correct_count, total_questions, created_at')
+    .eq('student_id', studentId)
+    .gte('created_at', sinceIso)
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return (data ?? []) as ChildQuizRow[]
+}
+
 // ---------- Bible Buddy (AI companion) ----------
 // A tightly-scoped kid-facing AI, answered server-side (ai-companion edge
 // function - the API key never reaches the browser). Every Q&A is logged

@@ -598,7 +598,7 @@ function Dashboard() {
       <div
         style={{
           position: 'relative',
-          width: 'min(100vw,920px)',
+          width: '100%',
           margin: '0 auto',
           aspectRatio: '24/43',
           transformOrigin: `${active.x}% ${active.y - active.h / 2}%`,

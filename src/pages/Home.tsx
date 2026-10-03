@@ -1409,7 +1409,7 @@ export default function Home() {
                   gap: 'clamp(20px,4vw,48px)',
                 }}
               >
-                <img src="/feature-ears.png" alt="" style={{ width: 'clamp(100px,12vw,150px)', borderRadius: 28, animation: 'lp3-bob 6s ease-in-out infinite' }} />
+                <img src="/village/ears-hearttree.png" alt="" style={{ width: 'clamp(100px,12vw,150px)', filter: 'drop-shadow(0 12px 24px rgba(255,79,163,.35))', animation: 'lp3-bob 6s ease-in-out infinite' }} />
                 <div style={{ flex: '1 1 320px', minWidth: 0 }}>
                   <p style={{ margin: 0, fontSize: 12, fontWeight: 800, letterSpacing: '.14em', textTransform: 'uppercase', color: '#7fb4ff' }}>Ears For You</p>
                   <h3 style={{ fontFamily: DISPLAY, fontWeight: 800, fontSize: 'clamp(30px,3.6vw,48px)', lineHeight: 1, letterSpacing: '-.03em', margin: '10px 0 0' }}>

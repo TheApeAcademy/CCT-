@@ -180,3 +180,39 @@
   0%, 100% { transform: scale(0.72); }
   50% { transform: scale(1); }
 }
+
+/* Bible Reading Plan */
+[data-dc-screen='kidspage'][data-page='reading'] {
+  --card: rgba(32, 20, 56, 0.85);
+}
+[data-dc-screen='kidspage'][data-page='reading'][data-sky='day'] {
+  --bg: #fff6ef;
+  --card: #ffffff;
+  --hdr: rgba(255, 246, 239, 0.86);
+  --track: rgba(22, 11, 42, 0.07);
+}
+.kp-lift {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.kp-lift:hover {
+  transform: translateY(-4px);
+}
+.kp-day {
+  transition: transform 0.2s;
+}
+.kp-day:hover {
+  transform: scale(1.08);
+}
+@keyframes kp-flame {
+  0%, 100% { transform: scale(1) rotate(-4deg); }
+  50% { transform: scale(1.15) rotate(4deg); }
+}
+@keyframes kp-rise20 {
+  0% { opacity: 0; transform: translateY(20px); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes kp-daypop {
+  0% { transform: scale(0.5); }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}

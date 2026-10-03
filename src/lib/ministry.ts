@@ -1147,6 +1147,38 @@ export async function haveICompletedReading(readingId: string): Promise<boolean>
   return !!data
 }
 
+export interface ReadingPlanForMe extends BiblePlanRow {
+  readings: BibleReadingRow[]
+  /** The readings this child has finished in this plan. */
+  done: Set<string>
+}
+
+/**
+ * Every running reading plan with its days and which of them this child has
+ * read, for the Reading Plan page. Any day can be read in any order;
+ * complete_bible_reading records each reading once, and points and badges
+ * follow from that insert.
+ */
+export async function listMyReadingPlans(): Promise<ReadingPlanForMe[]> {
+  const { data: auth } = await supabase.auth.getUser()
+  if (!auth.user) return []
+  const plans = await supabase.from('bible_plans').select('*').eq('is_active', true).order('start_date', { ascending: false })
+  if (plans.error) throw plans.error
+  const ids = (plans.data ?? []).map((p) => p.id as string)
+  if (ids.length === 0) return []
+  const [readings, progress] = await Promise.all([
+    supabase.from('bible_plan_readings').select('*').in('plan_id', ids).order('day_number'),
+    supabase.from('student_bible_progress').select('reading_id').eq('student_id', auth.user.id).in('plan_id', ids),
+  ])
+  if (readings.error) throw readings.error
+  if (progress.error) throw progress.error
+  const done = new Set(((progress.data ?? []) as { reading_id: string }[]).map((r) => r.reading_id))
+  return ((plans.data ?? []) as BiblePlanRow[]).map((p) => {
+    const rs = ((readings.data ?? []) as BibleReadingRow[]).filter((r) => r.plan_id === p.id)
+    return { ...p, readings: rs, done: new Set(rs.filter((r) => done.has(r.id)).map((r) => r.id)) }
+  })
+}
+
 // ---------- admin: bible plan management ----------
 
 export async function listBiblePlans(): Promise<BiblePlanRow[]> {

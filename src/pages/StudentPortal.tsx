@@ -50,6 +50,7 @@ import { BibleCharactersPage, CharacterRevealModal } from '../components/Charact
 import { lessonArt } from '../content/bibleBookArt'
 import StreakScreen from '../components/StreakScreen'
 import PrayerJournalPage from '../components/PrayerJournal'
+import ReadingPlanPage from '../components/ReadingPlan'
 import { listMyPrayers, type Prayer } from '../lib/prayerJournal'
 import { getCountryForOffset } from '../content/prayerCountries'
 import BibleHelperPage from '../components/BibleHelper'
@@ -149,7 +150,7 @@ type Tab = KidsTab
 type Klass = ClassRow & { teacher_name: string; teacher_avatar: string | null }
 type AppKey = 'chat' | 'friends' | 'badges' | 'bank' | 'prayer' | 'diary' | 'calendar' | 'collection' | 'world' | 'buddy'
 /** The full-page kids' apps from the handoff, laid over the whole dashboard. */
-type KidsPageKey = 'characters' | 'helper' | 'prayer'
+type KidsPageKey = 'characters' | 'helper' | 'prayer' | 'reading'
 const OpenPage = createContext<(page: KidsPageKey) => void>(() => {})
 type Go = (id: Tab) => (e?: ReactMouseEvent) => void
 
@@ -1033,6 +1034,8 @@ function Dashboard() {
           }}
         />
       )}
+
+      {page === 'reading' && <ReadingPlanPage onExit={closePage} />}
 
       {revealCharacter && (
         <CharacterRevealModal
@@ -2254,6 +2257,7 @@ function SundayRoom({
   openJourney: boolean
   onJourneyOpened: () => void
 }) {
+  const openPage = useContext(OpenPage)
   const [journeyOpen, setJourneyOpen] = useState(false)
   const [streakOpen, setStreakOpen] = useState(false)
   const [unlocked, setUnlocked] = useState<Set<string>>(new Set())
@@ -2367,10 +2371,7 @@ function SundayRoom({
           <button
             type="button"
             className="kv-lift"
-            onClick={() => {
-              playClick()
-              setStreakOpen(true)
-            }}
+            onClick={() => openPage('reading')}
             style={{ ...heroTile, ['--rot' as string]: '-1deg' } as CSSProperties}
           >
             <img src="/icons/streak-flame.png" alt="" style={{ width: 84, height: 84, objectFit: 'contain', animation: 'kv-flame 1.6s ease-in-out infinite', filter: 'drop-shadow(0 10px 14px rgba(0,0,0,.4))' }} />

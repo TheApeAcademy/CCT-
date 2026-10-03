@@ -52,6 +52,7 @@ import StreakScreen from '../components/StreakScreen'
 import PrayerJournalPage from '../components/PrayerJournal'
 import ReadingPlanPage from '../components/ReadingPlan'
 import AchievementsPage from '../components/Achievements'
+import AvatarStudioPage from '../components/AvatarStudio'
 import { listMyPrayers, type Prayer } from '../lib/prayerJournal'
 import { getCountryForOffset } from '../content/prayerCountries'
 import BibleHelperPage from '../components/BibleHelper'
@@ -151,7 +152,7 @@ type Tab = KidsTab
 type Klass = ClassRow & { teacher_name: string; teacher_avatar: string | null }
 type AppKey = 'chat' | 'friends' | 'badges' | 'bank' | 'prayer' | 'diary' | 'calendar' | 'collection' | 'world' | 'buddy'
 /** The full-page kids' apps from the handoff, laid over the whole dashboard. */
-type KidsPageKey = 'characters' | 'helper' | 'prayer' | 'reading' | 'achievements'
+type KidsPageKey = 'characters' | 'helper' | 'prayer' | 'reading' | 'achievements' | 'avatar'
 const OpenPage = createContext<(page: KidsPageKey) => void>(() => {})
 type Go = (id: Tab) => (e?: ReactMouseEvent) => void
 
@@ -1037,6 +1038,8 @@ function Dashboard() {
       )}
 
       {page === 'reading' && <ReadingPlanPage onExit={closePage} />}
+
+      {page === 'avatar' && <AvatarStudioPage name={student?.full_name ?? ''} onExit={closePage} onSaved={load} />}
 
       {page === 'achievements' && <AchievementsPage achievements={achievements} points={student?.total_points ?? 0} heroTotal={characterCatalog.length} onExit={closePage} />}
 
@@ -3135,7 +3138,7 @@ function ProfileRoom({
   return (
     <>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,260px),1fr))', gap: 14, marginBottom: 18 }}>
-        {linkCard('Avatar Studio', 'Choose a new photo for your card.', 'linear-gradient(135deg,#d08af0,#8a1fb0)', SmilePlus, () => fileRef.current?.click())}
+        {linkCard('Avatar Studio', 'Choose your look, outfit and extras.', 'linear-gradient(135deg,#d08af0,#8a1fb0)', SmilePlus, () => openPage('avatar'))}
         {linkCard('Achievements', 'Your badges and your level.', 'linear-gradient(135deg,#ffd84d,#f0a400)', Trophy, () => openPage('achievements'))}
       </div>
       <div style={{ marginBottom: 18 }}>

@@ -50,7 +50,7 @@ import { BibleCharactersPage, CharacterRevealModal } from '../components/Charact
 import { lessonArt } from '../content/bibleBookArt'
 import StreakScreen from '../components/StreakScreen'
 import PrayerGlobe from '../components/PrayerGlobe'
-import BibleBuddyChat from '../components/BibleBuddy'
+import BibleHelperPage from '../components/BibleHelper'
 import {
   getMyStudentProfile,
   updateMyStudentProfile,
@@ -147,7 +147,7 @@ type Tab = KidsTab
 type Klass = ClassRow & { teacher_name: string; teacher_avatar: string | null }
 type AppKey = 'chat' | 'friends' | 'badges' | 'bank' | 'prayer' | 'diary' | 'calendar' | 'collection' | 'world' | 'buddy'
 /** The full-page kids' apps from the handoff, laid over the whole dashboard. */
-type KidsPageKey = 'characters'
+type KidsPageKey = 'characters' | 'helper'
 const OpenPage = createContext<(page: KidsPageKey) => void>(() => {})
 type Go = (id: Tab) => (e?: ReactMouseEvent) => void
 
@@ -1009,6 +1009,20 @@ function Dashboard() {
         />
       )}
 
+      {page === 'helper' && (
+        <BibleHelperPage
+          onExit={closePage}
+          onAskTeacher={() => {
+            setPage(null)
+            go('messages')()
+          }}
+          onEars={() => {
+            setPage(null)
+            go('ears')()
+          }}
+        />
+      )}
+
       {revealCharacter && (
         <CharacterRevealModal
           character={revealCharacter}
@@ -1083,6 +1097,7 @@ function HomeRoom({
   setApp: (k: AppKey | null) => void
   openApp: (k: AppKey) => void
 }) {
+  const openPage = useContext(OpenPage)
   const stat = (label: string, value: string, color: string) => (
     <div style={{ padding: 24, ...quietCard }}>
       <p style={{ ...eyebrow, letterSpacing: '.12em' }}>{label}</p>
@@ -1133,7 +1148,7 @@ function HomeRoom({
       fg: '#fff',
       rot: '1deg',
       art: <ExploreIcon icon={BookOpenText} />,
-      onClick: () => openApp('buddy'),
+      onClick: () => openPage('helper'),
     },
     {
       title: 'Prayer Journal',
@@ -1210,7 +1225,7 @@ function HomeRoom({
           </span>
           <ArrowRight style={{ position: 'relative', width: 18, height: 18, color: 'rgba(255,255,255,.75)', flexShrink: 0 }} />
         </button>
-        <Tablet app={app} setApp={setApp} klass={klass} achievements={achievements} go={go} />
+        <Tablet app={app} setApp={setApp} klass={klass} achievements={achievements} />
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
@@ -1321,13 +1336,11 @@ function Tablet({
   setApp,
   klass,
   achievements,
-  go,
 }: {
   app: AppKey | null
   setApp: (k: AppKey | null) => void
   klass: Klass | null
   achievements: EarnedAchievement[]
-  go: Go
 }) {
   const [wob, setWob] = useState<'l' | 'r' | null>(null)
   const nudge = (dir: 'l' | 'r') => {
@@ -1420,7 +1433,7 @@ function Tablet({
                   </button>
                   <p style={{ margin: 0, fontFamily: DISPLAY, fontWeight: 800, fontSize: 16, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</p>
                 </div>
-                <TabletApp app={app} klass={klass} achievements={achievements} go={go} onClose={() => setApp(null)} />
+                <TabletApp app={app} klass={klass} achievements={achievements} />
               </div>
             )}
             <div style={{ position: 'absolute', left: '50%', bottom: 5, width: 56, height: 4, transform: 'translateX(-50%)', borderRadius: 999, background: 'rgba(255,255,255,.6)', zIndex: 5 }} />
@@ -1502,14 +1515,10 @@ function TabletApp({
   app,
   klass,
   achievements,
-  go,
-  onClose,
 }: {
   app: AppKey
   klass: Klass | null
   achievements: EarnedAchievement[]
-  go: Go
-  onClose: () => void
 }) {
   const openPage = useContext(OpenPage)
   if (app === 'chat') {
@@ -1562,15 +1571,11 @@ function TabletApp({
     case 'world':
       return body(<PrayerGlobe />)
     case 'buddy':
-      return (
-        <div style={{ flex: 1, minHeight: 0 }}>
-          <BibleBuddyChat
-            onAskTeacher={() => {
-              onClose()
-              go('messages')()
-            }}
-          />
-        </div>
+      return body(
+        <>
+          <TabRow col="#a5b4fc" lead="?" t="Ask me anything about the Bible" s="Answers come with real verses" />
+          <TabLink onClick={() => openPage('helper')}>Chat with Bible Buddy</TabLink>
+        </>,
       )
     default:
       return null

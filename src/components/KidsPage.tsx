@@ -33,6 +33,12 @@ export default function KidsPage({
   onExit,
   children,
   overlay,
+  width = 1200,
+  celestial = true,
+  mainPadding = 'clamp(28px,4vw,48px) clamp(12px,2.5vw,28px) 100px',
+  starCount = 36,
+  page: pageKey,
+  mainBorderBox = false,
 }: {
   label: string
   glow: string
@@ -42,11 +48,21 @@ export default function KidsPage({
   children: ReactNode
   /** Modals and confetti, painted above the page. */
   overlay?: ReactNode
+  /** The header and main column width. */
+  width?: number
+  /** The moon by night and the sun and cloud by day. */
+  celestial?: boolean
+  mainPadding?: string
+  starCount?: number
+  /** Marks the page for its own token tweaks in kidspage.css. */
+  page?: string
+  /** Count the main padding inside its width, as some prototypes do. */
+  mainBorderBox?: boolean
 }) {
   const [sky, setSky] = useState<KidsSky>(loadKidsSky)
   const [stars] = useState(() => {
     const r = rng(starSeed)
-    return Array.from({ length: 36 }, () => ({ x: +(r() * 100).toFixed(1), y: +(r() * 100).toFixed(1), s: r() > 0.8 ? 3 : 2, d: +(1.6 + r() * 2.6).toFixed(2), dl: +(-r() * 3).toFixed(2) }))
+    return Array.from({ length: starCount }, () => ({ x: +(r() * 100).toFixed(1), y: +(r() * 100).toFixed(1), s: r() > 0.8 ? 3 : 2, d: +(1.6 + r() * 2.6).toFixed(2), dl: +(-r() * 3).toFixed(2) }))
   })
 
   // The page sits over the dashboard, which must not scroll underneath it.
@@ -69,6 +85,7 @@ export default function KidsPage({
     <div
       data-dc-screen="kidspage"
       data-sky={sky}
+      data-page={pageKey}
       aria-label={label}
       style={
         {
@@ -93,14 +110,18 @@ export default function KidsPage({
             <span style={{ display: 'block', width: '100%', height: '100%', borderRadius: '50%', background: '#fff', animation: `kp-twinkle ${st.d}s ease-in-out infinite`, animationDelay: `${st.dl}s` }} />
           </span>
         ))}
-        <div style={{ position: 'absolute', right: '3%', top: 74, width: 80, height: 80, borderRadius: '50%', background: '#fff6d8', boxShadow: 'inset -22px -8px 0 #e3d6a8,0 0 60px rgba(255,246,216,.45)', opacity: 'var(--moonop)', transition: 'opacity .6s', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', right: '3%', top: 74, width: 84, height: 84, borderRadius: '50%', background: 'radial-gradient(circle at 40% 40%,#ffe98a,#ffc93c)', boxShadow: '0 0 0 16px rgba(255,201,60,.22),0 0 80px rgba(255,201,60,.6)', opacity: 'var(--sunop)', transition: 'opacity .6s', pointerEvents: 'none' }} />
-        <div style={{ position: 'fixed', inset: 0, opacity: 'var(--sunop)', transition: 'opacity .6s', pointerEvents: 'none', overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', top: '30%', left: 0, width: 280, height: 80, borderRadius: '50%', background: '#fff', filter: 'blur(16px)', opacity: 0.85, animation: 'kp-drift 80s linear infinite' }} />
-        </div>
+        {celestial && (
+          <>
+            <div style={{ position: 'absolute', right: '3%', top: 74, width: 80, height: 80, borderRadius: '50%', background: '#fff6d8', boxShadow: 'inset -22px -8px 0 #e3d6a8,0 0 60px rgba(255,246,216,.45)', opacity: 'var(--moonop)', transition: 'opacity .6s', pointerEvents: 'none' }} />
+            <div style={{ position: 'absolute', right: '3%', top: 74, width: 84, height: 84, borderRadius: '50%', background: 'radial-gradient(circle at 40% 40%,#ffe98a,#ffc93c)', boxShadow: '0 0 0 16px rgba(255,201,60,.22),0 0 80px rgba(255,201,60,.6)', opacity: 'var(--sunop)', transition: 'opacity .6s', pointerEvents: 'none' }} />
+            <div style={{ position: 'fixed', inset: 0, opacity: 'var(--sunop)', transition: 'opacity .6s', pointerEvents: 'none', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', top: '30%', left: 0, width: 280, height: 80, borderRadius: '50%', background: '#fff', filter: 'blur(16px)', opacity: 0.85, animation: 'kp-drift 80s linear infinite' }} />
+            </div>
+          </>
+        )}
 
         <header style={{ position: 'sticky', top: 0, zIndex: 30, padding: '12px clamp(12px,2.5vw,28px)', background: 'var(--hdr)', backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)', borderBottom: '1px solid var(--hair)' }}>
-          <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ maxWidth: width, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
             <button
               type="button"
               className="kp-village"
@@ -128,7 +149,7 @@ export default function KidsPage({
           </div>
         </header>
 
-        <main style={{ position: 'relative', zIndex: 1, maxWidth: 1200, margin: '0 auto', padding: 'clamp(28px,4vw,48px) clamp(12px,2.5vw,28px) 100px' }}>{children}</main>
+        <main style={{ position: 'relative', zIndex: 1, maxWidth: width, margin: '0 auto', padding: mainPadding, ...(mainBorderBox ? { boxSizing: 'border-box', width: '100%' } : {}) }}>{children}</main>
       </div>
       {overlay}
     </div>

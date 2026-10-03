@@ -1,0 +1,126 @@
+/* Parent pages (/parent) - Claude Design handoff: Parent Portal, Progress
+   Report, Take-Home Sunday and Church Calendar. The portal and the report are
+   light only, as designed; Take-Home Sunday and the calendar follow the site's
+   light/dark choice through data-sky. */
+[data-dc-screen='parent'] {
+  --bg: #f6f3fb;
+  --card: #ffffff;
+  --hair: rgba(22, 11, 42, 0.09);
+  --hair2: rgba(22, 11, 42, 0.14);
+  --ink: #160b2a;
+  --body: rgba(22, 11, 42, 0.78);
+  --muted: rgba(22, 11, 42, 0.56);
+  --faint: rgba(22, 11, 42, 0.36);
+  --hdr: rgba(246, 243, 251, 0.86);
+  --track: rgba(22, 11, 42, 0.06);
+  --today: rgba(193, 59, 255, 0.1);
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+[data-dc-screen='parent'][data-sky='night'] {
+  --bg: #0d0618;
+  --card: #170d2b;
+  --hair: rgba(255, 255, 255, 0.09);
+  --hair2: rgba(255, 255, 255, 0.14);
+  --ink: #ffffff;
+  --body: rgba(236, 230, 250, 0.82);
+  --muted: rgba(236, 230, 250, 0.6);
+  --faint: rgba(236, 230, 250, 0.36);
+  --hdr: rgba(13, 6, 24, 0.86);
+  --track: rgba(255, 255, 255, 0.07);
+  --today: rgba(193, 59, 255, 0.2);
+}
+[data-dc-screen='parent'] [style]:not(input, textarea, button, select) {
+  box-sizing: content-box;
+}
+[data-dc-screen='parent'] a {
+  color: #8a1fb0;
+  text-decoration: none;
+}
+[data-dc-screen='parent'] a:hover {
+  color: #c13bff;
+}
+[data-dc-screen='parent'] input::placeholder {
+  color: rgba(22, 11, 42, 0.38);
+}
+[data-dc-screen='parent'] svg {
+  display: inline-block;
+}
+
+.pp-kid {
+  transition:
+    transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.3s;
+}
+.pp-kid:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 30px 50px -28px rgba(60, 30, 110, 0.5) !important;
+}
+.pp-field:focus {
+  border-color: #8a1fb0 !important;
+}
+.pp-ghost:hover {
+  background: var(--track) !important;
+}
+[data-dc-screen='parent'] .pp-navlink {
+  color: rgba(22, 11, 42, 0.55);
+}
+[data-dc-screen='parent'] .pp-navlink:hover {
+  color: #160b2a;
+}
+
+@keyframes pp-up {
+  0% {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes pp-up14 {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes pp-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@keyframes pp-rise {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@media print {
+  .pp-noprint {
+    display: none !important;
+  }
+  [data-dc-screen='parent'][data-page='report'] {
+    background: #fff !important;
+    padding: 0 !important;
+  }
+  [data-dc-screen='parent'] article {
+    box-shadow: none !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-dc-screen='parent'] * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
